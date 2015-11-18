@@ -5,7 +5,7 @@
                 {{template toolbarTemplate}}
             {{else}}
                 {{#if model.Search}}
-                    <div class="input-group tp-table-searchbox">
+                    <div class="input-group gridponent-searchbox">
                         <input type="text" name="Search" class="form-control" placeholder="Search...">
                         <span class="input-group-btn">
                             <button class="btn btn-default" type="button">
@@ -26,11 +26,11 @@
     </div>
     {{/if}}
     <div class="table-body {{#if model.FixedHeaders}}table-scroll{{/if}}" style="{{model.Style}}">
-        {{template "tp-table-body"}}
+        {{template "gridponent-body"}}
     </div>
     {{#if model.Paging}}
         <div class="table-pager">
-            {{template "tp-table-pager"}}
+            {{template "gridponent-pager"}}
         </div>
     {{/if}}
     <style type="text/css">

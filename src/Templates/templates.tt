@@ -13,15 +13,15 @@ string path = "";
 
 if (Directory.Exists(@"C:\Users\kitntodd"))
 {
-    path = @"C:\Users\kitntodd\OneDrive\Documents\Code\Projects\tp-table\src\Templates";
+    path = @"C:\Users\kitntodd\OneDrive\Documents\Code\Projects\gridponent\src\Templates";
 }
 else if (Directory.Exists(@"C:\Users\tpiltingsrud"))
 {
-    path = @"C:\Users\tpiltingsrud\OneDrive\Documents\Code\Projects\tp-table\src\Templates";
+    path = @"C:\Users\tpiltingsrud\OneDrive\Documents\Code\Projects\gridponent\src\Templates";
 }
 else
 {
-    path = @"C:\Users\todd\OneDrive\Documents\Code\Projects\tp-table\src\Templates";
+    path = @"C:\Users\todd\OneDrive\Documents\Code\Projects\gridponent\src\Templates";
 }
 
 var files = new DirectoryInfo(path).GetFiles("*.handlebars", SearchOption.TopDirectoryOnly);

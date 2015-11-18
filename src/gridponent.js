@@ -1,5 +1,5 @@
 ﻿/***************\
-    tp-table
+    gridponent
 \***************/
 
 tp.Table = Object.create(tp.ComponentBase);
@@ -127,7 +127,7 @@ tp.Table.beginMonitor = function () {
 
 tp.Table.render = function (model) {
     try {
-        this.innerHTML = tp.templates['tp-table'](model);
+        this.innerHTML = tp.templates['gridponent'](model);
     }
     catch (ex) {
         console.log(ex.message);
@@ -162,7 +162,7 @@ tp.Table.syncColumnWidths = function (element) {
 
 tp.Table.refresh = function (config) {
     var rowsTemplate = tp.helpers['tableRows'];
-    var pagerTemplate = tp.templates['tp-table-pager'];
+    var pagerTemplate = tp.templates['gridponent-pager'];
     var html = rowsTemplate.call(config);
     this.querySelector('.table-body > table > tbody').innerHTML = html;
     html = pagerTemplate(config);
@@ -211,7 +211,7 @@ tp.Table.addCommandHandlers = function () {
 
 tp.Table.editRow = function (row, tr) {
     try {
-        var template = tp.templates['tp-table-edit-cells'];
+        var template = tp.templates['gridponent-edit-cells'];
         var html = template(this.config);
         tr.innerHTML = html;
         tr['tp-change-monitor'] = new tp.ChangeMonitor(tr, '[name]', row, function () { });
@@ -230,7 +230,7 @@ tp.Table.updateRow = function (row, tr) {
         var monitor;
         h.post(url, row, function (response) {
             // put the cells back
-            var template = tp.templates['tp-table-cells'];
+            var template = tp.templates['gridponent-cells'];
             var html = template(self.config);
             tr.innerHTML = html;
             // dispose of the ChangeMonitor
@@ -249,7 +249,7 @@ tp.Table.updateRow = function (row, tr) {
 
 tp.Table.cancelEdit = function (row, tr) {
     try {
-        var template = tp.templates['tp-table-cells'];
+        var template = tp.templates['gridponent-cells'];
         var html = template(this.config);
         tr.innerHTML = html;
     }
@@ -281,6 +281,6 @@ tp.Table.deleteRow = function (row, tr) {
     }
 };
 
-document.registerElement('tp-table', {
+document.registerElement('grid-ponent', {
     prototype: tp.Table
 });

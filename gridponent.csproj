@@ -45,27 +45,27 @@
     <Content Include="src\component-base.js" />
     <Content Include="src\globals.js" />
     <Content Include="src\paging-model.js" />
-    <Content Include="src\table.tt">
+    <Content Include="src\gridponent.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>table1.js</LastGenOutput>
+      <LastGenOutput>gridponent1.js</LastGenOutput>
     </Content>
-    <Content Include="src\table1.js">
+    <Content Include="src\gridponent1.js">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
-      <DependentUpon>table.tt</DependentUpon>
+      <DependentUpon>gridponent.tt</DependentUpon>
     </Content>
     <Content Include="src\templates.js" />
     <Content Include="src\templates.min.js">
       <DependentUpon>templates.js</DependentUpon>
     </Content>
-    <Content Include="src\tp-table.css">
-      <DependentUpon>tp-table.less</DependentUpon>
+    <Content Include="src\gridponent.css">
+      <DependentUpon>gridponent.less</DependentUpon>
     </Content>
-    <Content Include="src\tp-table.js" />
-    <None Include="src\tp-table.css.map">
-      <DependentUpon>tp-table.css</DependentUpon>
+    <Content Include="src\gridponent.js" />
+    <None Include="src\gridponent.css.map">
+      <DependentUpon>gridponent.css</DependentUpon>
     </None>
-    <None Include="src\tp-table.less" />
+    <None Include="src\gridponent.less" />
     <Content Include="src\Templates\templates.js">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -75,33 +75,29 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>templates.js</LastGenOutput>
     </Content>
-    <Content Include="src\tp-table-helpers.js" />
+    <Content Include="src\gridponent-helpers.js" />
     <Content Include="spec\Tests.html" />
     <Content Include="spec\tests.js" />
     <Content Include="src\http.js" />
     <Content Include="scripts\webcomponents.min.js" />
-    <Content Include="src\tp-table.min.css">
-      <DependentUpon>tp-table.css</DependentUpon>
+    <Content Include="src\gridponent.min.css">
+      <DependentUpon>gridponent.css</DependentUpon>
     </Content>
-    <Content Include="table.js" />
-    <Content Include="table.min.js" />
     <Content Include="TODO.txt" />
+    <None Include="src\templates.min.js.map">
+      <DependentUpon>templates.min.js</DependentUpon>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Content Include="data\Products.js" />
-    <None Include="compilerconfig.json" />
-    <None Include="compilerconfig.json.defaults">
-      <DependentUpon>compilerconfig.json</DependentUpon>
-    </None>
     <None Include="data\stops.json" />
     <None Include="scripts\gryst.min.js.map" />
-    <None Include="src\Templates\tp-table-body.handlebars" />
-    <None Include="src\Templates\tp-table-cells.handlebars" />
-    <None Include="src\Templates\tp-table-commands.handlebars" />
-    <None Include="src\Templates\tp-table-edit-cells.handlebars" />
-    <None Include="src\Templates\tp-table-pager.handlebars" />
-    <Content Include="src\Templates\tp-table-rows.handlebars.txt" />
-    <None Include="src\Templates\tp-table.handlebars" />
+    <None Include="src\Templates\gridponent-body.handlebars" />
+    <None Include="src\Templates\gridponent-cells.handlebars" />
+    <None Include="src\Templates\gridponent-commands.handlebars" />
+    <None Include="src\Templates\gridponent-edit-cells.handlebars" />
+    <None Include="src\Templates\gridponent-pager.handlebars" />
+    <None Include="src\Templates\gridponent.handlebars" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />

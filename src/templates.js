@@ -2,7 +2,7 @@
 
 var tp = tp || {};
 tp.templates = tp.templates || {};
-tp.templates['tp-table-body'] = function (model, arg) {
+tp.templates['gridponent-body'] = function (model, arg) {
     var out = [];
     out.push('<table class="table');
     if (model.Responsive) {
@@ -15,7 +15,7 @@ tp.templates['tp-table-body'] = function (model, arg) {
         out.push(tp.helpers['thead'].call(model));
     }
     out.push('<tbody>');
-    out.push(tp.templates['tp-table-rows'](model));
+    out.push(tp.templates['gridponent-rows'](model));
     out.push('</tbody>');
     if (model.Footer) {
         out.push('<tfoot>');
@@ -31,11 +31,11 @@ tp.templates['tp-table-body'] = function (model, arg) {
     out.push('</table>');
     return out.join('');
 };
-tp.templates['tp-table-cells'] = function (model, arg) {
+tp.templates['gridponent-cells'] = function (model, arg) {
     var out = [];
     model.Columns.forEach(function (col, index) {
         if (col.Commands) {
-            out.push(tp.templates['tp-table-commands'](model, col));
+            out.push(tp.templates['gridponent-commands'](model, col));
         } else {
             if (model.Responsive) {
                 out.push('<td class="clearfix"></td>');
@@ -46,7 +46,7 @@ tp.templates['tp-table-cells'] = function (model, arg) {
     });
     return out.join('');
 };
-tp.templates['tp-table-commands'] = function (model, arg) {
+tp.templates['gridponent-commands'] = function (model, arg) {
     var out = [];
     out.push('<td class="commands-cell" colspan="2">');
     out.push('<div class="btn-group" role="group">');
@@ -72,7 +72,7 @@ tp.templates['tp-table-commands'] = function (model, arg) {
     out.push('</td>');
     return out.join('');
 };
-tp.templates['tp-table-edit-cells'] = function (model, arg) {
+tp.templates['gridponent-edit-cells'] = function (model, arg) {
     var out = [];
     model.Columns.forEach(function (col, index) {
         if (col.Commands) {
@@ -96,7 +96,7 @@ tp.templates['tp-table-edit-cells'] = function (model, arg) {
     });
     return out.join('');
 };
-tp.templates['tp-table-pager'] = function (model, arg) {
+tp.templates['gridponent-pager'] = function (model, arg) {
     var out = [];
     out.push(tp.helpers['setPagerFlags'].call(model));
     if (model.HasPages) {
@@ -145,18 +145,18 @@ tp.templates['tp-table-pager'] = function (model, arg) {
     }
     return out.join('');
 };
-tp.templates['tp-table-rows'] = function (model, arg) {
+tp.templates['gridponent-rows'] = function (model, arg) {
     var out = [];
     model.data.Data.forEach(function (row, index) {
         out.push('    <tr data-index="');
         out.push(index);
         out.push('">');
-        out.push(tp.templates['tp-table-cells'](model, row));
+        out.push(tp.templates['gridponent-cells'](model, row));
         out.push('</tr>');
     });
     return out.join('');
 };
-tp.templates['tp-table'] = function (model, arg) {
+tp.templates['gridponent'] = function (model, arg) {
     var out = [];
     out.push('<div class="table-container" id="');
     out.push('{{uid}}');
@@ -167,7 +167,7 @@ tp.templates['tp-table'] = function (model, arg) {
             out.push(tp.templates['toolbarTemplate'](model));
         } else {
             if (model.Search) {
-                out.push('<div class="input-group tp-table-searchbox">');
+                out.push('<div class="input-group gridponent-searchbox">');
                 out.push('<input type="text" name="Search" class="form-control" placeholder="Search...">');
                 out.push('<span class="input-group-btn">');
                 out.push('<button class="btn btn-default" type="button">');
@@ -198,7 +198,7 @@ tp.templates['tp-table'] = function (model, arg) {
     out.push('" style="');
     out.push('{{model.Style}}');
     out.push('">');
-    out.push(tp.templates['tp-table-body'](model));
+    out.push(tp.templates['gridponent-body'](model));
     out.push('</div>');
     if (model.Paging) {
         out.push('<div class="table-pager">');

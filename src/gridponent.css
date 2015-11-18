@@ -57,7 +57,7 @@ td.commands-cell {
 .table-header th.boolean {
   text-align: center;
 }
-.tp-table-searchbox {
+.gridponent-searchbox {
   max-width: 220px;
 }
 .table-responsive > div {
@@ -70,4 +70,4 @@ td.commands-cell {
 .table-header {
   border-bottom: solid 1px #ddd;
 }
-/*# sourceMappingURL=tp-table.css.map */
+/*# sourceMappingURL=gridponent.css.map */

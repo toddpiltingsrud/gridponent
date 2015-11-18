@@ -1,6 +1,6 @@
 ﻿{{#each model.Columns as |col|}}
     {{#if col.Commands}}
-        {{template "tp-table-commands" col}}
+        {{template "gridponent-commands" col}}
     {{else}}
         {{helper bodyCell col}}
     {{/if}}

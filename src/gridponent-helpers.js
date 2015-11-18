@@ -91,7 +91,7 @@
             out.push('    <tr data-index="');
             out.push(index);
             out.push('">');
-            out.push(tp.templates['tp-table-cells'](self));
+            out.push(tp.templates['gridponent-cells'](self));
             out.push('</tr>');
         });
         return out.join('');

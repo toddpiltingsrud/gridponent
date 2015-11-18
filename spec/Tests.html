@@ -5,11 +5,11 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>tp-table tests</title>
+    <title>gridponent tests</title>
     <link href="https://code.jquery.com/qunit/qunit-1.20.0.css" rel="stylesheet" />
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
     <link href="styles.css" rel="stylesheet">
-    <link href="../src/tp-table.css" rel="stylesheet">
+    <link href="../src/gridponent.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
     <script src="https://code.jquery.com/qunit/qunit-1.20.0.js"></script>
     <script src="../data/products.js"></script>
@@ -23,8 +23,8 @@
     <script src="../src/pagers.js"></script>
     <script src="../src/paging-model.js"></script>
     <script src="../src/templates/templates.js"></script>
-    <script src="../src/tp-table.js"></script>
-    <script src="../src/tp-table-helpers.js"></script>
+    <script src="../src/gridponent.js"></script>
+    <script src="../src/gridponent-helpers.js"></script>
     <script>
     var fns = fns || {};
 
@@ -71,7 +71,7 @@
             </div>
             <div class="navbar-collapse collapse" data-jaxpanel="navbar">
                 <ul class="nav navbar-nav">
-                    <li><a href="#table">tp-table</a></li>
+                    <li><a href="#table">gridponent</a></li>
                     <li><a href="#tests">tests</a></li>
                 </ul>
             </div>
@@ -93,7 +93,7 @@
             <h3>table</h3>
             <div class="box-border dark">
                 <div class="box dark">
-                    <tp-table paging="true" sorting="true" fixed-headers="true"
+                    <grid-ponent paging="true" sorting="true" fixed-headers="true"
                               style="width:100%;height:400px" responsive="true"
                               search="true"
                               oncreated="fns.getData"
@@ -106,7 +106,7 @@
                         <tp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, yyyy"></tp-column>
                         <tp-column field="Markup" header="Marked-Up Name"></tp-column>
                         <tp-column commands="Edit,Delete"></tp-column>
-                    </tp-table>
+                    </grid-ponent>
                 </div>
             </div>
         </div>
