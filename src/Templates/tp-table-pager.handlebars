@@ -1,0 +1,24 @@
+﻿{{helper setPagerFlags}}
+{{#if model.data.HasPages}}
+    <label class="ms-page-index btn btn-default {{#if model.data.IsFirstPage}} disabled {{/if}}" title="First page">
+        <span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>
+        <input type="radio" name="Page" value="1" />
+    </label>
+
+    <label class="ms-page-index btn btn-default {{#if model.data.IsFirstPage}} disabled {{/if}}" title="Previous page">
+        <span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>
+        <input type="radio" name="Page" value="{{model.data.PreviousPage}}" />
+    </label>
+
+    <input type="number" name="Page" value="{{model.data.Page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" /> of {{model.data.PageCount}}
+
+    <label class="ms-page-index btn btn-default {{#if model.data.IsLastPage}} disabled {{/if}}" title="Next page">
+        <span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>
+        <input type="radio" name="Page" value="{{model.data.NextPage}}" />
+    </label>
+
+    <label class="ms-page-index btn btn-default {{#if model.data.IsLastPage}} disabled {{/if}}" title="Last page">
+        <span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>
+        <input type="radio" name="Page" value="{{model.data.PageCount}}" />
+    </label>
+{{/if}}

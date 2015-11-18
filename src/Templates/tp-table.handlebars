@@ -1,0 +1,39 @@
+﻿<div class="table-container{{#if model.Responsive}} table-responsive{{/if}}{{#if model.FixedHeaders}} fixed-headers{{/if}}" id="{{model.ID}}">
+    {{#if model.Search || model.ToolbarTemplate}}
+        <div class="table-toolbar">
+            {{#if model.ToolbarTemplate}}
+                {{template toolbarTemplate}}
+            {{else}}
+                {{#if model.Search}}
+                    <div class="input-group tp-table-searchbox">
+                        <input type="text" name="Search" class="form-control" placeholder="Search...">
+                        <span class="input-group-btn">
+                            <button class="btn btn-default" type="button">
+                                <span class="glyphicon glyphicon-search"></span>
+                            </button>
+                        </span>
+                    </div>
+                {{/if}}
+            {{/if}}
+        </div>
+    {{/if}}
+    {{#if model.FixedHeaders}}
+    <div class="table-header">
+        <table class="table" cellpadding="0" cellspacing="0" style="margin-bottom:0">
+            {{helper colgroup}}
+            {{helper thead}}
+        </table>
+    </div>
+    {{/if}}
+    <div class="table-body {{#if model.FixedHeaders}}table-scroll{{/if}}" style="{{model.Style}}">
+        {{template "tp-table-body"}}
+    </div>
+    {{#if model.Paging}}
+        <div class="table-pager">
+            {{template "tp-table-pager"}}
+        </div>
+    {{/if}}
+    <style type="text/css">
+        {{helper sortStyle}}
+    </style>
+</div>

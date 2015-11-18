@@ -1,0 +1,7 @@
+﻿{{#each model.Columns as |col|}}
+    {{#if col.Commands}}
+        {{template "tp-table-commands" col}}
+    {{else}}
+        {{helper bodyCell col}}
+    {{/if}}
+{{/each}}

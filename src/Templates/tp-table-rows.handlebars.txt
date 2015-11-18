@@ -1,0 +1,5 @@
+﻿{{#each model.data.Data as |row|}}
+    <tr data-index="{{@index}}">
+        {{helper tableCells row}}
+    </tr>
+{{/each}}

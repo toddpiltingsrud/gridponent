@@ -1,0 +1,113 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <ProjectGuid>{47677DC5-63A3-461A-8F53-23CD14AB6036}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <NoStandardLibraries>false</NoStandardLibraries>
+    <AssemblyName>ConsoleApplication</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RootNamespace>tp_table</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="scripts\dates.js" />
+    <Content Include="scripts\gryst.js" />
+    <Content Include="scripts\gryst.min.js" />
+    <Content Include="spec\Styles.css" />
+    <Content Include="src\html-parser.js.txt" />
+    <Content Include="src\mock-http.js" />
+    <Content Include="src\pagers.js" />
+    <Content Include="src\change-monitor.js" />
+    <Content Include="src\component-base.js" />
+    <Content Include="src\globals.js" />
+    <Content Include="src\paging-model.js" />
+    <Content Include="src\table.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>table1.js</LastGenOutput>
+    </Content>
+    <Content Include="src\table1.js">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>table.tt</DependentUpon>
+    </Content>
+    <Content Include="src\templates.js" />
+    <Content Include="src\templates.min.js">
+      <DependentUpon>templates.js</DependentUpon>
+    </Content>
+    <Content Include="src\tp-table.css">
+      <DependentUpon>tp-table.less</DependentUpon>
+    </Content>
+    <Content Include="src\tp-table.js" />
+    <None Include="src\tp-table.css.map">
+      <DependentUpon>tp-table.css</DependentUpon>
+    </None>
+    <None Include="src\tp-table.less" />
+    <Content Include="src\Templates\templates.js">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>templates.tt</DependentUpon>
+    </Content>
+    <Content Include="src\Templates\templates.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>templates.js</LastGenOutput>
+    </Content>
+    <Content Include="src\tp-table-helpers.js" />
+    <Content Include="spec\Tests.html" />
+    <Content Include="spec\tests.js" />
+    <Content Include="src\http.js" />
+    <Content Include="scripts\webcomponents.min.js" />
+    <Content Include="src\tp-table.min.css">
+      <DependentUpon>tp-table.css</DependentUpon>
+    </Content>
+    <Content Include="table.js" />
+    <Content Include="table.min.js" />
+    <Content Include="TODO.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="data\Products.js" />
+    <None Include="compilerconfig.json" />
+    <None Include="compilerconfig.json.defaults">
+      <DependentUpon>compilerconfig.json</DependentUpon>
+    </None>
+    <None Include="data\stops.json" />
+    <None Include="scripts\gryst.min.js.map" />
+    <None Include="src\Templates\tp-table-body.handlebars" />
+    <None Include="src\Templates\tp-table-cells.handlebars" />
+    <None Include="src\Templates\tp-table-commands.handlebars" />
+    <None Include="src\Templates\tp-table-edit-cells.handlebars" />
+    <None Include="src\Templates\tp-table-pager.handlebars" />
+    <Content Include="src\Templates\tp-table-rows.handlebars.txt" />
+    <None Include="src\Templates\tp-table.handlebars" />
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSHARP.Targets" />
+  <ProjectExtensions>
+    <VisualStudio AllowExistingFolder="true" />
+  </ProjectExtensions>
+</Project>

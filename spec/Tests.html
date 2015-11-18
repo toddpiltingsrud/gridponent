@@ -1,0 +1,148 @@
+﻿<!DOCTYPE html>
+<html class=" js ">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tp-table tests</title>
+    <link href="https://code.jquery.com/qunit/qunit-1.20.0.css" rel="stylesheet" />
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
+    <link href="styles.css" rel="stylesheet">
+    <link href="../src/tp-table.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+    <script src="https://code.jquery.com/qunit/qunit-1.20.0.js"></script>
+    <script src="../data/products.js"></script>
+    <script src="tests.js"></script>
+    <script src="../scripts/webcomponents.min.js"></script>
+    <script src="../scripts/gryst.min.js"></script>
+    <script src="../src/change-monitor.js"></script>
+    <script src="../src/component-base.js"></script>
+    <script src="../src/globals.js"></script>
+    <script src="../src/mock-http.js"></script>
+    <script src="../src/pagers.js"></script>
+    <script src="../src/paging-model.js"></script>
+    <script src="../src/templates/templates.js"></script>
+    <script src="../src/tp-table.js"></script>
+    <script src="../src/tp-table-helpers.js"></script>
+    <script>
+    var fns = fns || {};
+
+    fns.getData = function () {
+        var model = new tp.PagingModel(tp.products);
+        return model;
+    };
+
+    fns.getName = function (row) {
+        return row.Name;
+    };
+
+    fns.dropdown = function (row, column) {
+        var val = row[column.Field];
+        var data = fns.getData().Data;
+        var out = [];
+        out.push('<select name="MakeFlag" class="form-control">');
+        data.forEach(function (r) {
+            if (val == r[column.Field]) {
+                out.push('<option value="' + r[column.Field] + '" selected="selected">' + r.Name + '</option>');
+            }
+            else {
+                out.push('<option value="' + r[column.Field] + '">' + r.Name + '</option>');
+            }
+        });
+        out.push('</select>');
+        return out.join('');
+    };
+
+    fns.averageCost = function (column) {
+        return gryst.agg.avg(this.data.Data, column.Field);
+    };
+    </script>
+</head>
+<body>
+    <div class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+            </div>
+            <div class="navbar-collapse collapse" data-jaxpanel="navbar">
+                <ul class="nav navbar-nav">
+                    <li><a href="#table">tp-table</a></li>
+                    <li><a href="#tests">tests</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid" id="top-container">
+
+        <div class="tab" id="tests">
+            <h3>tests</h3>
+            <div class="box-border dark">
+                <div class="box dark">
+                    <div id="qunit"></div>
+                    <div id="qunit-fixture"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab" id="table">
+            <h3>table</h3>
+            <div class="box-border dark">
+                <div class="box dark">
+                    <tp-table paging="true" sorting="true" fixed-headers="true"
+                              style="width:100%;height:400px" responsive="true"
+                              search="true"
+                              oncreated="fns.getData"
+                              update="/Products/Update"
+                              destroy="/Products/Destroy">
+                        <tp-column field="ProductID" header="ID" template="fns.getName" edit-template="fns.dropdown"></tp-column>
+                        <tp-column field="MakeFlag" header="Make"></tp-column>
+                        <tp-column field="SafetyStockLevel" header="Safety Stock Level"></tp-column>
+                        <tp-column field="StandardCost" header="Standard Cost" footer-template="fns.averageCost"></tp-column>
+                        <tp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, yyyy"></tp-column>
+                        <tp-column field="Markup" header="Marked-Up Name"></tp-column>
+                        <tp-column commands="Edit,Delete"></tp-column>
+                    </tp-table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="background"></div>
+
+    <script>
+        (function () {
+            var tabs = document.getElementsByClassName('tab');
+
+            var swapTabs = function () {
+                if (window.location.hash) {
+                    var tabId = window.location.hash.substring(1);
+                    for (var i = 0; i < tabs.length; i++) {
+                        if (tabs[i].id === tabId) {
+                            tabs[i].style.display = 'block';
+                        }
+                        else {
+                            tabs[i].style.display = 'none';
+                        }
+                    }
+                }
+            };
+
+            window.addEventListener('hashchange', swapTabs);
+
+            if (!window.location.hash) {
+                window.location.hash = '#tests';
+            }
+            else {
+                swapTabs();
+            }
+        })();
+    </script>
+
+</body>
+</html>

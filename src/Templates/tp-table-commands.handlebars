@@ -1,0 +1,16 @@
+﻿<td class="commands-cell" colspan="2">
+    <div class="btn-group" role="group">
+        {{#each arg.Commands as |cmd|}}
+            {{#if cmd == 'Edit'}}
+                <button type="button" class="btn btn-primary btn-xs" value="{{cmd}}">
+                    <span class="glyphicon glyphicon-edit"></span>{{cmd}}
+                </button>
+            {{/if}}
+            {{#if cmd == 'Delete'}}
+                <button type="button" class="btn btn-danger btn-xs" value="{{cmd}}">
+                    <span class="glyphicon glyphicon-remove"></span>{{cmd}}
+                </button>
+            {{/if}}
+        {{/each}}
+    </div>
+</td>
