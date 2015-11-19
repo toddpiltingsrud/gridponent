@@ -6,8 +6,7 @@
 <#@ import namespace="System.Collections.Generic" #>
 <#@ import namespace="System.Text.RegularExpressions" #>
 <#@ output extension=".js" #>
-var tp = tp || {};
-tp.templates = tp.templates || {};
+gp.templates = gp.templates || {};
 <#
 string path = "";
 
@@ -29,7 +28,7 @@ foreach (var file in files)
 {
     var lines = File.ReadAllLines(file.FullName);
 #>
-tp.templates['<#= file.Name.Replace(file.Extension, "") #>'] = function(model, arg) {
+gp.templates['<#= file.Name.Replace(file.Extension, "") #>'] = function(model, arg) {
     var out = [];
 <#
 try
@@ -160,7 +159,7 @@ private string TemplateCall(string token)
 		args = ", " + String.Join(", ", split.Skip(2).ToArray());
 	}
 
-    return "out.push(tp.templates['" + templateName + "'](model" + args + "));\r\n";
+    return "out.push(gp.templates['" + templateName + "'](model" + args + "));\r\n";
 }
 
 private string HelperCall(string token)
@@ -172,7 +171,7 @@ private string HelperCall(string token)
 		args = ", " + String.Join(", ", split.Skip(2).ToArray());
 	}
 
-    return "out.push(tp.helpers['" + helperName + "'].call(model" + args + "));\r\n";
+    return "out.push(gp.helpers['" + helperName + "'].call(model" + args + "));\r\n";
 }
 
 public string Slice(string source, int start, int end)

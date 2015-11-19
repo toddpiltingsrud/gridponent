@@ -4,10 +4,10 @@
 
 (function () {
 
-    tp.helpers = {};
+    gp.helpers = {};
 
     var extend = function (name, func) {
-        tp.helpers[name] = func;
+        gp.helpers[name] = func;
     };
 
     extend('toolbarTemplate', function () {
@@ -15,7 +15,7 @@
 
         if (this.ToolbarTemplate) {
             // it's either a selector or a function name
-            template = tp.resolveObjectPath(this.ToolbarTemplate);
+            template = gp.resolveObjectPath(this.ToolbarTemplate);
             if (typeof (template) === 'function') {
                 out.push(template(this));
             }
@@ -57,10 +57,10 @@
         out.push('<thead>');
         out.push('<tr>');
         this.Columns.forEach(function (col) {
-            var sort = tp.escapeHTML(col.Sort || col.Field);
+            var sort = gp.escapeHTML(col.Sort || col.Field);
             var type = (col.Type || '').toLowerCase();
             out.push('<th class="' + type + ' ' + sort + '">');
-            if (tp.hasValue(col.Commands) === false && sort) {
+            if (gp.hasValue(col.Commands) === false && sort) {
                 out.push('<label class="table-sort">')
                 out.push('<input type="checkbox" name="OrderBy" value="' + sort + '" />')
                 out.push(sort);
@@ -77,7 +77,7 @@
     });
 
     extend('template', function (name, arg) {
-        var template = tp.templates[name];
+        var template = gp.templates[name];
         if (template) {
             return template(this, arg);
         }
@@ -91,7 +91,7 @@
             out.push('    <tr data-index="');
             out.push(index);
             out.push('">');
-            out.push(tp.templates['gridponent-cells'](self));
+            out.push(gp.templates['gridponent-cells'](self));
             out.push('</tr>');
         });
         return out.join('');
@@ -106,7 +106,7 @@
         // check for a template
         if (this.Template) {
             // it's either a selector or a function name
-            template = tp.resolveObjectPath(col.Template);
+            template = gp.resolveObjectPath(col.Template);
             if (typeof (template) === 'function') {
                 out.push(template.call(this, this.Row, col));
             }
@@ -117,7 +117,7 @@
                 }
             }
         }
-        else if (tp.hasValue(val)) {
+        else if (gp.hasValue(val)) {
             // show a checkmark for bools
             if (type === 'boolean') {
                 if (val === true) {
@@ -127,10 +127,10 @@
             else if (type === 'date') {
                 // apply formatting to dates
                 format = col.Format || 'M/d/yyyy';
-                out.push(tp.formatDate(val, format));
+                out.push(gp.formatDate(val, format));
             }
             else {
-                out.push(tp.escapeHTML(val));
+                out.push(gp.escapeHTML(val));
             }
         }
         out.push('</td>');
@@ -147,7 +147,7 @@
         // check for a template
         if (col.EditTemplate) {
             // it's either a selector or a function name
-            template = tp.resolveObjectPath(col.EditTemplate);
+            template = gp.resolveObjectPath(col.EditTemplate);
             if (typeof (template) === 'function') {
                 out.push(template.call(this, this.Row, col));
             }
@@ -161,15 +161,15 @@
         else {
             if (col.Type === 'date') {
                 // use the required format for the date input element
-                val = tp.formatDate(val, 'yyyy-MM-dd');
+                val = gp.formatDate(val, 'yyyy-MM-dd');
             }
             out.push('<input class="form-control" name="' + col.Field + '" type="');
             switch (col.Type) {
                 case 'date':
-                    out.push('date" value="' + tp.escapeHTML(val) + '" />');
+                    out.push('date" value="' + gp.escapeHTML(val) + '" />');
                     break;
                 case 'number':
-                    out.push('number" value="' + tp.escapeHTML(val) + '" />');
+                    out.push('number" value="' + gp.escapeHTML(val) + '" />');
                     break;
                 case 'boolean':
                     out.push('checkbox" value="true"');
@@ -179,7 +179,7 @@
                     out.push(' />');
                     break;
                 default:
-                    out.push('text" value="' + tp.escapeHTML(val) + '" />');
+                    out.push('text" value="' + gp.escapeHTML(val) + '" />');
                     break;
             };
         }
@@ -206,7 +206,7 @@
     extend('sortStyle', function () {
         var out = [];
         console.log(this);
-        if (tp.isNullOrEmpty(this.data.OrderBy) === false) {
+        if (gp.isNullOrEmpty(this.data.OrderBy) === false) {
             out.push('#' + this.ID + ' > .table-header > table > thead th.' + this.data.OrderBy + '> label:after');
             out.push('{ content: ');
             if (this.data.Desc) {

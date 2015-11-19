@@ -1,7 +1,7 @@
 ﻿/***************\
   paging model  
 \***************/
-tp.PagingModel = function (data) {
+gp.PagingModel = function (data) {
     var self = this;
     this.Top = 25;
     this.PageIndex = 0;

@@ -6,7 +6,8 @@
 <#@ import namespace="System.Collections.Generic" #>
 <#@ import namespace="System.Text.RegularExpressions" #>
 <#@ output extension=".js" #>
-var tp = tp || {};
+var gridponent = gridponent || {};
+(function(gp) { 
 <#
 var path = "";
 
@@ -24,15 +25,18 @@ else
 }
 
 
-var files = new DirectoryInfo(path).GetFiles("*.js", SearchOption.TopDirectoryOnly);
+var files = new DirectoryInfo(path).GetFiles("*.js", SearchOption.AllDirectories);
 foreach (var file in files)
 {
-	if (file.Name != "table.js" && !file.Name.StartsWith("mock-"))
+	if (!file.Name.StartsWith("gridponent"))
 	{
-	    var text = File.ReadAllText(file.FullName);
+	    var lines = File.ReadAllLines(file.FullName);
+        foreach (var line in lines)
+        {
 #>
-<#= text #>
-<#
+    <#= line #>
+<#      }
 	}
 }
 #>
+})(gridponent);

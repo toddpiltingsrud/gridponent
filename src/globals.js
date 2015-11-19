@@ -3,7 +3,7 @@
 \***************/
 (function () {
 
-    tp.padLeft = function (str, length, char) {
+    gp.padLeft = function (str, length, char) {
         var s = str.toString();
         char = char || ' ';
         while (s.length < length)
@@ -17,7 +17,7 @@
 
     var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-    tp.formatDate = function (date, format) {
+    gp.formatDate = function (date, format) {
         var dt = date;
 
         if (typeof dt === 'string') {
@@ -62,25 +62,25 @@
         format = format
             .replace('yyyy', y)
             .replace('yy', y.toString().slice(-2))
-            .replace('ss', tp.padLeft(s, 2, '0'))
+            .replace('ss', gp.padLeft(s, 2, '0'))
             .replace('s', s)
             .replace('f', f)
-            .replace('mm', tp.padLeft(n, 2, '0'))
+            .replace('mm', gp.padLeft(n, 2, '0'))
             .replace('m', n)
-            .replace('HH', tp.padLeft(h, 2, '0'))
+            .replace('HH', gp.padLeft(h, 2, '0'))
             .replace('H', h)
-            .replace('hh', tp.padLeft((h > 12 ? h - 12 : h), 2, '0'))
+            .replace('hh', gp.padLeft((h > 12 ? h - 12 : h), 2, '0'))
             .replace('h', (h > 12 ? h - 12 : h))
             //replace conflicting tokens with alternate tokens
             .replace('tt', (h > 11 ? '>>' : '<<'))
             .replace('t', (h > 11 ? '##' : '$$'))
             .replace('MMMM', '!!')
             .replace('MMM', '@@')
-            .replace('MM', tp.padLeft(m, 2, '0'))
+            .replace('MM', gp.padLeft(m, 2, '0'))
             .replace('M', m)
             .replace('dddd', '^^')
             .replace('ddd', '&&')
-            .replace('dd', tp.padLeft(d, 2, '0'))
+            .replace('dd', gp.padLeft(d, 2, '0'))
             .replace('d', d)
             //replace alternate tokens
             .replace('>>', 'PM')
@@ -99,7 +99,7 @@
 
     var scaped = ['&amp;', '&lt;', '&gt;', '&quot;', '&apos;', '&#96;'];
 
-    tp.escapeHTML = function (obj) {
+    gp.escapeHTML = function (obj) {
         if (typeof obj !== 'string') {
             return obj;
         }
@@ -109,24 +109,24 @@
         return obj;
     };
 
-    tp.camelize = function (str) {
+    gp.camelize = function (str) {
         return str.replace(/(?:^|[-_])(\w)/g, function (_, c) {
             return c ? c.toUpperCase() : '';
         });
     };
 
-    tp.getConfig = function (elem) {
+    gp.getConfig = function (elem) {
         var config = {}, name, attr, attrs = elem.attributes;
         for (var i = attrs.length - 1; i >= 0; i--) {
             attr = attrs[i];
-            name = tp.camelize(attr.name);
+            name = gp.camelize(attr.name);
             // convert "true" and "false" to boolean
             config[name] = attr.value === "true" || attr.value === "false" ? attr.value === "true" : attr.value;
         }
         return config;
     };
 
-    tp.getType = function (a) {
+    gp.getType = function (a) {
         if (a === null) {
             return null;
         }
@@ -145,13 +145,13 @@
         return typeof (a);
     };
 
-    tp.on = function (elem, event, targetSelector, listener) {
+    gp.on = function (elem, event, targetSelector, listener) {
         // if elem is a selector, convert it to an element
         if (typeof (elem) === 'string') {
             elem = document.querySelector(elem);
         }
 
-        if (!tp.hasValue(elem)) {
+        if (!gp.hasValue(elem)) {
             return;
         }
 
@@ -182,8 +182,8 @@
         elem.addEventListener(event, privateListener, false);
 
         // use an array to store listener and privateListener 
-        // so we can remove the handler with tp.off
-        var propName = 'tp-listeners-' + event;
+        // so we can remove the handler with gp.off
+        var propName = 'gp-listeners-' + event;
         var listeners = elem[propName] || (elem[propName] = []);
         listeners.push({
             pub: listener,
@@ -191,9 +191,9 @@
         });
     };
 
-    tp.off = function (elem, event, listener) {
+    gp.off = function (elem, event, listener) {
         // check for a matching listener store on the element
-        var listeners = elem['tp-listeners-' + event];
+        var listeners = elem['gp-listeners-' + event];
         if (listeners) {
             for (var i = 0; i < listeners.length; i++) {
                 if (listeners[i].pub === listener) {
@@ -209,7 +209,7 @@
         }
     };
 
-    tp.closest = function (elem, selector) {
+    gp.closest = function (elem, selector) {
         // if elem is a selector, convert it to an element
         if (typeof (elem) === 'string') {
             elem = document.querySelector(elem);
@@ -232,18 +232,18 @@
         }
     };
 
-    tp.hasValue = function (val) {
+    gp.hasValue = function (val) {
         return val !== undefined && val !== null;
     };
 
-    tp.isNullOrEmpty = function (val) {
-        return tp.hasValue(val) === false || (val.length && val.length === 0);
+    gp.isNullOrEmpty = function (val) {
+        return gp.hasValue(val) === false || (val.length && val.length === 0);
     };
 
-    tp.copyObj = function (obj) {
+    gp.copyObj = function (obj) {
         var newObj;
 
-        var type = tp.getType(obj);
+        var type = gp.getType(obj);
 
         switch (type) {
             case 'object':
@@ -267,7 +267,7 @@
         return newObj;
     };
 
-    tp.resolveObjectPath = function (path) {
+    gp.resolveObjectPath = function (path) {
         // split by dots, then square brackets
         // we're assuming there won't be dots between square brackets
         try {
@@ -310,7 +310,7 @@
     var zero = 0;
     var numberToString = callbind(zero.toString);
 
-    tp.createUID = function () {
+    gp.createUID = function () {
         var key = slice(numberToString(Math.random(), 36), 2);
         return key in uids ? createUID() : uids[key] = key;
     };

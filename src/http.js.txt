@@ -1,9 +1,9 @@
 ﻿/***************\
      http        
 \***************/
-tp.Http = function () { };
+gp.Http = function () { };
 
-tp.Http.prototype = {
+gp.Http.prototype = {
     serialize: function (obj, props) {
         // creates a query string from a simple object
         var self = this;

@@ -1,22 +1,21 @@
-﻿var tp = tp || {};
-tp.templates = tp.templates || {};
-tp.templates['gridponent-body'] = function(model, arg) {
+﻿gp.templates = gp.templates || {};
+gp.templates['gridponent-body'] = function(model, arg) {
     var out = [];
     out.push('<table class="table" cellpadding="0" cellspacing="0">');
             if (model.FixedHeaders) {
-                    out.push(tp.helpers['colgroup'].call(model));
+                    out.push(gp.helpers['colgroup'].call(model));
                 } else {
-                    out.push(tp.helpers['thead'].call(model));
+                    out.push(gp.helpers['thead'].call(model));
                 }
         out.push('<tbody>');
-                out.push(tp.helpers['tableRows'].call(model));
+                out.push(gp.helpers['tableRows'].call(model));
         out.push('</tbody>');
             if (model.Footer) {
         out.push('<tfoot>');
     out.push('<tr>');
                         model.Columns.forEach(function(col, index) {
         out.push('<td class="footer-cell">');
-                                out.push(tp.helpers['footerCell'].call(model, col));
+                                out.push(gp.helpers['footerCell'].call(model, col));
         out.push('</td>');
                         });
         out.push('</tr>');
@@ -25,18 +24,18 @@ tp.templates['gridponent-body'] = function(model, arg) {
         out.push('</table>');
     return out.join('');
 };
-tp.templates['gridponent-cells'] = function(model, arg) {
+gp.templates['gridponent-cells'] = function(model, arg) {
     var out = [];
     model.Columns.forEach(function(col, index) {
                     if (col.Commands) {
-                    out.push(tp.templates['gridponent-commands'](model, col));
+                    out.push(gp.templates['gridponent-commands'](model, col));
                 } else {
-                    out.push(tp.helpers['bodyCell'].call(model, col));
+                    out.push(gp.helpers['bodyCell'].call(model, col));
                 }
         });
             return out.join('');
 };
-tp.templates['gridponent-commands'] = function(model, arg) {
+gp.templates['gridponent-commands'] = function(model, arg) {
     var out = [];
     out.push('<td class="commands-cell" colspan="2">');
     out.push('<div class="btn-group" role="group">');
@@ -62,7 +61,7 @@ tp.templates['gridponent-commands'] = function(model, arg) {
     out.push('</td>');
     return out.join('');
 };
-tp.templates['gridponent-edit-cells'] = function(model, arg) {
+gp.templates['gridponent-edit-cells'] = function(model, arg) {
     var out = [];
     model.Columns.forEach(function(col, index) {
                     if (col.Commands) {
@@ -77,14 +76,14 @@ tp.templates['gridponent-edit-cells'] = function(model, arg) {
     out.push('</div>');
     out.push('</td>');
             } else {
-                    out.push(tp.helpers['editCell'].call(model, col));
+                    out.push(gp.helpers['editCell'].call(model, col));
                 }
         });
             return out.join('');
 };
-tp.templates['gridponent-pager'] = function(model, arg) {
+gp.templates['gridponent-pager'] = function(model, arg) {
     var out = [];
-    out.push(tp.helpers['setPagerFlags'].call(model));
+    out.push(gp.helpers['setPagerFlags'].call(model));
             if (model.data.HasPages) {
             out.push('    <label class="ms-page-index btn btn-default ');
     if (model.data.IsFirstPage) {
@@ -131,7 +130,7 @@ tp.templates['gridponent-pager'] = function(model, arg) {
     }
             return out.join('');
 };
-tp.templates['gridponent'] = function(model, arg) {
+gp.templates['gridponent'] = function(model, arg) {
     var out = [];
     out.push('<div class="table-container');
     if (model.Responsive) {
@@ -146,7 +145,7 @@ tp.templates['gridponent'] = function(model, arg) {
             if (model.Search || model.ToolbarTemplate) {
         out.push('<div class="table-toolbar">');
                     if (model.ToolbarTemplate) {
-                            out.push(tp.templates['toolbarTemplate'](model));
+                            out.push(gp.templates['toolbarTemplate'](model));
                         } else {
                             if (model.Search) {
         out.push('<div class="input-group gridponent-searchbox">');
@@ -164,8 +163,8 @@ tp.templates['gridponent'] = function(model, arg) {
                 if (model.FixedHeaders) {
         out.push('<div class="table-header">');
     out.push('<table class="table" cellpadding="0" cellspacing="0" style="margin-bottom:0">');
-                    out.push(tp.helpers['colgroup'].call(model));
-                        out.push(tp.helpers['thead'].call(model));
+                    out.push(gp.helpers['colgroup'].call(model));
+                        out.push(gp.helpers['thead'].call(model));
         out.push('</table>');
     out.push('</div>');
             }
@@ -176,15 +175,15 @@ tp.templates['gridponent'] = function(model, arg) {
     out.push('" style="');
     out.push(model.Style);
     out.push('">');
-                out.push(tp.templates['gridponent-body'](model));
+                out.push(gp.templates['gridponent-body'](model));
         out.push('</div>');
             if (model.Paging) {
         out.push('<div class="table-pager">');
-                    out.push(tp.templates['gridponent-pager'](model));
+                    out.push(gp.templates['gridponent-pager'](model));
         out.push('</div>');
             }
         out.push('<style type="text/css">');
-                out.push(tp.helpers['sortStyle'].call(model));
+                out.push(gp.helpers['sortStyle'].call(model));
         out.push('</style>');
     out.push('</div>');
     return out.join('');

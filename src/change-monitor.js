@@ -1,9 +1,7 @@
-﻿var tp = tp || {};
-
-/***************\
+﻿/***************\
  change monitor
 \***************/
-tp.ChangeMonitor = function (elem, selector, model, afterSync) {
+gp.ChangeMonitor = function (elem, selector, model, afterSync) {
     var self = this;
     this.model = model;
     this.beforeSync = null;
@@ -14,10 +12,10 @@ tp.ChangeMonitor = function (elem, selector, model, afterSync) {
         self.afterSync(evt, model);
     };
     // add change event handler to elem
-    tp.on(elem, 'change', selector, this.listener);
+    gp.on(elem, 'change', selector, this.listener);
 };
 
-tp.ChangeMonitor.prototype = {
+gp.ChangeMonitor.prototype = {
     syncModel: function (target, model) {
         // get name and value of target
         var name = target.name;
@@ -28,7 +26,7 @@ tp.ChangeMonitor.prototype = {
                 return;
             }
         }
-        type = tp.getType(model[name]);
+        type = gp.getType(model[name]);
         switch (type) {
             case 'number':
                 model[name] = parseFloat(value);
@@ -42,6 +40,6 @@ tp.ChangeMonitor.prototype = {
     },
     stop: function () {
         // clean up
-        tp.off(this.elem, 'change', this.listener);
+        gp.off(this.elem, 'change', this.listener);
     }
 };

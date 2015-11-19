@@ -1,9 +1,9 @@
 ﻿/***************\
    mock-http
 \***************/
-tp.Http = function () { };
+gp.Http = function () { };
 
-tp.Http.prototype = {
+gp.Http.prototype = {
     serialize: function (obj, props) {
         // creates a query string from a simple object
         var self = this;
@@ -38,9 +38,9 @@ tp.Http.prototype = {
     get: function (url, callback, error) {
         var queryString = url.substring(url.indedOf('?') + 1);
         var model = this.deserialize(queryString);
-        var count, qry = gryst.from(tp.products);
-        if (tp.isNullOrEmpty(model.Search) === false) {
-            var props = Object.getOwnPropertyNames(tp.products[0]);
+        var count, qry = gryst.from(gp.products);
+        if (gp.isNullOrEmpty(model.Search) === false) {
+            var props = Object.getOwnPropertyNames(gp.products[0]);
             var search = model.Search.toLowerCase();
             qry = qry.where(function (row) {
                 for (var i = 0; i < props.length; i++) {
@@ -51,7 +51,7 @@ tp.Http.prototype = {
                 return false;
             });
         }
-        if (tp.isNullOrEmpty(model.OrderBy) === false) {
+        if (gp.isNullOrEmpty(model.OrderBy) === false) {
             if (model.Desc) {
                 qry = qry.orderByDescending(model.OrderBy);
             }

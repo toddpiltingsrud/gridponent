@@ -16,20 +16,13 @@
     <script src="tests.js"></script>
     <script src="../scripts/webcomponents.min.js"></script>
     <script src="../scripts/gryst.min.js"></script>
-    <script src="../src/change-monitor.js"></script>
-    <script src="../src/component-base.js"></script>
-    <script src="../src/globals.js"></script>
+    <script src="../src/gridponent1.js"></script>
     <script src="../src/mock-http.js"></script>
-    <script src="../src/pagers.js"></script>
-    <script src="../src/paging-model.js"></script>
-    <script src="../src/templates/templates.js"></script>
-    <script src="../src/gridponent.js"></script>
-    <script src="../src/gridponent-helpers.js"></script>
     <script>
     var fns = fns || {};
 
     fns.getData = function () {
-        var model = new tp.PagingModel(tp.products);
+        var model = new gridponent.PagingModel(gp.products);
         return model;
     };
 
@@ -99,13 +92,13 @@
                               oncreated="fns.getData"
                               update="/Products/Update"
                               destroy="/Products/Destroy">
-                        <tp-column field="ProductID" header="ID" template="fns.getName" edit-template="fns.dropdown"></tp-column>
-                        <tp-column field="MakeFlag" header="Make"></tp-column>
-                        <tp-column field="SafetyStockLevel" header="Safety Stock Level"></tp-column>
-                        <tp-column field="StandardCost" header="Standard Cost" footer-template="fns.averageCost"></tp-column>
-                        <tp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, yyyy"></tp-column>
-                        <tp-column field="Markup" header="Marked-Up Name"></tp-column>
-                        <tp-column commands="Edit,Delete"></tp-column>
+                        <gp-column field="ProductID" header="ID" template="fns.getName" edit-template="fns.dropdown"></gp-column>
+                        <gp-column field="MakeFlag" header="Make"></gp-column>
+                        <gp-column field="SafetyStockLevel" header="Safety Stock Level"></gp-column>
+                        <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.averageCost"></gp-column>
+                        <gp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, yyyy"></gp-column>
+                        <gp-column field="Markup" header="Marked-Up Name"></gp-column>
+                        <gp-column commands="Edit,Delete"></gp-column>
                     </grid-ponent>
                 </div>
             </div>

@@ -54,14 +54,10 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>gridponent.tt</DependentUpon>
     </Content>
-    <Content Include="src\templates.js" />
-    <Content Include="src\templates.min.js">
-      <DependentUpon>templates.js</DependentUpon>
-    </Content>
     <Content Include="src\gridponent.css">
       <DependentUpon>gridponent.less</DependentUpon>
     </Content>
-    <Content Include="src\gridponent.js" />
+    <Content Include="src\component.js" />
     <None Include="src\gridponent.css.map">
       <DependentUpon>gridponent.css</DependentUpon>
     </None>
@@ -75,18 +71,15 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>templates.js</LastGenOutput>
     </Content>
-    <Content Include="src\gridponent-helpers.js" />
+    <Content Include="src\helpers.js" />
     <Content Include="spec\Tests.html" />
     <Content Include="spec\tests.js" />
-    <Content Include="src\http.js" />
+    <Content Include="src\http.js.txt" />
     <Content Include="scripts\webcomponents.min.js" />
     <Content Include="src\gridponent.min.css">
       <DependentUpon>gridponent.css</DependentUpon>
     </Content>
     <Content Include="TODO.txt" />
-    <None Include="src\templates.min.js.map">
-      <DependentUpon>templates.min.js</DependentUpon>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Content Include="data\Products.js" />

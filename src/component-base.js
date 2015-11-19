@@ -1,14 +1,13 @@
 ﻿/***************\
  component base 
 \***************/
-tp.ComponentBase = Object.create(HTMLElement.prototype);
+gp.ComponentBase = Object.create(HTMLElement.prototype);
 
-tp.ComponentBase.initialize = function () {
-    this.config = tp.getConfig(this);
+gp.ComponentBase.initialize = function () {
+    this.config = gp.getConfig(this);
     return this;
 };
 
-
-tp.ComponentBase.createdCallback = function () {
+gp.ComponentBase.createdCallback = function () {
     this.initialize();
 };

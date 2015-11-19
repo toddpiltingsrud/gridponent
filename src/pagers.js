@@ -1,15 +1,15 @@
 ﻿/***************\
 server-side pager
 \***************/
-tp.ServerPager = function (config) {
+gp.ServerPager = function (config) {
     this.config = config;
     this.baseUrl = config.Read;
 };
 
-tp.ServerPager.prototype = {
+gp.ServerPager.prototype = {
     get: function (model, callback, error) {
         var self = this;
-        var h = new tp.Http();
+        var h = new gp.Http();
         // extract only the properties needed for paging
         var url = this.baseUrl + '?' + h.serialize(model.data, ['Page', 'Top', 'OrderBy', 'Desc', 'Search', 'Skip']);
         var cb = function (response) {
@@ -29,12 +29,12 @@ tp.ServerPager.prototype = {
 /***************\
 client-side pager
 \***************/
-tp.ClientPager = function (config) {
+gp.ClientPager = function (config) {
     this.data = config.data.Data;
     this.columns = config.Columns;
 };
 
-tp.ClientPager.prototype = {
+gp.ClientPager.prototype = {
     getSkip: function (model) {
         var data = model;
         if (data.PageCount == 0) {
@@ -54,7 +54,7 @@ tp.ClientPager.prototype = {
             gryst.logging = true;
             var count, qry = gryst.from(this.data);
             console.log('data length: ' + this.data.length);
-            if (tp.isNullOrEmpty(model.Search) === false) {
+            if (gp.isNullOrEmpty(model.Search) === false) {
                 var props = gryst.from(this.columns).where(function (c) { return c !== undefined; }).select('Field').run();
                 var search = model.Search.toLowerCase();
                 qry = qry.where(function (row) {
@@ -66,7 +66,7 @@ tp.ClientPager.prototype = {
                     return false;
                 });
             }
-            if (tp.isNullOrEmpty(model.OrderBy) === false) {
+            if (gp.isNullOrEmpty(model.OrderBy) === false) {
                 if (model.Desc) {
                     qry = qry.orderByDescending(model.OrderBy);
                 }
