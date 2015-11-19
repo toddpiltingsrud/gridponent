@@ -1,4 +1,71 @@
-﻿.table-container,
+﻿.table-container {
+  position: relative;
+}
+.table-container.pager-bottom-left {
+  padding-bottom: 50px;
+}
+.table-container.pager-bottom-left .table-pager {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+}
+.table-container.pager-bottom-right {
+  padding-bottom: 50px;
+}
+.table-container.pager-bottom-right .table-pager {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
+.table-container.pager-top-right {
+  padding-top: 40px;
+}
+.table-container.pager-top-right .table-pager {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+.table-container.pager-top-left {
+  padding-top: 40px;
+}
+.table-container.pager-top-left .table-pager {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.table-container.search-bottom-left {
+  padding-bottom: 50px;
+}
+.table-container.search-bottom-left .gridponent-searchbox {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+}
+.table-container.search-bottom-right {
+  padding-bottom: 50px;
+}
+.table-container.search-bottom-right .gridponent-searchbox {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
+.table-container.search-top-right {
+  padding-top: 40px;
+}
+.table-container.search-top-right .gridponent-searchbox {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+.table-container.search-top-left {
+  padding-top: 40px;
+}
+.table-container.search-top-left .gridponent-searchbox {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.table-container,
 .table-header > table,
 .table-body > table {
   width: 100%;
@@ -26,16 +93,7 @@ label.table-sort:after {
 .fixed-headers .table-body > table {
   table-layout: fixed;
 }
-.fixed-headers .table-header th,
-.fixed-headers .table-body > table > tbody > tr > td {
-  overflow: hidden;
-  /*-ms-text-overflow: ellipsis;
-        -o-text-overflow: ellipsis;
-        text-overflow: ellipsis;*/
-  white-space: nowrap;
-  padding: 6px;
-}
-.fixed-headers .table-header th a {
+.fixed-headers .table-header th label {
   overflow: hidden;
   -ms-text-overflow: ellipsis;
   -o-text-overflow: ellipsis;
@@ -59,6 +117,7 @@ td.commands-cell {
 }
 .gridponent-searchbox {
   max-width: 220px;
+  float: left;
 }
 .table-responsive > div {
   min-width: 600px;

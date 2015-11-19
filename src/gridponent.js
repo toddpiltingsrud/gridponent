@@ -61,7 +61,6 @@
     /***************\
      main component
     \***************/
-    
     gp.Table = Object.create(gp.ComponentBase);
     
     gp.Table.initialize = function () {
@@ -92,7 +91,6 @@
         this.addCommandHandlers();
         if (this.config.FixedHeaders) {
             setTimeout(function () {
-                //self.measureTables(self);
                 self.syncColumnWidths(self);
             });
             window.addEventListener('resize', function () {
@@ -807,6 +805,9 @@
         extend('editCell', function (col) {
             var template, out = [];
             var val = this.Row[col.Field];
+            // render empty cell if this field doesn't exist in the data
+            if (val === undefined) return '<td></td>';
+            // render null as empty string
             if (val === null) val = '';
     
             out.push('<td class="body-cell ' + col.Type + '">');
@@ -866,13 +867,12 @@
             this.data.IsFirstPage = this.data.Page === 1;
             this.data.IsLastPage = this.data.Page === this.data.PageCount;
             this.data.HasPages = this.data.PageCount > 1;
-            this.data.PreviousPage = this.data.Page - 1;
-            this.data.NextPage = this.data.Page + 1;
+            this.data.PreviousPage = this.data.Page === 1 ? 1 : this.data.Page - 1;
+            this.data.NextPage = this.data.Page === this.data.PageCount ? this.data.PageCount : this.data.Page + 1;
         });
     
         extend('sortStyle', function () {
             var out = [];
-            console.log(this);
             if (gp.isNullOrEmpty(this.data.OrderBy) === false) {
                 out.push('#' + this.ID + ' > .table-header > table > thead th.' + this.data.OrderBy + '> label:after');
                 out.push('{ content: ');
@@ -882,6 +882,20 @@
                 else {
                     out.push('"\\e114"; }');
                 }
+            }
+            return out.join('');
+        });
+    
+        extend('containerClasses', function () {
+            var out = [];
+            if (this.FixedHeaders) {
+                out.push(' fixed-headers');
+            }
+            if (this.Paging) {
+                out.push(' pager-' + this.Paging);
+            }
+            if (this.Search) {
+                out.push(' search-' + this.Search);
             }
             return out.join('');
         });
@@ -1176,18 +1190,22 @@
         }
         out.push('" title="First page">');
         out.push('<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>');
-        out.push('<input type="radio" name="Page" value="1" />');
-        out.push('</label>');
+                    if (model.data.IsFirstPage == false) {
+            out.push('<input type="radio" name="Page" value="1" />');
+                    }
+            out.push('</label>');
             out.push('    <label class="ms-page-index btn btn-default ');
         if (model.data.IsFirstPage) {
         out.push(' disabled ');
         }
         out.push('" title="Previous page">');
         out.push('<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>');
-        out.push('        <input type="radio" name="Page" value="');
+                    if (model.data.IsFirstPage == false) {
+            out.push('            <input type="radio" name="Page" value="');
         out.push(model.data.PreviousPage);
         out.push('" />');
-        out.push('</label>');
+                    }
+            out.push('</label>');
             out.push('    <input type="number" name="Page" value="');
         out.push(model.data.Page);
         out.push('" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" /> of ');
@@ -1198,32 +1216,31 @@
         }
         out.push('" title="Next page">');
         out.push('<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>');
-        out.push('        <input type="radio" name="Page" value="');
+                    if (model.data.IsLastPage == false) {
+            out.push('            <input type="radio" name="Page" value="');
         out.push(model.data.NextPage);
         out.push('" />');
-        out.push('</label>');
+                    }
+            out.push('</label>');
             out.push('    <label class="ms-page-index btn btn-default ');
         if (model.data.IsLastPage) {
         out.push(' disabled ');
         }
         out.push('" title="Last page">');
         out.push('<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>');
-        out.push('        <input type="radio" name="Page" value="');
+                    if (model.data.IsLastPage == false) {
+            out.push('            <input type="radio" name="Page" value="');
         out.push(model.data.PageCount);
         out.push('" />');
-        out.push('</label>');
+                    }
+            out.push('</label>');
         }
                 return out.join('');
     };
     gp.templates['gridponent'] = function(model, arg) {
         var out = [];
         out.push('<div class="table-container');
-        if (model.Responsive) {
-        out.push(' table-responsive');
-        }
-            if (model.FixedHeaders) {
-        out.push(' fixed-headers');
-        }
+        out.push(gp.helpers['containerClasses'].call(model));
         out.push('" id="');
         out.push(model.ID);
         out.push('">');

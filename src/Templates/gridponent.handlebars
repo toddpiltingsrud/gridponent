@@ -1,4 +1,4 @@
-﻿<div class="table-container{{#if model.Responsive}} table-responsive{{/if}}{{#if model.FixedHeaders}} fixed-headers{{/if}}" id="{{model.ID}}">
+﻿<div class="table-container{{helper containerClasses}}" id="{{model.ID}}">
     {{#if model.Search || model.ToolbarTemplate}}
         <div class="table-toolbar">
             {{#if model.ToolbarTemplate}}

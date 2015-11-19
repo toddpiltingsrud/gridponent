@@ -1,8 +1,102 @@
-﻿.table-container,
+﻿.table-container {
+    position:relative;
+    &.pager-bottom-left {
+        padding-bottom:50px;
+
+        .table-pager {
+            position:absolute;
+            bottom:0;
+            left:0;
+        }
+    }
+    &.pager-bottom-right {
+        padding-bottom:50px;
+
+        .table-pager {
+            position:absolute;
+            bottom:0;
+            right:0;
+        }
+    }
+    &.pager-top-right {
+        padding-top:40px;
+
+        .table-pager {
+            position:absolute;
+            top:0;
+            right:0;
+        }
+    }
+    &.pager-top-left {
+        padding-top:40px;
+
+        .table-pager {
+            position:absolute;
+            top:0;
+            left:0;
+        }
+    }
+
+    &.search-bottom-left {
+        padding-bottom:50px;
+
+        .gridponent-searchbox {
+            position:absolute;
+            bottom:0;
+            left:0;
+        }
+    }
+    &.search-bottom-right {
+        padding-bottom:50px;
+
+        .gridponent-searchbox {
+            position:absolute;
+            bottom:0;
+            right:0;
+        }
+    }
+    &.search-top-right {
+        padding-top:40px;
+
+        .gridponent-searchbox {
+            position:absolute;
+            top:0;
+            right:0;
+        }
+    }
+    &.search-top-left {
+        padding-top:40px;
+
+        .gridponent-searchbox {
+            position:absolute;
+            top:0;
+            left:0;
+        }
+    }
+
+    &.pager-bottom-left .search-bottom-left {
+        .gridponent-searchbox {
+        }
+    }
+    &.pager-bottom-right.search-bottom-right {
+        .gridponent-searchbox {
+        }
+    }
+    &.pager-top-right .search-top-right {
+    }
+    &.pager-top-left .search-top-left {
+    }
+
+
+
+}
+
+.table-container,
 .table-header > table,
 .table-body > table {
     width: 100%;
 }
+
 
 label.table-sort {
     color: #337ab7;
@@ -37,16 +131,7 @@ label.table-sort {
         table-layout:fixed;
     }
 
-    .table-header th, .table-body > table > tbody > tr > td {
-        overflow: hidden;
-        /*-ms-text-overflow: ellipsis;
-        -o-text-overflow: ellipsis;
-        text-overflow: ellipsis;*/
-        white-space:nowrap;
-        padding:6px;
-    }
-
-    .table-header th a {
+    .table-header th label {
         overflow: hidden;
         -ms-text-overflow: ellipsis;
         -o-text-overflow: ellipsis;
@@ -77,6 +162,7 @@ td.commands-cell {
 
 .gridponent-searchbox {
     max-width: 220px;
+    float:left;
 }
 
 .table-responsive {

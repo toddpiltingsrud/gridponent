@@ -16,7 +16,7 @@
     <script src="tests.js"></script>
     <script src="../scripts/webcomponents.min.js"></script>
     <script src="../scripts/gryst.min.js"></script>
-    <script src="../src/gridponent1.js"></script>
+    <script src="../src/gridponent.js"></script>
     <script src="../src/mock-http.js"></script>
     <script>
     var fns = fns || {};
@@ -37,17 +37,17 @@
         out.push('<select name="MakeFlag" class="form-control">');
         data.forEach(function (r) {
             if (val == r[column.Field]) {
-                out.push('<option value="' + r[column.Field] + '" selected="selected">' + r.Name + '</option>');
+                out.push('<option value="' + r[column.Field] + '" selected="selected">' + gridponent.escapeHTML(r.Name) + '</option>');
             }
             else {
-                out.push('<option value="' + r[column.Field] + '">' + r.Name + '</option>');
+                out.push('<option value="' + r[column.Field] + '">' + gridponent.escapeHTML(r.Name) + '</option>');
             }
         });
         out.push('</select>');
         return out.join('');
     };
 
-    fns.averageCost = function (column) {
+    fns.average = function (column) {
         return gryst.agg.avg(this.data.Data, column.Field);
     };
     </script>
@@ -86,16 +86,20 @@
             <h3>table</h3>
             <div class="box-border dark">
                 <div class="box dark">
-                    <grid-ponent paging="true" sorting="true" fixed-headers="true"
-                              style="width:100%;height:400px" responsive="true"
-                              search="true"
-                              oncreated="fns.getData"
-                              update="/Products/Update"
-                              destroy="/Products/Destroy">
+                    <grid-ponent paging="bottom-right" 
+                                 sorting="true" 
+                                 fixed-headers="true" 
+                                 fixed-footers="true"
+                                 style="width:100%;height:411px" 
+                                 responsive="true"
+                                 search="top-left"
+                                 oncreated="fns.getData"
+                                 update="/Products/Update"
+                                 destroy="/Products/Destroy">
                         <gp-column field="ProductID" header="ID" template="fns.getName" edit-template="fns.dropdown"></gp-column>
                         <gp-column field="MakeFlag" header="Make"></gp-column>
-                        <gp-column field="SafetyStockLevel" header="Safety Stock Level"></gp-column>
-                        <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.averageCost"></gp-column>
+                        <gp-column field="SafetyStockLevel" header="Safety Stock Level" footer-template="fns.average"></gp-column>
+                        <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.average"></gp-column>
                         <gp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, yyyy"></gp-column>
                         <gp-column field="Markup" header="Marked-Up Name"></gp-column>
                         <gp-column commands="Edit,Delete"></gp-column>

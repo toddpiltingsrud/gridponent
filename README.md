@@ -11,4 +11,5 @@ It has the following features:
 - Footer templates
 - Fixed headers
 - Responsive
+- Configurable search and paging positions
 

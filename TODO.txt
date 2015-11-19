@@ -1,4 +1,13 @@
-﻿Use native browser functions to parse user-defined templates. Escape text nodes.
+﻿Test for web component support. Fall back to manual initialization if not present. Or just shelve web component support for the time being until all IE9 installations are upgraded.
+
+Client-side pager should search on the formatted values of the data, i.e. what's showing in the grid.
+We could offer the ability to create a hook into the where clause for client-side searching.
+
+Add percentage and currency formatting.
+
+Test without fixed headers.
+
+Fixed footer
 
 Add CRUD events.
 
@@ -6,15 +15,10 @@ Add API for CRUD operations.
 
 Provide an easy way to get at the data via JavaScript.
 
-Test for web component support. Fall back to manual initialization if not present. Or just shelve web component support for the time being until all IE9 installations are upgraded.
-
-Client-side pager should search on the formatted values of the data, i.e. what's showing in the grid.
-We could offer the ability to create a hook into the where clause for client-side searching.
-
 Rework classes to make it easy to target specific sections of the grid.
-
-Test without fixed headers.
 
 Build a jQuery version.
 
 Build a Polymer version.
+
+Use native browser functions to parse user-defined templates. Escape text nodes.

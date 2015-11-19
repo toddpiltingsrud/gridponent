@@ -140,6 +140,9 @@
     extend('editCell', function (col) {
         var template, out = [];
         var val = this.Row[col.Field];
+        // render empty cell if this field doesn't exist in the data
+        if (val === undefined) return '<td></td>';
+        // render null as empty string
         if (val === null) val = '';
 
         out.push('<td class="body-cell ' + col.Type + '">');
@@ -199,13 +202,12 @@
         this.data.IsFirstPage = this.data.Page === 1;
         this.data.IsLastPage = this.data.Page === this.data.PageCount;
         this.data.HasPages = this.data.PageCount > 1;
-        this.data.PreviousPage = this.data.Page - 1;
-        this.data.NextPage = this.data.Page + 1;
+        this.data.PreviousPage = this.data.Page === 1 ? 1 : this.data.Page - 1;
+        this.data.NextPage = this.data.Page === this.data.PageCount ? this.data.PageCount : this.data.Page + 1;
     });
 
     extend('sortStyle', function () {
         var out = [];
-        console.log(this);
         if (gp.isNullOrEmpty(this.data.OrderBy) === false) {
             out.push('#' + this.ID + ' > .table-header > table > thead th.' + this.data.OrderBy + '> label:after');
             out.push('{ content: ');
@@ -215,6 +217,20 @@
             else {
                 out.push('"\\e114"; }');
             }
+        }
+        return out.join('');
+    });
+
+    extend('containerClasses', function () {
+        var out = [];
+        if (this.FixedHeaders) {
+            out.push(' fixed-headers');
+        }
+        if (this.Paging) {
+            out.push(' pager-' + this.Paging);
+        }
+        if (this.Search) {
+            out.push(' search-' + this.Search);
         }
         return out.join('');
     });

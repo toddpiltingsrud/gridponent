@@ -1,7 +1,6 @@
 ﻿/***************\
  main component
 \***************/
-
 gp.Table = Object.create(gp.ComponentBase);
 
 gp.Table.initialize = function () {
@@ -32,7 +31,6 @@ gp.Table.initialize = function () {
     this.addCommandHandlers();
     if (this.config.FixedHeaders) {
         setTimeout(function () {
-            //self.measureTables(self);
             self.syncColumnWidths(self);
         });
         window.addEventListener('resize', function () {
