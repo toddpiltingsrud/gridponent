@@ -21,4 +21,6 @@ Build a jQuery version.
 
 Build a Polymer version.
 
+Standardize property capitalization.
+
 Use native browser functions to parse user-defined templates. Escape text nodes.

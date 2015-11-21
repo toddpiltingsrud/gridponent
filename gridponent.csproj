@@ -47,7 +47,6 @@
     <Content Include="src\mock-http.js" />
     <Content Include="src\pagers.js" />
     <Content Include="src\change-monitor.js" />
-    <Content Include="src\component-base.js" />
     <Content Include="src\globals.js" />
     <Content Include="src\paging-model.js" />
     <Content Include="src\gridponent.tt">
@@ -57,7 +56,7 @@
     <Content Include="src\gridponent.css">
       <DependentUpon>gridponent.less</DependentUpon>
     </Content>
-    <Content Include="src\component.js" />
+    <Content Include="src\table.js" />
     <None Include="README.md" />
     <None Include="src\gridponent.css.map">
       <DependentUpon>gridponent.css</DependentUpon>

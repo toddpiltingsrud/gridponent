@@ -1,7 +1,7 @@
 ﻿/***************\
      globals
 \***************/
-(function () {
+(function (gp) {
 
     gp.padLeft = function (str, length, char) {
         var s = str.toString();
@@ -115,8 +115,9 @@
         });
     };
 
-    gp.getConfig = function (elem) {
-        var config = {}, name, attr, attrs = elem.attributes;
+    gp.getConfig = function (node) {
+        var config = {}, name, attr, attrs = node.attributes;
+        config.node = node;
         for (var i = attrs.length - 1; i >= 0; i--) {
             attr = attrs[i];
             name = gp.camelize(attr.name);
@@ -130,16 +131,11 @@
         if (a === null) {
             return null;
         }
-        if (a instanceof Date) {
+        if (a instanceof Date || (typeof (a) === 'string' && iso8601.test(a))) {
             return 'date';
         }
         if (Array.isArray(a)) {
             return 'array';
-        }
-        if (typeof (a) === 'string') {
-            if (iso8601.test(a)) {
-                return 'date';
-            }
         }
         // 'number','string','boolean','function','object','undefined'
         return typeof (a);
@@ -315,4 +311,4 @@
         return key in uids ? createUID() : uids[key] = key;
     };
 
-})();
+})(gridponent);

@@ -24,8 +24,8 @@ else
     path = @"C:\Users\Todd\OneDrive\Documents\Code\Projects\gridponent\src";
 }
 
-
 var files = new DirectoryInfo(path).GetFiles("*.js", SearchOption.AllDirectories);
+
 foreach (var file in files)
 {
 	if (!file.Name.StartsWith("gridponent"))

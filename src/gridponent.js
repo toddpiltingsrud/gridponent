@@ -3,18 +3,18 @@
     /***************\
      change monitor
     \***************/
-    gp.ChangeMonitor = function (elem, selector, model, afterSync) {
+    gp.ChangeMonitor = function (node, selector, model, afterSync) {
         var self = this;
         this.model = model;
         this.beforeSync = null;
         this.afterSync = afterSync;
-        this.elem = elem;
+        this.node = node;
         this.listener = function (evt) {
             self.syncModel(evt.target, self.model);
             self.afterSync(evt, model);
         };
-        // add change event handler to elem
-        gp.on(elem, 'change', selector, this.listener);
+        // add change event handler to node
+        gp.on(node, 'change', selector, this.listener);
     };
     
     gp.ChangeMonitor.prototype = {
@@ -42,313 +42,13 @@
         },
         stop: function () {
             // clean up
-            gp.off(this.elem, 'change', this.listener);
+            gp.off(this.node, 'change', this.listener);
         }
     };
-    /***************\
-     component base 
-    \***************/
-    gp.ComponentBase = Object.create(HTMLElement.prototype);
-    
-    gp.ComponentBase.initialize = function () {
-        this.config = gp.getConfig(this);
-        return this;
-    };
-    
-    gp.ComponentBase.createdCallback = function () {
-        this.initialize();
-    };
-    /***************\
-     main component
-    \***************/
-    gp.Table = Object.create(gp.ComponentBase);
-    
-    gp.Table.initialize = function () {
-        var self = this;
-        gp.ComponentBase.initialize.call(this);
-        this.config.Columns = [];
-        this.config.data = {};
-        this.config.ID = gp.createUID();
-        for (var i = 0; i < this.children.length; i++) {
-            var col = this.children[i];
-            var colConfig = gp.getConfig(col);
-            this.config.Columns.push(colConfig);
-            this.resolveCommands(colConfig);
-            this.resolveFooterTemplate(colConfig);
-        }
-        this.config.Footer = this.resolveFooter(this.config);
-        this.resolveOnCreated();
-        console.log(this.config);
-        if (this.config.Oncreated) {
-            this.config.data = this.config.Oncreated();
-            this.resolveTypes(this.config);
-        }
-        this.pager = this.getPager(this.config);
-        this.resolveFirstPage(this.config, this.pager, function (firstPage) {
-            self.render(self.config);
-        });
-        this.beginMonitor();
-        this.addCommandHandlers();
-        if (this.config.FixedHeaders) {
-            setTimeout(function () {
-                self.syncColumnWidths(self);
-            });
-            window.addEventListener('resize', function () {
-                self.syncColumnWidths(self);
-            });
-        }
-    };
-    
-    gp.Table.resolveFooter = function (config) {
-        for (var i = 0; i < config.Columns.length; i++) {
-            if (config.Columns[i].FooterTemplate) return true;
-        }
-        return false;
-    };
-    
-    gp.Table.resolveFooterTemplate = function (column) {
-        if (column.FooterTemplate) {
-            column.FooterTemplate = gp.resolveObjectPath(column.FooterTemplate);
-        }
-    };
-    
-    gp.Table.resolveOnCreated = function () {
-        if (this.config.Oncreated) {
-            this.config.Oncreated = gp.resolveObjectPath(this.config.Oncreated);
-        }
-    };
-    
-    gp.Table.resolveCommands = function (col) {
-        if (col.Commands) {
-            col.Commands = col.Commands.split(',');
-        }
-    };
-    
-    gp.Table.resolveTypes = function (config) {
-        config.Columns.forEach(function (col) {
-            for (var i = 0; i < config.data.Data.length; i++) {
-                if (config.data.Data[i][col.Field] !== null) {
-                    col.Type = gp.getType(config.data.Data[i][col.Field]);
-                    break;
-                }
-            }
-        });
-        console.log(config.Columns);
-    };
-    
-    gp.Table.getPager = function (config) {
-        if (config.Paging) {
-            if (gp.hasValue(config.Read)) {
-                return new gp.ServerPager(config);
-            }
-            else {
-                return new gp.ClientPager(config);
-            }
-        }
-    };
-    
-    gp.Table.resolveFirstPage = function (config, pager, callback) {
-        if (pager === undefined) {
-            callback(config.data);
-        }
-        else {
-            pager.get(config.data, callback);
-        }
-    };
-    
-    gp.Table.beginMonitor = function () {
-        var self = this;
-        // monitor changes to search, sort, and paging
-        var monitor = new gp.ChangeMonitor(this, '.table-toolbar [name=Search], thead input, .table-pager input', this.config.data, function (evt) {
-            self.update();
-            // reset the radio inputs
-            var radios = self.querySelectorAll('thead input[type=radio], .table-pager input[type=radio]');
-            for (var i = 0; i < radios.length; i++) {
-                radios[i].checked = false;
-            }
-        });
-        monitor.beforeSync = function (name, value, model) {
-            // the OrderBy property requires special handling
-            if (name === 'OrderBy') {
-                if (model[name] === value) {
-                    model.Desc = !model.Desc;
-                }
-                else {
-                    model[name] = value;
-                    model.Desc = false;
-                }
-                return true;
-            }
-            return false;
-        };
-    };
-    
-    gp.Table.render = function (model) {
-        try {
-            this.innerHTML = gp.templates['gridponent'](model);
-        }
-        catch (ex) {
-            console.log(ex.message);
-            console.log(ex.stack);
-        }
-    };
-    
-    gp.Table.measureTables = function (element) {
-        // for fixed headers, adjust the padding on the header to match the width of the main table
-        var header = element.querySelector('.table-header');
-        var bodyWidth = element.querySelector('.table-body > table').offsetWidth;
-        var headerWidth = header.querySelector('table').offsetWidth;
-        var diff = (headerWidth - bodyWidth);
-        if (diff !== 0) {
-            var paddingRight = diff;
-            console.log('diff:' + diff + ', paddingRight:' + paddingRight);
-            header.style.paddingRight = paddingRight.toString() + 'px';
-        }
-    };
-    
-    gp.Table.syncColumnWidths = function (element) {
-        // for fixed headers, adjust the padding on the header to match the width of the main table
-        var colgroup = element.querySelector('.table-header colgroup');
-        if (colgroup) {
-            var bodyCols = element.querySelectorAll('.table-body > table > tbody > tr:first-child > td');
-            var width;
-            var out = []
-            for (var i = 0; i < bodyCols.length; i++) {
-                width = bodyCols[i].offsetWidth;
-                out.push('<col style="width:' + width + 'px;"></col>');
-            }
-            colgroup.innerHTML = out.join('');
-        }
-    };
-    
-    gp.Table.refresh = function (config) {
-        var rowsTemplate = gp.helpers['tableRows'];
-        var pagerTemplate = gp.templates['gridponent-pager'];
-        var html = rowsTemplate.call(config);
-        this.querySelector('.table-body > table > tbody').innerHTML = html;
-        html = pagerTemplate(config);
-        this.querySelector('.table-pager').innerHTML = html;
-        html = gp.helpers['sortStyle'].call(config);
-        this.querySelector('style').innerHTML = html;
-    };
-    
-    gp.Table.update = function () {
-        var self = this;
-        if (this.pager) {
-            this.pager.get(this.config.data, function (model) {
-                self.config.data = model;
-                self.refresh(self.config);
-            });
-        }
-    };
-    
-    gp.Table.addCommandHandlers = function () {
-        var self = this;
-        // listen for command button clicks
-        gp.on(this, 'click', 'button[value]', function (evt) {
-            var command = this.attributes['value'].value.toLowerCase();
-            var tr = gp.closest(this, 'tr[data-index]');
-            var index = parseInt(tr.attributes['data-index'].value);
-            var row = self.config.Row = self.config.data.Data[index];
-            switch (command) {
-                case 'edit':
-                    self.editRow(row, tr);
-                    break;
-                case 'delete':
-                    self.deleteRow(row, tr);
-                    break;
-                case 'update':
-                    self.updateRow(row, tr);
-                    break;
-                case 'cancel':
-                    self.cancelEdit(row, tr);
-                    break;
-                default:
-                    console.log('Unrecognized command: ' + command);
-                    break;
-            }
-        });
-    };
-    
-    gp.Table.editRow = function (row, tr) {
-        try {
-            var template = gp.templates['gridponent-edit-cells'];
-            var html = template(this.config);
-            tr.innerHTML = html;
-            tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
-        }
-        catch (ex) {
-            console.log(ex.message);
-            console.log(ex.stack);
-        }
-    };
-    
-    gp.Table.updateRow = function (row, tr) {
-        try {
-            var self = this;
-            var h = new gp.Http();
-            var url = this.config.Update;
-            var monitor;
-            h.post(url, row, function (response) {
-                // put the cells back
-                var template = gp.templates['gridponent-cells'];
-                var html = template(self.config);
-                tr.innerHTML = html;
-                // dispose of the ChangeMonitor
-                monitor = tr['gp-change-monitor'];
-                if (monitor) {
-                    monitor.stop();
-                    monitor = null;
-                }
-            });
-        }
-        catch (ex) {
-            console.log(ex.message);
-            console.log(ex.stack);
-        }
-    };
-    
-    gp.Table.cancelEdit = function (row, tr) {
-        try {
-            var template = gp.templates['gridponent-cells'];
-            var html = template(this.config);
-            tr.innerHTML = html;
-        }
-        catch (ex) {
-            console.log(ex.message);
-            console.log(ex.stack);
-        }
-    };
-    
-    gp.Table.deleteRow = function (row, tr) {
-        try {
-            var confirmed = confirm('Are you sure you want to delete this item?');
-            if (!confirmed) return;
-            var self = this;
-            var h = new gp.Http();
-            var url = this.config.Destroy;
-            h.post(url, row, function (response) {
-                // remove the row from the model
-                var index = self.config.data.Data.indexOf(row);
-                if (index != -1) {
-                    self.config.data.Data.splice(index, 1);
-                    self.refresh(self.config);
-                }
-            });
-        }
-        catch (ex) {
-            console.log(ex.message);
-            console.log(ex.stack);
-        }
-    };
-    
-    document.registerElement('grid-ponent', {
-        prototype: gp.Table
-    });
     /***************\
          globals
     \***************/
-    (function () {
+    (function (gp) {
     
         gp.padLeft = function (str, length, char) {
             var s = str.toString();
@@ -462,8 +162,9 @@
             });
         };
     
-        gp.getConfig = function (elem) {
-            var config = {}, name, attr, attrs = elem.attributes;
+        gp.getConfig = function (node) {
+            var config = {}, name, attr, attrs = node.attributes;
+            config.node = node;
             for (var i = attrs.length - 1; i >= 0; i--) {
                 attr = attrs[i];
                 name = gp.camelize(attr.name);
@@ -477,16 +178,11 @@
             if (a === null) {
                 return null;
             }
-            if (a instanceof Date) {
+            if (a instanceof Date || (typeof (a) === 'string' && iso8601.test(a))) {
                 return 'date';
             }
             if (Array.isArray(a)) {
                 return 'array';
-            }
-            if (typeof (a) === 'string') {
-                if (iso8601.test(a)) {
-                    return 'date';
-                }
             }
             // 'number','string','boolean','function','object','undefined'
             return typeof (a);
@@ -662,7 +358,7 @@
             return key in uids ? createUID() : uids[key] = key;
         };
     
-    })();
+    })(gridponent);
     /***************\
       table helpers
     \***************/
@@ -1029,7 +725,6 @@
         get: function (model, callback, error) {
             try {
                 var skip = this.getSkip(model);
-                gryst.logging = true;
                 var count, qry = gryst.from(this.data);
                 console.log('data length: ' + this.data.length);
                 if (gp.isNullOrEmpty(model.Search) === false) {
@@ -1097,6 +792,321 @@
             }
         });
     };
+    /***************\
+     main component
+    \***************/
+    if (document.registerElement) {
+        gp.Table = Object.create(HTMLElement.prototype);
+    
+        gp.Table.createdCallback = function () {
+            this.initialize(this);
+        };
+    
+        document.registerElement('grid-ponent', {
+            prototype: gp.Table
+        });
+    }
+    else {
+        var table = function (node) {
+            this.initialize(node);
+        };
+    
+        gp.Table = table.prototype = {};
+    
+        setTimeout(function () {
+            var node, nodes = document.querySelectorAll('grid-ponent');
+            for (var i = 0; i < nodes.length; i++) {
+                node = nodes[i];
+                new table(node);
+            }
+        });
+    }
+    
+    gp.Table.initialize = function (node) {
+        // if there's web component support, this and node will be the same object
+        node = node || this;
+        // if there's no web component support, Table functions as a wrapper around the node
+        var self = this;
+        this.config = gp.getConfig(node);
+        this.config.Columns = [];
+        this.config.data = {};
+        this.config.ID = gp.createUID();
+        for (var i = 0; i < node.children.length; i++) {
+            var col = node.children[i];
+            var colConfig = gp.getConfig(col);
+            this.config.Columns.push(colConfig);
+            this.resolveCommands(colConfig);
+            this.resolveFooterTemplate(colConfig);
+        }
+        this.config.Footer = this.resolveFooter(this.config);
+        this.resolveOnCreated();
+        if (test && test.log) test.log(this.config);
+        if (this.config.Oncreated) {
+            this.config.data = this.config.Oncreated();
+            this.resolveTypes(this.config);
+        }
+        this.pager = this.getPager(this.config);
+        this.resolveFirstPage(this.config, this.pager, function (firstPage) {
+            self.render(node);
+        });
+        this.beginMonitor(node);
+        this.addCommandHandlers(node);
+        if (this.config.FixedHeaders) {
+            setTimeout(function () {
+                self.syncColumnWidths(node);
+            });
+            window.addEventListener('resize', function () {
+                self.syncColumnWidths(node);
+            });
+        }
+    };
+    
+    gp.Table.resolveFooter = function (config) {
+        for (var i = 0; i < config.Columns.length; i++) {
+            if (config.Columns[i].FooterTemplate) return true;
+        }
+        return false;
+    };
+    
+    gp.Table.resolveFooterTemplate = function (column) {
+        if (column.FooterTemplate) {
+            column.FooterTemplate = gp.resolveObjectPath(column.FooterTemplate);
+        }
+    };
+    
+    gp.Table.resolveOnCreated = function () {
+        if (this.config.Oncreated) {
+            this.config.Oncreated = gp.resolveObjectPath(this.config.Oncreated);
+        }
+    };
+    
+    gp.Table.resolveCommands = function (col) {
+        if (col.Commands) {
+            col.Commands = col.Commands.split(',');
+        }
+    };
+    
+    gp.Table.resolveTypes = function (config) {
+        config.Columns.forEach(function (col) {
+            for (var i = 0; i < config.data.Data.length; i++) {
+                if (config.data.Data[i][col.Field] !== null) {
+                    col.Type = gp.getType(config.data.Data[i][col.Field]);
+                    break;
+                }
+            }
+        });
+        console.log(config.Columns);
+    };
+    
+    gp.Table.getPager = function (config) {
+        if (config.Paging) {
+            if (gp.hasValue(config.Read)) {
+                return new gp.ServerPager(config);
+            }
+            else {
+                return new gp.ClientPager(config);
+            }
+        }
+    };
+    
+    gp.Table.resolveFirstPage = function (config, pager, callback) {
+        if (pager === undefined) {
+            callback(config.data);
+        }
+        else {
+            pager.get(config.data, callback);
+        }
+    };
+    
+    gp.Table.beginMonitor = function (node) {
+        var self = this;
+        // monitor changes to search, sort, and paging
+        var monitor = new gp.ChangeMonitor(node, '.table-toolbar [name=Search], thead input, .table-pager input', this.config.data, function (evt) {
+            self.update();
+            // reset the radio inputs
+            var radios = self.querySelectorAll('thead input[type=radio], .table-pager input[type=radio]');
+            for (var i = 0; i < radios.length; i++) {
+                radios[i].checked = false;
+            }
+        });
+        monitor.beforeSync = function (name, value, model) {
+            // the OrderBy property requires special handling
+            if (name === 'OrderBy') {
+                if (model[name] === value) {
+                    model.Desc = !model.Desc;
+                }
+                else {
+                    model[name] = value;
+                    model.Desc = false;
+                }
+                return true;
+            }
+            return false;
+        };
+    };
+    
+    gp.Table.render = function (node) {
+        try {
+            var html = gp.templates['gridponent'](this.config);
+            if (test && test.log) test.log(html);
+            node.innerHTML = html;
+        }
+        catch (ex) {
+            console.log(ex.message);
+            console.log(ex.stack);
+        }
+    };
+    
+    gp.Table.measureTables = function (node) {
+        // for fixed headers, adjust the padding on the header to match the width of the main table
+        var header = node.querySelector('.table-header');
+        var bodyWidth = node.querySelector('.table-body > table').offsetWidth;
+        var headerWidth = header.querySelector('table').offsetWidth;
+        var diff = (headerWidth - bodyWidth);
+        if (diff !== 0) {
+            var paddingRight = diff;
+            console.log('diff:' + diff + ', paddingRight:' + paddingRight);
+            header.style.paddingRight = paddingRight.toString() + 'px';
+        }
+    };
+    
+    gp.Table.syncColumnWidths = function (node) {
+        // for fixed headers, adjust the padding on the header to match the width of the main table
+        var colgroup = node.querySelector('.table-header colgroup');
+        if (colgroup) {
+            var bodyCols = node.querySelectorAll('.table-body > table > tbody > tr:first-child > td');
+            var width;
+            var out = []
+            for (var i = 0; i < bodyCols.length; i++) {
+                width = bodyCols[i].offsetWidth;
+                out.push('<col style="width:' + width + 'px;"></col>');
+            }
+            colgroup.innerHTML = out.join('');
+        }
+    };
+    
+    gp.Table.refresh = function (config) {
+        var rowsTemplate = gp.helpers['tableRows'];
+        var pagerTemplate = gp.templates['gridponent-pager'];
+        var html = rowsTemplate.call(config);
+        this.querySelector('.table-body > table > tbody').innerHTML = html;
+        html = pagerTemplate(config);
+        this.querySelector('.table-pager').innerHTML = html;
+        html = gp.helpers['sortStyle'].call(config);
+        this.querySelector('style').innerHTML = html;
+    };
+    
+    gp.Table.update = function () {
+        var self = this;
+        if (this.pager) {
+            this.pager.get(this.config.data, function (model) {
+                self.config.data = model;
+                self.refresh(self.config);
+            });
+        }
+    };
+    
+    gp.Table.addCommandHandlers = function (node) {
+        var self = this;
+        // listen for command button clicks
+        gp.on(node, 'click', 'button[value]', function (evt) {
+            // 'this' is the element that was clicked
+            var command = this.attributes['value'].value.toLowerCase();
+            var tr = gp.closest(this, 'tr[data-index]');
+            var index = parseInt(tr.attributes['data-index'].value);
+            var row = self.config.Row = self.config.data.Data[index];
+            switch (command) {
+                case 'edit':
+                    self.editRow(row, tr);
+                    break;
+                case 'delete':
+                    self.deleteRow(row, tr);
+                    break;
+                case 'update':
+                    self.updateRow(row, tr);
+                    break;
+                case 'cancel':
+                    self.cancelEdit(row, tr);
+                    break;
+                default:
+                    console.log('Unrecognized command: ' + command);
+                    break;
+            }
+        });
+    };
+    
+    gp.Table.editRow = function (row, tr) {
+        try {
+            var template = gp.templates['gridponent-edit-cells'];
+            var html = template(this.config);
+            tr.innerHTML = html;
+            tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
+        }
+        catch (ex) {
+            console.log(ex.message);
+            console.log(ex.stack);
+        }
+    };
+    
+    gp.Table.updateRow = function (row, tr) {
+        try {
+            var self = this;
+            var h = new gp.Http();
+            var url = this.config.Update;
+            var monitor;
+            h.post(url, row, function (response) {
+                // put the cells back
+                var template = gp.templates['gridponent-cells'];
+                var html = template(self.config);
+                tr.innerHTML = html;
+                // dispose of the ChangeMonitor
+                monitor = tr['gp-change-monitor'];
+                if (monitor) {
+                    monitor.stop();
+                    monitor = null;
+                }
+            });
+        }
+        catch (ex) {
+            console.log(ex.message);
+            console.log(ex.stack);
+        }
+    };
+    
+    gp.Table.cancelEdit = function (row, tr) {
+        try {
+            var template = gp.templates['gridponent-cells'];
+            var html = template(this.config);
+            tr.innerHTML = html;
+        }
+        catch (ex) {
+            console.log(ex.message);
+            console.log(ex.stack);
+        }
+    };
+    
+    gp.Table.deleteRow = function (row, tr) {
+        try {
+            var confirmed = confirm('Are you sure you want to delete this item?');
+            if (!confirmed) return;
+            var self = this;
+            var h = new gp.Http();
+            var url = this.config.Destroy;
+            h.post(url, row, function (response) {
+                // remove the row from the model
+                var index = self.config.data.Data.indexOf(row);
+                if (index != -1) {
+                    self.config.data.Data.splice(index, 1);
+                    self.refresh(self.config);
+                }
+            });
+        }
+        catch (ex) {
+            console.log(ex.message);
+            console.log(ex.stack);
+        }
+    };
+    
     gp.templates = gp.templates || {};
     gp.templates['gridponent-body'] = function(model, arg) {
         var out = [];

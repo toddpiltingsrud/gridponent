@@ -1,18 +1,18 @@
 ﻿/***************\
  change monitor
 \***************/
-gp.ChangeMonitor = function (elem, selector, model, afterSync) {
+gp.ChangeMonitor = function (node, selector, model, afterSync) {
     var self = this;
     this.model = model;
     this.beforeSync = null;
     this.afterSync = afterSync;
-    this.elem = elem;
+    this.node = node;
     this.listener = function (evt) {
         self.syncModel(evt.target, self.model);
         self.afterSync(evt, model);
     };
-    // add change event handler to elem
-    gp.on(elem, 'change', selector, this.listener);
+    // add change event handler to node
+    gp.on(node, 'change', selector, this.listener);
 };
 
 gp.ChangeMonitor.prototype = {
@@ -40,6 +40,6 @@ gp.ChangeMonitor.prototype = {
     },
     stop: function () {
         // clean up
-        gp.off(this.elem, 'change', this.listener);
+        gp.off(this.node, 'change', this.listener);
     }
 };

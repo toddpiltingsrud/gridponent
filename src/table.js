@@ -1,16 +1,44 @@
 ﻿/***************\
  main component
 \***************/
-gp.Table = Object.create(gp.ComponentBase);
+if (document.registerElement) {
+    gp.Table = Object.create(HTMLElement.prototype);
 
-gp.Table.initialize = function () {
+    gp.Table.createdCallback = function () {
+        this.initialize(this);
+    };
+
+    document.registerElement('grid-ponent', {
+        prototype: gp.Table
+    });
+}
+else {
+    var table = function (node) {
+        this.initialize(node);
+    };
+
+    gp.Table = table.prototype = {};
+
+    setTimeout(function () {
+        var node, nodes = document.querySelectorAll('grid-ponent');
+        for (var i = 0; i < nodes.length; i++) {
+            node = nodes[i];
+            new table(node);
+        }
+    });
+}
+
+gp.Table.initialize = function (node) {
+    // if there's web component support, this and node will be the same object
+    node = node || this;
+    // if there's no web component support, Table functions as a wrapper around the node
     var self = this;
-    gp.ComponentBase.initialize.call(this);
+    this.config = gp.getConfig(node);
     this.config.Columns = [];
     this.config.data = {};
     this.config.ID = gp.createUID();
-    for (var i = 0; i < this.children.length; i++) {
-        var col = this.children[i];
+    for (var i = 0; i < node.children.length; i++) {
+        var col = node.children[i];
         var colConfig = gp.getConfig(col);
         this.config.Columns.push(colConfig);
         this.resolveCommands(colConfig);
@@ -18,23 +46,23 @@ gp.Table.initialize = function () {
     }
     this.config.Footer = this.resolveFooter(this.config);
     this.resolveOnCreated();
-    console.log(this.config);
+    if (test && test.log) test.log(this.config);
     if (this.config.Oncreated) {
         this.config.data = this.config.Oncreated();
         this.resolveTypes(this.config);
     }
     this.pager = this.getPager(this.config);
     this.resolveFirstPage(this.config, this.pager, function (firstPage) {
-        self.render(self.config);
+        self.render(node);
     });
-    this.beginMonitor();
-    this.addCommandHandlers();
+    this.beginMonitor(node);
+    this.addCommandHandlers(node);
     if (this.config.FixedHeaders) {
         setTimeout(function () {
-            self.syncColumnWidths(self);
+            self.syncColumnWidths(node);
         });
         window.addEventListener('resize', function () {
-            self.syncColumnWidths(self);
+            self.syncColumnWidths(node);
         });
     }
 };
@@ -96,10 +124,10 @@ gp.Table.resolveFirstPage = function (config, pager, callback) {
     }
 };
 
-gp.Table.beginMonitor = function () {
+gp.Table.beginMonitor = function (node) {
     var self = this;
     // monitor changes to search, sort, and paging
-    var monitor = new gp.ChangeMonitor(this, '.table-toolbar [name=Search], thead input, .table-pager input', this.config.data, function (evt) {
+    var monitor = new gp.ChangeMonitor(node, '.table-toolbar [name=Search], thead input, .table-pager input', this.config.data, function (evt) {
         self.update();
         // reset the radio inputs
         var radios = self.querySelectorAll('thead input[type=radio], .table-pager input[type=radio]');
@@ -123,9 +151,11 @@ gp.Table.beginMonitor = function () {
     };
 };
 
-gp.Table.render = function (model) {
+gp.Table.render = function (node) {
     try {
-        this.innerHTML = gp.templates['gridponent'](model);
+        var html = gp.templates['gridponent'](this.config);
+        if (test && test.log) test.log(html);
+        node.innerHTML = html;
     }
     catch (ex) {
         console.log(ex.message);
@@ -133,10 +163,10 @@ gp.Table.render = function (model) {
     }
 };
 
-gp.Table.measureTables = function (element) {
+gp.Table.measureTables = function (node) {
     // for fixed headers, adjust the padding on the header to match the width of the main table
-    var header = element.querySelector('.table-header');
-    var bodyWidth = element.querySelector('.table-body > table').offsetWidth;
+    var header = node.querySelector('.table-header');
+    var bodyWidth = node.querySelector('.table-body > table').offsetWidth;
     var headerWidth = header.querySelector('table').offsetWidth;
     var diff = (headerWidth - bodyWidth);
     if (diff !== 0) {
@@ -146,11 +176,11 @@ gp.Table.measureTables = function (element) {
     }
 };
 
-gp.Table.syncColumnWidths = function (element) {
+gp.Table.syncColumnWidths = function (node) {
     // for fixed headers, adjust the padding on the header to match the width of the main table
-    var colgroup = element.querySelector('.table-header colgroup');
+    var colgroup = node.querySelector('.table-header colgroup');
     if (colgroup) {
-        var bodyCols = element.querySelectorAll('.table-body > table > tbody > tr:first-child > td');
+        var bodyCols = node.querySelectorAll('.table-body > table > tbody > tr:first-child > td');
         var width;
         var out = []
         for (var i = 0; i < bodyCols.length; i++) {
@@ -182,10 +212,11 @@ gp.Table.update = function () {
     }
 };
 
-gp.Table.addCommandHandlers = function () {
+gp.Table.addCommandHandlers = function (node) {
     var self = this;
     // listen for command button clicks
-    gp.on(this, 'click', 'button[value]', function (evt) {
+    gp.on(node, 'click', 'button[value]', function (evt) {
+        // 'this' is the element that was clicked
         var command = this.attributes['value'].value.toLowerCase();
         var tr = gp.closest(this, 'tr[data-index]');
         var index = parseInt(tr.attributes['data-index'].value);
@@ -282,6 +313,3 @@ gp.Table.deleteRow = function (row, tr) {
     }
 };
 
-document.registerElement('grid-ponent', {
-    prototype: gp.Table
-});

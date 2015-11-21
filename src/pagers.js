@@ -51,7 +51,6 @@ gp.ClientPager.prototype = {
     get: function (model, callback, error) {
         try {
             var skip = this.getSkip(model);
-            gryst.logging = true;
             var count, qry = gryst.from(this.data);
             console.log('data length: ' + this.data.length);
             if (gp.isNullOrEmpty(model.Search) === false) {
