@@ -3,6 +3,18 @@
 \***************/
 (function (gp) {
 
+    gp.getConfig = function (node) {
+        var config = {}, name, attr, attrs = node.attributes;
+        config.node = node;
+        for (var i = attrs.length - 1; i >= 0; i--) {
+            attr = attrs[i];
+            name = gp.camelize(attr.name);
+            // convert "true" and "false" to boolean
+            config[name] = attr.value === "true" || attr.value === "false" ? attr.value === "true" : attr.value;
+        }
+        return config;
+    };
+
     gp.padLeft = function (str, length, char) {
         var s = str.toString();
         char = char || ' ';
@@ -11,11 +23,18 @@
         return s;
     };
 
-    var iso8601 = /^[012][0-9]{3}-[01][0-9]-[0123][0-9]T/;
+    var iso8601 = /^[012][0-9]{3}-[01][0-9]-[0123][0-9]/;
 
     var dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
     var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    // I hate dates. Why do they have to be so painful?
+    // http://stackoverflow.com/questions/5802461/javascript-which-browsers-support-parsing-of-iso-8601-date-string-with-date-par
+    function dateFromISO8601(isoDateString) {
+        var parts = isoDateString.match(/\d+/g);
+        return new Date(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5]);
+    }
 
     gp.formatDate = function (date, format) {
         var dt = date;
@@ -23,7 +42,7 @@
         if (typeof dt === 'string') {
             // check for iso 8601
             if (iso8601.test(dt)) {
-                dt = new Date(dt);
+                dt = dateFromISO8601(dt);
             }
             else {
                 // check for MS Date(1234567890-12345)
@@ -113,18 +132,6 @@
         return str.replace(/(?:^|[-_])(\w)/g, function (_, c) {
             return c ? c.toUpperCase() : '';
         });
-    };
-
-    gp.getConfig = function (node) {
-        var config = {}, name, attr, attrs = node.attributes;
-        config.node = node;
-        for (var i = attrs.length - 1; i >= 0; i--) {
-            attr = attrs[i];
-            name = gp.camelize(attr.name);
-            // convert "true" and "false" to boolean
-            config[name] = attr.value === "true" || attr.value === "false" ? attr.value === "true" : attr.value;
-        }
-        return config;
     };
 
     gp.getType = function (a) {

@@ -23,7 +23,7 @@ else
     path = @"C:\Users\todd\OneDrive\Documents\Code\Projects\gridponent\src\Templates";
 }
 
-var files = new DirectoryInfo(path).GetFiles("*.handlebars", SearchOption.TopDirectoryOnly);
+var files = new DirectoryInfo(path).GetFiles("*.html", SearchOption.TopDirectoryOnly);
 foreach (var file in files)
 {
     var lines = File.ReadAllLines(file.FullName);

@@ -1,4 +1,8 @@
-﻿Test for web component support. Fall back to manual initialization if not present. Or just shelve web component support for the time being until all IE9 installations are upgraded.
+﻿When updating rows, account for validation errors from the server.
+
+We only need to sync column widths if:
+- there are fixed headers or footers
+- a column doesn't have a fixed width
 
 Client-side pager should search on the formatted values of the data, i.e. what's showing in the grid.
 We could offer the ability to create a hook into the where clause for client-side searching.
@@ -15,12 +19,12 @@ Add API for CRUD operations.
 
 Provide an easy way to get at the data via JavaScript.
 
+Standardize property capitalization.
+
 Rework classes to make it easy to target specific sections of the grid.
 
 Build a jQuery version.
 
 Build a Polymer version.
-
-Standardize property capitalization.
 
 Use native browser functions to parse user-defined templates. Escape text nodes.

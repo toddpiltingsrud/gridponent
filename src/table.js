@@ -19,7 +19,7 @@ else {
 
     gp.Table = table.prototype = {};
 
-    setTimeout(function () {
+    gp.ready(function () {
         var node, nodes = document.querySelectorAll('grid-ponent');
         for (var i = 0; i < nodes.length; i++) {
             node = nodes[i];
@@ -153,9 +153,7 @@ gp.Table.beginMonitor = function (node) {
 
 gp.Table.render = function (node) {
     try {
-        var html = gp.templates['gridponent'](this.config);
-        if (test && test.log) test.log(html);
-        node.innerHTML = html;
+        node.innerHTML = gp.templates['gridponent'](this.config);
     }
     catch (ex) {
         console.log(ex.message);
@@ -166,29 +164,37 @@ gp.Table.render = function (node) {
 gp.Table.measureTables = function (node) {
     // for fixed headers, adjust the padding on the header to match the width of the main table
     var header = node.querySelector('.table-header');
-    var bodyWidth = node.querySelector('.table-body > table').offsetWidth;
-    var headerWidth = header.querySelector('table').offsetWidth;
-    var diff = (headerWidth - bodyWidth);
-    if (diff !== 0) {
-        var paddingRight = diff;
-        console.log('diff:' + diff + ', paddingRight:' + paddingRight);
-        header.style.paddingRight = paddingRight.toString() + 'px';
+    var footer = node.querySelector('.table-footer');
+    if (header || footer) {
+        var bodyWidth = node.querySelector('.table-body > table').offsetWidth;
+        var headerWidth = (header || footer).querySelector('table').offsetWidth;
+        var diff = (headerWidth - bodyWidth);
+        if (diff !== 0) {
+            var paddingRight = diff;
+            console.log('diff:' + diff + ', paddingRight:' + paddingRight);
+            if (header) {
+                header.style.paddingRight = paddingRight.toString() + 'px';
+            }
+            if (footer) {
+                footer.style.paddingRight = paddingRight.toString() + 'px';
+            }
+        }
     }
 };
 
 gp.Table.syncColumnWidths = function (node) {
     // for fixed headers, adjust the padding on the header to match the width of the main table
-    var colgroup = node.querySelector('.table-header colgroup');
-    if (colgroup) {
-        var bodyCols = node.querySelectorAll('.table-body > table > tbody > tr:first-child > td');
-        var width;
-        var out = []
-        for (var i = 0; i < bodyCols.length; i++) {
-            width = bodyCols[i].offsetWidth;
-            out.push('<col style="width:' + width + 'px;"></col>');
-        }
-        colgroup.innerHTML = out.join('');
-    }
+    //var colgroup = node.querySelector('.table-header colgroup');
+    //if (colgroup) {
+    //    var bodyCols = node.querySelectorAll('.table-body > table > tbody > tr:first-child > td');
+    //    var width;
+    //    var out = []
+    //    for (var i = 0; i < bodyCols.length; i++) {
+    //        width = bodyCols[i].offsetWidth;
+    //        out.push('<col style="width:' + width + 'px;"></col>');
+    //    }
+    //    colgroup.innerHTML = out.join('');
+    //}
 };
 
 gp.Table.refresh = function (config) {
@@ -199,7 +205,7 @@ gp.Table.refresh = function (config) {
     html = pagerTemplate(config);
     this.querySelector('.table-pager').innerHTML = html;
     html = gp.helpers['sortStyle'].call(config);
-    this.querySelector('style').innerHTML = html;
+    this.querySelector('style.sort-style').innerHTML = html;
 };
 
 gp.Table.update = function () {
@@ -259,17 +265,31 @@ gp.Table.updateRow = function (row, tr) {
         var self = this;
         var h = new gp.Http();
         var url = this.config.Update;
+        if (test && test.log) {
+            test.log('updateRow: row:');
+            test.log(row);
+        }
         var monitor;
         h.post(url, row, function (response) {
-            // put the cells back
-            var template = gp.templates['gridponent-cells'];
-            var html = template(self.config);
-            tr.innerHTML = html;
-            // dispose of the ChangeMonitor
-            monitor = tr['gp-change-monitor'];
-            if (monitor) {
-                monitor.stop();
-                monitor = null;
+            if (test && test.log) {
+                test.log('updateRow: response:');
+                test.log(response);
+            }
+            if (response.ValidationErrors && response.ValidationErrors.length) {
+                // TODO: handle validation errors
+            }
+            else {
+                // put the cells back
+                self.config.Row = response.Row;
+                var template = gp.templates['gridponent-cells'];
+                var html = template(self.config);
+                tr.innerHTML = html;
+                // dispose of the ChangeMonitor
+                monitor = tr['gp-change-monitor'];
+                if (monitor) {
+                    monitor.stop();
+                    monitor = null;
+                }
             }
         });
     }
@@ -312,4 +332,3 @@ gp.Table.deleteRow = function (row, tr) {
         console.log(ex.stack);
     }
 };
-

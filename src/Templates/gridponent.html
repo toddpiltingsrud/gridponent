@@ -18,22 +18,33 @@
         </div>
     {{/if}}
     {{#if model.FixedHeaders}}
-    <div class="table-header">
-        <table class="table" cellpadding="0" cellspacing="0" style="margin-bottom:0">
-            {{helper colgroup}}
-            {{helper thead}}
-        </table>
-    </div>
+        <div class="table-header">
+            <table class="table" cellpadding="0" cellspacing="0" style="margin-bottom:0">
+                {{helper colgroup}}
+                {{helper thead}}
+            </table>
+        </div>
     {{/if}}
-    <div class="table-body {{#if model.FixedHeaders}}table-scroll{{/if}}" style="{{model.Style}}">
-        {{template "gridponent-body"}}
-    </div>
+        <div class="table-body {{#if model.FixedHeaders}}table-scroll{{/if}}" style="{{model.Style}}">
+            {{template "gridponent-body"}}
+        </div>
+    {{#if model.FixedFooters}}
+        <div class="table-footer">
+            <table class="table" cellpadding="0" cellspacing="0" style="margin-top:0">
+                {{helper colgroup}}
+                {{template "gridponent-tfoot"}}
+            </table>
+        </div>
+    {{/if}}
     {{#if model.Paging}}
         <div class="table-pager">
             {{template "gridponent-pager"}}
         </div>
     {{/if}}
-    <style type="text/css">
+    <style type="text/css" class="sort-style">
         {{helper sortStyle}}
+    </style>
+    <style type="text/css" class="column-width-style">
+        {{helper columnWidthStyle}}
     </style>
 </div>

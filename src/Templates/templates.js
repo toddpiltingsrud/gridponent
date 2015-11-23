@@ -10,17 +10,9 @@ gp.templates['gridponent-body'] = function(model, arg) {
         out.push('<tbody>');
                 out.push(gp.helpers['tableRows'].call(model));
         out.push('</tbody>');
-            if (model.Footer) {
-        out.push('<tfoot>');
-    out.push('<tr>');
-                        model.Columns.forEach(function(col, index) {
-        out.push('<td class="footer-cell">');
-                                out.push(gp.helpers['footerCell'].call(model, col));
-        out.push('</td>');
-                        });
-        out.push('</tr>');
-    out.push('</tfoot>');
-            }
+            if (model.Footer && !model.FixedFooters) {
+                    out.push(gp.templates['gridponent-tfoot'](model));
+                }
         out.push('</table>');
     return out.join('');
 };
@@ -138,6 +130,19 @@ gp.templates['gridponent-pager'] = function(model, arg) {
     }
             return out.join('');
 };
+gp.templates['gridponent-tfoot'] = function(model, arg) {
+    var out = [];
+    out.push('<tfoot>');
+    out.push('<tr>');
+                model.Columns.forEach(function(col, index) {
+        out.push('<td class="footer-cell">');
+                    out.push(gp.helpers['footerCell'].call(model, col));
+        out.push('</td>');
+                });
+        out.push('</tr>');
+    out.push('</tfoot>');
+    return out.join('');
+};
 gp.templates['gridponent'] = function(model, arg) {
     var out = [];
     out.push('<div class="table-container');
@@ -166,27 +171,38 @@ gp.templates['gridponent'] = function(model, arg) {
                 if (model.FixedHeaders) {
         out.push('<div class="table-header">');
     out.push('<table class="table" cellpadding="0" cellspacing="0" style="margin-bottom:0">');
-                    out.push(gp.helpers['colgroup'].call(model));
-                        out.push(gp.helpers['thead'].call(model));
+                        out.push(gp.helpers['colgroup'].call(model));
+                            out.push(gp.helpers['thead'].call(model));
         out.push('</table>');
     out.push('</div>');
             }
-        out.push('    <div class="table-body ');
+        out.push('        <div class="table-body ');
     if (model.FixedHeaders) {
     out.push('table-scroll');
     }
     out.push('" style="');
     out.push(model.Style);
     out.push('">');
-                out.push(gp.templates['gridponent-body'](model));
+                    out.push(gp.templates['gridponent-body'](model));
         out.push('</div>');
-            if (model.Paging) {
+            if (model.FixedFooters) {
+        out.push('<div class="table-footer">');
+    out.push('<table class="table" cellpadding="0" cellspacing="0" style="margin-top:0">');
+                        out.push(gp.helpers['colgroup'].call(model));
+                            out.push(gp.templates['gridponent-tfoot'](model));
+        out.push('</table>');
+    out.push('</div>');
+            }
+                if (model.Paging) {
         out.push('<div class="table-pager">');
                     out.push(gp.templates['gridponent-pager'](model));
         out.push('</div>');
             }
-        out.push('<style type="text/css">');
+        out.push('<style type="text/css" class="sort-style">');
                 out.push(gp.helpers['sortStyle'].call(model));
+        out.push('</style>');
+    out.push('<style type="text/css" class="column-width-style">');
+                out.push(gp.helpers['columnWidthStyle'].call(model));
         out.push('</style>');
     out.push('</div>');
     return out.join('');

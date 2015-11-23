@@ -142,7 +142,29 @@ label.table-sort {
     .table-body {
         overflow-y: scroll;
     }
+}
 
+.fixed-footers {
+    .table-footer {
+        padding-right:17px;
+    }
+
+    .table-footer > table,
+    .table-body > table {
+        table-layout:fixed;
+    }
+
+    .table-footer td {
+        overflow: hidden;
+        -ms-text-overflow: ellipsis;
+        -o-text-overflow: ellipsis;
+        text-overflow: ellipsis;
+        white-space:nowrap;
+    }
+
+    .table-body {
+        overflow-y: scroll;
+    }
 }
 
 .table-pager label input {

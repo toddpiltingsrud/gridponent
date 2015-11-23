@@ -69,7 +69,10 @@ gp.Http.prototype = {
     },
     post: function (url, data, callback, error) {
         setTimeout(function () {
-            callback(data);
+            callback({
+                Row: data,
+                ValidationErrors: []
+            });
         });
     }
 };

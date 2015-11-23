@@ -50,6 +50,18 @@
     \***************/
     (function (gp) {
     
+        gp.getConfig = function (node) {
+            var config = {}, name, attr, attrs = node.attributes;
+            config.node = node;
+            for (var i = attrs.length - 1; i >= 0; i--) {
+                attr = attrs[i];
+                name = gp.camelize(attr.name);
+                // convert "true" and "false" to boolean
+                config[name] = attr.value === "true" || attr.value === "false" ? attr.value === "true" : attr.value;
+            }
+            return config;
+        };
+    
         gp.padLeft = function (str, length, char) {
             var s = str.toString();
             char = char || ' ';
@@ -58,11 +70,18 @@
             return s;
         };
     
-        var iso8601 = /^[012][0-9]{3}-[01][0-9]-[0123][0-9]T/;
+        var iso8601 = /^[012][0-9]{3}-[01][0-9]-[0123][0-9]/;
     
         var dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     
         var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    
+        // I hate dates. Why do they have to be so painful?
+        // http://stackoverflow.com/questions/5802461/javascript-which-browsers-support-parsing-of-iso-8601-date-string-with-date-par
+        function dateFromISO8601(isoDateString) {
+            var parts = isoDateString.match(/\d+/g);
+            return new Date(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5]);
+        }
     
         gp.formatDate = function (date, format) {
             var dt = date;
@@ -70,7 +89,7 @@
             if (typeof dt === 'string') {
                 // check for iso 8601
                 if (iso8601.test(dt)) {
-                    dt = new Date(dt);
+                    dt = dateFromISO8601(dt);
                 }
                 else {
                     // check for MS Date(1234567890-12345)
@@ -160,18 +179,6 @@
             return str.replace(/(?:^|[-_])(\w)/g, function (_, c) {
                 return c ? c.toUpperCase() : '';
             });
-        };
-    
-        gp.getConfig = function (node) {
-            var config = {}, name, attr, attrs = node.attributes;
-            config.node = node;
-            for (var i = attrs.length - 1; i >= 0; i--) {
-                attr = attrs[i];
-                name = gp.camelize(attr.name);
-                // convert "true" and "false" to boolean
-                config[name] = attr.value === "true" || attr.value === "false" ? attr.value === "true" : attr.value;
-            }
-            return config;
         };
     
         gp.getType = function (a) {
@@ -395,19 +402,19 @@
             var self = this;
             var out = [];
     
-            var defaultWidth = (100.0 / this.Columns.length).toString() + '%';
+            //var defaultWidth = (100.0 / this.Columns.length).toString() + '%';
     
-            out.push('<colgroup>');
+            //out.push('<colgroup>');
     
-            this.Columns.forEach(function (col) {
-                out.push('<col');
-                if (col.Width || self.FixedHeaders) {
-                    out.push(' style="width:' + (col.Width || defaultWidth) + '"');
-                }
-                out.push('></col>');
-            });
+            //this.Columns.forEach(function (col) {
+            //    out.push('<col');
+            //    if (col.Width || self.FixedHeaders) {
+            //        out.push(' style="width:' + (col.Width || defaultWidth) + '"');
+            //    }
+            //    out.push('></col>');
+            //});
     
-            out.push('</colgroup>');
+            //out.push('</colgroup>');
     
             return out.join('');
         });
@@ -460,6 +467,8 @@
     
         extend('bodyCell', function (col) {
             var template, format, val = this.Row[col.Field];
+    
+    
             var type = (col.Type || '').toLowerCase();
             var out = [];
             out.push('<td class="body-cell ' + type + '">');
@@ -582,10 +591,60 @@
             return out.join('');
         });
     
+        extend('columnWidthStyle', function () {
+            var self = this;
+            var out = [];
+            var index = 0;
+            var defaultWidth = (100.0 / this.Columns.length).toString() + '%';
+            var bodyCols = this.node.querySelectorAll('.table-body > table > tbody > tr:first-child > td');
+    
+            if (test && test.log) {
+                test.log('columnWidthStyle: bodycols:');
+                test.log(bodyCols);
+            }
+    
+            // even though the table might not exist yet, we still should render width styles because there might be fixed widths specified
+            this.Columns.forEach(function (col) {
+                out.push('#' + self.ID + ' > .table-header > table > thead th:nth-child(' + (index + 1) + '),');
+                out.push('#' + self.ID + ' > .table-footer > table > tfoot td:nth-child(' + (index + 1) + ')');
+                if (col.Width || bodyCols.length === 0) {
+                    // fixed width should include the body
+                    out.push(',');
+                    out.push('#' + self.ID + ' > .table-body > table > thead th:nth-child(' + (index + 1) + '),');
+                    out.push('#' + self.ID + ' > .table-body > table > tbody td:nth-child(' + (index + 1) + ')');
+                    out.push('{ width:');
+                    out.push(col.Width || defaultWidth);
+                }
+                else if (bodyCols.length && (self.FixedHeaders || self.FixedFooters)) {
+                    // sync header and footer to body
+                    out.push('{ width:');
+                    out.push(bodyCols[i].offsetWidth);
+                    out.push('px');
+                }
+                else if (bodyCols.length === 0) {
+                    // table doesn't exist yet, render default width
+                    out.push('{ width:');
+                    out.push(defaultWidth);
+                }
+                out.push(';}');
+                index++;
+            });
+    
+            if (test && test.log) {
+                test.log('columnWidthStyle: out:');
+                test.log(out.join());
+            }
+    
+            return out.join('');
+        });
+    
         extend('containerClasses', function () {
             var out = [];
             if (this.FixedHeaders) {
                 out.push(' fixed-headers');
+            }
+            if (this.FixedFooters) {
+                out.push(' fixed-footers');
             }
             if (this.Paging) {
                 out.push(' pager-' + this.Paging);
@@ -668,7 +727,10 @@
         },
         post: function (url, data, callback, error) {
             setTimeout(function () {
-                callback(data);
+                callback({
+                    Row: data,
+                    ValidationErrors: []
+                });
             });
         }
     };
@@ -792,6 +854,90 @@
             }
         });
     };
+    // pilfered from JQuery
+    /*!
+     * jQuery JavaScript Library v2.1.4
+     * http://jquery.com/
+     *
+     * Copyright 2005, 2014 jQuery Foundation, Inc. and other contributors
+     * Released under the MIT license
+     * http://jquery.org/license
+     *
+     * Date: 2015-04-28T16:01Z
+     */
+    gp.ready = function (fn) {
+    
+        var isReady = false;
+    
+        var completed = function (event) {
+            // readyState === "complete" is good enough for us to call the dom ready in oldIE
+            if (document.addEventListener || event.type === "load" || document.readyState === "complete") {
+                isReady = true;
+                detach();
+                fn();
+            }
+        };
+    
+        var detach = function () {
+            if (document.addEventListener) {
+                document.removeEventListener("DOMContentLoaded", completed, false);
+                window.removeEventListener("load", completed, false);
+    
+            } else {
+                document.detachEvent("onreadystatechange", completed);
+                window.detachEvent("onload", completed);
+            }
+        };
+    
+        if (document.readyState === "complete") {
+            // Handle it asynchronously to allow scripts the opportunity to delay ready
+            setTimeout(fn);
+    
+            // Standards-based browsers support DOMContentLoaded
+        } else if (document.addEventListener) {
+            // Use the handy event callback
+            document.addEventListener("DOMContentLoaded", completed, false);
+    
+            // A fallback to window.onload, that will always work
+            window.addEventListener("load", completed, false);
+    
+            // If IE event model is used
+        } else {
+            // Ensure firing before onload, maybe late but safe also for iframes
+            document.attachEvent("onreadystatechange", completed);
+    
+            // A fallback to window.onload, that will always work
+            window.attachEvent("onload", completed);
+    
+            // If IE and not a frame
+            // continually check to see if the document is ready
+            var top = false;
+    
+            try {
+                top = window.frameElement == null && document.documentElement;
+            } catch (e) { }
+    
+            if (top && top.doScroll) {
+                (function doScrollCheck() {
+                    if (!isReady) {
+    
+                        try {
+                            // Use the trick by Diego Perini
+                            // http://javascript.nwbox.com/IEContentLoaded/
+                            top.doScroll("left");
+                        } catch (e) {
+                            return setTimeout(doScrollCheck, 50);
+                        }
+    
+                        // detach all dom ready events
+                        detach();
+    
+                        fn();
+                    }
+                })();
+            }
+        }
+    };
     /***************\
      main component
     \***************/
@@ -813,7 +959,7 @@
     
         gp.Table = table.prototype = {};
     
-        setTimeout(function () {
+        gp.ready(function () {
             var node, nodes = document.querySelectorAll('grid-ponent');
             for (var i = 0; i < nodes.length; i++) {
                 node = nodes[i];
@@ -947,9 +1093,7 @@
     
     gp.Table.render = function (node) {
         try {
-            var html = gp.templates['gridponent'](this.config);
-            if (test && test.log) test.log(html);
-            node.innerHTML = html;
+            node.innerHTML = gp.templates['gridponent'](this.config);
         }
         catch (ex) {
             console.log(ex.message);
@@ -960,29 +1104,37 @@
     gp.Table.measureTables = function (node) {
         // for fixed headers, adjust the padding on the header to match the width of the main table
         var header = node.querySelector('.table-header');
-        var bodyWidth = node.querySelector('.table-body > table').offsetWidth;
-        var headerWidth = header.querySelector('table').offsetWidth;
-        var diff = (headerWidth - bodyWidth);
-        if (diff !== 0) {
-            var paddingRight = diff;
-            console.log('diff:' + diff + ', paddingRight:' + paddingRight);
-            header.style.paddingRight = paddingRight.toString() + 'px';
+        var footer = node.querySelector('.table-footer');
+        if (header || footer) {
+            var bodyWidth = node.querySelector('.table-body > table').offsetWidth;
+            var headerWidth = (header || footer).querySelector('table').offsetWidth;
+            var diff = (headerWidth - bodyWidth);
+            if (diff !== 0) {
+                var paddingRight = diff;
+                console.log('diff:' + diff + ', paddingRight:' + paddingRight);
+                if (header) {
+                    header.style.paddingRight = paddingRight.toString() + 'px';
+                }
+                if (footer) {
+                    footer.style.paddingRight = paddingRight.toString() + 'px';
+                }
+            }
         }
     };
     
     gp.Table.syncColumnWidths = function (node) {
         // for fixed headers, adjust the padding on the header to match the width of the main table
-        var colgroup = node.querySelector('.table-header colgroup');
-        if (colgroup) {
-            var bodyCols = node.querySelectorAll('.table-body > table > tbody > tr:first-child > td');
-            var width;
-            var out = []
-            for (var i = 0; i < bodyCols.length; i++) {
-                width = bodyCols[i].offsetWidth;
-                out.push('<col style="width:' + width + 'px;"></col>');
-            }
-            colgroup.innerHTML = out.join('');
-        }
+        //var colgroup = node.querySelector('.table-header colgroup');
+        //if (colgroup) {
+        //    var bodyCols = node.querySelectorAll('.table-body > table > tbody > tr:first-child > td');
+        //    var width;
+        //    var out = []
+        //    for (var i = 0; i < bodyCols.length; i++) {
+        //        width = bodyCols[i].offsetWidth;
+        //        out.push('<col style="width:' + width + 'px;"></col>');
+        //    }
+        //    colgroup.innerHTML = out.join('');
+        //}
     };
     
     gp.Table.refresh = function (config) {
@@ -993,7 +1145,7 @@
         html = pagerTemplate(config);
         this.querySelector('.table-pager').innerHTML = html;
         html = gp.helpers['sortStyle'].call(config);
-        this.querySelector('style').innerHTML = html;
+        this.querySelector('style.sort-style').innerHTML = html;
     };
     
     gp.Table.update = function () {
@@ -1053,17 +1205,31 @@
             var self = this;
             var h = new gp.Http();
             var url = this.config.Update;
+            if (test && test.log) {
+                test.log('updateRow: row:');
+                test.log(row);
+            }
             var monitor;
             h.post(url, row, function (response) {
-                // put the cells back
-                var template = gp.templates['gridponent-cells'];
-                var html = template(self.config);
-                tr.innerHTML = html;
-                // dispose of the ChangeMonitor
-                monitor = tr['gp-change-monitor'];
-                if (monitor) {
-                    monitor.stop();
-                    monitor = null;
+                if (test && test.log) {
+                    test.log('updateRow: response:');
+                    test.log(response);
+                }
+                if (response.ValidationErrors && response.ValidationErrors.length) {
+                    // TODO: handle validation errors
+                }
+                else {
+                    // put the cells back
+                    self.config.Row = response.Row;
+                    var template = gp.templates['gridponent-cells'];
+                    var html = template(self.config);
+                    tr.innerHTML = html;
+                    // dispose of the ChangeMonitor
+                    monitor = tr['gp-change-monitor'];
+                    if (monitor) {
+                        monitor.stop();
+                        monitor = null;
+                    }
                 }
             });
         }
@@ -1106,7 +1272,6 @@
             console.log(ex.stack);
         }
     };
-    
     gp.templates = gp.templates || {};
     gp.templates['gridponent-body'] = function(model, arg) {
         var out = [];
@@ -1119,17 +1284,9 @@
             out.push('<tbody>');
                     out.push(gp.helpers['tableRows'].call(model));
             out.push('</tbody>');
-                if (model.Footer) {
-            out.push('<tfoot>');
-        out.push('<tr>');
-                            model.Columns.forEach(function(col, index) {
-            out.push('<td class="footer-cell">');
-                                    out.push(gp.helpers['footerCell'].call(model, col));
-            out.push('</td>');
-                            });
-            out.push('</tr>');
-        out.push('</tfoot>');
-                }
+                if (model.Footer && !model.FixedFooters) {
+                        out.push(gp.templates['gridponent-tfoot'](model));
+                    }
             out.push('</table>');
         return out.join('');
     };
@@ -1247,6 +1404,19 @@
         }
                 return out.join('');
     };
+    gp.templates['gridponent-tfoot'] = function(model, arg) {
+        var out = [];
+        out.push('<tfoot>');
+        out.push('<tr>');
+                    model.Columns.forEach(function(col, index) {
+            out.push('<td class="footer-cell">');
+                        out.push(gp.helpers['footerCell'].call(model, col));
+            out.push('</td>');
+                    });
+            out.push('</tr>');
+        out.push('</tfoot>');
+        return out.join('');
+    };
     gp.templates['gridponent'] = function(model, arg) {
         var out = [];
         out.push('<div class="table-container');
@@ -1275,27 +1445,38 @@
                     if (model.FixedHeaders) {
             out.push('<div class="table-header">');
         out.push('<table class="table" cellpadding="0" cellspacing="0" style="margin-bottom:0">');
-                        out.push(gp.helpers['colgroup'].call(model));
-                            out.push(gp.helpers['thead'].call(model));
+                            out.push(gp.helpers['colgroup'].call(model));
+                                out.push(gp.helpers['thead'].call(model));
             out.push('</table>');
         out.push('</div>');
                 }
-            out.push('    <div class="table-body ');
+            out.push('        <div class="table-body ');
         if (model.FixedHeaders) {
         out.push('table-scroll');
         }
         out.push('" style="');
         out.push(model.Style);
         out.push('">');
-                    out.push(gp.templates['gridponent-body'](model));
+                        out.push(gp.templates['gridponent-body'](model));
             out.push('</div>');
-                if (model.Paging) {
+                if (model.FixedFooters) {
+            out.push('<div class="table-footer">');
+        out.push('<table class="table" cellpadding="0" cellspacing="0" style="margin-top:0">');
+                            out.push(gp.helpers['colgroup'].call(model));
+                                out.push(gp.templates['gridponent-tfoot'](model));
+            out.push('</table>');
+        out.push('</div>');
+                }
+                    if (model.Paging) {
             out.push('<div class="table-pager">');
                         out.push(gp.templates['gridponent-pager'](model));
             out.push('</div>');
                 }
-            out.push('<style type="text/css">');
+            out.push('<style type="text/css" class="sort-style">');
                     out.push(gp.helpers['sortStyle'].call(model));
+            out.push('</style>');
+        out.push('<style type="text/css" class="column-width-style">');
+                    out.push(gp.helpers['columnWidthStyle'].call(model));
             out.push('</style>');
         out.push('</div>');
         return out.join('');

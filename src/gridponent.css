@@ -103,6 +103,23 @@ label.table-sort:after {
 .fixed-headers .table-body {
   overflow-y: scroll;
 }
+.fixed-footers .table-footer {
+  padding-right: 17px;
+}
+.fixed-footers .table-footer > table,
+.fixed-footers .table-body > table {
+  table-layout: fixed;
+}
+.fixed-footers .table-footer td {
+  overflow: hidden;
+  -ms-text-overflow: ellipsis;
+  -o-text-overflow: ellipsis;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fixed-footers .table-body {
+  overflow-y: scroll;
+}
 .table-pager label input {
   display: none;
 }

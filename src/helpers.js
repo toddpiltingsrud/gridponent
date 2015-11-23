@@ -34,19 +34,19 @@
         var self = this;
         var out = [];
 
-        var defaultWidth = (100.0 / this.Columns.length).toString() + '%';
+        //var defaultWidth = (100.0 / this.Columns.length).toString() + '%';
 
-        out.push('<colgroup>');
+        //out.push('<colgroup>');
 
-        this.Columns.forEach(function (col) {
-            out.push('<col');
-            if (col.Width || self.FixedHeaders) {
-                out.push(' style="width:' + (col.Width || defaultWidth) + '"');
-            }
-            out.push('></col>');
-        });
+        //this.Columns.forEach(function (col) {
+        //    out.push('<col');
+        //    if (col.Width || self.FixedHeaders) {
+        //        out.push(' style="width:' + (col.Width || defaultWidth) + '"');
+        //    }
+        //    out.push('></col>');
+        //});
 
-        out.push('</colgroup>');
+        //out.push('</colgroup>');
 
         return out.join('');
     });
@@ -99,6 +99,8 @@
 
     extend('bodyCell', function (col) {
         var template, format, val = this.Row[col.Field];
+
+
         var type = (col.Type || '').toLowerCase();
         var out = [];
         out.push('<td class="body-cell ' + type + '">');
@@ -221,10 +223,60 @@
         return out.join('');
     });
 
+    extend('columnWidthStyle', function () {
+        var self = this;
+        var out = [];
+        var index = 0;
+        var defaultWidth = (100.0 / this.Columns.length).toString() + '%';
+        var bodyCols = this.node.querySelectorAll('.table-body > table > tbody > tr:first-child > td');
+
+        if (test && test.log) {
+            test.log('columnWidthStyle: bodycols:');
+            test.log(bodyCols);
+        }
+
+        // even though the table might not exist yet, we still should render width styles because there might be fixed widths specified
+        this.Columns.forEach(function (col) {
+            out.push('#' + self.ID + ' > .table-header > table > thead th:nth-child(' + (index + 1) + '),');
+            out.push('#' + self.ID + ' > .table-footer > table > tfoot td:nth-child(' + (index + 1) + ')');
+            if (col.Width || bodyCols.length === 0) {
+                // fixed width should include the body
+                out.push(',');
+                out.push('#' + self.ID + ' > .table-body > table > thead th:nth-child(' + (index + 1) + '),');
+                out.push('#' + self.ID + ' > .table-body > table > tbody td:nth-child(' + (index + 1) + ')');
+                out.push('{ width:');
+                out.push(col.Width || defaultWidth);
+            }
+            else if (bodyCols.length && (self.FixedHeaders || self.FixedFooters)) {
+                // sync header and footer to body
+                out.push('{ width:');
+                out.push(bodyCols[i].offsetWidth);
+                out.push('px');
+            }
+            else if (bodyCols.length === 0) {
+                // table doesn't exist yet, render default width
+                out.push('{ width:');
+                out.push(defaultWidth);
+            }
+            out.push(';}');
+            index++;
+        });
+
+        if (test && test.log) {
+            test.log('columnWidthStyle: out:');
+            test.log(out.join());
+        }
+
+        return out.join('');
+    });
+
     extend('containerClasses', function () {
         var out = [];
         if (this.FixedHeaders) {
             out.push(' fixed-headers');
+        }
+        if (this.FixedFooters) {
+            out.push(' fixed-footers');
         }
         if (this.Paging) {
             out.push(' pager-' + this.Paging);

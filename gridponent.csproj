@@ -45,6 +45,7 @@
     </Content>
     <Content Include="src\html-parser.js.txt" />
     <Content Include="src\mock-http.js" />
+    <Content Include="src\ready-check.js" />
     <Content Include="src\pagers.js" />
     <Content Include="src\change-monitor.js" />
     <Content Include="src\globals.js" />
@@ -62,6 +63,7 @@
       <DependentUpon>gridponent.css</DependentUpon>
     </None>
     <None Include="src\gridponent.less" />
+    <Content Include="src\Templates\gridponent-body.html" />
     <Content Include="src\Templates\templates.js">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -85,12 +87,12 @@
     <Content Include="data\Products.js" />
     <None Include="data\stops.json" />
     <None Include="scripts\gryst.min.js.map" />
-    <None Include="src\Templates\gridponent-body.handlebars" />
-    <None Include="src\Templates\gridponent-cells.handlebars" />
-    <None Include="src\Templates\gridponent-commands.handlebars" />
-    <None Include="src\Templates\gridponent-edit-cells.handlebars" />
-    <None Include="src\Templates\gridponent-pager.handlebars" />
-    <None Include="src\Templates\gridponent.handlebars" />
+    <Content Include="src\Templates\gridponent-tfoot.html" />
+    <Content Include="src\Templates\gridponent-cells.html" />
+    <Content Include="src\Templates\gridponent-commands.html" />
+    <Content Include="src\Templates\gridponent-edit-cells.html" />
+    <Content Include="src\Templates\gridponent-pager.html" />
+    <Content Include="src\Templates\gridponent.html" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
