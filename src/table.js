@@ -59,10 +59,10 @@ gp.Table.initialize = function (node) {
     this.addCommandHandlers(node);
     if (this.config.FixedHeaders) {
         setTimeout(function () {
-            self.syncColumnWidths(node);
+            self.syncColumnWidths.call(self.config);
         });
         window.addEventListener('resize', function () {
-            self.syncColumnWidths(node);
+            self.syncColumnWidths.call(self.config);
         });
     }
 };
@@ -182,19 +182,9 @@ gp.Table.measureTables = function (node) {
     }
 };
 
-gp.Table.syncColumnWidths = function (node) {
-    // for fixed headers, adjust the padding on the header to match the width of the main table
-    //var colgroup = node.querySelector('.table-header colgroup');
-    //if (colgroup) {
-    //    var bodyCols = node.querySelectorAll('.table-body > table > tbody > tr:first-child > td');
-    //    var width;
-    //    var out = []
-    //    for (var i = 0; i < bodyCols.length; i++) {
-    //        width = bodyCols[i].offsetWidth;
-    //        out.push('<col style="width:' + width + 'px;"></col>');
-    //    }
-    //    colgroup.innerHTML = out.join('');
-    //}
+gp.Table.syncColumnWidths = function () {
+    var html = gp.helpers.columnWidthStyle.call(this);
+    this.node.querySelector('style.column-width-style').innerHTML = html;
 };
 
 gp.Table.refresh = function (config) {

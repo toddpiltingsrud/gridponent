@@ -29,7 +29,7 @@ gp.templates['gridponent-cells'] = function(model, arg) {
 };
 gp.templates['gridponent-commands'] = function(model, arg) {
     var out = [];
-    out.push('<td class="commands-cell" colspan="2">');
+    out.push('<td class="body-cell commands-cell">');
     out.push('<div class="btn-group" role="group">');
                 arg.Commands.forEach(function(cmd, index) {
                         if (cmd == 'Edit') {
@@ -57,7 +57,7 @@ gp.templates['gridponent-edit-cells'] = function(model, arg) {
     var out = [];
     model.Columns.forEach(function(col, index) {
                     if (col.Commands) {
-        out.push('<td class="commands-cell">');
+        out.push('<td class="body-cell commands-cell">');
     out.push('<div class="btn-group" role="group">');
     out.push('<button type="button" class="btn btn-primary btn-xs" value="Update">');
     out.push('<span class="glyphicon glyphicon-save"></span>Save');

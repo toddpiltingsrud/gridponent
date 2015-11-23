@@ -59,7 +59,7 @@
         this.Columns.forEach(function (col) {
             var sort = gp.escapeHTML(col.Sort || col.Field);
             var type = (col.Type || '').toLowerCase();
-            out.push('<th class="' + type + ' ' + sort + '">');
+            out.push('<th class="header-cell ' + type + ' ' + sort + '">');
             if (gp.hasValue(col.Commands) === false && sort) {
                 out.push('<label class="table-sort">')
                 out.push('<input type="checkbox" name="OrderBy" value="' + sort + '" />')
@@ -143,7 +143,7 @@
         var template, out = [];
         var val = this.Row[col.Field];
         // render empty cell if this field doesn't exist in the data
-        if (val === undefined) return '<td></td>';
+        if (val === undefined) return '<td class="body-cell"></td>';
         // render null as empty string
         if (val === null) val = '';
 
@@ -227,36 +227,32 @@
         var self = this;
         var out = [];
         var index = 0;
-        var defaultWidth = (100.0 / this.Columns.length).toString() + '%';
-        var bodyCols = this.node.querySelectorAll('.table-body > table > tbody > tr:first-child > td');
+        var bodyCols = document.querySelectorAll('#' + this.ID + ' .table-body > table > tbody > tr:first-child > td');
 
         if (test && test.log) {
             test.log('columnWidthStyle: bodycols:');
             test.log(bodyCols);
+            test.log('columnWidthStyle: this:');
+            test.log(this);
         }
 
         // even though the table might not exist yet, we still should render width styles because there might be fixed widths specified
         this.Columns.forEach(function (col) {
-            out.push('#' + self.ID + ' > .table-header > table > thead th:nth-child(' + (index + 1) + '),');
-            out.push('#' + self.ID + ' > .table-footer > table > tfoot td:nth-child(' + (index + 1) + ')');
-            if (col.Width || bodyCols.length === 0) {
+            out.push('#' + self.ID + ' .table-header th.header-cell:nth-child(' + (index + 1) + '),');
+            out.push('#' + self.ID + ' .table-footer td.footer-cell:nth-child(' + (index + 1) + ')');
+            if (col.Width) {
                 // fixed width should include the body
                 out.push(',');
                 out.push('#' + self.ID + ' > .table-body > table > thead th:nth-child(' + (index + 1) + '),');
                 out.push('#' + self.ID + ' > .table-body > table > tbody td:nth-child(' + (index + 1) + ')');
                 out.push('{ width:');
-                out.push(col.Width || defaultWidth);
+                out.push(col.Width);
             }
             else if (bodyCols.length && (self.FixedHeaders || self.FixedFooters)) {
                 // sync header and footer to body
                 out.push('{ width:');
-                out.push(bodyCols[i].offsetWidth);
+                out.push(bodyCols[index].offsetWidth);
                 out.push('px');
-            }
-            else if (bodyCols.length === 0) {
-                // table doesn't exist yet, render default width
-                out.push('{ width:');
-                out.push(defaultWidth);
             }
             out.push(';}');
             index++;
@@ -264,7 +260,7 @@
 
         if (test && test.log) {
             test.log('columnWidthStyle: out:');
-            test.log(out.join());
+            test.log(out.join(''));
         }
 
         return out.join('');

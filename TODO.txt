@@ -1,11 +1,9 @@
 ﻿When updating rows, account for validation errors from the server.
 
-We only need to sync column widths if:
-- there are fixed headers or footers
-- a column doesn't have a fixed width
-
 Client-side pager should search on the formatted values of the data, i.e. what's showing in the grid.
 We could offer the ability to create a hook into the where clause for client-side searching.
+
+Might need to re-sync column widths anytime the main table content changes (e.g. deleting or adding rows, paging, sorting).
 
 Add percentage and currency formatting.
 
@@ -28,3 +26,5 @@ Build a jQuery version.
 Build a Polymer version.
 
 Use native browser functions to parse user-defined templates. Escape text nodes.
+
+

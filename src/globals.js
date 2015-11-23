@@ -314,7 +314,8 @@
     var numberToString = callbind(zero.toString);
 
     gp.createUID = function () {
-        var key = slice(numberToString(Math.random(), 36), 2);
+        // id's can't begin with a number
+        var key = 'gp' + slice(numberToString(Math.random(), 36), 2);
         return key in uids ? createUID() : uids[key] = key;
     };
 
