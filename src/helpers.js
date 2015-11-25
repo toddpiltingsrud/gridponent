@@ -30,27 +30,6 @@
         return out.join('');
     });
 
-    extend('colgroup', function () {
-        var self = this;
-        var out = [];
-
-        //var defaultWidth = (100.0 / this.Columns.length).toString() + '%';
-
-        //out.push('<colgroup>');
-
-        //this.Columns.forEach(function (col) {
-        //    out.push('<col');
-        //    if (col.Width || self.FixedHeaders) {
-        //        out.push(' style="width:' + (col.Width || defaultWidth) + '"');
-        //    }
-        //    out.push('></col>');
-        //});
-
-        //out.push('</colgroup>');
-
-        return out.join('');
-    });
-
     extend('thead', function () {
         var self = this;
         var out = [];
@@ -61,10 +40,10 @@
             var type = (col.Type || '').toLowerCase();
             out.push('<th class="header-cell ' + type + ' ' + sort + '">');
             if (gp.hasValue(col.Commands) === false && sort) {
-                out.push('<label class="table-sort">')
-                out.push('<input type="checkbox" name="OrderBy" value="' + sort + '" />')
+                out.push('<label class="table-sort">');
+                out.push('<input type="checkbox" name="OrderBy" value="' + sort + '" />');
                 out.push(sort);
-                out.push('</label>')
+                out.push('</label>');
             }
             else {
                 out.push(sort || '&nbsp;');
@@ -229,12 +208,10 @@
         var index = 0;
         var bodyCols = document.querySelectorAll('#' + this.ID + ' .table-body > table > tbody > tr:first-child > td');
 
-        if (test && test.log) {
-            test.log('columnWidthStyle: bodycols:');
-            test.log(bodyCols);
-            test.log('columnWidthStyle: this:');
-            test.log(this);
-        }
+        gp.info('columnWidthStyle: bodycols:');
+        gp.info(bodyCols);
+        gp.info('columnWidthStyle: this:');
+        gp.info(this);
 
         // even though the table might not exist yet, we still should render width styles because there might be fixed widths specified
         this.Columns.forEach(function (col) {
@@ -258,10 +235,8 @@
             index++;
         });
 
-        if (test && test.log) {
-            test.log('columnWidthStyle: out:');
-            test.log(out.join(''));
-        }
+        gp.verbose('columnWidthStyle: out:');
+        gp.verbose(out.join(''));
 
         return out.join('');
     });

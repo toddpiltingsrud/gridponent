@@ -109,6 +109,7 @@ label.table-sort:after {
 .fixed-footers .table-footer > table,
 .fixed-footers .table-body > table {
   table-layout: fixed;
+  margin-bottom: 0;
 }
 .fixed-footers .table-footer td {
   overflow: hidden;

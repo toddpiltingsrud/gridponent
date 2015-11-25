@@ -33,20 +33,9 @@ gp.Table.initialize = function (node) {
     node = node || this;
     // if there's no web component support, Table functions as a wrapper around the node
     var self = this;
-    this.config = gp.getConfig(node);
-    this.config.Columns = [];
-    this.config.data = {};
-    this.config.ID = gp.createUID();
-    for (var i = 0; i < node.children.length; i++) {
-        var col = node.children[i];
-        var colConfig = gp.getConfig(col);
-        this.config.Columns.push(colConfig);
-        this.resolveCommands(colConfig);
-        this.resolveFooterTemplate(colConfig);
-    }
-    this.config.Footer = this.resolveFooter(this.config);
-    this.resolveOnCreated();
-    if (test && test.log) test.log(this.config);
+    this.config = this.getConfig(node);
+    gp.info(this.config);
+
     if (this.config.Oncreated) {
         this.config.data = this.config.Oncreated();
         this.resolveTypes(this.config);
@@ -57,14 +46,33 @@ gp.Table.initialize = function (node) {
     });
     this.beginMonitor(node);
     this.addCommandHandlers(node);
-    if (this.config.FixedHeaders) {
-        setTimeout(function () {
+    if (this.config.FixedHeaders || this.config.FixedFooters) {
+        gp.ready(function () {
             self.syncColumnWidths.call(self.config);
         });
         window.addEventListener('resize', function () {
             self.syncColumnWidths.call(self.config);
         });
     }
+};
+
+gp.Table.getConfig = function (node) {
+    var self = this;
+    var config = gp.getConfig(node);
+    config.Columns = [];
+    config.data = {};
+    config.ID = gp.createUID();
+    for (var i = 0; i < node.children.length; i++) {
+        var col = node.children[i];
+        var colConfig = gp.getConfig(col);
+        config.Columns.push(colConfig);
+        this.resolveCommands(colConfig);
+        this.resolveFooterTemplate(colConfig);
+    }
+    config.Footer = this.resolveFooter(config);
+    this.resolveOnCreated(config);
+    gp.info(config);
+    return config;
 };
 
 gp.Table.resolveFooter = function (config) {
@@ -80,9 +88,9 @@ gp.Table.resolveFooterTemplate = function (column) {
     }
 };
 
-gp.Table.resolveOnCreated = function () {
-    if (this.config.Oncreated) {
-        this.config.Oncreated = gp.resolveObjectPath(this.config.Oncreated);
+gp.Table.resolveOnCreated = function (config) {
+    if (config.Oncreated) {
+        config.Oncreated = gp.resolveObjectPath(config.Oncreated);
     }
 };
 
@@ -101,7 +109,7 @@ gp.Table.resolveTypes = function (config) {
             }
         }
     });
-    console.log(config.Columns);
+    gp.log(config.Columns);
 };
 
 gp.Table.getPager = function (config) {
@@ -171,7 +179,7 @@ gp.Table.measureTables = function (node) {
         var diff = (headerWidth - bodyWidth);
         if (diff !== 0) {
             var paddingRight = diff;
-            console.log('diff:' + diff + ', paddingRight:' + paddingRight);
+            gp.log('diff:' + diff + ', paddingRight:' + paddingRight);
             if (header) {
                 header.style.paddingRight = paddingRight.toString() + 'px';
             }
@@ -255,16 +263,12 @@ gp.Table.updateRow = function (row, tr) {
         var self = this;
         var h = new gp.Http();
         var url = this.config.Update;
-        if (test && test.log) {
-            test.log('updateRow: row:');
-            test.log(row);
-        }
+            gp.log('updateRow: row:');
+            gp.log(row);
         var monitor;
         h.post(url, row, function (response) {
-            if (test && test.log) {
-                test.log('updateRow: response:');
-                test.log(response);
-            }
+                gp.log('updateRow: response:');
+                gp.log(response);
             if (response.ValidationErrors && response.ValidationErrors.length) {
                 // TODO: handle validation errors
             }

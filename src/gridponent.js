@@ -50,15 +50,53 @@
     \***************/
     (function (gp) {
     
+        gp.getSearch = function () {
+            var split, nameValue,
+                obj = {},
+                search = window.location.search;
+            if (search && search.length) {
+                split = search.substring(1).split('&');
+                split.forEach(function (s) {
+                    nameValue = s.split('=');
+                    if (nameValue.length == 1) obj[nameValue[0]] = null;
+                    else obj[nameValue[0]] = nameValue[1];
+                });
+            }
+            return obj;
+        };
+    
+        // logging
+        var search = gp.getSearch();
+    
+        gp.error = console.log.bind(console);
+        gp.log = gp.verbose = gp.info = gp.warn = function () { };
+    
+        if ('log' in search) {
+            gp.log = console.log.bind(console);
+            if (search.log === 'verbose') {
+                gp.verbose = gp.info = gp.warn = gp.log;
+            }
+            else if (search.log === 'info') {
+                gp.info = gp.warn = gp.log;
+            }
+            else if (search.log === 'warn') {
+                gp.warn = gp.log;
+            }
+        }
+    
         gp.getConfig = function (node) {
+            gp.info('getConfig: node:');
+            gp.info(node);
             var config = {}, name, attr, attrs = node.attributes;
             config.node = node;
             for (var i = attrs.length - 1; i >= 0; i--) {
                 attr = attrs[i];
                 name = gp.camelize(attr.name);
-                // convert "true" and "false" to boolean
-                config[name] = attr.value === "true" || attr.value === "false" ? attr.value === "true" : attr.value;
+                // convert "true", "false" and empty to boolean
+                config[name] = attr.value === "true" || attr.value === "false" || attr.value === '' ? (attr.value === "true" || attr.value === '') : attr.value;
             }
+            gp.info('getConfig: config:');
+            gp.info(config);
             return config;
         };
     
@@ -264,6 +302,8 @@
             if (typeof (elem) === 'string') {
                 elem = document.querySelector(elem);
             }
+            gp.info('closest: elem:');
+            gp.info(elem);
     
             if (elem) {
                 // start with elem's immediate parent
@@ -290,50 +330,51 @@
             return gp.hasValue(val) === false || (val.length && val.length === 0);
         };
     
-        gp.copyObj = function (obj) {
-            var newObj;
-    
-            var type = gp.getType(obj);
-    
-            switch (type) {
-                case 'object':
-                    newObj = {};
-                    var props = Object.getOwnPropertyNames(obj);
-                    props.forEach(function (prop) {
-                        newObj[prop] = obj[prop];
-                    });
-                    break;
-                case 'array':
-                    newObj = [];
-                    obj.forEach(function (elem, index) {
-                        newObj[index] = elem;
-                    });
-                    break;
-                default:
-                    newObj = obj;
-                    break;
-            };
-    
-            return newObj;
-        };
+        var quoted = /^['"].+['"]$/;
     
         gp.resolveObjectPath = function (path) {
             // split by dots, then square brackets
-            // we're assuming there won't be dots between square brackets
             try {
+                gp.verbose('resolveObjectPath:');
                 var currentObj = window;
                 var paths = path.split('.');
     
-                for (var i = 0; i < paths.length && currentObj; i++) {
+                for (var i = 0; i < paths.length && gp.hasValue(currentObj); i++) {
                     var name = paths[i];
+                    gp.verbose(name)
                     var split = name.split('[');
                     var objName = split[0];
-                    currentObj = currentObj[objName];
-                    if (currentObj && split.length > 1) {
-                        var indexer = split[1].substring(0, split[1].indexOf(']') - 1);
-                        currentObj = currentObj[indexer];
+                    gp.verbose('objName: ' + objName);
+                    if (objName !== 'window' || i !== 0) {
+                        currentObj = currentObj[objName];
+                    }
+                    gp.verbose('currentObj: ' + currentObj);
+                    if (gp.hasValue(currentObj) !== undefined && split.length > 1) {
+    
+                        for (var j = 1; j < split.length; j++) {
+                            var indexer = split[j].slice(0, -1);
+                            // check to see if indexer is a number
+                            if (isNaN(parseInt(indexer))) {
+                                if (quoted.test(indexer)) {
+                                    indexer = indexer.slice(1, -1);
+                                }
+                                else {
+                                    indexer = gp.resolveObjectPath(indexer);
+                                }
+                                gp.verbose('indexer: ' + indexer);
+                                currentObj = currentObj[indexer];
+                            }
+                            else {
+                                gp.verbose('indexer: ' + indexer);
+                                currentObj = currentObj[parseInt(indexer)];
+                            }
+                            gp.verbose('currentObj: ' + currentObj);
+                        }
+    
                     }
                 }
+    
+                gp.verbose(currentObj);
     
                 return currentObj;
             }
@@ -399,27 +440,6 @@
             return out.join('');
         });
     
-        extend('colgroup', function () {
-            var self = this;
-            var out = [];
-    
-            //var defaultWidth = (100.0 / this.Columns.length).toString() + '%';
-    
-            //out.push('<colgroup>');
-    
-            //this.Columns.forEach(function (col) {
-            //    out.push('<col');
-            //    if (col.Width || self.FixedHeaders) {
-            //        out.push(' style="width:' + (col.Width || defaultWidth) + '"');
-            //    }
-            //    out.push('></col>');
-            //});
-    
-            //out.push('</colgroup>');
-    
-            return out.join('');
-        });
-    
         extend('thead', function () {
             var self = this;
             var out = [];
@@ -430,10 +450,10 @@
                 var type = (col.Type || '').toLowerCase();
                 out.push('<th class="header-cell ' + type + ' ' + sort + '">');
                 if (gp.hasValue(col.Commands) === false && sort) {
-                    out.push('<label class="table-sort">')
-                    out.push('<input type="checkbox" name="OrderBy" value="' + sort + '" />')
+                    out.push('<label class="table-sort">');
+                    out.push('<input type="checkbox" name="OrderBy" value="' + sort + '" />');
                     out.push(sort);
-                    out.push('</label>')
+                    out.push('</label>');
                 }
                 else {
                     out.push(sort || '&nbsp;');
@@ -598,12 +618,10 @@
             var index = 0;
             var bodyCols = document.querySelectorAll('#' + this.ID + ' .table-body > table > tbody > tr:first-child > td');
     
-            if (test && test.log) {
-                test.log('columnWidthStyle: bodycols:');
-                test.log(bodyCols);
-                test.log('columnWidthStyle: this:');
-                test.log(this);
-            }
+            gp.info('columnWidthStyle: bodycols:');
+            gp.info(bodyCols);
+            gp.info('columnWidthStyle: this:');
+            gp.info(this);
     
             // even though the table might not exist yet, we still should render width styles because there might be fixed widths specified
             this.Columns.forEach(function (col) {
@@ -627,10 +645,8 @@
                 index++;
             });
     
-            if (test && test.log) {
-                test.log('columnWidthStyle: out:');
-                test.log(out.join(''));
-            }
+            gp.verbose('columnWidthStyle: out:');
+            gp.verbose(out.join(''));
     
             return out.join('');
         });
@@ -656,81 +672,83 @@
     /***************\
        mock-http
     \***************/
-    gp.Http = function () { };
+    (function (gp) {
+        gp.Http = function () { };
     
-    gp.Http.prototype = {
-        serialize: function (obj, props) {
-            // creates a query string from a simple object
-            var self = this;
-            props = props || Object.getOwnPropertyNames(obj);
-            var out = [];
-            props.forEach(function (prop) {
-                out.push(encodeURIComponent(prop) + '=' + encodeURIComponent(obj[prop]));
-            });
-            return out.join('&');
-        },
-        deserialize: function (queryString) {
-            var nameValue, split = queryString.split('&');
-            var obj = {};
-            split.forEach(function (s) {
-                nameValue = s.split('=');
-                var val = nameValue[1];
-                if (val.length === 0) {
-                    obj[nameValue[0]] = null;
-                }
-                else if (val === 'true' || val === 'false') {
-                    obj[nameValue[0]] = (val === 'true');
-                }
-                else if (parseFloat(val).toString() === val) {
-                    obj[nameValue[0]] = parseFloat(val);
-                }
-                else {
-                    obj[nameValue[0]] = val;
-                }
-            });
-            return obj;
-        },
-        get: function (url, callback, error) {
-            var queryString = url.substring(url.indedOf('?') + 1);
-            var model = this.deserialize(queryString);
-            var count, qry = gryst.from(gp.products);
-            if (gp.isNullOrEmpty(model.Search) === false) {
-                var props = Object.getOwnPropertyNames(gp.products[0]);
-                var search = model.Search.toLowerCase();
-                qry = qry.where(function (row) {
-                    for (var i = 0; i < props.length; i++) {
-                        if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
-                            return true;
-                        }
+        gp.Http.prototype = {
+            serialize: function (obj, props) {
+                // creates a query string from a simple object
+                var self = this;
+                props = props || Object.getOwnPropertyNames(obj);
+                var out = [];
+                props.forEach(function (prop) {
+                    out.push(encodeURIComponent(prop) + '=' + encodeURIComponent(obj[prop]));
+                });
+                return out.join('&');
+            },
+            deserialize: function (queryString) {
+                var nameValue, split = queryString.split('&');
+                var obj = {};
+                split.forEach(function (s) {
+                    nameValue = s.split('=');
+                    var val = nameValue[1];
+                    if (val.length === 0) {
+                        obj[nameValue[0]] = null;
                     }
-                    return false;
+                    else if (val === 'true' || val === 'false') {
+                        obj[nameValue[0]] = (val === 'true');
+                    }
+                    else if (parseFloat(val).toString() === val) {
+                        obj[nameValue[0]] = parseFloat(val);
+                    }
+                    else {
+                        obj[nameValue[0]] = val;
+                    }
                 });
-            }
-            if (gp.isNullOrEmpty(model.OrderBy) === false) {
-                if (model.Desc) {
-                    qry = qry.orderByDescending(model.OrderBy);
+                return obj;
+            },
+            get: function (url, callback, error) {
+                var queryString = url.substring(url.indedOf('?') + 1);
+                var model = this.deserialize(queryString);
+                var count, qry = gryst.from(gp.products);
+                if (gp.isNullOrEmpty(model.Search) === false) {
+                    var props = Object.getOwnPropertyNames(gp.products[0]);
+                    var search = model.Search.toLowerCase();
+                    qry = qry.where(function (row) {
+                        for (var i = 0; i < props.length; i++) {
+                            if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    });
                 }
-                else {
-                    qry = qry.orderBy(model.OrderBy);
+                if (gp.isNullOrEmpty(model.OrderBy) === false) {
+                    if (model.Desc) {
+                        qry = qry.orderByDescending(model.OrderBy);
+                    }
+                    else {
+                        qry = qry.orderBy(model.OrderBy);
+                    }
                 }
-            }
-            count = qry.run().length;
-            qry = qry.skip(skip).take(model.Top);
+                count = qry.run().length;
+                qry = qry.skip(skip).take(model.Top);
     
-            model.Data = qry.run();
-            setTimeout(function () {
-                callback(model);
-            });
-        },
-        post: function (url, data, callback, error) {
-            setTimeout(function () {
-                callback({
-                    Row: data,
-                    ValidationErrors: []
+                model.Data = qry.run();
+                setTimeout(function () {
+                    callback(model);
                 });
-            });
-        }
-    };
+            },
+            post: function (url, data, callback, error) {
+                setTimeout(function () {
+                    callback({
+                        Row: data,
+                        ValidationErrors: []
+                    });
+                });
+            }
+        };
+    })(gridponent);
     /***************\
     server-side pager
     \***************/
@@ -785,7 +803,7 @@
             try {
                 var skip = this.getSkip(model);
                 var count, qry = gryst.from(this.data);
-                console.log('data length: ' + this.data.length);
+                gp.log('ClientPager: data length: ' + this.data.length);
                 if (gp.isNullOrEmpty(model.Search) === false) {
                     var props = gryst.from(this.columns).where(function (c) { return c !== undefined; }).select('Field').run();
                     var search = model.Search.toLowerCase();
@@ -807,7 +825,7 @@
                     }
                 }
                 model.TotalRows = qry.run().length;
-                console.log('total rows: ' + model.TotalRows);
+                gp.log('ClientPager: total rows: ' + model.TotalRows);
                 qry = qry.skip(skip).take(model.Top);
     
                 model.Data = qry.run();
@@ -970,20 +988,9 @@
         node = node || this;
         // if there's no web component support, Table functions as a wrapper around the node
         var self = this;
-        this.config = gp.getConfig(node);
-        this.config.Columns = [];
-        this.config.data = {};
-        this.config.ID = gp.createUID();
-        for (var i = 0; i < node.children.length; i++) {
-            var col = node.children[i];
-            var colConfig = gp.getConfig(col);
-            this.config.Columns.push(colConfig);
-            this.resolveCommands(colConfig);
-            this.resolveFooterTemplate(colConfig);
-        }
-        this.config.Footer = this.resolveFooter(this.config);
-        this.resolveOnCreated();
-        if (test && test.log) test.log(this.config);
+        this.config = this.getConfig(node);
+        gp.info(this.config);
+    
         if (this.config.Oncreated) {
             this.config.data = this.config.Oncreated();
             this.resolveTypes(this.config);
@@ -994,14 +1001,33 @@
         });
         this.beginMonitor(node);
         this.addCommandHandlers(node);
-        if (this.config.FixedHeaders) {
-            setTimeout(function () {
+        if (this.config.FixedHeaders || this.config.FixedFooters) {
+            gp.ready(function () {
                 self.syncColumnWidths.call(self.config);
             });
             window.addEventListener('resize', function () {
                 self.syncColumnWidths.call(self.config);
             });
         }
+    };
+    
+    gp.Table.getConfig = function (node) {
+        var self = this;
+        var config = gp.getConfig(node);
+        config.Columns = [];
+        config.data = {};
+        config.ID = gp.createUID();
+        for (var i = 0; i < node.children.length; i++) {
+            var col = node.children[i];
+            var colConfig = gp.getConfig(col);
+            config.Columns.push(colConfig);
+            this.resolveCommands(colConfig);
+            this.resolveFooterTemplate(colConfig);
+        }
+        config.Footer = this.resolveFooter(config);
+        this.resolveOnCreated(config);
+        gp.info(config);
+        return config;
     };
     
     gp.Table.resolveFooter = function (config) {
@@ -1017,9 +1043,9 @@
         }
     };
     
-    gp.Table.resolveOnCreated = function () {
-        if (this.config.Oncreated) {
-            this.config.Oncreated = gp.resolveObjectPath(this.config.Oncreated);
+    gp.Table.resolveOnCreated = function (config) {
+        if (config.Oncreated) {
+            config.Oncreated = gp.resolveObjectPath(config.Oncreated);
         }
     };
     
@@ -1038,7 +1064,7 @@
                 }
             }
         });
-        console.log(config.Columns);
+        gp.log(config.Columns);
     };
     
     gp.Table.getPager = function (config) {
@@ -1108,7 +1134,7 @@
             var diff = (headerWidth - bodyWidth);
             if (diff !== 0) {
                 var paddingRight = diff;
-                console.log('diff:' + diff + ', paddingRight:' + paddingRight);
+                gp.log('diff:' + diff + ', paddingRight:' + paddingRight);
                 if (header) {
                     header.style.paddingRight = paddingRight.toString() + 'px';
                 }
@@ -1192,16 +1218,12 @@
             var self = this;
             var h = new gp.Http();
             var url = this.config.Update;
-            if (test && test.log) {
-                test.log('updateRow: row:');
-                test.log(row);
-            }
+                gp.log('updateRow: row:');
+                gp.log(row);
             var monitor;
             h.post(url, row, function (response) {
-                if (test && test.log) {
-                    test.log('updateRow: response:');
-                    test.log(response);
-                }
+                    gp.log('updateRow: response:');
+                    gp.log(response);
                 if (response.ValidationErrors && response.ValidationErrors.length) {
                     // TODO: handle validation errors
                 }
@@ -1263,9 +1285,7 @@
     gp.templates['gridponent-body'] = function(model, arg) {
         var out = [];
         out.push('<table class="table" cellpadding="0" cellspacing="0">');
-                if (model.FixedHeaders) {
-                        out.push(gp.helpers['colgroup'].call(model));
-                    } else {
+                if (!model.FixedHeaders) {
                         out.push(gp.helpers['thead'].call(model));
                     }
             out.push('<tbody>');
@@ -1432,8 +1452,7 @@
                     if (model.FixedHeaders) {
             out.push('<div class="table-header">');
         out.push('<table class="table" cellpadding="0" cellspacing="0" style="margin-bottom:0">');
-                            out.push(gp.helpers['colgroup'].call(model));
-                                out.push(gp.helpers['thead'].call(model));
+                            out.push(gp.helpers['thead'].call(model));
             out.push('</table>');
         out.push('</div>');
                 }
@@ -1449,8 +1468,7 @@
                 if (model.FixedFooters) {
             out.push('<div class="table-footer">');
         out.push('<table class="table" cellpadding="0" cellspacing="0" style="margin-top:0">');
-                            out.push(gp.helpers['colgroup'].call(model));
-                                out.push(gp.templates['gridponent-tfoot'](model));
+                            out.push(gp.templates['gridponent-tfoot'](model));
             out.push('</table>');
         out.push('</div>');
                 }
@@ -1469,3 +1487,4 @@
         return out.join('');
     };
 })(gridponent);
+

@@ -3,15 +3,53 @@
 \***************/
 (function (gp) {
 
+    gp.getSearch = function () {
+        var split, nameValue,
+            obj = {},
+            search = window.location.search;
+        if (search && search.length) {
+            split = search.substring(1).split('&');
+            split.forEach(function (s) {
+                nameValue = s.split('=');
+                if (nameValue.length == 1) obj[nameValue[0]] = null;
+                else obj[nameValue[0]] = nameValue[1];
+            });
+        }
+        return obj;
+    };
+
+    // logging
+    var search = gp.getSearch();
+
+    gp.error = console.log.bind(console);
+    gp.log = gp.verbose = gp.info = gp.warn = function () { };
+
+    if ('log' in search) {
+        gp.log = console.log.bind(console);
+        if (search.log === 'verbose') {
+            gp.verbose = gp.info = gp.warn = gp.log;
+        }
+        else if (search.log === 'info') {
+            gp.info = gp.warn = gp.log;
+        }
+        else if (search.log === 'warn') {
+            gp.warn = gp.log;
+        }
+    }
+
     gp.getConfig = function (node) {
+        gp.info('getConfig: node:');
+        gp.info(node);
         var config = {}, name, attr, attrs = node.attributes;
         config.node = node;
         for (var i = attrs.length - 1; i >= 0; i--) {
             attr = attrs[i];
             name = gp.camelize(attr.name);
-            // convert "true" and "false" to boolean
-            config[name] = attr.value === "true" || attr.value === "false" ? attr.value === "true" : attr.value;
+            // convert "true", "false" and empty to boolean
+            config[name] = attr.value === "true" || attr.value === "false" || attr.value === '' ? (attr.value === "true" || attr.value === '') : attr.value;
         }
+        gp.info('getConfig: config:');
+        gp.info(config);
         return config;
     };
 
@@ -217,6 +255,8 @@
         if (typeof (elem) === 'string') {
             elem = document.querySelector(elem);
         }
+        gp.info('closest: elem:');
+        gp.info(elem);
 
         if (elem) {
             // start with elem's immediate parent
@@ -243,50 +283,51 @@
         return gp.hasValue(val) === false || (val.length && val.length === 0);
     };
 
-    gp.copyObj = function (obj) {
-        var newObj;
-
-        var type = gp.getType(obj);
-
-        switch (type) {
-            case 'object':
-                newObj = {};
-                var props = Object.getOwnPropertyNames(obj);
-                props.forEach(function (prop) {
-                    newObj[prop] = obj[prop];
-                });
-                break;
-            case 'array':
-                newObj = [];
-                obj.forEach(function (elem, index) {
-                    newObj[index] = elem;
-                });
-                break;
-            default:
-                newObj = obj;
-                break;
-        };
-
-        return newObj;
-    };
+    var quoted = /^['"].+['"]$/;
 
     gp.resolveObjectPath = function (path) {
         // split by dots, then square brackets
-        // we're assuming there won't be dots between square brackets
         try {
+            gp.verbose('resolveObjectPath:');
             var currentObj = window;
             var paths = path.split('.');
 
-            for (var i = 0; i < paths.length && currentObj; i++) {
+            for (var i = 0; i < paths.length && gp.hasValue(currentObj); i++) {
                 var name = paths[i];
+                gp.verbose(name)
                 var split = name.split('[');
                 var objName = split[0];
-                currentObj = currentObj[objName];
-                if (currentObj && split.length > 1) {
-                    var indexer = split[1].substring(0, split[1].indexOf(']') - 1);
-                    currentObj = currentObj[indexer];
+                gp.verbose('objName: ' + objName);
+                if (objName !== 'window' || i !== 0) {
+                    currentObj = currentObj[objName];
+                }
+                gp.verbose('currentObj: ' + currentObj);
+                if (gp.hasValue(currentObj) !== undefined && split.length > 1) {
+
+                    for (var j = 1; j < split.length; j++) {
+                        var indexer = split[j].slice(0, -1);
+                        // check to see if indexer is a number
+                        if (isNaN(parseInt(indexer))) {
+                            if (quoted.test(indexer)) {
+                                indexer = indexer.slice(1, -1);
+                            }
+                            else {
+                                indexer = gp.resolveObjectPath(indexer);
+                            }
+                            gp.verbose('indexer: ' + indexer);
+                            currentObj = currentObj[indexer];
+                        }
+                        else {
+                            gp.verbose('indexer: ' + indexer);
+                            currentObj = currentObj[parseInt(indexer)];
+                        }
+                        gp.verbose('currentObj: ' + currentObj);
+                    }
+
                 }
             }
+
+            gp.verbose(currentObj);
 
             return currentObj;
         }

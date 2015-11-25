@@ -11,6 +11,8 @@ var gridponent = gridponent || {};
 <#
 var path = "";
 
+var stripLogging = false;
+
 if (Directory.Exists(@"C:\Users\kitntodd"))
 {
     path = @"C:\Users\kitntodd\OneDrive\Documents\Code\Projects\gridponent\src";
@@ -33,6 +35,7 @@ foreach (var file in files)
 	    var lines = File.ReadAllLines(file.FullName);
         foreach (var line in lines)
         {
+            if (stripLogging && IsLogExpression(line)) continue;
 #>
     <#= line #>
 <#      }
@@ -40,3 +43,16 @@ foreach (var file in files)
 }
 #>
 })(gridponent);
+
+<#+ 
+private bool IsLogExpression(string line)
+{
+    var loggingExpr = new string[] { "gp.log(", "gp.verbose(", "gp.info(", "gp.warn(" };
+
+    foreach (var expr in loggingExpr)
+    {
+        if (line.Trim().StartsWith(expr)) return true;
+    }
+    return false;
+}
+#>

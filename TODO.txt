@@ -5,7 +5,17 @@ We could offer the ability to create a hook into the where clause for client-sid
 
 Might need to re-sync column widths anytime the main table content changes (e.g. deleting or adding rows, paging, sorting).
 
-Add percentage and currency formatting.
+For column widths, if only a number is specified assume pixels.
+
+<script src="https://cdn.polyfill.io/v2/polyfill.min.js"></script>
+
+Add percentage and currency formatting. <script src="https://cdn.polyfill.io/v1/polyfill.min.js?features=Intl.~locale.en"></script>
+
+Add support for polyfills:
+- Object.observe 
+- Array.observe
+- 
+
 
 Test without fixed headers.
 

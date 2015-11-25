@@ -2,9 +2,7 @@
 gp.templates['gridponent-body'] = function(model, arg) {
     var out = [];
     out.push('<table class="table" cellpadding="0" cellspacing="0">');
-            if (model.FixedHeaders) {
-                    out.push(gp.helpers['colgroup'].call(model));
-                } else {
+            if (!model.FixedHeaders) {
                     out.push(gp.helpers['thead'].call(model));
                 }
         out.push('<tbody>');
@@ -171,8 +169,7 @@ gp.templates['gridponent'] = function(model, arg) {
                 if (model.FixedHeaders) {
         out.push('<div class="table-header">');
     out.push('<table class="table" cellpadding="0" cellspacing="0" style="margin-bottom:0">');
-                        out.push(gp.helpers['colgroup'].call(model));
-                            out.push(gp.helpers['thead'].call(model));
+                        out.push(gp.helpers['thead'].call(model));
         out.push('</table>');
     out.push('</div>');
             }
@@ -188,8 +185,7 @@ gp.templates['gridponent'] = function(model, arg) {
             if (model.FixedFooters) {
         out.push('<div class="table-footer">');
     out.push('<table class="table" cellpadding="0" cellspacing="0" style="margin-top:0">');
-                        out.push(gp.helpers['colgroup'].call(model));
-                            out.push(gp.templates['gridponent-tfoot'](model));
+                        out.push(gp.templates['gridponent-tfoot'](model));
         out.push('</table>');
     out.push('</div>');
             }

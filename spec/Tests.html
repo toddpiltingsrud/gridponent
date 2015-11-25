@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html class=" js ">
+<html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -13,16 +13,15 @@
     <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
     <script src="https://code.jquery.com/qunit/qunit-1.20.0.js"></script>
     <script src="../data/products.js"></script>
-    <script src="tests.js"></script>
     <!--<script src="../scripts/webcomponents.min.js"></script>-->
     <script src="../scripts/gryst.min.js"></script>
     <script src="../src/gridponent.js"></script>
-    <script src="../src/mock-http.js"></script>
+    <script src="https://cdn.polyfill.io/v1/polyfill.min.js?features=Intl.~locale.en"></script>
     <script>
     var fns = fns || {};
 
     fns.getData = function () {
-        var model = new gridponent.PagingModel(gp.products);
+        var model = new gridponent.PagingModel(data.products);
         return model;
     };
 
@@ -86,7 +85,7 @@
             <h3>table</h3>
             <div class="box-border dark">
                 <div class="box dark">
-                    <grid-ponent paging="bottom-right" 
+                    <!--<grid-ponent paging="bottom-right" 
                                  sorting="true" 
                                  fixed-headers="true" 
                                  fixed-footers="true"
@@ -97,13 +96,13 @@
                                  update="/Products/Update"
                                  destroy="/Products/Destroy">
                         <gp-column field="ProductID" header="ID" template="fns.getName" edit-template="fns.dropdown"></gp-column>
-                        <gp-column field="MakeFlag" header="Make"></gp-column>
+                        <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>
                         <gp-column field="SafetyStockLevel" header="Safety Stock Level" footer-template="fns.average"></gp-column>
                         <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.average"></gp-column>
                         <gp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, yyyy"></gp-column>
                         <gp-column field="Markup" header="Marked-Up Name"></gp-column>
                         <gp-column commands="Edit,Delete"></gp-column>
-                    </grid-ponent>
+                    </grid-ponent>-->
                 </div>
             </div>
         </div>
@@ -111,6 +110,8 @@
     </div>
 
     <div id="background"></div>
+
+    <script src="tests.js"></script>
 
     <script>
         (function () {

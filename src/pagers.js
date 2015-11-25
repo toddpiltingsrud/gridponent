@@ -52,7 +52,7 @@ gp.ClientPager.prototype = {
         try {
             var skip = this.getSkip(model);
             var count, qry = gryst.from(this.data);
-            console.log('data length: ' + this.data.length);
+            gp.log('ClientPager: data length: ' + this.data.length);
             if (gp.isNullOrEmpty(model.Search) === false) {
                 var props = gryst.from(this.columns).where(function (c) { return c !== undefined; }).select('Field').run();
                 var search = model.Search.toLowerCase();
@@ -74,7 +74,7 @@ gp.ClientPager.prototype = {
                 }
             }
             model.TotalRows = qry.run().length;
-            console.log('total rows: ' + model.TotalRows);
+            gp.log('ClientPager: total rows: ' + model.TotalRows);
             qry = qry.skip(skip).take(model.Top);
 
             model.Data = qry.run();

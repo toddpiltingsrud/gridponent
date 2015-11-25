@@ -1,0 +1,22 @@
+﻿var out = [];
+
+out.push('<grid-ponent paging="bottom-right" ');
+out.push('                sorting="true" ');
+out.push('                fixed-headers="true" ');
+out.push('                fixed-footers="true"');
+out.push('                style="width:100%;height:411px" ');
+out.push('                responsive="true"');
+out.push('                search="top-left"');
+out.push('                oncreated="fns.getData"');
+out.push('                update="/Products/Update"');
+out.push('                destroy="/Products/Destroy">');
+out.push('    <gp-column field="ProductID" header="ID" template="fns.getName" edit-template="fns.dropdown"></gp-column>');
+out.push('    <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>');
+out.push('    <gp-column field="SafetyStockLevel" header="Safety Stock Level" footer-template="fns.average"></gp-column>');
+out.push('    <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.average"></gp-column>');
+out.push('    <gp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, yyyy"></gp-column>');
+out.push('    <gp-column field="Markup" header="Marked-Up Name"></gp-column>');
+out.push('    <gp-column commands="Edit,Delete"></gp-column>');
+out.push('</grid-ponent>');
+
+return out.join('');
