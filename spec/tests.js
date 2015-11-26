@@ -23,6 +23,25 @@ QUnit.test("gp.getConfig", function (assert) {
     assert.equal(config.Novalue, true, "empty values should be resolve to true");
 });
 
+QUnit.test("gp.coalesce", function (assert) {
+
+    assert.equal(gp.coalesce([null, undefined]), undefined);
+
+    assert.equal(gp.coalesce([null, undefined, false]), false);
+
+    assert.equal(gp.coalesce([null, undefined, '']), '');
+
+    assert.equal(gp.coalesce([null, '', undefined]), '');
+
+    assert.equal(gp.coalesce([0, '', undefined]), 0);
+
+    assert.equal(gp.coalesce(null), null);
+
+    var emptyArray = [];
+
+    assert.equal(gp.coalesce(emptyArray), emptyArray);
+});
+
 QUnit.test("gp.getType", function (assert) {
     var notDefined = gp.getType(notDefined);
     assert.equal(gp.getType(true), 'boolean');
@@ -30,7 +49,7 @@ QUnit.test("gp.getType", function (assert) {
     assert.equal(gp.getType(new Date()), 'date');
     assert.equal(gp.getType('2015-11-24'), 'date');
     assert.equal(gp.getType('2015-31-24'), 'string');
-    assert.equal(notDefined, 'undefined');
+    assert.equal(notDefined, undefined);
     assert.equal(gp.getType(3.0), 'number');
     assert.equal(gp.getType({}), 'object');
     assert.equal(gp.getType([]), 'array');
@@ -93,6 +112,12 @@ QUnit.test("gp.resolveObjectPath", function (assert) {
 
 });
 
+var fns = fns || {};
+
+fns.checkbox = function (col) {
+    return '<input type="checkbox" name="test" />';
+}
+
 var getPonent = function () {
     var out = [];
 
@@ -106,6 +131,7 @@ var getPonent = function () {
     out.push('             oncreated="fns.getData"');
     out.push('             update="/Products/Update"');
     out.push('             destroy="/Products/Destroy">');
+    out.push('    <gp-column header-template="fns.checkbox" template="fns.checkbox"></gp-column>');
     out.push('    <gp-column field="ProductID" header="ID" template="fns.getName" edit-template="fns.dropdown"></gp-column>');
     out.push('    <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>');
     out.push('    <gp-column field="SafetyStockLevel" header="Safety Stock Level" footer-template="fns.average"></gp-column>');
@@ -120,9 +146,16 @@ var getPonent = function () {
 
 QUnit.test("gp.Table.getConfig", function (assert) {
 
-    var node = getPonent();
+    // if we have web component support, this line will initialize the component automatically
+    // otherwise we need to trigger initialization manually
+    var $node = $(getPonent());
 
-    var config = $(node)[0].config;
+    var config = $node[0].config;
+
+    if (!config) {
+        var table = new gp.Table($node[0]);
+        config = table.config;
+    }
 
     assert.equal(config.Sorting, true);
 
@@ -130,6 +163,28 @@ QUnit.test("gp.Table.getConfig", function (assert) {
 
     assert.equal(config.Sorting, true);
 
-    assert.equal(config.Columns.length, 7);
+    assert.equal(config.Columns.length, 8);
+
+    assert.equal(config.Columns[1].Header, "ID");
+
+});
+
+QUnit.test("gp.helpers.thead", function (assert) {
+
+    var $node = $(getPonent());
+
+    var config = $node[0].config;
+
+    if (!config) {
+        var table = new gp.Table($node[0]);
+        config = table.config;
+    }
+
+    var node = config.node;
+
+    var col = node.querySelector('th.header-cell input[name=test]');
+
+    assert.ok(col != null);
+
 });
 

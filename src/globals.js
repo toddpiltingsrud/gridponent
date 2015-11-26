@@ -38,8 +38,8 @@
     }
 
     gp.getConfig = function (node) {
-        gp.info('getConfig: node:');
-        gp.info(node);
+        gp.verbose('getConfig: node:');
+        gp.verbose(node);
         var config = {}, name, attr, attrs = node.attributes;
         config.node = node;
         for (var i = attrs.length - 1; i >= 0; i--) {
@@ -48,8 +48,8 @@
             // convert "true", "false" and empty to boolean
             config[name] = attr.value === "true" || attr.value === "false" || attr.value === '' ? (attr.value === "true" || attr.value === '') : attr.value;
         }
-        gp.info('getConfig: config:');
-        gp.info(config);
+        gp.verbose('getConfig: config:');
+        gp.verbose(config);
         return config;
     };
 
@@ -154,14 +154,14 @@
 
     var chars = [/&/g, /</g, />/g, /"/g, /'/g, /`/g];
 
-    var scaped = ['&amp;', '&lt;', '&gt;', '&quot;', '&apos;', '&#96;'];
+    var escaped = ['&amp;', '&lt;', '&gt;', '&quot;', '&apos;', '&#96;'];
 
     gp.escapeHTML = function (obj) {
         if (typeof obj !== 'string') {
             return obj;
         }
         for (var i = 0; i < chars.length; i++) {
-            obj = obj.replace(chars[i], scaped[i]);
+            obj = obj.replace(chars[i], escaped[i]);
         }
         return obj;
     };
@@ -173,8 +173,8 @@
     };
 
     gp.getType = function (a) {
-        if (a === null) {
-            return null;
+        if (a === null || a === undefined) {
+            return a;
         }
         if (a instanceof Date || (typeof (a) === 'string' && iso8601.test(a))) {
             return 'date';
@@ -182,7 +182,7 @@
         if (Array.isArray(a)) {
             return 'array';
         }
-        // 'number','string','boolean','function','object','undefined'
+        // 'number','string','boolean','function','object'
         return typeof (a);
     };
 
@@ -280,7 +280,19 @@
     };
 
     gp.isNullOrEmpty = function (val) {
-        return gp.hasValue(val) === false || (val.length && val.length === 0);
+        return gp.hasValue(val) === false || val.length === undefined || val.length === 0;
+    };
+
+    gp.coalesce = function (array) {
+        if (gp.isNullOrEmpty(array)) return array;
+
+        for (var i = 0; i < array.length; i++) {
+            if (gp.hasValue(array[i])) {
+                return array[i];
+            }
+        }
+
+        return array[array.length - 1];
     };
 
     var quoted = /^['"].+['"]$/;
@@ -359,5 +371,6 @@
         var key = 'gp' + slice(numberToString(Math.random(), 36), 2);
         return key in uids ? createUID() : uids[key] = key;
     };
+
 
 })(gridponent);

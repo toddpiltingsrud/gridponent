@@ -37,6 +37,12 @@
     <Content Include="scripts\dates.js" />
     <Content Include="scripts\gryst.js" />
     <Content Include="scripts\gryst.min.js" />
+    <Content Include="spec\Out.txt">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Out.tt</DependentUpon>
+    </Content>
+    <Content Include="spec\OutSource.txt" />
     <Content Include="spec\Styles.css" />
     <Content Include="src\gridponent.js">
       <AutoGen>True</AutoGen>
@@ -59,6 +65,10 @@
     </Content>
     <Content Include="src\table.js" />
     <None Include="README.md" />
+    <None Include="spec\Out.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>Out.txt</LastGenOutput>
+    </None>
     <None Include="src\gridponent.css.map">
       <DependentUpon>gridponent.css</DependentUpon>
     </None>

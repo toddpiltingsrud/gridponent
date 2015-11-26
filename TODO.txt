@@ -1,11 +1,15 @@
 ﻿When updating rows, account for validation errors from the server.
 
 Client-side pager should search on the formatted values of the data, i.e. what's showing in the grid.
-We could offer the ability to create a hook into the where clause for client-side searching.
+We could create a hook into the where clause for client-side searching.
 
 Might need to re-sync column widths anytime the main table content changes (e.g. deleting or adding rows, paging, sorting).
 
 For column widths, if only a number is specified assume pixels.
+
+Add header templates.
+
+Add row selection.
 
 <script src="https://cdn.polyfill.io/v2/polyfill.min.js"></script>
 
@@ -14,8 +18,7 @@ Add percentage and currency formatting. <script src="https://cdn.polyfill.io/v1/
 Add support for polyfills:
 - Object.observe 
 - Array.observe
-- 
-
+- Intl
 
 Test without fixed headers.
 

@@ -1,34 +1,40 @@
 ﻿/***************\
  main component
 \***************/
-if (document.registerElement) {
-    gp.Table = Object.create(HTMLElement.prototype);
+gp.Table = function (node) {
+    this.initialize(node);
+};
 
-    gp.Table.createdCallback = function () {
+if (document.registerElement) {
+
+    gp.Table.prototype = Object.create(HTMLElement.prototype);
+
+    gp.Table.constructor = gp.Table;
+
+    gp.Table.prototype.createdCallback = function () {
+        gp.info(this);
         this.initialize(this);
     };
 
     document.registerElement('grid-ponent', {
-        prototype: gp.Table
+        prototype: gp.Table.prototype
     });
 }
 else {
-    var table = function (node) {
-        this.initialize(node);
-    };
+    gp.Table.prototype = Object.create(Object.prototype);
 
-    gp.Table = table.prototype = {};
+    gp.Table.constructor = gp.Table;
 
     gp.ready(function () {
         var node, nodes = document.querySelectorAll('grid-ponent');
         for (var i = 0; i < nodes.length; i++) {
             node = nodes[i];
-            new table(node);
+            new gp.Table(node);
         }
     });
 }
 
-gp.Table.initialize = function (node) {
+gp.Table.prototype.initialize = function (node) {
     // if there's web component support, this and node will be the same object
     node = node || this;
     // if there's no web component support, Table functions as a wrapper around the node
@@ -56,7 +62,7 @@ gp.Table.initialize = function (node) {
     }
 };
 
-gp.Table.getConfig = function (node) {
+gp.Table.prototype.getConfig = function (node) {
     var self = this;
     var config = gp.getConfig(node);
     config.Columns = [];
@@ -75,32 +81,32 @@ gp.Table.getConfig = function (node) {
     return config;
 };
 
-gp.Table.resolveFooter = function (config) {
+gp.Table.prototype.resolveFooter = function (config) {
     for (var i = 0; i < config.Columns.length; i++) {
         if (config.Columns[i].FooterTemplate) return true;
     }
     return false;
 };
 
-gp.Table.resolveFooterTemplate = function (column) {
+gp.Table.prototype.resolveFooterTemplate = function (column) {
     if (column.FooterTemplate) {
         column.FooterTemplate = gp.resolveObjectPath(column.FooterTemplate);
     }
 };
 
-gp.Table.resolveOnCreated = function (config) {
+gp.Table.prototype.resolveOnCreated = function (config) {
     if (config.Oncreated) {
         config.Oncreated = gp.resolveObjectPath(config.Oncreated);
     }
 };
 
-gp.Table.resolveCommands = function (col) {
+gp.Table.prototype.resolveCommands = function (col) {
     if (col.Commands) {
         col.Commands = col.Commands.split(',');
     }
 };
 
-gp.Table.resolveTypes = function (config) {
+gp.Table.prototype.resolveTypes = function (config) {
     config.Columns.forEach(function (col) {
         for (var i = 0; i < config.data.Data.length; i++) {
             if (config.data.Data[i][col.Field] !== null) {
@@ -112,7 +118,7 @@ gp.Table.resolveTypes = function (config) {
     gp.log(config.Columns);
 };
 
-gp.Table.getPager = function (config) {
+gp.Table.prototype.getPager = function (config) {
     if (config.Paging) {
         if (gp.hasValue(config.Read)) {
             return new gp.ServerPager(config);
@@ -123,7 +129,7 @@ gp.Table.getPager = function (config) {
     }
 };
 
-gp.Table.resolveFirstPage = function (config, pager, callback) {
+gp.Table.prototype.resolveFirstPage = function (config, pager, callback) {
     if (pager === undefined) {
         callback(config.data);
     }
@@ -132,13 +138,13 @@ gp.Table.resolveFirstPage = function (config, pager, callback) {
     }
 };
 
-gp.Table.beginMonitor = function (node) {
+gp.Table.prototype.beginMonitor = function (node) {
     var self = this;
     // monitor changes to search, sort, and paging
     var monitor = new gp.ChangeMonitor(node, '.table-toolbar [name=Search], thead input, .table-pager input', this.config.data, function (evt) {
         self.update();
         // reset the radio inputs
-        var radios = self.querySelectorAll('thead input[type=radio], .table-pager input[type=radio]');
+        var radios = node.querySelectorAll('thead input[type=radio], .table-pager input[type=radio]');
         for (var i = 0; i < radios.length; i++) {
             radios[i].checked = false;
         }
@@ -159,7 +165,7 @@ gp.Table.beginMonitor = function (node) {
     };
 };
 
-gp.Table.render = function (node) {
+gp.Table.prototype.render = function (node) {
     try {
         node.innerHTML = gp.templates['gridponent'](this.config);
     }
@@ -169,7 +175,7 @@ gp.Table.render = function (node) {
     }
 };
 
-gp.Table.measureTables = function (node) {
+gp.Table.prototype.measureTables = function (node) {
     // for fixed headers, adjust the padding on the header to match the width of the main table
     var header = node.querySelector('.table-header');
     var footer = node.querySelector('.table-footer');
@@ -190,23 +196,23 @@ gp.Table.measureTables = function (node) {
     }
 };
 
-gp.Table.syncColumnWidths = function () {
+gp.Table.prototype.syncColumnWidths = function () {
     var html = gp.helpers.columnWidthStyle.call(this);
     this.node.querySelector('style.column-width-style').innerHTML = html;
 };
 
-gp.Table.refresh = function (config) {
+gp.Table.prototype.refresh = function (config) {
     var rowsTemplate = gp.helpers['tableRows'];
     var pagerTemplate = gp.templates['gridponent-pager'];
     var html = rowsTemplate.call(config);
-    this.querySelector('.table-body > table > tbody').innerHTML = html;
+    config.node.querySelector('.table-body > table > tbody').innerHTML = html;
     html = pagerTemplate(config);
-    this.querySelector('.table-pager').innerHTML = html;
+    config.node.querySelector('.table-pager').innerHTML = html;
     html = gp.helpers['sortStyle'].call(config);
-    this.querySelector('style.sort-style').innerHTML = html;
+    config.node.querySelector('style.sort-style').innerHTML = html;
 };
 
-gp.Table.update = function () {
+gp.Table.prototype.update = function () {
     var self = this;
     if (this.pager) {
         this.pager.get(this.config.data, function (model) {
@@ -216,7 +222,7 @@ gp.Table.update = function () {
     }
 };
 
-gp.Table.addCommandHandlers = function (node) {
+gp.Table.prototype.addCommandHandlers = function (node) {
     var self = this;
     // listen for command button clicks
     gp.on(node, 'click', 'button[value]', function (evt) {
@@ -245,7 +251,7 @@ gp.Table.addCommandHandlers = function (node) {
     });
 };
 
-gp.Table.editRow = function (row, tr) {
+gp.Table.prototype.editRow = function (row, tr) {
     try {
         var template = gp.templates['gridponent-edit-cells'];
         var html = template(this.config);
@@ -258,7 +264,7 @@ gp.Table.editRow = function (row, tr) {
     }
 };
 
-gp.Table.updateRow = function (row, tr) {
+gp.Table.prototype.updateRow = function (row, tr) {
     try {
         var self = this;
         var h = new gp.Http();
@@ -293,7 +299,7 @@ gp.Table.updateRow = function (row, tr) {
     }
 };
 
-gp.Table.cancelEdit = function (row, tr) {
+gp.Table.prototype.cancelEdit = function (row, tr) {
     try {
         var template = gp.templates['gridponent-cells'];
         var html = template(this.config);
@@ -305,7 +311,7 @@ gp.Table.cancelEdit = function (row, tr) {
     }
 };
 
-gp.Table.deleteRow = function (row, tr) {
+gp.Table.prototype.deleteRow = function (row, tr) {
     try {
         var confirmed = confirm('Are you sure you want to delete this item?');
         if (!confirmed) return;
@@ -326,3 +332,4 @@ gp.Table.deleteRow = function (row, tr) {
         console.log(ex.stack);
     }
 };
+

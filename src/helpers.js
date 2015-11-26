@@ -33,13 +33,34 @@
     extend('thead', function () {
         var self = this;
         var out = [];
+        var sort, type, template;
         out.push('<thead>');
         out.push('<tr>');
         this.Columns.forEach(function (col) {
-            var sort = gp.escapeHTML(col.Sort || col.Field);
-            var type = (col.Type || '').toLowerCase();
+            sort = gp.escapeHTML(gp.coalesce([col.Sort, col.Field, '']));
+            type = gp.coalesce([col.Type, '']).toLowerCase();
             out.push('<th class="header-cell ' + type + ' ' + sort + '">');
-            if (gp.hasValue(col.Commands) === false && sort) {
+
+            gp.verbose('helpers.thead: col:');
+            gp.verbose(col);
+
+            // check for a template
+            if (col.HeaderTemplate) {
+                // it's either a selector or a function name
+                template = gp.resolveObjectPath(col.HeaderTemplate);
+                if (typeof (template) === 'function') {
+                    out.push(template.call(self, col));
+                }
+                else {
+                    template = document.querySelector(col.HeaderTemplate);
+                    if (template) {
+                        out.push(template.innerHTML);
+                    }
+                }
+                gp.verbose('helpers.thead: template:');
+                gp.verbose(template);
+            }
+            else if (gp.hasValue(col.Commands) === false && sort) {
                 out.push('<label class="table-sort">');
                 out.push('<input type="checkbox" name="OrderBy" value="' + sort + '" />');
                 out.push(sort);
@@ -67,7 +88,7 @@
         var out = [];
         this.data.Data.forEach(function (row, index) {
             self.Row = row;
-            out.push('    <tr data-index="');
+            out.push('<tr data-index="');
             out.push(index);
             out.push('">');
             out.push(gp.templates['gridponent-cells'](self));
@@ -79,13 +100,15 @@
     extend('bodyCell', function (col) {
         var template, format, val = this.Row[col.Field];
 
-
         var type = (col.Type || '').toLowerCase();
         var out = [];
         out.push('<td class="body-cell ' + type + '">');
 
+        gp.verbose('bodyCell: col:');
+        gp.verbose(col);
+
         // check for a template
-        if (this.Template) {
+        if (col.Template) {
             // it's either a selector or a function name
             template = gp.resolveObjectPath(col.Template);
             if (typeof (template) === 'function') {
@@ -120,13 +143,11 @@
 
     extend('editCell', function (col) {
         var template, out = [];
-        var val = this.Row[col.Field];
-        // render empty cell if this field doesn't exist in the data
-        if (val === undefined) return '<td class="body-cell"></td>';
-        // render null as empty string
-        if (val === null) val = '';
 
         out.push('<td class="body-cell ' + col.Type + '">');
+
+        gp.verbose('helper.editCell: col: ');
+        gp.verbose(col);
 
         // check for a template
         if (col.EditTemplate) {
@@ -143,13 +164,16 @@
             }
         }
         else {
-            if (col.Type === 'date') {
-                // use the required format for the date input element
-                val = gp.formatDate(val, 'yyyy-MM-dd');
-            }
+            var val = this.Row[col.Field];
+            // render empty cell if this field doesn't exist in the data
+            if (val === undefined) return '<td class="body-cell"></td>';
+            // render null as empty string
+            if (val === null) val = '';
             out.push('<input class="form-control" name="' + col.Field + '" type="');
             switch (col.Type) {
                 case 'date':
+                    // use the required format for the date input element
+                    val = gp.formatDate(val, 'yyyy-MM-dd');
                     out.push('date" value="' + gp.escapeHTML(val) + '" />');
                     break;
                 case 'number':
