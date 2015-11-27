@@ -73,6 +73,8 @@
 label.table-sort {
   color: #337ab7;
   cursor: pointer;
+  margin:0;
+  vertical-align:middle;
 }
 label.table-sort > input {
   display: none;

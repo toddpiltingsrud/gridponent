@@ -433,6 +433,13 @@
             gp.helpers[name] = func;
         };
     
+        extend('template', function (name, arg) {
+            var template = gp.templates[name];
+            if (template) {
+                return template(this, arg);
+            }
+        });
+    
         extend('toolbarTemplate', function () {
             var out = [];
     
@@ -460,7 +467,19 @@
             out.push('<thead>');
             out.push('<tr>');
             this.Columns.forEach(function (col) {
-                sort = gp.escapeHTML(gp.coalesce([col.Sort, col.Field, '']));
+                if (self.Sorting) {
+                    // if sort isn't specified, use the field
+                    sort = gp.escapeHTML(gp.coalesce([col.Sort, col.Field]));
+                }
+                else {
+                    // only provide sorting where it is explicitly specified
+                    if (col.Sort === true && gp.hasValue(col.Field)) {
+                        sort = gp.escapeHTML(col.Field);
+                    }
+                    else {
+                        sort = gp.escapeHTML(col.Sort);
+                    }
+                }
                 type = gp.coalesce([col.Type, '']).toLowerCase();
                 out.push('<th class="header-cell ' + type + ' ' + sort + '">');
     
@@ -483,27 +502,20 @@
                     gp.verbose('helpers.thead: template:');
                     gp.verbose(template);
                 }
-                else if (gp.hasValue(col.Commands) === false && sort) {
+                else if (gp.hasValue(sort)) {
                     out.push('<label class="table-sort">');
                     out.push('<input type="checkbox" name="OrderBy" value="' + sort + '" />');
-                    out.push(sort);
+                    out.push(gp.coalesce([col.Header, col.Field, sort]));
                     out.push('</label>');
                 }
                 else {
-                    out.push(sort || '&nbsp;');
+                    out.push(gp.coalesce([col.Header, col.Field, '&nbsp;']));
                 }
                 out.push('</th>');
             });
             out.push('</tr>');
             out.push('</thead>');
             return out.join('');
-        });
-    
-        extend('template', function (name, arg) {
-            var template = gp.templates[name];
-            if (template) {
-                return template(this, arg);
-            }
         });
     
         extend('tableRows', function() {

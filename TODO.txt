@@ -7,9 +7,9 @@ Might need to re-sync column widths anytime the main table content changes (e.g.
 
 For column widths, if only a number is specified assume pixels.
 
-Add header templates.
-
 Add row selection.
+
+Add page size config option (default to 25).
 
 <script src="https://cdn.polyfill.io/v2/polyfill.min.js"></script>
 
@@ -40,4 +40,4 @@ Build a Polymer version.
 
 Use native browser functions to parse user-defined templates. Escape text nodes.
 
-
+Create a StringBuilder class.

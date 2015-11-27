@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="X-UA-Compatible" content="IE=9">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>gridponent tests</title>
@@ -31,6 +31,7 @@
 
     fns.dropdown = function (row, column) {
         var val = row[column.Field];
+        console.log(val);
         var data = fns.getData().Data;
         var out = [];
         out.push('<select name="MakeFlag" class="form-control">');
@@ -96,7 +97,7 @@
                                  oncreated="fns.getData"
                                  update="/Products/Update"
                                  destroy="/Products/Destroy">
-                        <gp-column header="Product" template="fns.getName" edit-template="fns.dropdown"></gp-column>
+                        <gp-column header="Product" field="ProductID" template="fns.getName" edit-template="fns.dropdown"></gp-column>
                         <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>
                         <gp-column field="SafetyStockLevel" header="Safety Stock Level" footer-template="fns.average"></gp-column>
                         <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.average"></gp-column>

@@ -118,37 +118,39 @@ fns.checkbox = function (col) {
     return '<input type="checkbox" name="test" />';
 }
 
-var getPonent = function () {
+var getTableConfig = function (fixedHeaders, fixedFooters, responsive, sorting) {
+    div.append('<script type="text/html" id="headerTemplate1">Test Header</script>');
+    div.append('<script type="text/html" id="headerTemplate2"><input type="checkbox"/></script>');
+    div.append('<script type="text/html" id="headerTemplate3">Test Header<input type="checkbox"/></script>');
+
     var out = [];
 
     out.push('<grid-ponent paging="bottom-right" ');
-    out.push('             sorting ');
-    out.push('             fixed-headers ');
-    out.push('             fixed-footers="true"');
+    if (fixedHeaders) out.push(' fixed-headers');
+    if (fixedFooters) out.push(' fixed-footers="true"');
+    if (responsive)   out.push(' responsive="true"');
+    if (sorting)      out.push(' sorting ');
     out.push('             style="width:100%;height:411px" ');
-    out.push('             responsive="true"');
     out.push('             search="top-left"');
     out.push('             oncreated="fns.getData"');
     out.push('             update="/Products/Update"');
     out.push('             destroy="/Products/Destroy">');
     out.push('    <gp-column header-template="fns.checkbox" template="fns.checkbox"></gp-column>');
-    out.push('    <gp-column field="ProductID" header="ID" template="fns.getName" edit-template="fns.dropdown"></gp-column>');
+    out.push('    <gp-column header="ID" template="fns.getName" edit-template="fns.dropdown"></gp-column>');
     out.push('    <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>');
     out.push('    <gp-column field="SafetyStockLevel" header="Safety Stock Level" footer-template="fns.average"></gp-column>');
     out.push('    <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.average"></gp-column>');
-    out.push('    <gp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, yyyy"></gp-column>');
-    out.push('    <gp-column field="Markup" header="Marked-Up Name"></gp-column>');
+    out.push('    <gp-column field="SellStartDate" sort header="Sell Start Date" format="d MMMM, yyyy"></gp-column>');
+    out.push('    <gp-column field="Markup" sort="Name"></gp-column>');
     out.push('    <gp-column commands="Edit,Delete"></gp-column>');
+    out.push('    <gp-column header-template="#headerTemplate1"></gp-column>');
+    out.push('    <gp-column header-template="#headerTemplate2"></gp-column>');
+    out.push('    <gp-column header-template="#headerTemplate3"></gp-column>');
     out.push('</grid-ponent>');
-
-    return out.join('');
-};
-
-QUnit.test("gp.Table.getConfig", function (assert) {
 
     // if we have web component support, this line will initialize the component automatically
     // otherwise we need to trigger initialization manually
-    var $node = $(getPonent());
+    var $node = $(out.join(''));
 
     var config = $node[0].config;
 
@@ -156,6 +158,13 @@ QUnit.test("gp.Table.getConfig", function (assert) {
         var table = new gp.Table($node[0]);
         config = table.config;
     }
+
+    return config;
+};
+
+QUnit.test("gp.Table.getConfig", function (assert) {
+
+    var config = getTableConfig(true, false, false, true);
 
     assert.equal(config.Sorting, true);
 
@@ -163,7 +172,7 @@ QUnit.test("gp.Table.getConfig", function (assert) {
 
     assert.equal(config.Sorting, true);
 
-    assert.equal(config.Columns.length, 8);
+    assert.equal(config.Columns.length, 11);
 
     assert.equal(config.Columns[1].Header, "ID");
 
@@ -171,20 +180,70 @@ QUnit.test("gp.Table.getConfig", function (assert) {
 
 QUnit.test("gp.helpers.thead", function (assert) {
 
-    var $node = $(getPonent());
+    function testHeaders(headers) {
+        assert.ok(headers[0].querySelector('input[type=checkbox]') != null);
 
-    var config = $node[0].config;
+        assert.equal(headers[1].innerHTML, 'ID');
 
-    if (!config) {
-        var table = new gp.Table($node[0]);
-        config = table.config;
+        assert.ok(headers[2].querySelector('label.table-sort > input[type=checkbox]') != null);
+
+        assert.equal(headers[6].querySelector('label.table-sort').innerText, 'Markup');
+
+        assert.equal(headers[8].innerText, 'Test Header');
+
+        assert.ok(headers[9].querySelector('input[type=checkbox]') != null);
+
+        assert.equal(headers[10].innerText, 'Test Header');
+
+        assert.ok(headers[10].querySelector('input[type=checkbox]') != null);
     }
 
-    var node = config.node;
+    // fixed headers, with sorting
+    var node = getTableConfig(true, false, false, true).node;
 
-    var col = node.querySelector('th.header-cell input[name=test]');
+    var headers = node.querySelectorAll('div.table-header th.header-cell');
 
-    assert.ok(col != null);
+    testHeaders(headers);
+
+    // no fixed headers, with sorting
+    node = getTableConfig(false, false, false, true).node;
+
+    headers = node.querySelectorAll('div.table-body th.header-cell');
+
+    testHeaders(headers);
+
+    // no fixed headers, no sorting
+    node = getTableConfig(false, false, false, false).node;
+
+    headers = node.querySelectorAll('div.table-body th.header-cell');
+
+    assert.ok(headers[0].querySelector('input[type=checkbox]') != null);
+
+    assert.equal(headers[1].innerHTML, 'ID');
+
+    assert.equal(headers[2].querySelector('label.table-sort'), null);
+
+    assert.ok(headers[5].querySelector('label.table-sort > input[value=SellStartDate]') != null);
+
+    assert.equal(headers[5].innerText, 'Sell Start Date');
+
+    assert.ok(headers[6].querySelector('label.table-sort > input[value=Name]') != null);
+
+    assert.equal(headers[6].innerText, 'Markup');
+
+    assert.equal(headers[8].innerText, 'Test Header');
+
+    assert.ok(headers[9].querySelector('input[type=checkbox]') != null);
+
+    assert.equal(headers[10].innerText, 'Test Header');
+
+    assert.ok(headers[10].querySelector('input[type=checkbox]') != null);
+
+});
+
+QUnit.test("gp.helpers.tableRows", function (assert) {
+
+    var node = getTableConfig(true, false, false, true).node;
 
 });
 
