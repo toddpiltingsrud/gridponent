@@ -53,9 +53,21 @@ gp.Table.prototype.initialize = function (node) {
     this.beginMonitor(node);
     this.addCommandHandlers(node);
     if (this.config.FixedHeaders || this.config.FixedFooters) {
-        gp.ready(function () {
-            self.syncColumnWidths.call(self.config);
-        });
+        var tries = 3;
+        var nodes = document.querySelectorAll('#' + this.config.ID + ' .table-body > table > tbody > tr:first-child > td');
+
+        var fn = function () {
+            if (gp.hasPositiveWidth(nodes)) {
+                self.syncColumnWidths.call(self.config);
+            }
+            else if (--tries > 0) {
+                gp.warn('gp.Table.initialize: tries: ' + tries);
+                setTimeout(fn);
+            }
+        }
+
+        fn();
+
         window.addEventListener('resize', function () {
             self.syncColumnWidths.call(self.config);
         });

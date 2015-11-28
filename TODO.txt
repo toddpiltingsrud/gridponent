@@ -9,7 +9,11 @@ For column widths, if only a number is specified assume pixels.
 
 Add row selection.
 
+Add read-only column option.
+
 Add page size config option (default to 25).
+
+Add a calendar shim for browsers that don't support date input type.
 
 <script src="https://cdn.polyfill.io/v2/polyfill.min.js"></script>
 
@@ -19,10 +23,6 @@ Add support for polyfills:
 - Object.observe 
 - Array.observe
 - Intl
-
-Test without fixed headers.
-
-Fixed footer
 
 Add CRUD events.
 

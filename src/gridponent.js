@@ -347,6 +347,7 @@
         gp.resolveObjectPath = function (path) {
             // split by dots, then square brackets
             try {
+                if (typeof path !== 'string') return null;
                 gp.verbose('resolveObjectPath:');
                 var currentObj = window;
                 var paths = path.split('.');
@@ -419,6 +420,36 @@
             return key in uids ? createUID() : uids[key] = key;
         };
     
+        gp.hasPositiveWidth = function(nodes) {
+            if (gp.isNullOrEmpty(nodes)) return false;
+            for (var i = 0; i < nodes.length; i++) {
+                if (nodes[i].offsetWidth > 0) return true;
+            }
+            return false;
+        };
+    
+        var token = /{{.+?}}/g;
+    
+        gp.processTemplate = function (template, row, col) {
+            gp.info('gp.processTemplate: template: ');
+            gp.info(template);
+            var fn, match, tokens = template.match(/{{.+?}}/g);
+            for (var i = 0; i < tokens.length; i++) {
+                match = tokens[i].slice(2, -2);
+                if (match in row) {
+                    template = template.replace(tokens[i], row[match]);
+                }
+                else {
+                    fn = gp.resolveObjectPath(match);
+                    if (typeof fn === 'function') {
+                        template = template.replace(tokens[i], fn.call(this, row, col));
+                    }
+                }
+            }
+            gp.info('gp.processTemplate: template:');
+            gp.info(template);
+            return template;
+        }
     
     })(gridponent);
     /***************\
@@ -552,7 +583,9 @@
                 else {
                     template = document.querySelector(col.Template);
                     if (template) {
-                        out.push(template.innerHTML);
+                        gp.verbose('bodyCell: template:');
+                        gp.verbose(template);
+                        out.push(gp.processTemplate.call(this, template.innerHTML, this.Row, col));
                     }
                 }
             }
@@ -662,10 +695,10 @@
         });
     
         extend('columnWidthStyle', function () {
-            var self = this;
-            var out = [];
-            var index = 0;
-            var bodyCols = document.querySelectorAll('#' + this.ID + ' .table-body > table > tbody > tr:first-child > td');
+            var self = this,
+                out = [],
+                index = 0,
+                bodyCols = document.querySelectorAll('#' + this.ID + ' .table-body > table > tbody > tr:first-child > td');
     
             gp.info('columnWidthStyle: bodycols:');
             gp.info(bodyCols);
@@ -686,6 +719,7 @@
                 }
                 else if (bodyCols.length && (self.FixedHeaders || self.FixedFooters)) {
                     // sync header and footer to body
+                    width = bodyCols[index].offsetWidth;
                     out.push('{ width:');
                     out.push(bodyCols[index].offsetWidth);
                     out.push('px');
@@ -852,7 +886,7 @@
             try {
                 var skip = this.getSkip(model);
                 var count, qry = gryst.from(this.data);
-                gp.log('ClientPager: data length: ' + this.data.length);
+                gp.info('ClientPager: data length: ' + this.data.length);
                 if (gp.isNullOrEmpty(model.Search) === false) {
                     var props = gryst.from(this.columns).where(function (c) { return c !== undefined; }).select('Field').run();
                     var search = model.Search.toLowerCase();
@@ -874,7 +908,7 @@
                     }
                 }
                 model.TotalRows = qry.run().length;
-                gp.log('ClientPager: total rows: ' + model.TotalRows);
+                gp.info('ClientPager: total rows: ' + model.TotalRows);
                 qry = qry.skip(skip).take(model.Top);
     
                 model.Data = qry.run();
@@ -917,90 +951,6 @@
                 return self.PageIndex * self.Top;
             }
         });
-    };
-    // pilfered from JQuery
-    /*!
-     * jQuery JavaScript Library v2.1.4
-     * http://jquery.com/
-     *
-     * Copyright 2005, 2014 jQuery Foundation, Inc. and other contributors
-     * Released under the MIT license
-     * http://jquery.org/license
-     *
-     * Date: 2015-04-28T16:01Z
-     */
-    gp.ready = function (fn) {
-    
-        var isReady = false;
-    
-        var completed = function (event) {
-            // readyState === "complete" is good enough for us to call the dom ready in oldIE
-            if (document.addEventListener || event.type === "load" || document.readyState === "complete") {
-                isReady = true;
-                detach();
-                fn();
-            }
-        };
-    
-        var detach = function () {
-            if (document.addEventListener) {
-                document.removeEventListener("DOMContentLoaded", completed, false);
-                window.removeEventListener("load", completed, false);
-    
-            } else {
-                document.detachEvent("onreadystatechange", completed);
-                window.detachEvent("onload", completed);
-            }
-        };
-    
-        if (document.readyState === "complete") {
-            // Handle it asynchronously to allow scripts the opportunity to delay ready
-            setTimeout(fn);
-    
-            // Standards-based browsers support DOMContentLoaded
-        } else if (document.addEventListener) {
-            // Use the handy event callback
-            document.addEventListener("DOMContentLoaded", completed, false);
-    
-            // A fallback to window.onload, that will always work
-            window.addEventListener("load", completed, false);
-    
-            // If IE event model is used
-        } else {
-            // Ensure firing before onload, maybe late but safe also for iframes
-            document.attachEvent("onreadystatechange", completed);
-    
-            // A fallback to window.onload, that will always work
-            window.attachEvent("onload", completed);
-    
-            // If IE and not a frame
-            // continually check to see if the document is ready
-            var top = false;
-    
-            try {
-                top = window.frameElement == null && document.documentElement;
-            } catch (e) { }
-    
-            if (top && top.doScroll) {
-                (function doScrollCheck() {
-                    if (!isReady) {
-    
-                        try {
-                            // Use the trick by Diego Perini
-                            // http://javascript.nwbox.com/IEContentLoaded/
-                            top.doScroll("left");
-                        } catch (e) {
-                            return setTimeout(doScrollCheck, 50);
-                        }
-    
-                        // detach all dom ready events
-                        detach();
-    
-                        fn();
-                    }
-                })();
-            }
-        }
     };
     /***************\
      main component
@@ -1057,9 +1007,21 @@
         this.beginMonitor(node);
         this.addCommandHandlers(node);
         if (this.config.FixedHeaders || this.config.FixedFooters) {
-            gp.ready(function () {
-                self.syncColumnWidths.call(self.config);
-            });
+            var tries = 3;
+            var nodes = document.querySelectorAll('#' + this.config.ID + ' .table-body > table > tbody > tr:first-child > td');
+    
+            var fn = function () {
+                if (gp.hasPositiveWidth(nodes)) {
+                    self.syncColumnWidths.call(self.config);
+                }
+                else if (--tries > 0) {
+                    gp.warn('gp.Table.initialize: tries: ' + tries);
+                    setTimeout(fn);
+                }
+            }
+    
+            fn();
+    
             window.addEventListener('resize', function () {
                 self.syncColumnWidths.call(self.config);
             });

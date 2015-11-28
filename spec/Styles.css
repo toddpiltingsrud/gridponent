@@ -543,7 +543,13 @@ table td.bool {
   z-index: 50;
 }
 
-
 .tab {
     display:none;
+}
+
+/* override bootstrap style because it doesn't work in IE Edge */
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+    input[type=date].form-control, input[type=time].form-control, input[type=datetime-local].form-control, input[type=month].form-control {
+        line-height:inherit;
+    }
 }

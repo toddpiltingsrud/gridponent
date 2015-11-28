@@ -129,7 +129,9 @@
             else {
                 template = document.querySelector(col.Template);
                 if (template) {
-                    out.push(template.innerHTML);
+                    gp.verbose('bodyCell: template:');
+                    gp.verbose(template);
+                    out.push(gp.processTemplate.call(this, template.innerHTML, this.Row, col));
                 }
             }
         }
@@ -239,10 +241,10 @@
     });
 
     extend('columnWidthStyle', function () {
-        var self = this;
-        var out = [];
-        var index = 0;
-        var bodyCols = document.querySelectorAll('#' + this.ID + ' .table-body > table > tbody > tr:first-child > td');
+        var self = this,
+            out = [],
+            index = 0,
+            bodyCols = document.querySelectorAll('#' + this.ID + ' .table-body > table > tbody > tr:first-child > td');
 
         gp.info('columnWidthStyle: bodycols:');
         gp.info(bodyCols);
@@ -263,6 +265,7 @@
             }
             else if (bodyCols.length && (self.FixedHeaders || self.FixedFooters)) {
                 // sync header and footer to body
+                width = bodyCols[index].offsetWidth;
                 out.push('{ width:');
                 out.push(bodyCols[index].offsetWidth);
                 out.push('px');

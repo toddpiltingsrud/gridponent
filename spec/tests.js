@@ -116,16 +116,32 @@ var fns = fns || {};
 
 fns.checkbox = function (col) {
     return '<input type="checkbox" name="test" />';
-}
+};
+
+fns.getButtonIcon = function (row, col) {
+    if (row.MakeFlag) {
+        return 'glyphicon-edit';
+    }
+    return 'glyphicon-remove';
+};
+
+fns.getButtonText = function (row, col) {
+    if (row.MakeFlag) {
+        return 'Edit';
+    }
+    return 'Remove';
+};
 
 var getTableConfig = function (fixedHeaders, fixedFooters, responsive, sorting) {
-    div.append('<script type="text/html" id="headerTemplate1">Test Header</script>');
-    div.append('<script type="text/html" id="headerTemplate2"><input type="checkbox"/></script>');
-    div.append('<script type="text/html" id="headerTemplate3">Test Header<input type="checkbox"/></script>');
+    div.append('<script type="text/html" id="template1">Test Header</script>');
+    div.append('<script type="text/html" id="template2"><input type="checkbox"/></script>');
+    div.append('<script type="text/html" id="template3">Test Header<input type="checkbox"/></script>');
+    div.append('<script type="text/html" id="template4">{{SafetyStockLevel}}<button class="btn"><span class="glyphicon glyphicon-search"></span></button><input type="checkbox"/></script>');
+    div.append('<script type="text/html" id="template5"><button class="btn"><span class="glyphicon {{fns.getButtonIcon}}"></span>{{fns.getButtonText}}</button></script>');
 
     var out = [];
 
-    out.push('<grid-ponent paging="bottom-right" ');
+    out.push('<grid-ponent paging="bottom-right"');
     if (fixedHeaders) out.push(' fixed-headers');
     if (fixedFooters) out.push(' fixed-footers="true"');
     if (responsive)   out.push(' responsive="true"');
@@ -138,18 +154,19 @@ var getTableConfig = function (fixedHeaders, fixedFooters, responsive, sorting) 
     out.push('    <gp-column header-template="fns.checkbox" template="fns.checkbox"></gp-column>');
     out.push('    <gp-column header="ID" template="fns.getName" edit-template="fns.dropdown"></gp-column>');
     out.push('    <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>');
-    out.push('    <gp-column field="SafetyStockLevel" header="Safety Stock Level" footer-template="fns.average"></gp-column>');
+    out.push('    <gp-column field="SafetyStockLevel" header="Safety Stock Level" template="#template4" footer-template="fns.average"></gp-column>');
     out.push('    <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.average"></gp-column>');
     out.push('    <gp-column field="SellStartDate" sort header="Sell Start Date" format="d MMMM, yyyy"></gp-column>');
     out.push('    <gp-column field="Markup" sort="Name"></gp-column>');
     out.push('    <gp-column commands="Edit,Delete"></gp-column>');
-    out.push('    <gp-column header-template="#headerTemplate1"></gp-column>');
-    out.push('    <gp-column header-template="#headerTemplate2"></gp-column>');
-    out.push('    <gp-column header-template="#headerTemplate3"></gp-column>');
+    out.push('    <gp-column header-template="#template1"></gp-column>');
+    out.push('    <gp-column header-template="#template2"></gp-column>');
+    out.push('    <gp-column header-template="#template3"></gp-column>');
+    out.push('    <gp-column template="#template5"></gp-column>');
     out.push('</grid-ponent>');
 
     // if we have web component support, this line will initialize the component automatically
-    // otherwise we need to trigger initialization manually
+    // otherwise trigger initialization manually
     var $node = $(out.join(''));
 
     var config = $node[0].config;
@@ -172,7 +189,7 @@ QUnit.test("gp.Table.getConfig", function (assert) {
 
     assert.equal(config.Sorting, true);
 
-    assert.equal(config.Columns.length, 11);
+    assert.equal(config.Columns.length, 12);
 
     assert.equal(config.Columns[1].Header, "ID");
 
@@ -241,9 +258,38 @@ QUnit.test("gp.helpers.thead", function (assert) {
 
 });
 
-QUnit.test("gp.helpers.tableRows", function (assert) {
+QUnit.test("gp.helpers.bodyCell", function (assert) {
+
+    function testCells(cells) {
+
+        assert.ok(cells[0].querySelector('input[type=checkbox]') != null);
+
+        assert.ok(cells[2].querySelector('span.glyphicon.glyphicon-ok') != null);
+
+        assert.ok(cells[3].querySelector('button > span') != null);
+
+        assert.equal(cells[3].innerText, '800');
+
+        assert.ok(cells[11].querySelector('button') != null);
+    }
 
     var node = getTableConfig(true, false, false, true).node;
 
-});
+    var cells = node.querySelectorAll('div.table-body tbody > tr:nth-child(3) td.body-cell');
 
+    testCells(cells);
+
+    var rows = node.querySelectorAll('div.table-body tbody > tr');
+
+    for (var i = 0; i < rows.length; i++) {
+        var make = data.products[i].MakeFlag;
+        if (make) {
+            assert.ok(rows[i].querySelector('td:nth-child(12) span.glyphicon-edit') != null);
+            assert.ok(rows[i].querySelector('td:nth-child(3) span.glyphicon-ok') != null);
+        }
+        else {
+            assert.ok(rows[i].querySelector('td:nth-child(12) span.glyphicon-remove') != null);
+        }
+    }
+
+});

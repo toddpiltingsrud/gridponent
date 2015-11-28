@@ -1,0 +1,1 @@
+This project started out using handlebars for basic templating. But I decided that with some minor modifications to the templates I could easily create a simple compiler and remove the dependency on handlebars.

@@ -300,6 +300,7 @@
     gp.resolveObjectPath = function (path) {
         // split by dots, then square brackets
         try {
+            if (typeof path !== 'string') return null;
             gp.verbose('resolveObjectPath:');
             var currentObj = window;
             var paths = path.split('.');
@@ -372,5 +373,37 @@
         return key in uids ? createUID() : uids[key] = key;
     };
 
+    gp.hasPositiveWidth = function(nodes) {
+        if (gp.isNullOrEmpty(nodes)) return false;
+        for (var i = 0; i < nodes.length; i++) {
+            if (nodes[i].offsetWidth > 0) return true;
+        }
+        return false;
+    };
+
+    var token = /{{.+?}}/g;
+
+    gp.processTemplate = function (template, row, col) {
+        gp.info('gp.processTemplate: template: ');
+        gp.info(template);
+        var fn, match, tokens = template.match(/{{.+?}}/g);
+        console.log(tokens);
+        for (var i = 0; i < tokens.length; i++) {
+            match = tokens[i].slice(2, -2);
+            console.log(match);
+            if (match in row) {
+                template = template.replace(tokens[i], row[match]);
+            }
+            else {
+                fn = gp.resolveObjectPath(match);
+                if (typeof fn === 'function') {
+                    template = template.replace(tokens[i], fn.call(this, row, col));
+                }
+            }
+        }
+        gp.info('gp.processTemplate: template:');
+        gp.info(template);
+        return template;
+    }
 
 })(gridponent);
