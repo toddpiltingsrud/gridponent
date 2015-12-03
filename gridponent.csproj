@@ -51,7 +51,7 @@
     </Content>
     <Content Include="src\html-parser.js.txt" />
     <Content Include="src\mock-http.js" />
-    <Content Include="src\ready-check.js.txt" />
+    <Content Include="src\ready-check.js" />
     <Content Include="src\pagers.js" />
     <Content Include="src\change-monitor.js" />
     <Content Include="src\globals.js" />
@@ -63,6 +63,7 @@
     <Content Include="src\gridponent.css">
       <DependentUpon>gridponent.less</DependentUpon>
     </Content>
+    <Content Include="src\initializer.js" />
     <Content Include="src\table.js" />
     <None Include="README.md" />
     <None Include="spec\Out.tt">

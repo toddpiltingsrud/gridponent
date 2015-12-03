@@ -297,12 +297,12 @@
 
     var quoted = /^['"].+['"]$/;
 
-    gp.resolveObjectPath = function (path) {
+    gp.resolveObjectPath = function (path, root) {
         // split by dots, then square brackets
         try {
             if (typeof path !== 'string') return null;
             gp.verbose('resolveObjectPath:');
-            var currentObj = window;
+            var currentObj = root || window;
             var paths = path.split('.');
 
             for (var i = 0; i < paths.length && gp.hasValue(currentObj); i++) {
@@ -315,7 +315,7 @@
                     currentObj = currentObj[objName];
                 }
                 gp.verbose('currentObj: ' + currentObj);
-                if (gp.hasValue(currentObj) !== undefined && split.length > 1) {
+                if (gp.hasValue(currentObj) && split.length > 1) {
 
                     for (var j = 1; j < split.length; j++) {
                         var indexer = split[j].slice(0, -1);
@@ -348,6 +348,14 @@
             console.log('Could not resolve object path: ' + path);
             console.log(err);
         }
+    };
+
+    gp.resolveObject = function (obj, name) {
+        if (gp.hasValue(obj[name])) {
+            obj[name] = gp.resolveObjectPath(obj[name]);
+            return gp.hasValue(obj[name]);
+        }
+        return false;
     };
 
     var FP = Function.prototype;
@@ -383,21 +391,52 @@
 
     var token = /{{.+?}}/g;
 
-    gp.processTemplate = function (template, row, col) {
+    gp.resolveTemplate = function (template) {
+        // it's either a selector or a function
+        var t = gp.resolveObjectPath(template);
+        if (typeof (t) === 'function') {
+            return t;
+        }
+        else {
+            t = document.querySelector(template);
+            if (t) {
+                return t.innerHTML;
+            }
+        }
+        return null;
+    };
+
+    gp.processRowTemplate = function (template, row, col) {
         gp.info('gp.processTemplate: template: ');
         gp.info(template);
         var fn, match, tokens = template.match(/{{.+?}}/g);
-        console.log(tokens);
-        for (var i = 0; i < tokens.length; i++) {
-            match = tokens[i].slice(2, -2);
-            console.log(match);
-            if (match in row) {
-                template = template.replace(tokens[i], row[match]);
+        if (tokens) {
+            for (var i = 0; i < tokens.length; i++) {
+                match = tokens[i].slice(2, -2);
+                if (match in row) {
+                    template = template.replace(tokens[i], row[match]);
+                }
+                else {
+                    fn = gp.resolveObjectPath(match);
+                    if (typeof fn === 'function') {
+                        template = template.replace(tokens[i], fn.call(this, row, col));
+                    }
+                }
             }
-            else {
+        }
+        gp.info('gp.processTemplate: template:');
+        gp.info(template);
+        return template;
+    }
+
+    gp.processColumnTemplate = function (template, col) {
+        var fn, match, tokens = template.match(/{{.+?}}/g);
+        if (tokens) {
+            for (var i = 0; i < tokens.length; i++) {
+                match = tokens[i].slice(2, -2);
                 fn = gp.resolveObjectPath(match);
                 if (typeof fn === 'function') {
-                    template = template.replace(tokens[i], fn.call(this, row, col));
+                    template = template.replace(tokens[i], fn.call(this, col));
                 }
             }
         }

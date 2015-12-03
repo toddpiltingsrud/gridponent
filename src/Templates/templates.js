@@ -66,7 +66,11 @@ gp.templates['gridponent-edit-cells'] = function(model, arg) {
     out.push('</div>');
     out.push('</td>');
             } else {
-                    out.push(gp.helpers['editCell'].call(model, col));
+                    if (col.Readonly) {
+                        out.push(gp.helpers['bodyCell'].call(model, col));
+                    } else {
+                        out.push(gp.helpers['editCell'].call(model, col));
+                    }
                 }
         });
             return out.join('');

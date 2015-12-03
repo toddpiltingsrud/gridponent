@@ -65,19 +65,14 @@
 
             // check for a template
             if (col.HeaderTemplate) {
-                // it's either a selector or a function name
-                template = gp.resolveObjectPath(col.HeaderTemplate);
-                if (typeof (template) === 'function') {
-                    out.push(template.call(self, col));
+                gp.verbose('helpers.thead: col.HeaderTemplate:');
+                gp.verbose(col.HeaderTemplate);
+                if (typeof (col.HeaderTemplate) === 'function') {
+                    out.push(col.HeaderTemplate.call(self, col));
                 }
                 else {
-                    template = document.querySelector(col.HeaderTemplate);
-                    if (template) {
-                        out.push(template.innerHTML);
-                    }
+                    out.push(gp.processColumnTemplate.call(this, col.HeaderTemplate, col));
                 }
-                gp.verbose('helpers.thead: template:');
-                gp.verbose(template);
             }
             else if (gp.hasValue(sort)) {
                 out.push('<label class="table-sort">');
@@ -121,18 +116,11 @@
 
         // check for a template
         if (col.Template) {
-            // it's either a selector or a function name
-            template = gp.resolveObjectPath(col.Template);
-            if (typeof (template) === 'function') {
-                out.push(template.call(this, this.Row, col));
+            if (typeof (col.Template) === 'function') {
+                out.push(col.Template.call(this, this.Row, col));
             }
             else {
-                template = document.querySelector(col.Template);
-                if (template) {
-                    gp.verbose('bodyCell: template:');
-                    gp.verbose(template);
-                    out.push(gp.processTemplate.call(this, template.innerHTML, this.Row, col));
-                }
+                out.push(gp.processRowTemplate.call(this, col.Template, this.Row, col));
             }
         }
         else if (gp.hasValue(val)) {
@@ -165,16 +153,11 @@
 
         // check for a template
         if (col.EditTemplate) {
-            // it's either a selector or a function name
-            template = gp.resolveObjectPath(col.EditTemplate);
-            if (typeof (template) === 'function') {
-                out.push(template.call(this, this.Row, col));
+            if (typeof (col.EditTemplate) === 'function') {
+                out.push(col.EditTemplate.call(this, this.Row, col));
             }
             else {
-                template = document.querySelector(col.EditTemplate);
-                if (template) {
-                    out.push(template.innerHTML);
-                }
+                out.push(gp.processRowTemplate.call(this, col.EditTemplate, this.Row, col));
             }
         }
         else {
@@ -210,11 +193,16 @@
     });
 
     extend('footerCell', function (col) {
-        if (typeof (col.FooterTemplate) === 'function') {
-            var out = [];
-            out.push(col.FooterTemplate.call(this, col));
-            return out.join('');
+        var out = [];
+        if (col.FooterTemplate) {
+            if (typeof (col.FooterTemplate) === 'function') {
+                out.push(col.FooterTemplate.call(this, col));
+            }
+            else {
+                out.push(gp.processColumnTemplate.call(this, col.FooterTemplate, col));
+            }
         }
+        return out.join('');
     });
 
     extend('setPagerFlags', function () {
@@ -262,6 +250,7 @@
                 out.push('#' + self.ID + ' > .table-body > table > tbody td:nth-child(' + (index + 1) + ')');
                 out.push('{ width:');
                 out.push(col.Width);
+                if (isNaN(col.Width) == false) out.push('px');
             }
             else if (bodyCols.length && (self.FixedHeaders || self.FixedFooters)) {
                 // sync header and footer to body
@@ -293,6 +282,9 @@
         }
         if (this.Search) {
             out.push(' search-' + this.Search);
+        }
+        if (this.Onrowselect) {
+            out.push(' selectable');
         }
         return out.join('');
     });

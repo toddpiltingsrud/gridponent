@@ -10,11 +10,16 @@
         this.afterSync = afterSync;
         this.node = node;
         this.listener = function (evt) {
-            self.syncModel(evt.target, self.model);
-            self.afterSync(evt, model);
+            self.syncModel.call(self, evt.target, self.model);
         };
         // add change event handler to node
         gp.on(node, 'change', selector, this.listener);
+    
+        //if (Object.observe) {
+        //    Object.observe(model, function (changes) {
+        //        self.syncUI.call(self, changes);
+        //    });
+        //}
     };
     
     gp.ChangeMonitor.prototype = {
@@ -22,23 +27,56 @@
             // get name and value of target
             var name = target.name;
             var value = target.value;
+            var handled = false;
+    
+            if ((name in model) === false) {
+                return;
+            }
+    
             if (typeof (this.beforeSync) === 'function') {
                 if (this.beforeSync(name, value, this.model)) {
                     // sync was handled by the beforeSync callback
-                    return;
+                    handled = true;
                 }
             }
-            type = gp.getType(model[name]);
-            switch (type) {
-                case 'number':
-                    model[name] = parseFloat(value);
-                    break;
-                case 'boolean':
-                    model[name] = (value.toLowerCase() == 'true');
-                    break;
-                default:
-                    model[name] = value;
+            if (!handled) {
+                type = gp.getType(model[name]);
+                switch (type) {
+                    case 'number':
+                        model[name] = parseFloat(value);
+                        break;
+                    case 'boolean':
+                        model[name] = (value.toLowerCase() == 'true');
+                        break;
+                    default:
+                        model[name] = value;
+                }
             }
+            if (typeof this.afterSync === 'function') {
+                this.afterSync(target, model);
+            }
+        },
+        syncUI: function (changes) {
+            var inputs, name, value, self = this;
+            gp.info('gp.ChangeMonitor.syncUI: changes:');
+            gp.info(changes);
+            changes.forEach(function (change) {
+                name = change.name;
+                value = self.model[change.name];
+    
+                inputs = self.node.querySelectorAll('[name=' + name + ']');
+    
+                if (!inputs) return;
+    
+                if (inputs.length === 1) {
+                    // single input (text, date, hidden, etc)
+                    // or single checkbox with a value of true
+                }
+                else if (inputs.length > 1) {
+                    //multiple radios, one of which needs to be checked
+                    //mulitple checkboxes, one of which has the correct value. If value is an array, check all the boxes for the array.
+                }
+            });
         },
         stop: function () {
             // clean up
@@ -344,12 +382,12 @@
     
         var quoted = /^['"].+['"]$/;
     
-        gp.resolveObjectPath = function (path) {
+        gp.resolveObjectPath = function (path, root) {
             // split by dots, then square brackets
             try {
                 if (typeof path !== 'string') return null;
                 gp.verbose('resolveObjectPath:');
-                var currentObj = window;
+                var currentObj = root || window;
                 var paths = path.split('.');
     
                 for (var i = 0; i < paths.length && gp.hasValue(currentObj); i++) {
@@ -362,7 +400,7 @@
                         currentObj = currentObj[objName];
                     }
                     gp.verbose('currentObj: ' + currentObj);
-                    if (gp.hasValue(currentObj) !== undefined && split.length > 1) {
+                    if (gp.hasValue(currentObj) && split.length > 1) {
     
                         for (var j = 1; j < split.length; j++) {
                             var indexer = split[j].slice(0, -1);
@@ -395,6 +433,14 @@
                 console.log('Could not resolve object path: ' + path);
                 console.log(err);
             }
+        };
+    
+        gp.resolveObject = function (obj, name) {
+            if (gp.hasValue(obj[name])) {
+                obj[name] = gp.resolveObjectPath(obj[name]);
+                return gp.hasValue(obj[name]);
+            }
+            return false;
         };
     
         var FP = Function.prototype;
@@ -430,19 +476,52 @@
     
         var token = /{{.+?}}/g;
     
-        gp.processTemplate = function (template, row, col) {
+        gp.resolveTemplate = function (template) {
+            // it's either a selector or a function
+            var t = gp.resolveObjectPath(template);
+            if (typeof (t) === 'function') {
+                return t;
+            }
+            else {
+                t = document.querySelector(template);
+                if (t) {
+                    return t.innerHTML;
+                }
+            }
+            return null;
+        };
+    
+        gp.processRowTemplate = function (template, row, col) {
             gp.info('gp.processTemplate: template: ');
             gp.info(template);
             var fn, match, tokens = template.match(/{{.+?}}/g);
-            for (var i = 0; i < tokens.length; i++) {
-                match = tokens[i].slice(2, -2);
-                if (match in row) {
-                    template = template.replace(tokens[i], row[match]);
+            if (tokens) {
+                for (var i = 0; i < tokens.length; i++) {
+                    match = tokens[i].slice(2, -2);
+                    if (match in row) {
+                        template = template.replace(tokens[i], row[match]);
+                    }
+                    else {
+                        fn = gp.resolveObjectPath(match);
+                        if (typeof fn === 'function') {
+                            template = template.replace(tokens[i], fn.call(this, row, col));
+                        }
+                    }
                 }
-                else {
+            }
+            gp.info('gp.processTemplate: template:');
+            gp.info(template);
+            return template;
+        }
+    
+        gp.processColumnTemplate = function (template, col) {
+            var fn, match, tokens = template.match(/{{.+?}}/g);
+            if (tokens) {
+                for (var i = 0; i < tokens.length; i++) {
+                    match = tokens[i].slice(2, -2);
                     fn = gp.resolveObjectPath(match);
                     if (typeof fn === 'function') {
-                        template = template.replace(tokens[i], fn.call(this, row, col));
+                        template = template.replace(tokens[i], fn.call(this, col));
                     }
                 }
             }
@@ -519,19 +598,14 @@
     
                 // check for a template
                 if (col.HeaderTemplate) {
-                    // it's either a selector or a function name
-                    template = gp.resolveObjectPath(col.HeaderTemplate);
-                    if (typeof (template) === 'function') {
-                        out.push(template.call(self, col));
+                    gp.verbose('helpers.thead: col.HeaderTemplate:');
+                    gp.verbose(col.HeaderTemplate);
+                    if (typeof (col.HeaderTemplate) === 'function') {
+                        out.push(col.HeaderTemplate.call(self, col));
                     }
                     else {
-                        template = document.querySelector(col.HeaderTemplate);
-                        if (template) {
-                            out.push(template.innerHTML);
-                        }
+                        out.push(gp.processColumnTemplate.call(this, col.HeaderTemplate, col));
                     }
-                    gp.verbose('helpers.thead: template:');
-                    gp.verbose(template);
                 }
                 else if (gp.hasValue(sort)) {
                     out.push('<label class="table-sort">');
@@ -575,18 +649,11 @@
     
             // check for a template
             if (col.Template) {
-                // it's either a selector or a function name
-                template = gp.resolveObjectPath(col.Template);
-                if (typeof (template) === 'function') {
-                    out.push(template.call(this, this.Row, col));
+                if (typeof (col.Template) === 'function') {
+                    out.push(col.Template.call(this, this.Row, col));
                 }
                 else {
-                    template = document.querySelector(col.Template);
-                    if (template) {
-                        gp.verbose('bodyCell: template:');
-                        gp.verbose(template);
-                        out.push(gp.processTemplate.call(this, template.innerHTML, this.Row, col));
-                    }
+                    out.push(gp.processRowTemplate.call(this, col.Template, this.Row, col));
                 }
             }
             else if (gp.hasValue(val)) {
@@ -619,16 +686,11 @@
     
             // check for a template
             if (col.EditTemplate) {
-                // it's either a selector or a function name
-                template = gp.resolveObjectPath(col.EditTemplate);
-                if (typeof (template) === 'function') {
-                    out.push(template.call(this, this.Row, col));
+                if (typeof (col.EditTemplate) === 'function') {
+                    out.push(col.EditTemplate.call(this, this.Row, col));
                 }
                 else {
-                    template = document.querySelector(col.EditTemplate);
-                    if (template) {
-                        out.push(template.innerHTML);
-                    }
+                    out.push(gp.processRowTemplate.call(this, col.EditTemplate, this.Row, col));
                 }
             }
             else {
@@ -664,11 +726,16 @@
         });
     
         extend('footerCell', function (col) {
-            if (typeof (col.FooterTemplate) === 'function') {
-                var out = [];
-                out.push(col.FooterTemplate.call(this, col));
-                return out.join('');
+            var out = [];
+            if (col.FooterTemplate) {
+                if (typeof (col.FooterTemplate) === 'function') {
+                    out.push(col.FooterTemplate.call(this, col));
+                }
+                else {
+                    out.push(gp.processColumnTemplate.call(this, col.FooterTemplate, col));
+                }
             }
+            return out.join('');
         });
     
         extend('setPagerFlags', function () {
@@ -716,6 +783,7 @@
                     out.push('#' + self.ID + ' > .table-body > table > tbody td:nth-child(' + (index + 1) + ')');
                     out.push('{ width:');
                     out.push(col.Width);
+                    if (isNaN(col.Width) == false) out.push('px');
                 }
                 else if (bodyCols.length && (self.FixedHeaders || self.FixedFooters)) {
                     // sync header and footer to body
@@ -748,10 +816,347 @@
             if (this.Search) {
                 out.push(' search-' + this.Search);
             }
+            if (this.Onrowselect) {
+                out.push(' selectable');
+            }
             return out.join('');
         });
     
     })();
+    /***************\
+     main component
+    \***************/
+    gp.Initializer = function (node) {
+        this.initialize(node);
+    };
+    
+    gp.Initializer.prototype = {
+    
+        initialize: function (node) {
+            var self = this;
+            this.config = this.getConfig(node);
+            node.config = this.config;
+            gp.info(this.config);
+    
+            if (this.config.Oncreated) {
+                this.config.data = this.config.Oncreated();
+                this.resolveTypes(this.config);
+            }
+            this.pager = this.getPager(this.config);
+            this.resolveOnRowSelect(this.config);
+            this.resolveFirstPage(this.config, this.pager, function (firstPage) {
+                self.render(node);
+            });
+            this.beginMonitor(node);
+            this.addCommandHandlers(node);
+            if (this.config.FixedHeaders || this.config.FixedFooters) {
+                var tries = 3;
+                var nodes = document.querySelectorAll('#' + this.config.ID + ' .table-body > table > tbody > tr:first-child > td');
+    
+                var fn = function () {
+                    if (gp.hasPositiveWidth(nodes)) {
+                        self.syncColumnWidths.call(self.config);
+                    }
+                    else if (--tries > 0) {
+                        gp.warn('gp.Initializer.initialize: tries: ' + tries);
+                        setTimeout(fn);
+                    }
+                }
+    
+                fn();
+    
+                window.addEventListener('resize', function () {
+                    self.syncColumnWidths.call(self.config);
+                });
+            }
+        },
+    
+        getConfig: function (node) {
+            var self = this;
+            var config = gp.getConfig(node);
+            config.Columns = [];
+            config.data = {};
+            config.ID = gp.createUID();
+            for (var i = 0; i < node.children.length; i++) {
+                var col = node.children[i];
+                var colConfig = gp.getConfig(col);
+                config.Columns.push(colConfig);
+                this.resolveCommands(colConfig);
+                this.resolveTemplates(colConfig);
+            }
+            config.Footer = this.resolveFooter(config);
+            gp.resolveObject(config, 'Oncreated');
+            gp.resolveObject(config, 'SearchFilter');
+            gp.info(config);
+            return config;
+        },
+    
+        resolveFooter: function (config) {
+            for (var i = 0; i < config.Columns.length; i++) {
+                if (config.Columns[i].FooterTemplate) return true;
+            }
+            return false;
+        },
+    
+        resolveTemplates: function (column) {
+            var props = ['HeaderTemplate', 'Template', 'EditTemplate', 'FooterTemplate'];
+            props.forEach(function (prop) {
+                column[prop] = gp.resolveTemplate(column[prop]);
+            });
+        },
+    
+        resolveCommands: function (col) {
+            if (col.Commands) {
+                col.Commands = col.Commands.split(',');
+            }
+        },
+    
+        resolveTypes: function (config) {
+            config.Columns.forEach(function (col) {
+                for (var i = 0; i < config.data.Data.length; i++) {
+                    if (config.data.Data[i][col.Field] !== null) {
+                        col.Type = gp.getType(config.data.Data[i][col.Field]);
+                        break;
+                    }
+                }
+            });
+            gp.log(config.Columns);
+        },
+    
+        getPager: function (config) {
+            if (config.Paging) {
+                if (gp.hasValue(config.Read)) {
+                    return new gp.ServerPager(config);
+                }
+                else {
+                    return new gp.ClientPager(config);
+                }
+            }
+        },
+    
+        resolveFirstPage: function (config, pager, callback) {
+            if (pager === undefined) {
+                callback(config.data);
+            }
+            else {
+                pager.get(config.data, callback);
+            }
+        },
+    
+        resolveOnRowSelect: function (config) {
+            if (gp.resolveObject(config, 'Onrowselect')) {
+                if (typeof config.Onrowselect === 'function') {
+                    // add click handler
+                    gp.on(config.node, 'click', 'div.table-body > table > tbody > tr[data-index]', function (evt) {
+                        var model = null;
+                        config.Onrowselect.call(this, evt, config);
+                    });
+                }
+                else {
+                    config.Onrowselect = false;
+                }
+            }
+        },
+    
+        beginMonitor: function (node) {
+            var self = this;
+            // monitor changes to search, sort, and paging
+            var monitor = new gp.ChangeMonitor(node, '.table-toolbar [name=Search], thead input, .table-pager input', this.config.data, function (evt) {
+                self.update();
+                // reset the radio inputs
+                var radios = node.querySelectorAll('thead input[type=radio], .table-pager input[type=radio]');
+                for (var i = 0; i < radios.length; i++) {
+                    radios[i].checked = false;
+                }
+            });
+            monitor.beforeSync = function (name, value, model) {
+                // the OrderBy property requires special handling
+                if (name === 'OrderBy') {
+                    if (model[name] === value) {
+                        model.Desc = !model.Desc;
+                    }
+                    else {
+                        model[name] = value;
+                        model.Desc = false;
+                    }
+                    return true;
+                }
+                return false;
+            };
+        },
+    
+        render: function (node) {
+            try {
+                node.innerHTML = gp.templates['gridponent'](this.config);
+            }
+            catch (ex) {
+                console.log(ex.message);
+                console.log(ex.stack);
+            }
+        },
+    
+        measureTables: function (node) {
+            // for fixed headers, adjust the padding on the header to match the width of the main table
+            var header = node.querySelector('.table-header');
+            var footer = node.querySelector('.table-footer');
+            if (header || footer) {
+                var bodyWidth = node.querySelector('.table-body > table').offsetWidth;
+                var headerWidth = (header || footer).querySelector('table').offsetWidth;
+                var diff = (headerWidth - bodyWidth);
+                if (diff !== 0) {
+                    var paddingRight = diff;
+                    gp.log('diff:' + diff + ', paddingRight:' + paddingRight);
+                    if (header) {
+                        header.style.paddingRight = paddingRight.toString() + 'px';
+                    }
+                    if (footer) {
+                        footer.style.paddingRight = paddingRight.toString() + 'px';
+                    }
+                }
+            }
+        },
+    
+        syncColumnWidths: function () {
+            var html = gp.helpers.columnWidthStyle.call(this);
+            this.node.querySelector('style.column-width-style').innerHTML = html;
+        },
+    
+        refresh: function (config) {
+            var rowsTemplate = gp.helpers['tableRows'];
+            var pagerTemplate = gp.templates['gridponent-pager'];
+            var html = rowsTemplate.call(config);
+            config.node.querySelector('.table-body > table > tbody').innerHTML = html;
+            html = pagerTemplate(config);
+            config.node.querySelector('.table-pager').innerHTML = html;
+            html = gp.helpers['sortStyle'].call(config);
+            config.node.querySelector('style.sort-style').innerHTML = html;
+        },
+    
+        update: function () {
+            var self = this;
+            if (this.pager) {
+                this.pager.get(this.config.data, function (model) {
+                    self.config.data = model;
+                    self.refresh(self.config);
+                });
+            }
+        },
+    
+        addCommandHandlers: function (node) {
+            var self = this;
+            // listen for command button clicks
+            gp.on(node, 'click', 'button[value]', function (evt) {
+                // 'this' is the element that was clicked
+                var command = this.attributes['value'].value.toLowerCase();
+                var tr = gp.closest(this, 'tr[data-index]');
+                var index = parseInt(tr.attributes['data-index'].value);
+                var row = self.config.Row = self.config.data.Data[index];
+                switch (command) {
+                    case 'edit':
+                        self.editRow(row, tr);
+                        break;
+                    case 'delete':
+                        self.deleteRow(row, tr);
+                        break;
+                    case 'update':
+                        self.updateRow(row, tr);
+                        break;
+                    case 'cancel':
+                        self.cancelEdit(row, tr);
+                        break;
+                    default:
+                        console.log('Unrecognized command: ' + command);
+                        break;
+                }
+            });
+        },
+    
+        editRow: function (row, tr) {
+            try {
+                // put the row in edit mode
+                var template = gp.templates['gridponent-edit-cells'];
+                var html = template(this.config);
+                tr.innerHTML = html;
+                tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
+            }
+            catch (ex) {
+                console.log(ex.message);
+                console.log(ex.stack);
+            }
+        },
+    
+        updateRow: function (row, tr) {
+            try {
+                // save the row and return it to read mode
+                var self = this;
+                var h = new gp.Http();
+                var url = this.config.Update;
+                gp.info('updateRow: row:');
+                gp.info(row);
+                var monitor;
+                h.post(url, row, function (response) {
+                    gp.info('updateRow: response:');
+                    gp.info(response);
+                    if (response.ValidationErrors && response.ValidationErrors.length) {
+                        // TODO: handle validation errors
+    
+                    }
+                    else {
+                        // put the cells back
+                        self.config.Row = response.Row;
+                        var template = gp.templates['gridponent-cells'];
+                        var html = template(self.config);
+                        tr.innerHTML = html;
+                        // dispose of the ChangeMonitor
+                        monitor = tr['gp-change-monitor'];
+                        if (monitor) {
+                            monitor.stop();
+                            monitor = null;
+                        }
+                    }
+                });
+            }
+            catch (ex) {
+                console.log(ex.message);
+                console.log(ex.stack);
+            }
+        },
+    
+        cancelEdit: function (row, tr) {
+            try {
+                var template = gp.templates['gridponent-cells'];
+                var html = template(this.config);
+                tr.innerHTML = html;
+            }
+            catch (ex) {
+                console.log(ex.message);
+                console.log(ex.stack);
+            }
+        },
+    
+        deleteRow: function (row, tr) {
+            try {
+                var confirmed = confirm('Are you sure you want to delete this item?');
+                if (!confirmed) return;
+                var self = this;
+                var h = new gp.Http();
+                var url = this.config.Destroy;
+                h.post(url, row, function (response) {
+                    // remove the row from the model
+                    var index = self.config.data.Data.indexOf(row);
+                    if (index != -1) {
+                        self.config.data.Data.splice(index, 1);
+                        self.refresh(self.config);
+                    }
+                });
+            }
+            catch (ex) {
+                console.log(ex.message);
+                console.log(ex.stack);
+            }
+        }
+    
+    };
     /***************\
        mock-http
     \***************/
@@ -864,8 +1269,21 @@
     client-side pager
     \***************/
     gp.ClientPager = function (config) {
+        var self = this;
         this.data = config.data.Data;
-        this.columns = config.Columns;
+        this.columns = config.Columns.filter(function (c) {
+            return c.Field !== undefined;
+        });
+        this.searchFilter = config.SearchFilter || function (row, search) {
+            var field;
+            for (var i = 0; i < this.columns.length; i++) {
+                field = self.columns[i].Field;
+                if (gp.hasValue(row[field]) && row[field].toString().toLowerCase().indexOf(search) !== -1) {
+                    return true;
+                }
+            }
+            return false;
+        };
     };
     
     gp.ClientPager.prototype = {
@@ -884,19 +1302,13 @@
         },
         get: function (model, callback, error) {
             try {
+                var self = this;
                 var skip = this.getSkip(model);
                 var count, qry = gryst.from(this.data);
                 gp.info('ClientPager: data length: ' + this.data.length);
                 if (gp.isNullOrEmpty(model.Search) === false) {
-                    var props = gryst.from(this.columns).where(function (c) { return c !== undefined; }).select('Field').run();
-                    var search = model.Search.toLowerCase();
                     qry = qry.where(function (row) {
-                        for (var i = 0; i < props.length; i++) {
-                            if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
-                                return true;
-                            }
-                        }
-                        return false;
+                        return self.searchFilter(row, model.Search);
                     });
                 }
                 if (gp.isNullOrEmpty(model.OrderBy) === false) {
@@ -952,353 +1364,481 @@
             }
         });
     };
+    // pilfered from JQuery
+    /*!
+     * jQuery JavaScript Library v2.1.4
+     * http://jquery.com/
+     *
+     * Copyright 2005, 2014 jQuery Foundation, Inc. and other contributors
+     * Released under the MIT license
+     * http://jquery.org/license
+     *
+     * Date: 2015-04-28T16:01Z
+     */
+    gp.ready = function (fn) {
+    
+        var isReady = false;
+    
+        var completed = function (event) {
+            // readyState === "complete" is good enough for us to call the dom ready in oldIE
+            if (document.addEventListener || event.type === "load" || document.readyState === "complete") {
+                isReady = true;
+                detach();
+                fn();
+            }
+        };
+    
+        var detach = function () {
+            if (document.addEventListener) {
+                document.removeEventListener("DOMContentLoaded", completed, false);
+                window.removeEventListener("load", completed, false);
+    
+            } else {
+                document.detachEvent("onreadystatechange", completed);
+                window.detachEvent("onload", completed);
+            }
+        };
+    
+        if (document.readyState === "complete") {
+            // Handle it asynchronously to allow scripts the opportunity to delay ready
+            setTimeout(fn);
+    
+            // Standards-based browsers support DOMContentLoaded
+        } else if (document.addEventListener) {
+            // Use the handy event callback
+            document.addEventListener("DOMContentLoaded", completed, false);
+    
+            // A fallback to window.onload, that will always work
+            window.addEventListener("load", completed, false);
+    
+            // If IE event model is used
+        } else {
+            // Ensure firing before onload, maybe late but safe also for iframes
+            document.attachEvent("onreadystatechange", completed);
+    
+            // A fallback to window.onload, that will always work
+            window.attachEvent("onload", completed);
+    
+            // If IE and not a frame
+            // continually check to see if the document is ready
+            var top = false;
+    
+            try {
+                top = window.frameElement == null && document.documentElement;
+            } catch (e) { }
+    
+            if (top && top.doScroll) {
+                (function doScrollCheck() {
+                    if (!isReady) {
+    
+                        try {
+                            // Use the trick by Diego Perini
+                            // http://javascript.nwbox.com/IEContentLoaded/
+                            top.doScroll("left");
+                        } catch (e) {
+                            return setTimeout(doScrollCheck, 50);
+                        }
+    
+                        // detach all dom ready events
+                        detach();
+    
+                        fn();
+                    }
+                })();
+            }
+        }
+    };
     /***************\
      main component
     \***************/
-    gp.Table = function (node) {
-        this.initialize(node);
-    };
+    //gp.Table = function (node) {
+    
+    //    var i = new gp.Initializer(node);
+    
+    //    this.config = i.config;
+    //    //this.initialize(node);
+    //};
     
     if (document.registerElement) {
     
-        gp.Table.prototype = Object.create(HTMLElement.prototype);
+        gp.Table = Object.create(HTMLElement.prototype);
     
-        gp.Table.constructor = gp.Table;
+        //gp.Table.constructor = gp.Table;
     
-        gp.Table.prototype.createdCallback = function () {
+        gp.Table.createdCallback = function () {
             gp.info(this);
-            this.initialize(this);
+            new gp.Initializer(this);
+            //this.initialize(this);
         };
     
         document.registerElement('grid-ponent', {
-            prototype: gp.Table.prototype
+            prototype: gp.Table
         });
     }
     else {
-        gp.Table.prototype = Object.create(Object.prototype);
+        gp.Table = Object.create(Object.prototype);
     
-        gp.Table.constructor = gp.Table;
+        //gp.Table.constructor = gp.Table;
     
         gp.ready(function () {
             var node, nodes = document.querySelectorAll('grid-ponent');
             for (var i = 0; i < nodes.length; i++) {
                 node = nodes[i];
-                new gp.Table(node);
+                new gp.Initializer(node);
             }
         });
     }
     
-    gp.Table.prototype.initialize = function (node) {
-        // if there's web component support, this and node will be the same object
-        node = node || this;
-        // if there's no web component support, Table functions as a wrapper around the node
-        var self = this;
-        this.config = this.getConfig(node);
-        gp.info(this.config);
+    //gp.Table.prototype.initialize = function (node) {
+    //    // if there's web component support, this and node will be the same object
+    //    node = node || this;
+    //    // if there's no web component support, Table functions as a wrapper around the node
+    //    var self = this;
+    //    this.config = this.getConfig(node);
+    //    gp.info(this.config);
     
-        if (this.config.Oncreated) {
-            this.config.data = this.config.Oncreated();
-            this.resolveTypes(this.config);
-        }
-        this.pager = this.getPager(this.config);
-        this.resolveFirstPage(this.config, this.pager, function (firstPage) {
-            self.render(node);
-        });
-        this.beginMonitor(node);
-        this.addCommandHandlers(node);
-        if (this.config.FixedHeaders || this.config.FixedFooters) {
-            var tries = 3;
-            var nodes = document.querySelectorAll('#' + this.config.ID + ' .table-body > table > tbody > tr:first-child > td');
+    //    if (this.config.Oncreated) {
+    //        this.config.data = this.config.Oncreated();
+    //        this.resolveTypes(this.config);
+    //    }
+    //    this.pager = this.getPager(this.config);
+    //    this.resolveOnRowSelect(this.config);
+    //    this.resolveFirstPage(this.config, this.pager, function (firstPage) {
+    //        self.render(node);
+    //    });
+    //    this.beginMonitor(node);
+    //    this.addCommandHandlers(node);
+    //    if (this.config.FixedHeaders || this.config.FixedFooters) {
+    //        var tries = 3;
+    //        var nodes = document.querySelectorAll('#' + this.config.ID + ' .table-body > table > tbody > tr:first-child > td');
     
-            var fn = function () {
-                if (gp.hasPositiveWidth(nodes)) {
-                    self.syncColumnWidths.call(self.config);
-                }
-                else if (--tries > 0) {
-                    gp.warn('gp.Table.initialize: tries: ' + tries);
-                    setTimeout(fn);
-                }
-            }
+    //        var fn = function () {
+    //            if (gp.hasPositiveWidth(nodes)) {
+    //                self.syncColumnWidths.call(self.config);
+    //            }
+    //            else if (--tries > 0) {
+    //                gp.warn('gp.Table.initialize: tries: ' + tries);
+    //                setTimeout(fn);
+    //            }
+    //        }
     
-            fn();
+    //        fn();
     
-            window.addEventListener('resize', function () {
-                self.syncColumnWidths.call(self.config);
-            });
+    //        window.addEventListener('resize', function () {
+    //            self.syncColumnWidths.call(self.config);
+    //        });
+    //    }
+    //};
+    
+    //gp.Table.prototype.getConfig = function (node) {
+    //    var self = this;
+    //    var config = gp.getConfig(node);
+    //    config.Columns = [];
+    //    config.data = {};
+    //    config.ID = gp.createUID();
+    //    for (var i = 0; i < node.children.length; i++) {
+    //        var col = node.children[i];
+    //        var colConfig = gp.getConfig(col);
+    //        config.Columns.push(colConfig);
+    //        this.resolveCommands(colConfig);
+    //        this.resolveTemplates(colConfig);
+    //    }
+    //    config.Footer = this.resolveFooter(config);
+    //    gp.resolveObject(config, 'Oncreated');
+    //    gp.resolveObject(config, 'SearchFilter');
+    //    gp.info(config);
+    //    return config;
+    //};
+    
+    //gp.Table.prototype.resolveFooter = function (config) {
+    //    for (var i = 0; i < config.Columns.length; i++) {
+    //        if (config.Columns[i].FooterTemplate) return true;
+    //    }
+    //    return false;
+    //};
+    
+    //gp.Table.prototype.resolveTemplates = function (column) {
+    //    var props = ['HeaderTemplate', 'Template', 'EditTemplate', 'FooterTemplate'];
+    //    props.forEach(function (prop) {
+    //        column[prop] = gp.resolveTemplate(column[prop]);
+    //    });
+    //};
+    
+    //gp.Table.prototype.resolveCommands = function (col) {
+    //    if (col.Commands) {
+    //        col.Commands = col.Commands.split(',');
+    //    }
+    //};
+    
+    //gp.Table.prototype.resolveTypes = function (config) {
+    //    config.Columns.forEach(function (col) {
+    //        for (var i = 0; i < config.data.Data.length; i++) {
+    //            if (config.data.Data[i][col.Field] !== null) {
+    //                col.Type = gp.getType(config.data.Data[i][col.Field]);
+    //                break;
+    //            }
+    //        }
+    //    });
+    //    gp.log(config.Columns);
+    //};
+    
+    //gp.Table.prototype.getPager = function (config) {
+    //    if (config.Paging) {
+    //        if (gp.hasValue(config.Read)) {
+    //            return new gp.ServerPager(config);
+    //        }
+    //        else {
+    //            return new gp.ClientPager(config);
+    //        }
+    //    }
+    //};
+    
+    //gp.Table.prototype.resolveFirstPage = function (config, pager, callback) {
+    //    if (pager === undefined) {
+    //        callback(config.data);
+    //    }
+    //    else {
+    //        pager.get(config.data, callback);
+    //    }
+    //};
+    
+    //gp.Table.prototype.resolveOnRowSelect = function (config) {
+    //    if (gp.resolveObject(config, 'Onrowselect')) {
+    //        if (typeof config.Onrowselect === 'function') {
+    //            // add click handler
+    //            gp.on(config.node, 'click', 'div.table-body > table > tbody > tr[data-index]', function (evt) {
+    //                var model = null;
+    //                config.Onrowselect.call(this, evt, config);
+    //            });
+    //        }
+    //        else {
+    //            config.Onrowselect = false;
+    //        }
+    //    }
+    //};
+    
+    //gp.Table.prototype.beginMonitor = function (node) {
+    //    var self = this;
+    //    // monitor changes to search, sort, and paging
+    //    var monitor = new gp.ChangeMonitor(node, '.table-toolbar [name=Search], thead input, .table-pager input', this.config.data, function (evt) {
+    //        self.update();
+    //        // reset the radio inputs
+    //        var radios = node.querySelectorAll('thead input[type=radio], .table-pager input[type=radio]');
+    //        for (var i = 0; i < radios.length; i++) {
+    //            radios[i].checked = false;
+    //        }
+    //    });
+    //    monitor.beforeSync = function (name, value, model) {
+    //        // the OrderBy property requires special handling
+    //        if (name === 'OrderBy') {
+    //            if (model[name] === value) {
+    //                model.Desc = !model.Desc;
+    //            }
+    //            else {
+    //                model[name] = value;
+    //                model.Desc = false;
+    //            }
+    //            return true;
+    //        }
+    //        return false;
+    //    };
+    //};
+    
+    //gp.Table.prototype.render = function (node) {
+    //    try {
+    //        node.innerHTML = gp.templates['gridponent'](this.config);
+    //    }
+    //    catch (ex) {
+    //        console.log(ex.message);
+    //        console.log(ex.stack);
+    //    }
+    //};
+    
+    //gp.Table.prototype.measureTables = function (node) {
+    //    // for fixed headers, adjust the padding on the header to match the width of the main table
+    //    var header = node.querySelector('.table-header');
+    //    var footer = node.querySelector('.table-footer');
+    //    if (header || footer) {
+    //        var bodyWidth = node.querySelector('.table-body > table').offsetWidth;
+    //        var headerWidth = (header || footer).querySelector('table').offsetWidth;
+    //        var diff = (headerWidth - bodyWidth);
+    //        if (diff !== 0) {
+    //            var paddingRight = diff;
+    //            gp.log('diff:' + diff + ', paddingRight:' + paddingRight);
+    //            if (header) {
+    //                header.style.paddingRight = paddingRight.toString() + 'px';
+    //            }
+    //            if (footer) {
+    //                footer.style.paddingRight = paddingRight.toString() + 'px';
+    //            }
+    //        }
+    //    }
+    //};
+    
+    //gp.Table.prototype.syncColumnWidths = function () {
+    //    var html = gp.helpers.columnWidthStyle.call(this);
+    //    this.node.querySelector('style.column-width-style').innerHTML = html;
+    //};
+    
+    //gp.Table.prototype.refresh = function (config) {
+    //    var rowsTemplate = gp.helpers['tableRows'];
+    //    var pagerTemplate = gp.templates['gridponent-pager'];
+    //    var html = rowsTemplate.call(config);
+    //    config.node.querySelector('.table-body > table > tbody').innerHTML = html;
+    //    html = pagerTemplate(config);
+    //    config.node.querySelector('.table-pager').innerHTML = html;
+    //    html = gp.helpers['sortStyle'].call(config);
+    //    config.node.querySelector('style.sort-style').innerHTML = html;
+    //};
+    
+    //gp.Table.prototype.update = function () {
+    //    var self = this;
+    //    if (this.pager) {
+    //        this.pager.get(this.config.data, function (model) {
+    //            self.config.data = model;
+    //            self.refresh(self.config);
+    //        });
+    //    }
+    //};
+    
+    //gp.Table.prototype.addCommandHandlers = function (node) {
+    //    var self = this;
+    //    // listen for command button clicks
+    //    gp.on(node, 'click', 'button[value]', function (evt) {
+    //        // 'this' is the element that was clicked
+    //        var command = this.attributes['value'].value.toLowerCase();
+    //        var tr = gp.closest(this, 'tr[data-index]');
+    //        var index = parseInt(tr.attributes['data-index'].value);
+    //        var row = self.config.Row = self.config.data.Data[index];
+    //        switch (command) {
+    //            case 'edit':
+    //                self.editRow(row, tr);
+    //                break;
+    //            case 'delete':
+    //                self.deleteRow(row, tr);
+    //                break;
+    //            case 'update':
+    //                self.updateRow(row, tr);
+    //                break;
+    //            case 'cancel':
+    //                self.cancelEdit(row, tr);
+    //                break;
+    //            default:
+    //                console.log('Unrecognized command: ' + command);
+    //                break;
+    //        }
+    //    });
+    //};
+    
+    //gp.Table.prototype.editRow = function (row, tr) {
+    //    try {
+    //        // put the row in edit mode
+    //        var template = gp.templates['gridponent-edit-cells'];
+    //        var html = template(this.config);
+    //        tr.innerHTML = html;
+    //        tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
+    //    }
+    //    catch (ex) {
+    //        console.log(ex.message);
+    //        console.log(ex.stack);
+    //    }
+    //};
+    
+    //gp.Table.prototype.updateRow = function (row, tr) {
+    //    try {
+    //        // save the row and return it to read mode
+    //        var self = this;
+    //        var h = new gp.Http();
+    //        var url = this.config.Update;
+    //        gp.info('updateRow: row:');
+    //        gp.info(row);
+    //        var monitor;
+    //        h.post(url, row, function (response) {
+    //            gp.info('updateRow: response:');
+    //            gp.info(response);
+    //            if (response.ValidationErrors && response.ValidationErrors.length) {
+    //                // TODO: handle validation errors
+    
+    //            }
+    //            else {
+    //                // put the cells back
+    //                self.config.Row = response.Row;
+    //                var template = gp.templates['gridponent-cells'];
+    //                var html = template(self.config);
+    //                tr.innerHTML = html;
+    //                // dispose of the ChangeMonitor
+    //                monitor = tr['gp-change-monitor'];
+    //                if (monitor) {
+    //                    monitor.stop();
+    //                    monitor = null;
+    //                }
+    //            }
+    //        });
+    //    }
+    //    catch (ex) {
+    //        console.log(ex.message);
+    //        console.log(ex.stack);
+    //    }
+    //};
+    
+    //gp.Table.prototype.cancelEdit = function (row, tr) {
+    //    try {
+    //        var template = gp.templates['gridponent-cells'];
+    //        var html = template(this.config);
+    //        tr.innerHTML = html;
+    //    }
+    //    catch (ex) {
+    //        console.log(ex.message);
+    //        console.log(ex.stack);
+    //    }
+    //};
+    
+    //gp.Table.prototype.deleteRow = function (row, tr) {
+    //    try {
+    //        var confirmed = confirm('Are you sure you want to delete this item?');
+    //        if (!confirmed) return;
+    //        var self = this;
+    //        var h = new gp.Http();
+    //        var url = this.config.Destroy;
+    //        h.post(url, row, function (response) {
+    //            // remove the row from the model
+    //            var index = self.config.data.Data.indexOf(row);
+    //            if (index != -1) {
+    //                self.config.data.Data.splice(index, 1);
+    //                self.refresh(self.config);
+    //            }
+    //        });
+    //    }
+    //    catch (ex) {
+    //        console.log(ex.message);
+    //        console.log(ex.stack);
+    //    }
+    //};
+    
+    gp.Table.api = {
+        filter: function (obj) {
+            // obj is either a search term or a function 
+        },
+        sort: function (obj) {
+            // obj is either a function or a sort expression
+        },
+        getPage: function(index) {
+    
+        },
+        create: function (row) {
+    
+        },
+        read: function (page) {
+            // page is an object specifying sort, search, page, etc.
+            // if not supplied, read acts like a refresh function
+        },
+        update: function (index, row) {
+    
+        },
+        destroy: function(index) {
+    
         }
     };
-    
-    gp.Table.prototype.getConfig = function (node) {
-        var self = this;
-        var config = gp.getConfig(node);
-        config.Columns = [];
-        config.data = {};
-        config.ID = gp.createUID();
-        for (var i = 0; i < node.children.length; i++) {
-            var col = node.children[i];
-            var colConfig = gp.getConfig(col);
-            config.Columns.push(colConfig);
-            this.resolveCommands(colConfig);
-            this.resolveFooterTemplate(colConfig);
-        }
-        config.Footer = this.resolveFooter(config);
-        this.resolveOnCreated(config);
-        gp.info(config);
-        return config;
-    };
-    
-    gp.Table.prototype.resolveFooter = function (config) {
-        for (var i = 0; i < config.Columns.length; i++) {
-            if (config.Columns[i].FooterTemplate) return true;
-        }
-        return false;
-    };
-    
-    gp.Table.prototype.resolveFooterTemplate = function (column) {
-        if (column.FooterTemplate) {
-            column.FooterTemplate = gp.resolveObjectPath(column.FooterTemplate);
-        }
-    };
-    
-    gp.Table.prototype.resolveOnCreated = function (config) {
-        if (config.Oncreated) {
-            config.Oncreated = gp.resolveObjectPath(config.Oncreated);
-        }
-    };
-    
-    gp.Table.prototype.resolveCommands = function (col) {
-        if (col.Commands) {
-            col.Commands = col.Commands.split(',');
-        }
-    };
-    
-    gp.Table.prototype.resolveTypes = function (config) {
-        config.Columns.forEach(function (col) {
-            for (var i = 0; i < config.data.Data.length; i++) {
-                if (config.data.Data[i][col.Field] !== null) {
-                    col.Type = gp.getType(config.data.Data[i][col.Field]);
-                    break;
-                }
-            }
-        });
-        gp.log(config.Columns);
-    };
-    
-    gp.Table.prototype.getPager = function (config) {
-        if (config.Paging) {
-            if (gp.hasValue(config.Read)) {
-                return new gp.ServerPager(config);
-            }
-            else {
-                return new gp.ClientPager(config);
-            }
-        }
-    };
-    
-    gp.Table.prototype.resolveFirstPage = function (config, pager, callback) {
-        if (pager === undefined) {
-            callback(config.data);
-        }
-        else {
-            pager.get(config.data, callback);
-        }
-    };
-    
-    gp.Table.prototype.beginMonitor = function (node) {
-        var self = this;
-        // monitor changes to search, sort, and paging
-        var monitor = new gp.ChangeMonitor(node, '.table-toolbar [name=Search], thead input, .table-pager input', this.config.data, function (evt) {
-            self.update();
-            // reset the radio inputs
-            var radios = node.querySelectorAll('thead input[type=radio], .table-pager input[type=radio]');
-            for (var i = 0; i < radios.length; i++) {
-                radios[i].checked = false;
-            }
-        });
-        monitor.beforeSync = function (name, value, model) {
-            // the OrderBy property requires special handling
-            if (name === 'OrderBy') {
-                if (model[name] === value) {
-                    model.Desc = !model.Desc;
-                }
-                else {
-                    model[name] = value;
-                    model.Desc = false;
-                }
-                return true;
-            }
-            return false;
-        };
-    };
-    
-    gp.Table.prototype.render = function (node) {
-        try {
-            node.innerHTML = gp.templates['gridponent'](this.config);
-        }
-        catch (ex) {
-            console.log(ex.message);
-            console.log(ex.stack);
-        }
-    };
-    
-    gp.Table.prototype.measureTables = function (node) {
-        // for fixed headers, adjust the padding on the header to match the width of the main table
-        var header = node.querySelector('.table-header');
-        var footer = node.querySelector('.table-footer');
-        if (header || footer) {
-            var bodyWidth = node.querySelector('.table-body > table').offsetWidth;
-            var headerWidth = (header || footer).querySelector('table').offsetWidth;
-            var diff = (headerWidth - bodyWidth);
-            if (diff !== 0) {
-                var paddingRight = diff;
-                gp.log('diff:' + diff + ', paddingRight:' + paddingRight);
-                if (header) {
-                    header.style.paddingRight = paddingRight.toString() + 'px';
-                }
-                if (footer) {
-                    footer.style.paddingRight = paddingRight.toString() + 'px';
-                }
-            }
-        }
-    };
-    
-    gp.Table.prototype.syncColumnWidths = function () {
-        var html = gp.helpers.columnWidthStyle.call(this);
-        this.node.querySelector('style.column-width-style').innerHTML = html;
-    };
-    
-    gp.Table.prototype.refresh = function (config) {
-        var rowsTemplate = gp.helpers['tableRows'];
-        var pagerTemplate = gp.templates['gridponent-pager'];
-        var html = rowsTemplate.call(config);
-        config.node.querySelector('.table-body > table > tbody').innerHTML = html;
-        html = pagerTemplate(config);
-        config.node.querySelector('.table-pager').innerHTML = html;
-        html = gp.helpers['sortStyle'].call(config);
-        config.node.querySelector('style.sort-style').innerHTML = html;
-    };
-    
-    gp.Table.prototype.update = function () {
-        var self = this;
-        if (this.pager) {
-            this.pager.get(this.config.data, function (model) {
-                self.config.data = model;
-                self.refresh(self.config);
-            });
-        }
-    };
-    
-    gp.Table.prototype.addCommandHandlers = function (node) {
-        var self = this;
-        // listen for command button clicks
-        gp.on(node, 'click', 'button[value]', function (evt) {
-            // 'this' is the element that was clicked
-            var command = this.attributes['value'].value.toLowerCase();
-            var tr = gp.closest(this, 'tr[data-index]');
-            var index = parseInt(tr.attributes['data-index'].value);
-            var row = self.config.Row = self.config.data.Data[index];
-            switch (command) {
-                case 'edit':
-                    self.editRow(row, tr);
-                    break;
-                case 'delete':
-                    self.deleteRow(row, tr);
-                    break;
-                case 'update':
-                    self.updateRow(row, tr);
-                    break;
-                case 'cancel':
-                    self.cancelEdit(row, tr);
-                    break;
-                default:
-                    console.log('Unrecognized command: ' + command);
-                    break;
-            }
-        });
-    };
-    
-    gp.Table.prototype.editRow = function (row, tr) {
-        try {
-            var template = gp.templates['gridponent-edit-cells'];
-            var html = template(this.config);
-            tr.innerHTML = html;
-            tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
-        }
-        catch (ex) {
-            console.log(ex.message);
-            console.log(ex.stack);
-        }
-    };
-    
-    gp.Table.prototype.updateRow = function (row, tr) {
-        try {
-            var self = this;
-            var h = new gp.Http();
-            var url = this.config.Update;
-                gp.log('updateRow: row:');
-                gp.log(row);
-            var monitor;
-            h.post(url, row, function (response) {
-                    gp.log('updateRow: response:');
-                    gp.log(response);
-                if (response.ValidationErrors && response.ValidationErrors.length) {
-                    // TODO: handle validation errors
-                }
-                else {
-                    // put the cells back
-                    self.config.Row = response.Row;
-                    var template = gp.templates['gridponent-cells'];
-                    var html = template(self.config);
-                    tr.innerHTML = html;
-                    // dispose of the ChangeMonitor
-                    monitor = tr['gp-change-monitor'];
-                    if (monitor) {
-                        monitor.stop();
-                        monitor = null;
-                    }
-                }
-            });
-        }
-        catch (ex) {
-            console.log(ex.message);
-            console.log(ex.stack);
-        }
-    };
-    
-    gp.Table.prototype.cancelEdit = function (row, tr) {
-        try {
-            var template = gp.templates['gridponent-cells'];
-            var html = template(this.config);
-            tr.innerHTML = html;
-        }
-        catch (ex) {
-            console.log(ex.message);
-            console.log(ex.stack);
-        }
-    };
-    
-    gp.Table.prototype.deleteRow = function (row, tr) {
-        try {
-            var confirmed = confirm('Are you sure you want to delete this item?');
-            if (!confirmed) return;
-            var self = this;
-            var h = new gp.Http();
-            var url = this.config.Destroy;
-            h.post(url, row, function (response) {
-                // remove the row from the model
-                var index = self.config.data.Data.indexOf(row);
-                if (index != -1) {
-                    self.config.data.Data.splice(index, 1);
-                    self.refresh(self.config);
-                }
-            });
-        }
-        catch (ex) {
-            console.log(ex.message);
-            console.log(ex.stack);
-        }
-    };
-    
     gp.templates = gp.templates || {};
     gp.templates['gridponent-body'] = function(model, arg) {
         var out = [];
@@ -1367,7 +1907,11 @@
         out.push('</div>');
         out.push('</td>');
                 } else {
-                        out.push(gp.helpers['editCell'].call(model, col));
+                        if (col.Readonly) {
+                            out.push(gp.helpers['bodyCell'].call(model, col));
+                        } else {
+                            out.push(gp.helpers['editCell'].call(model, col));
+                        }
                     }
             });
                 return out.join('');

@@ -1,7 +1,7 @@
 var div = null;
 
 $(function () {
-    div = $('<div id="div1"></div>').appendTo('body');
+    div = $('<div id="div1" style="display:none"></div>').appendTo('body');
 });
 
 var gridponent = gridponent || {};
@@ -132,9 +132,14 @@ fns.getButtonText = function (row, col) {
     return 'Remove';
 };
 
+fns.searchFilter = function (row, search) {
+    return (row.Name && row.Name.indexOf(search) !== -1)
+    || (row.ProductNumber && row.ProductNumber.indexOf(search) !== -1);
+};
+
 var getTableConfig = function (fixedHeaders, fixedFooters, responsive, sorting) {
     div.append('<script type="text/html" id="template1">Test Header</script>');
-    div.append('<script type="text/html" id="template2"><input type="checkbox"/></script>');
+    div.append('<script type="text/html" id="template2"><input type="checkbox" value="{{MakeFlag}}"/></script>');
     div.append('<script type="text/html" id="template3">Test Header<input type="checkbox"/></script>');
     div.append('<script type="text/html" id="template4">{{SafetyStockLevel}}<button class="btn"><span class="glyphicon glyphicon-search"></span></button><input type="checkbox"/></script>');
     div.append('<script type="text/html" id="template5"><button class="btn"><span class="glyphicon {{fns.getButtonIcon}}"></span>{{fns.getButtonText}}</button></script>');
@@ -148,6 +153,7 @@ var getTableConfig = function (fixedHeaders, fixedFooters, responsive, sorting) 
     if (sorting)      out.push(' sorting ');
     out.push('             style="width:100%;height:411px" ');
     out.push('             search="top-left"');
+    out.push('             search-filter="fns.searchFilter"');
     out.push('             oncreated="fns.getData"');
     out.push('             update="/Products/Update"');
     out.push('             destroy="/Products/Destroy">');
@@ -157,9 +163,9 @@ var getTableConfig = function (fixedHeaders, fixedFooters, responsive, sorting) 
     out.push('    <gp-column field="SafetyStockLevel" header="Safety Stock Level" template="#template4" footer-template="fns.average"></gp-column>');
     out.push('    <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.average"></gp-column>');
     out.push('    <gp-column field="SellStartDate" sort header="Sell Start Date" format="d MMMM, yyyy"></gp-column>');
-    out.push('    <gp-column field="Markup" sort="Name"></gp-column>');
+    out.push('    <gp-column field="Markup" sort="Name" readonly></gp-column>');
     out.push('    <gp-column commands="Edit,Delete"></gp-column>');
-    out.push('    <gp-column header-template="#template1"></gp-column>');
+    out.push('    <gp-column header-template="#template1" footer-template="#template2"></gp-column>');
     out.push('    <gp-column header-template="#template2"></gp-column>');
     out.push('    <gp-column header-template="#template3"></gp-column>');
     out.push('    <gp-column template="#template5"></gp-column>');
@@ -172,8 +178,8 @@ var getTableConfig = function (fixedHeaders, fixedFooters, responsive, sorting) 
     var config = $node[0].config;
 
     if (!config) {
-        var table = new gp.Table($node[0]);
-        config = table.config;
+        var i = new gp.Initializer($node[0]);
+        config = i.config;
     }
 
     return config;
@@ -204,13 +210,13 @@ QUnit.test("gp.helpers.thead", function (assert) {
 
         assert.ok(headers[2].querySelector('label.table-sort > input[type=checkbox]') != null);
 
-        assert.equal(headers[6].querySelector('label.table-sort').innerText, 'Markup');
+        assert.equal(headers[6].querySelector('label.table-sort').textContent, 'Markup');
 
-        assert.equal(headers[8].innerText, 'Test Header');
+        assert.equal(headers[8].textContent, 'Test Header');
 
         assert.ok(headers[9].querySelector('input[type=checkbox]') != null);
 
-        assert.equal(headers[10].innerText, 'Test Header');
+        assert.equal(headers[10].textContent, 'Test Header');
 
         assert.ok(headers[10].querySelector('input[type=checkbox]') != null);
     }
@@ -222,39 +228,39 @@ QUnit.test("gp.helpers.thead", function (assert) {
 
     testHeaders(headers);
 
-    // no fixed headers, with sorting
-    node = getTableConfig(false, false, false, true).node;
+    //// no fixed headers, with sorting
+    //node = getTableConfig(false, false, false, true).node;
 
-    headers = node.querySelectorAll('div.table-body th.header-cell');
+    //headers = node.querySelectorAll('div.table-body th.header-cell');
 
-    testHeaders(headers);
+    //testHeaders(headers);
 
-    // no fixed headers, no sorting
-    node = getTableConfig(false, false, false, false).node;
+    //// no fixed headers, no sorting
+    //node = getTableConfig(false, false, false, false).node;
 
-    headers = node.querySelectorAll('div.table-body th.header-cell');
+    //headers = node.querySelectorAll('div.table-body th.header-cell');
 
-    assert.ok(headers[0].querySelector('input[type=checkbox]') != null);
+    //assert.ok(headers[0].querySelector('input[type=checkbox]') != null);
 
-    assert.equal(headers[1].innerHTML, 'ID');
+    //assert.equal(headers[1].innerHTML, 'ID');
 
-    assert.equal(headers[2].querySelector('label.table-sort'), null);
+    //assert.equal(headers[2].querySelector('label.table-sort'), null);
 
-    assert.ok(headers[5].querySelector('label.table-sort > input[value=SellStartDate]') != null);
+    //assert.ok(headers[5].querySelector('label.table-sort > input[value=SellStartDate]') != null);
 
-    assert.equal(headers[5].innerText, 'Sell Start Date');
+    //assert.equal(headers[5].textContent, 'Sell Start Date');
 
-    assert.ok(headers[6].querySelector('label.table-sort > input[value=Name]') != null);
+    //assert.ok(headers[6].querySelector('label.table-sort > input[value=Name]') != null);
 
-    assert.equal(headers[6].innerText, 'Markup');
+    //assert.equal(headers[6].textContent, 'Markup');
 
-    assert.equal(headers[8].innerText, 'Test Header');
+    //assert.equal(headers[8].textContent, 'Test Header');
 
-    assert.ok(headers[9].querySelector('input[type=checkbox]') != null);
+    //assert.ok(headers[9].querySelector('input[type=checkbox]') != null);
 
-    assert.equal(headers[10].innerText, 'Test Header');
+    //assert.equal(headers[10].textContent, 'Test Header');
 
-    assert.ok(headers[10].querySelector('input[type=checkbox]') != null);
+    //assert.ok(headers[10].querySelector('input[type=checkbox]') != null);
 
 });
 
@@ -268,7 +274,7 @@ QUnit.test("gp.helpers.bodyCell", function (assert) {
 
         assert.ok(cells[3].querySelector('button > span') != null);
 
-        assert.equal(cells[3].innerText, '800');
+        assert.equal(cells[3].textContent, '800');
 
         assert.ok(cells[11].querySelector('button') != null);
     }
@@ -291,5 +297,87 @@ QUnit.test("gp.helpers.bodyCell", function (assert) {
             assert.ok(rows[i].querySelector('td:nth-child(12) span.glyphicon-remove') != null);
         }
     }
+
+});
+
+QUnit.test("gp.helpers.footerCell", function (assert) {
+
+    var node = getTableConfig(true, false, false, true).node;
+
+    var cell = node.querySelector('.table-body tfoot tr:first-child td.footer-cell:nth-child(9)');
+
+    assert.ok(cell.querySelector('input[type=checkbox][value]') != null)
+
+    node = getTableConfig(true, true, false, true).node;
+
+    cell = node.querySelector('.table-footer tr:first-child td.footer-cell:nth-child(4)');
+
+    assert.equal(isNaN(parseFloat(cell.textContent)), false);
+
+});
+
+QUnit.test("gp.ChangeMonitor", function (assert) {
+
+    var model = {
+        number: 1,
+        date: '2015-01-01',
+        bool: true,
+        name: 'Todd'
+    };
+
+    $(div).empty();
+
+    div.append('<input type="number" name="number" value="1" />');
+    div.append('<input type="date" name="date" value="2015-01-01" />');
+    div.append('<input type="checkbox" name="bool" value="true" />');
+    div.append('<input type="checkbox" name="name" value="Todd" checked="checked" />');
+    div.append('<input type="text" name="notInModel" value="text" />');
+
+    var done1 = assert.async();
+    var done2 = assert.async();
+    var done3 = assert.async();
+
+    var monitor = new gp.ChangeMonitor(div[0], '[name]', model, function (target, m) {
+        assert.equal(model.number, 2);
+        done1();
+    });
+
+    var numberInput = div[0].querySelector('[name=number]');
+    numberInput.value = '2';
+    monitor.syncModel(numberInput, model);
+
+
+    var textInput = div[0].querySelector('[name=notInModel]');
+    textInput.value = 'more text';
+    monitor.syncModel(textInput, model);
+    assert.equal('notInModel' in model, false, 'ChangeMonitor should ignore values that are not present in the model.');
+
+
+    monitor.beforeSync = function (name, value, model) {
+        assert.equal(model.bool, true);
+        done2();
+    };
+
+    monitor.afterSync = function (target, m) {
+        assert.equal(model.bool, false);
+        done3();
+    };
+
+    var boolInput = div[0].querySelector('[name=bool]');
+    boolInput.value = 'false';
+    monitor.syncModel(boolInput, model);
+
+});
+
+QUnit.test("gp.ClientPager", function (assert) {
+
+    var config = getTableConfig(true, false, false, true);
+
+    assert.equal(config.SearchFilter, fns.searchFilter);
+
+    config.data.Search = 'BA-8327';
+
+
+
 
 });

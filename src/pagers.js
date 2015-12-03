@@ -30,8 +30,21 @@ gp.ServerPager.prototype = {
 client-side pager
 \***************/
 gp.ClientPager = function (config) {
+    var self = this;
     this.data = config.data.Data;
-    this.columns = config.Columns;
+    this.columns = config.Columns.filter(function (c) {
+        return c.Field !== undefined;
+    });
+    this.searchFilter = config.SearchFilter || function (row, search) {
+        var field;
+        for (var i = 0; i < this.columns.length; i++) {
+            field = self.columns[i].Field;
+            if (gp.hasValue(row[field]) && row[field].toString().toLowerCase().indexOf(search) !== -1) {
+                return true;
+            }
+        }
+        return false;
+    };
 };
 
 gp.ClientPager.prototype = {
@@ -50,19 +63,13 @@ gp.ClientPager.prototype = {
     },
     get: function (model, callback, error) {
         try {
+            var self = this;
             var skip = this.getSkip(model);
             var count, qry = gryst.from(this.data);
             gp.info('ClientPager: data length: ' + this.data.length);
             if (gp.isNullOrEmpty(model.Search) === false) {
-                var props = gryst.from(this.columns).where(function (c) { return c !== undefined; }).select('Field').run();
-                var search = model.Search.toLowerCase();
                 qry = qry.where(function (row) {
-                    for (var i = 0; i < props.length; i++) {
-                        if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
-                            return true;
-                        }
-                    }
-                    return false;
+                    return self.searchFilter(row, model.Search);
                 });
             }
             if (gp.isNullOrEmpty(model.OrderBy) === false) {

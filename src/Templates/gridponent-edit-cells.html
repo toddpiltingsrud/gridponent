@@ -11,6 +11,10 @@
             </div>
         </td>
     {{else}}
-        {{helper editCell col}}
+        {{#if col.Readonly}}
+            {{helper bodyCell col}}
+        {{else}}
+            {{helper editCell col}}
+        {{/if}}
     {{/if}}
 {{/each}}
