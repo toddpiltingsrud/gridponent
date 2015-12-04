@@ -44,19 +44,18 @@
     </Content>
     <Content Include="spec\OutSource.txt" />
     <Content Include="spec\Styles.css" />
-    <Content Include="src\gridponent.js">
+    <Content Include="gridponent.js">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>gridponent.tt</DependentUpon>
     </Content>
-    <Content Include="src\html-parser.js.txt" />
     <Content Include="src\mock-http.js" />
     <Content Include="src\ready-check.js" />
     <Content Include="src\pagers.js" />
     <Content Include="src\change-monitor.js" />
     <Content Include="src\globals.js" />
     <Content Include="src\paging-model.js" />
-    <Content Include="src\gridponent.tt">
+    <Content Include="gridponent.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>gridponent.js</LastGenOutput>
     </Content>

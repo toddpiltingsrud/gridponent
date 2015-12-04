@@ -1,7 +1,6 @@
 ﻿When updating rows, account for validation errors from the server.
 
-Client-side pager should search on the formatted values of the data, i.e. what's showing in the grid.
-We could create a hook into the where clause for client-side searching.
+Create a hook into the where clause for client-side searching.
 
 Might need to re-sync column widths anytime the main table content changes (e.g. deleting or adding rows, paging, sorting).
 
@@ -40,6 +39,4 @@ Build a jQuery version.
 
 Build a Polymer version.
 
-Use native browser functions to parse user-defined templates. Escape text nodes.
-
-Create a StringBuilder class.
+Create an HtmlWriter class.

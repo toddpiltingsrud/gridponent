@@ -32,10 +32,7 @@ gp.ChangeMonitor.prototype = {
         }
 
         if (typeof (this.beforeSync) === 'function') {
-            if (this.beforeSync(name, value, this.model)) {
-                // sync was handled by the beforeSync callback
-                handled = true;
-            }
+            handled = this.beforeSync(name, value, this.model);
         }
         if (!handled) {
             type = gp.getType(model[name]);

@@ -406,6 +406,23 @@
         return null;
     };
 
+    gp.getFormattedValue = function (row, col, escapeHTML) {
+        var type = (col.Type || '').toLowerCase();
+        var val = row[col.Field];
+
+        if (type === 'date') {
+            // apply default formatting to dates
+            return gp.formatDate(val, col.Format || 'M/d/yyyy');
+        }
+        if (type === 'string' && escapeHTML) {
+            return gp.escapeHTML(val);
+        }
+        // TODO: add support for currency and percentage formatting
+        // <script src="https://cdn.polyfill.io/v1/polyfill.min.js?features=Intl.~locale.en"></script>
+
+        return val;
+    };
+
     gp.processRowTemplate = function (template, row, col) {
         gp.info('gp.processTemplate: template: ');
         gp.info(template);

@@ -30,16 +30,16 @@ gp.ServerPager.prototype = {
 client-side pager
 \***************/
 gp.ClientPager = function (config) {
-    var self = this;
+    var value, self = this;
     this.data = config.data.Data;
     this.columns = config.Columns.filter(function (c) {
         return c.Field !== undefined;
     });
     this.searchFilter = config.SearchFilter || function (row, search) {
-        var field;
-        for (var i = 0; i < this.columns.length; i++) {
-            field = self.columns[i].Field;
-            if (gp.hasValue(row[field]) && row[field].toString().toLowerCase().indexOf(search) !== -1) {
+        var s = search.toLowerCase();
+        for (var i = 0; i < self.columns.length; i++) {
+            value = gp.getFormattedValue(row, self.columns[i], false);
+            if (gp.hasValue(value) && value.toString().toLowerCase().indexOf(s) !== -1) {
                 return true;
             }
         }

@@ -154,6 +154,7 @@ gp.Initializer.prototype = {
                     model[name] = value;
                     model.Desc = false;
                 }
+                // let the monitor know that syncing has been handled
                 return true;
             }
             return false;

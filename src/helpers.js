@@ -105,7 +105,7 @@
     });
 
     extend('bodyCell', function (col) {
-        var template, format, val = this.Row[col.Field];
+        var template, format, val = gp.getFormattedValue(this.Row, col, true);
 
         var type = (col.Type || '').toLowerCase();
         var out = [];
@@ -130,13 +130,8 @@
                     out.push('<span class="glyphicon glyphicon-ok"></span>');
                 }
             }
-            else if (type === 'date') {
-                // apply formatting to dates
-                format = col.Format || 'M/d/yyyy';
-                out.push(gp.formatDate(val, format));
-            }
             else {
-                out.push(gp.escapeHTML(val));
+                out.push(val);
             }
         }
         out.push('</td>');
