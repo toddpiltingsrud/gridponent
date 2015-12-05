@@ -49,6 +49,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>gridponent.tt</DependentUpon>
     </Content>
+    <Content Include="src\custom-event-polyfill.js" />
     <Content Include="src\mock-http.js" />
     <Content Include="src\ready-check.js" />
     <Content Include="src\pagers.js" />

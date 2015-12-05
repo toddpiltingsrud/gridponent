@@ -241,8 +241,10 @@ gp.Initializer.prototype = {
         // listen for command button clicks
         gp.on(node, 'click', 'button[value]', function (evt) {
             // 'this' is the element that was clicked
+            gp.info('addCommandHandlers:this:');
+            gp.info(this);
             var command = this.attributes['value'].value.toLowerCase();
-            var tr = gp.closest(this, 'tr[data-index]');
+            var tr = gp.closest(this, 'tr[data-index]', node);
             var row = self.config.Row = gp.getRowModel(self.config.data.Data, tr);
             switch (command) {
                 case 'edit':
@@ -266,10 +268,16 @@ gp.Initializer.prototype = {
 
     editRow: function (row, tr) {
         try {
+            gp.info('editRow:tr:');
+            gp.info(tr);
             // put the row in edit mode
             var template = gp.templates['gridponent-edit-cells'];
             tr.innerHTML = template(this.config);
             tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
+            gp.raiseCustomEvent(tr, 'edit-mode', {
+                model: row,
+                target: tr
+            });
         }
         catch (ex) {
             console.log(ex.message);

@@ -1,16 +1,7 @@
 ﻿When updating rows, account for validation errors from the server.
 
-Create a hook into the where clause for client-side searching.
-
-Might need to re-sync column widths anytime the main table content changes (e.g. deleting or adding rows, paging, sorting).
-
-Remove the dependency on gryst.
-
-ChangeMonitor.afterSync should be passed a list of changes. Follow the convention for Object.observe.
-
-Add page size config option (default to 25).
-
 Add a calendar shim for browsers that don't support date input type.
+We'll need to respond to an event that's fired after putting a row into edit mode. Then query the row for input[type=date].
 
 Add support for polyfills:
 - Object.observe (for two-way binding) 
@@ -29,7 +20,17 @@ Separate gp.Table into public and private functions.
 
 Add support for URL access of sorting, paging, searching, etc.
 
+Add page size config option (default to 25).
+
 Provide an easy way to get at the data via JavaScript.
+
+Might need to re-sync column widths anytime the main table content changes (e.g. deleting or adding rows, paging, sorting).
+
+Remove the dependency on gryst.
+
+Create a hook into the where clause for client-side searching.
+
+ChangeMonitor.afterSync should be passed a list of changes. Follow the convention for Object.observe.
 
 Standardize property capitalization.
 

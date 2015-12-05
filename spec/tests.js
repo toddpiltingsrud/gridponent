@@ -42,6 +42,21 @@ QUnit.test("gp.coalesce", function (assert) {
     assert.equal(gp.coalesce(emptyArray), emptyArray);
 });
 
+QUnit.test("CustomEvent", function (assert) {
+
+    var done = assert.async();
+
+    document.addEventListener('myCustomEvent', function (evt) {
+        assert.ok(evt.detail != null);
+        done();
+    });
+
+    var myCustomEvent = new CustomEvent('myCustomEvent', { detail: 'test', bubbles: true });
+
+    div[0].dispatchEvent(myCustomEvent);
+
+});
+
 QUnit.test("gp.getType", function (assert) {
     var notDefined = gp.getType(notDefined);
     assert.equal(gp.getType(true), 'boolean');
@@ -381,3 +396,31 @@ QUnit.test("gp.ClientPager", function (assert) {
 
 
 });
+
+QUnit.test("edit-mode event", function (assert) {
+
+    var done = assert.async();
+
+    var node = getTableConfig(true, false, false, true).node;
+
+    node.addEventListener('edit-mode', function (evt) {
+        assert.ok(evt != null);
+        assert.ok(evt.detail != null);
+        assert.ok(evt.detail.model != null);
+        assert.ok(evt.detail.target != null);
+        done();
+    });
+
+    // trigger a click event on an edit button
+    var btn = node.querySelector('button[value=Edit]');
+
+    var event = new MouseEvent('click', {
+        'view': window,
+        'bubbles': true,
+        'cancelable': true
+    });
+
+    btn.dispatchEvent(event);
+
+});
+

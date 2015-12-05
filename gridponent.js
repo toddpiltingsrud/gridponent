@@ -81,6 +81,27 @@
         }
     };
     /***************\
+      CustomEvent
+    \***************/
+    (function () {
+    
+        if (!window.CustomEvent) {
+    
+            function CustomEvent(event, params) {
+                params = params || { bubbles: false, cancelable: false, detail: undefined };
+                var evt = document.createEvent('CustomEvent');
+                evt.initCustomEvent(event, params.bubbles, params.cancelable, params.detail);
+                return evt;
+            }
+    
+            CustomEvent.prototype = window.Event.prototype;
+    
+            window.CustomEvent = CustomEvent;
+    
+        }
+    
+    })();
+    /***************\
          globals
     \***************/
     (function (gp) {
@@ -333,7 +354,9 @@
             }
         };
     
-        gp.closest = function (elem, selector) {
+        gp.closest = function (elem, selector, parentNode) {
+            var e, potentials, j;
+            parentNode = parentNode || document;
             // if elem is a selector, convert it to an element
             if (typeof (elem) === 'string') {
                 elem = document.querySelector(elem);
@@ -343,13 +366,15 @@
     
             if (elem) {
                 // start with elem's immediate parent
-                var e = elem.parentElement;
+                e = elem.parentElement;
     
-                var potentials = document.querySelectorAll(selector);
+                potentials = parentNode.querySelectorAll(selector);
     
                 while (e) {
-                    for (var j = 0; j < potentials.length; j++) {
+                    for (j = 0; j < potentials.length; j++) {
                         if (e == potentials[j]) {
+                            gp.info('closest: e:');
+                            gp.info(e);
                             return e;
                         }
                     }
@@ -574,6 +599,14 @@
         gp.getRowModel = function (data, tr) {
             var index = parseInt(tr.attributes['data-index'].value);
             return data[index];
+        };
+    
+        gp.raiseCustomEvent = function(node, name, detail) {
+            var event = new CustomEvent(name, { bubbles: true, detail: detail });
+            node.dispatchEvent(event);
+            gp.info('raiseCustomEvent: name: ' + name); 
+            gp.info('raiseCustomEvent: node: ');
+            gp.info(node);
         };
     
     })(gridponent);
@@ -1107,8 +1140,10 @@
             // listen for command button clicks
             gp.on(node, 'click', 'button[value]', function (evt) {
                 // 'this' is the element that was clicked
+                gp.info('addCommandHandlers:this:');
+                gp.info(this);
                 var command = this.attributes['value'].value.toLowerCase();
-                var tr = gp.closest(this, 'tr[data-index]');
+                var tr = gp.closest(this, 'tr[data-index]', node);
                 var row = self.config.Row = gp.getRowModel(self.config.data.Data, tr);
                 switch (command) {
                     case 'edit':
@@ -1132,10 +1167,16 @@
     
         editRow: function (row, tr) {
             try {
+                gp.info('editRow:tr:');
+                gp.info(tr);
                 // put the row in edit mode
                 var template = gp.templates['gridponent-edit-cells'];
                 tr.innerHTML = template(this.config);
                 tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
+                gp.raiseCustomEvent(tr, 'edit-mode', {
+                    model: row,
+                    target: tr
+                });
             }
             catch (ex) {
                 console.log(ex.message);

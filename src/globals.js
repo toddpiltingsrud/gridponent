@@ -251,7 +251,9 @@
         }
     };
 
-    gp.closest = function (elem, selector) {
+    gp.closest = function (elem, selector, parentNode) {
+        var e, potentials, j;
+        parentNode = parentNode || document;
         // if elem is a selector, convert it to an element
         if (typeof (elem) === 'string') {
             elem = document.querySelector(elem);
@@ -261,13 +263,15 @@
 
         if (elem) {
             // start with elem's immediate parent
-            var e = elem.parentElement;
+            e = elem.parentElement;
 
-            var potentials = document.querySelectorAll(selector);
+            potentials = parentNode.querySelectorAll(selector);
 
             while (e) {
-                for (var j = 0; j < potentials.length; j++) {
+                for (j = 0; j < potentials.length; j++) {
                     if (e == potentials[j]) {
+                        gp.info('closest: e:');
+                        gp.info(e);
                         return e;
                     }
                 }
@@ -492,6 +496,14 @@
     gp.getRowModel = function (data, tr) {
         var index = parseInt(tr.attributes['data-index'].value);
         return data[index];
+    };
+
+    gp.raiseCustomEvent = function(node, name, detail) {
+        var event = new CustomEvent(name, { bubbles: true, detail: detail });
+        node.dispatchEvent(event);
+        gp.info('raiseCustomEvent: name: ' + name); 
+        gp.info('raiseCustomEvent: node: ');
+        gp.info(node);
     };
 
 })(gridponent);
