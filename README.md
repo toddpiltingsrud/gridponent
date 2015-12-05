@@ -12,6 +12,7 @@ It has the following features:
 - Fixed footers
 - Responsive
 - Configurable search and paging positions
+- Row selection
 - bootstrap-ready
 
 Support for IE9 is achieved by falling back to querying the DOM for grid-ponent elements and rendering them after the page loads.
