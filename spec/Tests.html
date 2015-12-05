@@ -50,12 +50,11 @@
         return gryst.agg.avg(this.data.Data, column.Field);
     };
 
-    fns.rowSelected = function (evt, model) {
-        gp.info(this);
+    fns.rowSelected = function (model) {
         gp.info(model);
     };
 
-    fns.searchFilter = function (row) {
+    fns.searchFilter = function (row, search) {
 
     };
     </script>
@@ -102,8 +101,9 @@
                                  fixed-footers="true"
                                  style="width:100%;height:411px" 
                                  responsive="true"
-                                 onrowselect="fns.rowSelected"
+                                 onrowselect="/test?productid={{ProductID}}&color={{Color}}"
                                  search="top-left"
+                                 search-filter="fns.searchFilter"
                                  oncreated="fns.getData"
                                  update="/Products/Update"
                                  destroy="/Products/Destroy">

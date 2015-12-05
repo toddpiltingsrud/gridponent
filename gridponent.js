@@ -101,10 +101,11 @@
         };
     
         // logging
-        var search = gp.getSearch();
     
         gp.error = console.log.bind(console);
         gp.log = gp.verbose = gp.info = gp.warn = function () { };
+    
+        var search = gp.getSearch();
     
         if ('log' in search) {
             gp.log = console.log.bind(console);
@@ -433,9 +434,13 @@
         };
     
         gp.resolveObject = function (obj, name) {
+            var val;
             if (gp.hasValue(obj[name])) {
-                obj[name] = gp.resolveObjectPath(obj[name]);
-                return gp.hasValue(obj[name]);
+                val = gp.resolveObjectPath(obj[name]);
+                if (gp.hasValue(val)) {
+                    obj[name] = val;
+                    return true;
+                }
             }
             return false;
         };
@@ -508,12 +513,14 @@
         gp.processRowTemplate = function (template, row, col) {
             gp.info('gp.processTemplate: template: ');
             gp.info(template);
-            var fn, match, tokens = template.match(/{{.+?}}/g);
+            var fn, val, match, tokens = template.match(/{{.+?}}/g);
             if (tokens) {
                 for (var i = 0; i < tokens.length; i++) {
                     match = tokens[i].slice(2, -2);
                     if (match in row) {
-                        template = template.replace(tokens[i], row[match]);
+                        val = row[match];
+                        if (gp.hasValue(val) === false) val = '';
+                        template = template.replace(tokens[i], val);
                     }
                     else {
                         fn = gp.resolveObjectPath(match);
@@ -526,7 +533,7 @@
             gp.info('gp.processTemplate: template:');
             gp.info(template);
             return template;
-        }
+        };
     
         gp.processColumnTemplate = function (template, col) {
             var fn, match, tokens = template.match(/{{.+?}}/g);
@@ -542,7 +549,32 @@
             gp.info('gp.processTemplate: template:');
             gp.info(template);
             return template;
-        }
+        };
+    
+        gp.trim = function (str) {
+            return str.trim ? str.trim() : str.replace(/^\s+|\s+$/g, '');
+        };
+    
+        gp.hasClass = function(el, cn)
+        {
+            return (' ' + el.className + ' ').indexOf(' ' + cn + ' ') !== -1;
+        };
+    
+        gp.addClass = function(el, cn)
+        {
+            if (!gp.hasClass(el, cn)) {
+                el.className = (el.className === '') ? cn : el.className + ' ' + cn;
+            }
+        };
+    
+        gp.removeClass = function (el, cn) {
+            el.className = gp.trim((' ' + el.className + ' ').replace(' ' + cn + ' ', ' '));
+        };
+    
+        gp.getRowModel = function (data, tr) {
+            var index = parseInt(tr.attributes['data-index'].value);
+            return data[index];
+        };
     
     })(gridponent);
     /***************\
@@ -953,16 +985,34 @@
         },
     
         resolveOnRowSelect: function (config) {
-            if (gp.resolveObject(config, 'Onrowselect')) {
-                if (typeof config.Onrowselect === 'function') {
+            var trs, i = 0, model, type, url, rowSelector = 'div.table-body > table > tbody > tr';
+            if (gp.hasValue(config.Onrowselect)) {
+                gp.resolveObject(config, 'Onrowselect');
+                type = typeof config.Onrowselect;
+                if (type === 'string' && config.Onrowselect.indexOf('{{') !== -1) type = 'urlTemplate';
+                // it's got to be either a function or a URL template
+                if (type === 'function' || type === 'urlTemplate') {
                     // add click handler
-                    gp.on(config.node, 'click', 'div.table-body > table > tbody > tr[data-index]', function (evt) {
-                        var model = null;
-                        config.Onrowselect.call(this, evt, config);
+                    gp.on(config.node, 'click', rowSelector, function (evt) {
+                        // remove previously selected class
+                        trs = config.node.querySelectorAll(rowSelector + '.selected');
+                        for (i = 0; i < trs.length; i++) {
+                            gp.removeClass(trs[i], 'selected');
+                        }
+                        // add selected class
+                        gp.addClass(this, 'selected');
+                        // get the model for this row
+                        model = gp.getRowModel(config.data.Data, this);
+    
+                        if (type === 'function') {
+                            config.Onrowselect.call(this, model);
+                        }
+                        else {
+                            // it's a urlTemplate
+                            url = gp.processRowTemplate(config.Onrowselect, model);
+                            window.location = url;
+                        }
                     });
-                }
-                else {
-                    config.Onrowselect = false;
                 }
             }
         },
@@ -1059,8 +1109,7 @@
                 // 'this' is the element that was clicked
                 var command = this.attributes['value'].value.toLowerCase();
                 var tr = gp.closest(this, 'tr[data-index]');
-                var index = parseInt(tr.attributes['data-index'].value);
-                var row = self.config.Row = self.config.data.Data[index];
+                var row = self.config.Row = gp.getRowModel(self.config.data.Data, tr);
                 switch (command) {
                     case 'edit':
                         self.editRow(row, tr);
@@ -1085,8 +1134,7 @@
             try {
                 // put the row in edit mode
                 var template = gp.templates['gridponent-edit-cells'];
-                var html = template(this.config);
-                tr.innerHTML = html;
+                tr.innerHTML = template(this.config);
                 tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
             }
             catch (ex) {

@@ -119,16 +119,34 @@ gp.Initializer.prototype = {
     },
 
     resolveOnRowSelect: function (config) {
-        if (gp.resolveObject(config, 'Onrowselect')) {
-            if (typeof config.Onrowselect === 'function') {
+        var trs, i = 0, model, type, url, rowSelector = 'div.table-body > table > tbody > tr';
+        if (gp.hasValue(config.Onrowselect)) {
+            gp.resolveObject(config, 'Onrowselect');
+            type = typeof config.Onrowselect;
+            if (type === 'string' && config.Onrowselect.indexOf('{{') !== -1) type = 'urlTemplate';
+            // it's got to be either a function or a URL template
+            if (type === 'function' || type === 'urlTemplate') {
                 // add click handler
-                gp.on(config.node, 'click', 'div.table-body > table > tbody > tr[data-index]', function (evt) {
-                    var model = null;
-                    config.Onrowselect.call(this, evt, config);
+                gp.on(config.node, 'click', rowSelector, function (evt) {
+                    // remove previously selected class
+                    trs = config.node.querySelectorAll(rowSelector + '.selected');
+                    for (i = 0; i < trs.length; i++) {
+                        gp.removeClass(trs[i], 'selected');
+                    }
+                    // add selected class
+                    gp.addClass(this, 'selected');
+                    // get the model for this row
+                    model = gp.getRowModel(config.data.Data, this);
+
+                    if (type === 'function') {
+                        config.Onrowselect.call(this, model);
+                    }
+                    else {
+                        // it's a urlTemplate
+                        url = gp.processRowTemplate(config.Onrowselect, model);
+                        window.location = url;
+                    }
                 });
-            }
-            else {
-                config.Onrowselect = false;
             }
         }
     },
@@ -225,8 +243,7 @@ gp.Initializer.prototype = {
             // 'this' is the element that was clicked
             var command = this.attributes['value'].value.toLowerCase();
             var tr = gp.closest(this, 'tr[data-index]');
-            var index = parseInt(tr.attributes['data-index'].value);
-            var row = self.config.Row = self.config.data.Data[index];
+            var row = self.config.Row = gp.getRowModel(self.config.data.Data, tr);
             switch (command) {
                 case 'edit':
                     self.editRow(row, tr);
@@ -251,8 +268,7 @@ gp.Initializer.prototype = {
         try {
             // put the row in edit mode
             var template = gp.templates['gridponent-edit-cells'];
-            var html = template(this.config);
-            tr.innerHTML = html;
+            tr.innerHTML = template(this.config);
             tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
         }
         catch (ex) {

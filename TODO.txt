@@ -6,9 +6,7 @@ Might need to re-sync column widths anytime the main table content changes (e.g.
 
 Remove the dependency on gryst.
 
-ChangeMonitor.afterSync should be passed a list of changes. Follow the convention Object.observe.
-
-Add row selection.
+ChangeMonitor.afterSync should be passed a list of changes. Follow the convention for Object.observe.
 
 Add page size config option (default to 25).
 
@@ -28,6 +26,8 @@ Add API for CRUD operations.
 
 Add API for search, paging, sorting, etc.
 Separate gp.Table into public and private functions.
+
+Add support for URL access of sorting, paging, searching, etc.
 
 Provide an easy way to get at the data via JavaScript.
 

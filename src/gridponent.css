@@ -70,6 +70,10 @@
   color: #333;
   cursor: pointer;
 }
+.table-container.selectable div.table-body > table > tbody > tr.selected {
+  background: #333;
+  color: #eee;
+}
 .table-container,
 .table-header > table,
 .table-body > table {
