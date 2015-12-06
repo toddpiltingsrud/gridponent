@@ -323,97 +323,6 @@
             return s;
         };
     
-        var iso8601 = /^[012][0-9]{3}-[01][0-9]-[0123][0-9]/;
-    
-        var dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    
-        var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    
-        // I hate dates. Why do they have to be so painful?
-        // http://stackoverflow.com/questions/5802461/javascript-which-browsers-support-parsing-of-iso-8601-date-string-with-date-par
-        function dateFromISO8601(isoDateString) {
-            var parts = isoDateString.match(/\d+/g);
-            return new Date(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5]);
-        }
-    
-        gp.formatDate = function (date, format) {
-            var dt = date;
-    
-            if (typeof dt === 'string') {
-                // check for iso 8601
-                if (iso8601.test(dt)) {
-                    dt = dateFromISO8601(dt);
-                }
-                else {
-                    // check for MS Date(1234567890-12345)
-                    var msDate = (/-?\d+/).exec(dt);
-                    if (msDate != null) {
-                        var d1 = new Date(parseInt(msDate[0])).toUTCString().replace("UTC", "");
-                        dt = new Date(d1);
-                    }
-                }
-            }
-    
-            switch (format) {
-                case 'd':
-                    format = 'M/d/yyyy';
-                    break;
-                case 'D':
-                    format = 'dddd, MMMM d, yyyy';
-                    break;
-                case 't':
-                    format = 'h:mm tt';
-                    break;
-                case 'T':
-                    format = 'h:mm:ss tt';
-                    break;
-            }
-    
-            var y = dt.getFullYear();
-            var m = dt.getMonth() + 1;
-            var d = dt.getDate();
-            var h = dt.getHours();
-            var n = dt.getMinutes();
-            var s = dt.getSeconds();
-            var f = dt.getMilliseconds();
-            var w = dt.getDay();
-    
-            format = format
-                .replace('yyyy', y)
-                .replace('yy', y.toString().slice(-2))
-                .replace('ss', gp.padLeft(s, 2, '0'))
-                .replace('s', s)
-                .replace('f', f)
-                .replace('mm', gp.padLeft(n, 2, '0'))
-                .replace('m', n)
-                .replace('HH', gp.padLeft(h, 2, '0'))
-                .replace('H', h)
-                .replace('hh', gp.padLeft((h > 12 ? h - 12 : h), 2, '0'))
-                .replace('h', (h > 12 ? h - 12 : h))
-                //replace conflicting tokens with alternate tokens
-                .replace('tt', (h > 11 ? '>>' : '<<'))
-                .replace('t', (h > 11 ? '##' : '$$'))
-                .replace('MMMM', '!!')
-                .replace('MMM', '@@')
-                .replace('MM', gp.padLeft(m, 2, '0'))
-                .replace('M', m)
-                .replace('dddd', '^^')
-                .replace('ddd', '&&')
-                .replace('dd', gp.padLeft(d, 2, '0'))
-                .replace('d', d)
-                //replace alternate tokens
-                .replace('>>', 'PM')
-                .replace('<<', 'AM')
-                .replace('##', 'P')
-                .replace('$$', 'A')
-                .replace('!!', monthNames[m - 1])
-                .replace('@@', monthNames[m - 1].substring(0, 3))
-                .replace('^^', dayNames[w])
-                .replace('&&', dayNames[w].substring(0, 3));
-    
-            return format;
-        };
-    
         var chars = [/&/g, /</g, />/g, /"/g, /'/g, /`/g];
     
         var escaped = ['&amp;', '&lt;', '&gt;', '&quot;', '&apos;', '&#96;'];
@@ -433,6 +342,8 @@
                 return c ? c.toUpperCase() : '';
             });
         };
+    
+        var iso8601 = /^[012][0-9]{3}-[01][0-9]-[0123][0-9]/;
     
         gp.getType = function (a) {
             if (a === null || a === undefined) {
@@ -542,6 +453,22 @@
                     e = e.parentElement;
                 }
             }
+        };
+    
+        gp.in = function (elem, selector, parent) {
+            parent = parent || document;
+            // if elem is a selector, convert it to an element
+            if (typeof (elem) === 'string') {
+                elem = parent.querySelector(elem);
+            }
+            // if selector is a string, convert it to a node list
+            if (typeof (selector) === 'string') {
+                selector = parent.querySelectorAll(selector);
+            }
+            for (var i = 0; i < selector.length; i++) {
+                if (selector[i] === elem) return true;
+            }
+            return false;
         };
     
         gp.hasValue = function (val) {
@@ -766,7 +693,7 @@
         };
     
         gp.raiseCustomEvent = function(node, name, detail) {
-            var event = new CustomEvent(name, { bubbles: true, detail: detail });
+            var event = new CustomEvent(name, { bubbles: true, detail: detail, cancelable: true });
             node.dispatchEvent(event);
             gp.info('raiseCustomEvent: name: ' + name); 
             gp.info('raiseCustomEvent: node: ');
@@ -1201,13 +1128,17 @@
                         // get the model for this row
                         model = gp.getRowModel(config.data.Data, this);
     
-                        if (type === 'function') {
-                            config.Onrowselect.call(this, model);
-                        }
-                        else {
-                            // it's a urlTemplate
-                            url = gp.processRowTemplate(config.Onrowselect, model);
-                            window.location = url;
+                        // ensure row selection doesn't interfere with button clicks in the row
+                        // by making sure the evt target was a cell
+                        if (gp.in(evt.target, rowSelector + ' > td.body-cell', config.node)) {
+                            if (type === 'function') {
+                                config.Onrowselect.call(this, model);
+                            }
+                            else {
+                                // it's a urlTemplate
+                                url = gp.processRowTemplate(config.Onrowselect, model);
+                                window.location = url;
+                            }
                         }
                     });
                 }
@@ -1331,15 +1262,17 @@
     
         editRow: function (row, tr) {
             try {
+                gp.raiseCustomEvent(tr, 'beforeEdit', {
+                    model: row
+                });
                 gp.info('editRow:tr:');
                 gp.info(tr);
                 // put the row in edit mode
                 var template = gp.templates['gridponent-edit-cells'];
                 tr.innerHTML = template(this.config);
                 tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
-                gp.raiseCustomEvent(tr, 'edit-mode', {
-                    model: row,
-                    target: tr
+                gp.raiseCustomEvent(tr, 'afterEdit', {
+                    model: row
                 });
             }
             catch (ex) {
@@ -1354,9 +1287,12 @@
                 var self = this;
                 var h = new gp.Http();
                 var url = this.config.Update;
+                var monitor;
+                gp.raiseCustomEvent(tr, 'beforeUpdate', {
+                    model: row
+                });
                 gp.info('updateRow: row:');
                 gp.info(row);
-                var monitor;
                 h.post(url, row, function (response) {
                     gp.info('updateRow: response:');
                     gp.info(response);
@@ -1377,6 +1313,9 @@
                             monitor = null;
                         }
                     }
+                    gp.raiseCustomEvent(tr, 'afterUpdate', {
+                        model: response.Row
+                    });
                 });
             }
             catch (ex) {
@@ -1390,6 +1329,9 @@
                 var template = gp.templates['gridponent-cells'];
                 var html = template(this.config);
                 tr.innerHTML = html;
+                gp.raiseCustomEvent(tr, 'cancelEdit', {
+                    model: row
+                });
             }
             catch (ex) {
                 console.log(ex.message);
@@ -1404,6 +1346,9 @@
                 var self = this;
                 var h = new gp.Http();
                 var url = this.config.Destroy;
+                gp.raiseCustomEvent(tr, 'beforeDelete', {
+                    model: row
+                });
                 h.post(url, row, function (response) {
                     // remove the row from the model
                     var index = self.config.data.Data.indexOf(row);
@@ -1411,6 +1356,9 @@
                         self.config.data.Data.splice(index, 1);
                         self.refresh(self.config);
                     }
+                    gp.raiseCustomEvent(tr, 'afterDelete', {
+                        model: row
+                    });
                 });
             }
             catch (ex) {

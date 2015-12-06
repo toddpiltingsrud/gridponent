@@ -138,13 +138,17 @@ gp.Initializer.prototype = {
                     // get the model for this row
                     model = gp.getRowModel(config.data.Data, this);
 
-                    if (type === 'function') {
-                        config.Onrowselect.call(this, model);
-                    }
-                    else {
-                        // it's a urlTemplate
-                        url = gp.processRowTemplate(config.Onrowselect, model);
-                        window.location = url;
+                    // ensure row selection doesn't interfere with button clicks in the row
+                    // by making sure the evt target was a cell
+                    if (gp.in(evt.target, rowSelector + ' > td.body-cell', config.node)) {
+                        if (type === 'function') {
+                            config.Onrowselect.call(this, model);
+                        }
+                        else {
+                            // it's a urlTemplate
+                            url = gp.processRowTemplate(config.Onrowselect, model);
+                            window.location = url;
+                        }
                     }
                 });
             }
@@ -268,15 +272,17 @@ gp.Initializer.prototype = {
 
     editRow: function (row, tr) {
         try {
+            gp.raiseCustomEvent(tr, 'beforeEdit', {
+                model: row
+            });
             gp.info('editRow:tr:');
             gp.info(tr);
             // put the row in edit mode
             var template = gp.templates['gridponent-edit-cells'];
             tr.innerHTML = template(this.config);
             tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
-            gp.raiseCustomEvent(tr, 'edit-mode', {
-                model: row,
-                target: tr
+            gp.raiseCustomEvent(tr, 'afterEdit', {
+                model: row
             });
         }
         catch (ex) {
@@ -291,9 +297,12 @@ gp.Initializer.prototype = {
             var self = this;
             var h = new gp.Http();
             var url = this.config.Update;
+            var monitor;
+            gp.raiseCustomEvent(tr, 'beforeUpdate', {
+                model: row
+            });
             gp.info('updateRow: row:');
             gp.info(row);
-            var monitor;
             h.post(url, row, function (response) {
                 gp.info('updateRow: response:');
                 gp.info(response);
@@ -314,6 +323,9 @@ gp.Initializer.prototype = {
                         monitor = null;
                     }
                 }
+                gp.raiseCustomEvent(tr, 'afterUpdate', {
+                    model: response.Row
+                });
             });
         }
         catch (ex) {
@@ -327,6 +339,9 @@ gp.Initializer.prototype = {
             var template = gp.templates['gridponent-cells'];
             var html = template(this.config);
             tr.innerHTML = html;
+            gp.raiseCustomEvent(tr, 'cancelEdit', {
+                model: row
+            });
         }
         catch (ex) {
             console.log(ex.message);
@@ -341,6 +356,9 @@ gp.Initializer.prototype = {
             var self = this;
             var h = new gp.Http();
             var url = this.config.Destroy;
+            gp.raiseCustomEvent(tr, 'beforeDelete', {
+                model: row
+            });
             h.post(url, row, function (response) {
                 // remove the row from the model
                 var index = self.config.data.Data.indexOf(row);
@@ -348,6 +366,9 @@ gp.Initializer.prototype = {
                     self.config.data.Data.splice(index, 1);
                     self.refresh(self.config);
                 }
+                gp.raiseCustomEvent(tr, 'afterDelete', {
+                    model: row
+                });
             });
         }
         catch (ex) {

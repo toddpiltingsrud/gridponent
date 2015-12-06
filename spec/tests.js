@@ -416,17 +416,16 @@ QUnit.test("custom search filter", function (assert) {
 
 });
 
-QUnit.test("edit-mode event", function (assert) {
+QUnit.test("beforeEdit event", function (assert) {
 
     var done = assert.async();
 
     var node = getTableConfig(true, false, false, true).node;
 
-    node.addEventListener('edit-mode', function (evt) {
+    node.addEventListener('beforeEdit', function (evt) {
         assert.ok(evt != null);
         assert.ok(evt.detail != null);
         assert.ok(evt.detail.model != null);
-        assert.ok(evt.detail.target != null);
         done();
     });
 

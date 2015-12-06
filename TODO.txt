@@ -6,10 +6,6 @@ We'll need to respond to an event that's fired after putting a row into edit mod
 Add support for polyfills:
 - Object.observe (for two-way binding) 
 
-<script src="https://cdn.polyfill.io/v2/polyfill.min.js"></script>
-
-Add CRUD events.
-
 Add API for CRUD operations.
 
 Add API for search, paging, sorting, etc.
@@ -23,8 +19,6 @@ Provide an easy way to get at the data via JavaScript.
 Might need to re-sync column widths anytime the main table content changes (e.g. deleting or adding rows, paging, sorting).
 
 Remove the dependency on gryst.
-
-Create a hook into the where clause for client-side searching.
 
 ChangeMonitor.afterSync should be passed a list of changes. Follow the convention for Object.observe.
 

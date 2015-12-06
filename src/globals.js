@@ -62,97 +62,6 @@
         return s;
     };
 
-    var iso8601 = /^[012][0-9]{3}-[01][0-9]-[0123][0-9]/;
-
-    var dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
-    var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-
-    // I hate dates. Why do they have to be so painful?
-    // http://stackoverflow.com/questions/5802461/javascript-which-browsers-support-parsing-of-iso-8601-date-string-with-date-par
-    function dateFromISO8601(isoDateString) {
-        var parts = isoDateString.match(/\d+/g);
-        return new Date(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5]);
-    }
-
-    gp.formatDate = function (date, format) {
-        var dt = date;
-
-        if (typeof dt === 'string') {
-            // check for iso 8601
-            if (iso8601.test(dt)) {
-                dt = dateFromISO8601(dt);
-            }
-            else {
-                // check for MS Date(1234567890-12345)
-                var msDate = (/-?\d+/).exec(dt);
-                if (msDate != null) {
-                    var d1 = new Date(parseInt(msDate[0])).toUTCString().replace("UTC", "");
-                    dt = new Date(d1);
-                }
-            }
-        }
-
-        switch (format) {
-            case 'd':
-                format = 'M/d/yyyy';
-                break;
-            case 'D':
-                format = 'dddd, MMMM d, yyyy';
-                break;
-            case 't':
-                format = 'h:mm tt';
-                break;
-            case 'T':
-                format = 'h:mm:ss tt';
-                break;
-        }
-
-        var y = dt.getFullYear();
-        var m = dt.getMonth() + 1;
-        var d = dt.getDate();
-        var h = dt.getHours();
-        var n = dt.getMinutes();
-        var s = dt.getSeconds();
-        var f = dt.getMilliseconds();
-        var w = dt.getDay();
-
-        format = format
-            .replace('yyyy', y)
-            .replace('yy', y.toString().slice(-2))
-            .replace('ss', gp.padLeft(s, 2, '0'))
-            .replace('s', s)
-            .replace('f', f)
-            .replace('mm', gp.padLeft(n, 2, '0'))
-            .replace('m', n)
-            .replace('HH', gp.padLeft(h, 2, '0'))
-            .replace('H', h)
-            .replace('hh', gp.padLeft((h > 12 ? h - 12 : h), 2, '0'))
-            .replace('h', (h > 12 ? h - 12 : h))
-            //replace conflicting tokens with alternate tokens
-            .replace('tt', (h > 11 ? '>>' : '<<'))
-            .replace('t', (h > 11 ? '##' : '$$'))
-            .replace('MMMM', '!!')
-            .replace('MMM', '@@')
-            .replace('MM', gp.padLeft(m, 2, '0'))
-            .replace('M', m)
-            .replace('dddd', '^^')
-            .replace('ddd', '&&')
-            .replace('dd', gp.padLeft(d, 2, '0'))
-            .replace('d', d)
-            //replace alternate tokens
-            .replace('>>', 'PM')
-            .replace('<<', 'AM')
-            .replace('##', 'P')
-            .replace('$$', 'A')
-            .replace('!!', monthNames[m - 1])
-            .replace('@@', monthNames[m - 1].substring(0, 3))
-            .replace('^^', dayNames[w])
-            .replace('&&', dayNames[w].substring(0, 3));
-
-        return format;
-    };
-
     var chars = [/&/g, /</g, />/g, /"/g, /'/g, /`/g];
 
     var escaped = ['&amp;', '&lt;', '&gt;', '&quot;', '&apos;', '&#96;'];
@@ -172,6 +81,8 @@
             return c ? c.toUpperCase() : '';
         });
     };
+
+    var iso8601 = /^[012][0-9]{3}-[01][0-9]-[0123][0-9]/;
 
     gp.getType = function (a) {
         if (a === null || a === undefined) {
@@ -281,6 +192,22 @@
                 e = e.parentElement;
             }
         }
+    };
+
+    gp.in = function (elem, selector, parent) {
+        parent = parent || document;
+        // if elem is a selector, convert it to an element
+        if (typeof (elem) === 'string') {
+            elem = parent.querySelector(elem);
+        }
+        // if selector is a string, convert it to a node list
+        if (typeof (selector) === 'string') {
+            selector = parent.querySelectorAll(selector);
+        }
+        for (var i = 0; i < selector.length; i++) {
+            if (selector[i] === elem) return true;
+        }
+        return false;
     };
 
     gp.hasValue = function (val) {
@@ -505,7 +432,7 @@
     };
 
     gp.raiseCustomEvent = function(node, name, detail) {
-        var event = new CustomEvent(name, { bubbles: true, detail: detail });
+        var event = new CustomEvent(name, { bubbles: true, detail: detail, cancelable: true });
         node.dispatchEvent(event);
         gp.info('raiseCustomEvent: name: ' + name); 
         gp.info('raiseCustomEvent: node: ');
