@@ -177,8 +177,11 @@
         if (a === null || a === undefined) {
             return a;
         }
-        if (a instanceof Date || (typeof (a) === 'string' && iso8601.test(a))) {
+        if (a instanceof Date) {
             return 'date';
+        }
+        if (typeof (a) === 'string' && iso8601.test(a)) {
+            return 'dateString';
         }
         if (Array.isArray(a)) {
             return 'array';
@@ -415,20 +418,23 @@
         return null;
     };
 
+    gp.formatter = new gp.Formatter();
+
     gp.getFormattedValue = function (row, col, escapeHTML) {
         var type = (col.Type || '').toLowerCase();
         var val = row[col.Field];
 
-        if (type === 'date') {
+        if (type === 'date' || type === 'datestring') {
             // apply default formatting to dates
-            return gp.formatDate(val, col.Format || 'M/d/yyyy');
+            //return gp.formatDate(val, col.Format || 'M/d/yyyy');
+            return gp.formatter.format(val, col.Format);
+        }
+        if (type === 'number' && col.Format) {
+            return gp.formatter.format(val, col.Format);
         }
         if (type === 'string' && escapeHTML) {
             return gp.escapeHTML(val);
         }
-        // TODO: add support for currency and percentage formatting
-        // <script src="https://cdn.polyfill.io/v1/polyfill.min.js?features=Intl.~locale.en"></script>
-
         return val;
     };
 

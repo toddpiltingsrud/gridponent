@@ -62,7 +62,7 @@ QUnit.test("gp.getType", function (assert) {
     assert.equal(gp.getType(true), 'boolean');
     assert.equal(gp.getType(null), null);
     assert.equal(gp.getType(new Date()), 'date');
-    assert.equal(gp.getType('2015-11-24'), 'date');
+    assert.equal(gp.getType('2015-11-24'), 'dateString');
     assert.equal(gp.getType('2015-31-24'), 'string');
     assert.equal(notDefined, undefined);
     assert.equal(gp.getType(3.0), 'number');
@@ -148,8 +148,7 @@ fns.getButtonText = function (row, col) {
 };
 
 fns.searchFilter = function (row, search) {
-    return (row.Name && row.Name.indexOf(search) !== -1)
-    || (row.ProductNumber && row.ProductNumber.indexOf(search) !== -1);
+    return row.ProductNumber == search;
 };
 
 var getTableConfig = function (fixedHeaders, fixedFooters, responsive, sorting) {
@@ -243,39 +242,39 @@ QUnit.test("gp.helpers.thead", function (assert) {
 
     testHeaders(headers);
 
-    //// no fixed headers, with sorting
-    //node = getTableConfig(false, false, false, true).node;
+    // no fixed headers, with sorting
+    node = getTableConfig(false, false, false, true).node;
 
-    //headers = node.querySelectorAll('div.table-body th.header-cell');
+    headers = node.querySelectorAll('div.table-body th.header-cell');
 
-    //testHeaders(headers);
+    testHeaders(headers);
 
-    //// no fixed headers, no sorting
-    //node = getTableConfig(false, false, false, false).node;
+    // no fixed headers, no sorting
+    node = getTableConfig(false, false, false, false).node;
 
-    //headers = node.querySelectorAll('div.table-body th.header-cell');
+    headers = node.querySelectorAll('div.table-body th.header-cell');
 
-    //assert.ok(headers[0].querySelector('input[type=checkbox]') != null);
+    assert.ok(headers[0].querySelector('input[type=checkbox]') != null);
 
-    //assert.equal(headers[1].innerHTML, 'ID');
+    assert.equal(headers[1].innerHTML, 'ID');
 
-    //assert.equal(headers[2].querySelector('label.table-sort'), null);
+    assert.equal(headers[2].querySelector('label.table-sort'), null);
 
-    //assert.ok(headers[5].querySelector('label.table-sort > input[value=SellStartDate]') != null);
+    assert.ok(headers[5].querySelector('label.table-sort > input[value=SellStartDate]') != null);
 
-    //assert.equal(headers[5].textContent, 'Sell Start Date');
+    assert.equal(headers[5].textContent, 'Sell Start Date');
 
-    //assert.ok(headers[6].querySelector('label.table-sort > input[value=Name]') != null);
+    assert.ok(headers[6].querySelector('label.table-sort > input[value=Name]') != null);
 
-    //assert.equal(headers[6].textContent, 'Markup');
+    assert.equal(headers[6].textContent, 'Markup');
 
-    //assert.equal(headers[8].textContent, 'Test Header');
+    assert.equal(headers[8].textContent, 'Test Header');
 
-    //assert.ok(headers[9].querySelector('input[type=checkbox]') != null);
+    assert.ok(headers[9].querySelector('input[type=checkbox]') != null);
 
-    //assert.equal(headers[10].textContent, 'Test Header');
+    assert.equal(headers[10].textContent, 'Test Header');
 
-    //assert.ok(headers[10].querySelector('input[type=checkbox]') != null);
+    assert.ok(headers[10].querySelector('input[type=checkbox]') != null);
 
 });
 
@@ -384,16 +383,36 @@ QUnit.test("gp.ChangeMonitor", function (assert) {
 
 });
 
-QUnit.test("gp.ClientPager", function (assert) {
+QUnit.test("custom search filter", function (assert) {
+
+    var done = assert.async();
+
+    var event = new Event('change', {
+        'view': window,
+        'bubbles': true,
+        'cancelable': true
+    });
 
     var config = getTableConfig(true, false, false, true);
 
+    var productNumber = 'BA-8327';
+
+    // find the search box
+    var searchInput = config.node.querySelector('input[name=Search]');
+
+    searchInput.value = productNumber;
+
     assert.equal(config.SearchFilter, fns.searchFilter);
 
-    config.data.Search = 'BA-8327';
+    // listen for the change event
+    config.node.addEventListener('change', function (evt) {
+        assert.equal(config.data.Data.length, 1, 'Should filter a single record');
+        assert.equal(config.data.Data[0].ProductNumber, productNumber, 'Should filter a single record');
+        done();
+    });
 
-
-
+    // trigger a change event on the input
+    searchInput.dispatchEvent(event);
 
 });
 
@@ -424,3 +443,104 @@ QUnit.test("edit-mode event", function (assert) {
 
 });
 
+QUnit.test("Intl.DateTimeFormat", function (assert) {
+
+    // use local time so our test matches the expected result no matter which time zone we're in
+    var date = new Date(2015, 11, 6, 13, 5, 6);
+
+    var formatter = new gp.Formatter();
+
+    var formatted = formatter.format(date, 'M/d/yyyy');
+    assert.equal(formatted, '12/6/2015');
+
+    formatted = formatter.format(date, 'MMMM/dd/yy');
+    assert.ok(formatted == 'December 06, 15' || formatted == '06-December-15'); // IE produces the hyphenated version
+
+    formatted = formatter.format(date, 'MMM/d/yy');
+    assert.ok(formatted == 'Dec 6, 15' || formatted == '06-Dec-15'); // IE produces the hyphenated version
+
+    formatted = formatter.format(date, 'h m s');
+    assert.equal(formatted, '1:05:06 PM');
+
+    formatted = formatter.format(date, 'HH mm');
+    assert.equal(formatted, '13:05');
+
+    formatted = formatter.format(date, 'www');
+    assert.equal(formatted, 'Sunday');
+
+    formatted = formatter.format(date, 'ww');
+    assert.equal(formatted, 'Sun');
+
+    formatted = formatter.format(date, 'w');
+    assert.ok(formatted == 'Su' || formatted == 'S');
+
+    formatted = formatter.format(date, 'tt');
+    assert.ok(formatted.indexOf('Central Standard Time') != -1);
+
+    formatted = formatter.format(date, 't');
+    assert.ok(formatted.indexOf('CST') != -1);
+
+    // era is not supported in IE
+    formatted = formatter.format(date, 'ee');
+    assert.ok(formatted.length > 0);
+
+    formatted = formatter.format(date);
+    assert.equal(formatted, '12/6/2015');
+
+});
+
+QUnit.test("Intl.NumberFormat", function (assert) {
+
+    var formatter = new gp.Formatter();
+
+    var space = /\s+/g;
+
+    var formatted = formatter.format(5, 'P').replace(space, '');
+    assert.equal(formatted, '500%');
+
+    formatted = formatter.format(.05, 'P').replace(space, '');
+    assert.equal(formatted, '5%');
+
+    formatted = formatter.format(.05, 'P0').replace(space, '');
+    assert.equal(formatted, '5%');
+
+    formatted = formatter.format(.05, 'P2').replace(space, '');
+    assert.equal(formatted, '5.00%');
+
+    formatted = formatter.format(.05, 'N2').replace(space, '');
+    assert.equal(formatted, '0.05');
+
+    formatted = formatter.format(1234.56, 'N1').replace(space, '');
+    assert.equal(formatted, '1,234.6');
+
+    formatted = formatter.format(1234.56, 'N').replace(space, '');
+    assert.equal(formatted, '1,234.56');
+
+    formatted = formatter.format(1234.56, 'N0').replace(space, '');
+    assert.equal(formatted, '1,235');
+
+    formatted = formatter.format(1234.56, 'C').replace(space, '');
+    assert.equal(formatted, '$1,234.56');
+
+    formatted = formatter.format(1234.56, 'C0').replace(space, '');
+    assert.equal(formatted, '$1,235');
+
+    formatted = formatter.format(1234.56, 'C2').replace(space, '');
+    assert.equal(formatted, '$1,234.56');
+
+    formatted = formatter.format(1234.56);
+    assert.equal(formatted, '1,234.56');
+
+    formatter.locale = 'de-AT';
+    formatter.currencyCode = 'EUR';
+
+    formatted = formatter.format(1234.56, 'C').replace(space, '');
+
+    var eur = formatted[0];
+
+    assert.equal(formatted, eur + '1.234,56');
+
+    formatted = formatter.format(1234.56, 'C0').replace(space, '');
+    assert.equal(formatted, eur + '1.235');
+
+});

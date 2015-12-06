@@ -7,7 +7,8 @@ It has the following features:
 - Client side sorting, paging, and searching
 - Configurable server-side sorting, paging and searching
 - In place editing
-- Column templating and formatting
+- Column templating
+- Date and number internationalization formatting via the Intl global object
 - Fixed headers
 - Fixed footers
 - Responsive

@@ -35,16 +35,21 @@ gp.ClientPager = function (config) {
     this.columns = config.Columns.filter(function (c) {
         return c.Field !== undefined;
     });
-    this.searchFilter = config.SearchFilter || function (row, search) {
-        var s = search.toLowerCase();
-        for (var i = 0; i < self.columns.length; i++) {
-            value = gp.getFormattedValue(row, self.columns[i], false);
-            if (gp.hasValue(value) && value.toString().toLowerCase().indexOf(s) !== -1) {
-                return true;
+    if (typeof config.SearchFilter === 'function') {
+        this.searchFilter = config.SearchFilter;
+    }
+    else {
+        this.searchFilter = function (row, search) {
+            var s = search.toLowerCase();
+            for (var i = 0; i < self.columns.length; i++) {
+                value = gp.getFormattedValue(row, self.columns[i], false);
+                if (gp.hasValue(value) && value.toString().toLowerCase().indexOf(s) !== -1) {
+                    return true;
+                }
             }
-        }
-        return false;
-    };
+            return false;
+        };
+    }
 };
 
 gp.ClientPager.prototype = {

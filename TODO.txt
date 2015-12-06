@@ -5,18 +5,14 @@ We'll need to respond to an event that's fired after putting a row into edit mod
 
 Add support for polyfills:
 - Object.observe (for two-way binding) 
-- Intl (for percentage and currency formatting)
 
 <script src="https://cdn.polyfill.io/v2/polyfill.min.js"></script>
-
-<script src="https://cdn.polyfill.io/v1/polyfill.min.js?features=Intl.~locale.en"></script>
 
 Add CRUD events.
 
 Add API for CRUD operations.
 
 Add API for search, paging, sorting, etc.
-Separate gp.Table into public and private functions.
 
 Add support for URL access of sorting, paging, searching, etc.
 
