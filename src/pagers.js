@@ -93,9 +93,9 @@ gp.ClientPager.prototype = {
 
         }
         catch (ex) {
-            console.log(ex);
-            console.log(ex.message);
-            console.log(ex.stack);
+            gp.log(ex);
+            gp.log(ex.message);
+            gp.log(ex.stack);
         }
         callback(model);
     },

@@ -85,20 +85,16 @@
     \***************/
     (function () {
     
-        if (!window.CustomEvent) {
-    
-            function CustomEvent(event, params) {
-                params = params || { bubbles: false, cancelable: false, detail: undefined };
-                var evt = document.createEvent('CustomEvent');
-                evt.initCustomEvent(event, params.bubbles, params.cancelable, params.detail);
-                return evt;
-            }
-    
-            CustomEvent.prototype = window.Event.prototype;
-    
-            window.CustomEvent = CustomEvent;
-    
+        function CustomEvent(event, params) {
+            params = params || { bubbles: false, cancelable: false, detail: undefined };
+            var evt = document.createEvent('CustomEvent');
+            evt.initCustomEvent(event, params.bubbles, params.cancelable, params.detail);
+            return evt;
         }
+    
+        CustomEvent.prototype = window.Event.prototype;
+    
+        window.CustomEvent = CustomEvent;
     
     })();
     /***************\
@@ -127,7 +123,7 @@
             this.locale = locale || gp.defaultLocale;
             this.currencyCode = currencyCode || gp.defaultCurrencyCode;
             this.supported = (window.Intl !== undefined);
-            if (!this.supported) console.log('Intl internationalization not supported');
+            if (!this.supported) gp.log('Intl internationalization not supported');
         };
     
         gp.Formatter.prototype = {
@@ -280,14 +276,12 @@
         };
     
         // logging
-    
-        gp.error = console.log.bind(console);
-        gp.log = gp.verbose = gp.info = gp.warn = function () { };
+        gp.log = window.console ? window.console.log.bind(window.console) : function () { };
+        gp.verbose = gp.info = gp.warn = function () { };
     
         var search = gp.getSearch();
     
         if ('log' in search) {
-            gp.log = console.log.bind(console);
             if (search.log === 'verbose') {
                 gp.verbose = gp.info = gp.warn = gp.log;
             }
@@ -344,6 +338,13 @@
         };
     
         var iso8601 = /^[012][0-9]{3}-[01][0-9]-[0123][0-9]/;
+    
+        gp.getLocalISOString = function (date) {
+            if (typeof date === 'string') return date;
+            var offset = date.getTimezoneOffset();
+            var adjustedDate = new Date(date.valueOf() - (offset * 60000));
+            return adjustedDate.toISOString();
+        };
     
         gp.getType = function (a) {
             if (a === null || a === undefined) {
@@ -541,8 +542,8 @@
                 return currentObj;
             }
             catch (err) {
-                console.log('Could not resolve object path: ' + path);
-                console.log(err);
+                gp.log('Could not resolve object path: ' + path);
+                gp.log(err);
             }
         };
     
@@ -808,14 +809,19 @@
         });
     
         extend('bodyCell', function (col) {
+            var type = (col.Type || '').toLowerCase();
+            var out = [];
+            out.push('<td class="body-cell ' + type + '">');
+            out.push(gp.helpers['bodyCellContent'].call(this, col))
+            out.push('</td>');
+            return out.join('');
+        });
+    
+        extend('bodyCellContent', function (col) {
             var template, format, val = gp.getFormattedValue(this.Row, col, true);
     
             var type = (col.Type || '').toLowerCase();
             var out = [];
-            out.push('<td class="body-cell ' + type + '">');
-    
-            gp.verbose('bodyCell: col:');
-            gp.verbose(col);
     
             // check for a template
             if (col.Template) {
@@ -825,6 +831,28 @@
                 else {
                     out.push(gp.processRowTemplate.call(this, col.Template, this.Row, col));
                 }
+            }
+            else if (col.Commands) {
+                out.push('<div class="btn-group" role="group">');
+                col.Commands.forEach(function (cmd, index) {
+                    if (cmd == 'Edit') {
+                        out.push('<button type="button" class="btn btn-primary btn-xs" value="');
+                        out.push(cmd);
+                        out.push('">');
+                        out.push('<span class="glyphicon glyphicon-edit"></span>');
+                        out.push(cmd);
+                        out.push('</button>');
+                    }
+                    if (cmd == 'Delete') {
+                        out.push('<button type="button" class="btn btn-danger btn-xs" value="');
+                        out.push(cmd);
+                        out.push('">');
+                        out.push('<span class="glyphicon glyphicon-remove"></span>');
+                        out.push(cmd);
+                        out.push('</button>');
+                    }
+                });
+                out.push('</div>');
             }
             else if (gp.hasValue(val)) {
                 // show a checkmark for bools
@@ -837,17 +865,21 @@
                     out.push(val);
                 }
             }
+            return out.join('');
+        });
+    
+    
+        extend('editCell', function (col) {
+            var out = [];
+    
+            out.push('<td class="body-cell ' + col.Type + '">');
+            out.push(gp.helpers['editCellContent'].call(this, col))
             out.push('</td>');
             return out.join('');
         });
     
-        extend('editCell', function (col) {
+        extend('editCellContent', function (col) {
             var template, out = [];
-    
-            out.push('<td class="body-cell ' + col.Type + '">');
-    
-            gp.verbose('helper.editCell: col: ');
-            gp.verbose(col);
     
             // check for a template
             if (col.EditTemplate) {
@@ -858,6 +890,18 @@
                     out.push(gp.processRowTemplate.call(this, col.EditTemplate, this.Row, col));
                 }
             }
+            else if (col.Commands) {
+                out.push('<td class="body-cell commands-cell">');
+                out.push('<div class="btn-group" role="group">');
+                out.push('<button type="button" class="btn btn-primary btn-xs" value="Update">');
+                out.push('<span class="glyphicon glyphicon-save"></span>Save');
+                out.push('</button>');
+                out.push('<button type="button" class="btn btn-default btn-xs" value="Cancel">');
+                out.push('<span class="glyphicon glyphicon-remove"></span>Cancel');
+                out.push('</button>');
+                out.push('</div>');
+                out.push('</td>');
+            }
             else {
                 var val = this.Row[col.Field];
                 // render empty cell if this field doesn't exist in the data
@@ -867,8 +911,9 @@
                 out.push('<input class="form-control" name="' + col.Field + '" type="');
                 switch (col.Type) {
                     case 'date':
+                    case 'dateString':
                         // use the required format for the date input element
-                        val = gp.formatDate(val, 'yyyy-MM-dd');
+                        val = gp.getLocalISOString(val).substring(0, 10);
                         out.push('date" value="' + gp.escapeHTML(val) + '" />');
                         break;
                     case 'number':
@@ -886,7 +931,6 @@
                         break;
                 };
             }
-            out.push('</td>');
             return out.join('');
         });
     
@@ -1085,7 +1129,6 @@
                     }
                 }
             });
-            gp.log(config.Columns);
         },
     
         getPager: function (config) {
@@ -1117,7 +1160,7 @@
                 // it's got to be either a function or a URL template
                 if (type === 'function' || type === 'urlTemplate') {
                     // add click handler
-                    gp.on(config.node, 'click', rowSelector, function (evt) {
+                    gp.on(config.node, 'click', rowSelector + ':not(.edit-mode)', function (evt) {
                         // remove previously selected class
                         trs = config.node.querySelectorAll(rowSelector + '.selected');
                         for (i = 0; i < trs.length; i++) {
@@ -1178,8 +1221,8 @@
                 node.innerHTML = gp.templates['gridponent'](this.config);
             }
             catch (ex) {
-                console.log(ex.message);
-                console.log(ex.stack);
+                gp.log(ex.message);
+                gp.log(ex.stack);
             }
         },
     
@@ -1210,14 +1253,26 @@
         },
     
         refresh: function (config) {
-            var rowsTemplate = gp.helpers['tableRows'];
+            var rowsTemplate = gp.templates['gridponent-body'];
             var pagerTemplate = gp.templates['gridponent-pager'];
-            var html = rowsTemplate.call(config);
-            config.node.querySelector('.table-body > table > tbody').innerHTML = html;
+            var html = rowsTemplate(config);
+            config.node.querySelector('.table-body').innerHTML = html;
             html = pagerTemplate(config);
             config.node.querySelector('.table-pager').innerHTML = html;
             html = gp.helpers['sortStyle'].call(config);
             config.node.querySelector('style.sort-style').innerHTML = html;
+        },
+    
+        restoreCells: function (config, row, tr) {
+            var col,
+                i = 0;
+                helper = gp.helpers['bodyCellContent'],
+                cells = tr.querySelectorAll('td.body-cell');
+            for ( ; i < cells.length; i++) {
+                col = config.Columns[i];
+                cells[i].innerHTML = helper.call(this.config, col);
+            }
+            gp.removeClass(tr, 'edit-mode');
         },
     
         update: function () {
@@ -1254,7 +1309,7 @@
                         self.cancelEdit(row, tr);
                         break;
                     default:
-                        console.log('Unrecognized command: ' + command);
+                        gp.log('Unrecognized command: ' + command);
                         break;
                 }
             });
@@ -1268,16 +1323,25 @@
                 gp.info('editRow:tr:');
                 gp.info(tr);
                 // put the row in edit mode
-                var template = gp.templates['gridponent-edit-cells'];
-                tr.innerHTML = template(this.config);
+                // IE9 can't set innerHTML of tr, so iterate through each cell
+                // besides, that way we can just skip readonly cells
+                var helper = gp.helpers['editCellContent'];
+                var col, cells = tr.querySelectorAll('td.body-cell');
+                for (var i = 0; i < cells.length; i++) {
+                    col = this.config.Columns[i];
+                    if (!col.ReadOnly) {
+                        cells[i].innerHTML = helper.call(this.config, col);
+                    }
+                }
+                gp.addClass(tr, 'edit-mode');
                 tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
                 gp.raiseCustomEvent(tr, 'afterEdit', {
                     model: row
                 });
             }
             catch (ex) {
-                console.log(ex.message);
-                console.log(ex.stack);
+                gp.log(ex.message);
+                if (ex.stack) gp.log(ex.stack);
             }
         },
     
@@ -1301,11 +1365,7 @@
     
                     }
                     else {
-                        // put the cells back
-                        self.config.Row = response.Row;
-                        var template = gp.templates['gridponent-cells'];
-                        var html = template(self.config);
-                        tr.innerHTML = html;
+                        self.restoreCells(self.config, row, tr);
                         // dispose of the ChangeMonitor
                         monitor = tr['gp-change-monitor'];
                         if (monitor) {
@@ -1319,23 +1379,21 @@
                 });
             }
             catch (ex) {
-                console.log(ex.message);
-                console.log(ex.stack);
+                gp.log(ex.message);
+                gp.log(ex.stack);
             }
         },
     
         cancelEdit: function (row, tr) {
             try {
-                var template = gp.templates['gridponent-cells'];
-                var html = template(this.config);
-                tr.innerHTML = html;
+                this.restoreCells(this.config, row, tr);
                 gp.raiseCustomEvent(tr, 'cancelEdit', {
                     model: row
                 });
             }
             catch (ex) {
-                console.log(ex.message);
-                console.log(ex.stack);
+                gp.log(ex.message);
+                gp.log(ex.stack);
             }
         },
     
@@ -1362,8 +1420,8 @@
                 });
             }
             catch (ex) {
-                console.log(ex.message);
-                console.log(ex.stack);
+                gp.log(ex.message);
+                gp.log(ex.stack);
             }
         }
     
@@ -1448,6 +1506,43 @@
             }
         };
     })(gridponent);
+    /***************\
+       ObjectProxy
+    \***************/
+    gp.ObjectProxy = function (obj, onPropertyChanged) {
+        var self = this;
+        this.model = obj;
+        this.handlers = [];
+        if (typeof onPropertyChanged === 'function') {
+            this.handlers.push(onPropertyChanged);
+        }
+    
+        this.callHandlers = function (prop, oldValue, newValue) {
+            self.handlers.forEach(function (handler) {
+                handler(self, prop, oldValue, newValue);
+            });
+        };
+    
+        // create mirror properties
+        var props = Object.getOwnPropertyNames(obj);
+    
+        props.forEach(function (prop) {
+            Object.defineProperty(self, prop, {
+                get: function () {
+                    return obj[prop];
+                },
+                set: function (value) {
+                    var previousValue;
+                    if (obj[prop] != value) {
+                        previousValue = obj[prop];
+                        obj[prop] = value;
+                        self.callHandlers(prop, previousValue, value);
+                    }
+                }
+            });
+        });
+    };
+    
     /***************\
     server-side pager
     \***************/
@@ -1543,9 +1638,9 @@
     
             }
             catch (ex) {
-                console.log(ex);
-                console.log(ex.message);
-                console.log(ex.stack);
+                gp.log(ex);
+                gp.log(ex.message);
+                gp.log(ex.stack);
             }
             callback(model);
         },
@@ -1747,62 +1842,10 @@
     gp.templates['gridponent-cells'] = function(model, arg) {
         var out = [];
         model.Columns.forEach(function(col, index) {
-                        if (col.Commands) {
-                        out.push(gp.templates['gridponent-commands'](model, col));
-                    } else {
-                        out.push(gp.helpers['bodyCell'].call(model, col));
-                    }
-            });
-                return out.join('');
-    };
-    gp.templates['gridponent-commands'] = function(model, arg) {
-        var out = [];
-        out.push('<td class="body-cell commands-cell">');
-        out.push('<div class="btn-group" role="group">');
-                    arg.Commands.forEach(function(cmd, index) {
-                            if (cmd == 'Edit') {
-            out.push('                <button type="button" class="btn btn-primary btn-xs" value="');
-        out.push(cmd);
-        out.push('">');
-        out.push('                    <span class="glyphicon glyphicon-edit"></span>');
-        out.push(cmd);
-            out.push('</button>');
-                        }
-                            if (cmd == 'Delete') {
-            out.push('                <button type="button" class="btn btn-danger btn-xs" value="');
-        out.push(cmd);
-        out.push('">');
-        out.push('                    <span class="glyphicon glyphicon-remove"></span>');
-        out.push(cmd);
-            out.push('</button>');
-                        }
-                        });
-            out.push('</div>');
-        out.push('</td>');
-        return out.join('');
-    };
-    gp.templates['gridponent-edit-cells'] = function(model, arg) {
-        var out = [];
-        model.Columns.forEach(function(col, index) {
-                        if (col.Commands) {
-            out.push('<td class="body-cell commands-cell">');
-        out.push('<div class="btn-group" role="group">');
-        out.push('<button type="button" class="btn btn-primary btn-xs" value="Update">');
-        out.push('<span class="glyphicon glyphicon-save"></span>Save');
-        out.push('</button>');
-        out.push('<button type="button" class="btn btn-default btn-xs" value="Cancel">');
-        out.push('<span class="glyphicon glyphicon-remove"></span>Cancel');
-        out.push('</button>');
-        out.push('</div>');
-        out.push('</td>');
-                } else {
-                        if (col.Readonly) {
-                            out.push(gp.helpers['bodyCell'].call(model, col));
-                        } else {
-                            out.push(gp.helpers['editCell'].call(model, col));
-                        }
-                    }
-            });
+                out.push('<td class="body-cell">');
+                    out.push(gp.helpers['bodyCellContent'].call(model, col));
+            out.push('</td>');
+        });
                 return out.join('');
     };
     gp.templates['gridponent-pager'] = function(model, arg) {
@@ -1868,7 +1911,7 @@
         out.push('<tr>');
                     model.Columns.forEach(function(col, index) {
             out.push('<td class="footer-cell">');
-                        out.push(gp.helpers['footerCell'].call(model, col));
+                            out.push(gp.helpers['footerCell'].call(model, col));
             out.push('</td>');
                     });
             out.push('</tr>');

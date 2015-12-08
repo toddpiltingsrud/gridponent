@@ -105,14 +105,19 @@
     });
 
     extend('bodyCell', function (col) {
+        var type = (col.Type || '').toLowerCase();
+        var out = [];
+        out.push('<td class="body-cell ' + type + '">');
+        out.push(gp.helpers['bodyCellContent'].call(this, col))
+        out.push('</td>');
+        return out.join('');
+    });
+
+    extend('bodyCellContent', function (col) {
         var template, format, val = gp.getFormattedValue(this.Row, col, true);
 
         var type = (col.Type || '').toLowerCase();
         var out = [];
-        out.push('<td class="body-cell ' + type + '">');
-
-        gp.verbose('bodyCell: col:');
-        gp.verbose(col);
 
         // check for a template
         if (col.Template) {
@@ -122,6 +127,28 @@
             else {
                 out.push(gp.processRowTemplate.call(this, col.Template, this.Row, col));
             }
+        }
+        else if (col.Commands) {
+            out.push('<div class="btn-group" role="group">');
+            col.Commands.forEach(function (cmd, index) {
+                if (cmd == 'Edit') {
+                    out.push('<button type="button" class="btn btn-primary btn-xs" value="');
+                    out.push(cmd);
+                    out.push('">');
+                    out.push('<span class="glyphicon glyphicon-edit"></span>');
+                    out.push(cmd);
+                    out.push('</button>');
+                }
+                if (cmd == 'Delete') {
+                    out.push('<button type="button" class="btn btn-danger btn-xs" value="');
+                    out.push(cmd);
+                    out.push('">');
+                    out.push('<span class="glyphicon glyphicon-remove"></span>');
+                    out.push(cmd);
+                    out.push('</button>');
+                }
+            });
+            out.push('</div>');
         }
         else if (gp.hasValue(val)) {
             // show a checkmark for bools
@@ -134,17 +161,21 @@
                 out.push(val);
             }
         }
+        return out.join('');
+    });
+
+
+    extend('editCell', function (col) {
+        var out = [];
+
+        out.push('<td class="body-cell ' + col.Type + '">');
+        out.push(gp.helpers['editCellContent'].call(this, col))
         out.push('</td>');
         return out.join('');
     });
 
-    extend('editCell', function (col) {
+    extend('editCellContent', function (col) {
         var template, out = [];
-
-        out.push('<td class="body-cell ' + col.Type + '">');
-
-        gp.verbose('helper.editCell: col: ');
-        gp.verbose(col);
 
         // check for a template
         if (col.EditTemplate) {
@@ -155,6 +186,18 @@
                 out.push(gp.processRowTemplate.call(this, col.EditTemplate, this.Row, col));
             }
         }
+        else if (col.Commands) {
+            out.push('<td class="body-cell commands-cell">');
+            out.push('<div class="btn-group" role="group">');
+            out.push('<button type="button" class="btn btn-primary btn-xs" value="Update">');
+            out.push('<span class="glyphicon glyphicon-save"></span>Save');
+            out.push('</button>');
+            out.push('<button type="button" class="btn btn-default btn-xs" value="Cancel">');
+            out.push('<span class="glyphicon glyphicon-remove"></span>Cancel');
+            out.push('</button>');
+            out.push('</div>');
+            out.push('</td>');
+        }
         else {
             var val = this.Row[col.Field];
             // render empty cell if this field doesn't exist in the data
@@ -164,8 +207,9 @@
             out.push('<input class="form-control" name="' + col.Field + '" type="');
             switch (col.Type) {
                 case 'date':
+                case 'dateString':
                     // use the required format for the date input element
-                    val = gp.formatDate(val, 'yyyy-MM-dd');
+                    val = gp.getLocalISOString(val).substring(0, 10);
                     out.push('date" value="' + gp.escapeHTML(val) + '" />');
                     break;
                 case 'number':
@@ -183,7 +227,6 @@
                     break;
             };
         }
-        out.push('</td>');
         return out.join('');
     });
 

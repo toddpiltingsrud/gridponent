@@ -12,11 +12,12 @@
     <link href="../src/gridponent.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
     <script src="https://code.jquery.com/qunit/qunit-1.20.0.js"></script>
+    <script src="https://cdn.polyfill.io/v2/polyfill.js?features=Intl.~locale.en"></script>
     <script src="../data/products.js"></script>
     <!--<script src="../scripts/webcomponents.min.js"></script>-->
     <script src="../scripts/gryst.min.js"></script>
     <script src="../gridponent.js"></script>
-    <script src="https://cdn.polyfill.io/v1/polyfill.min.js?features=Intl.~locale.en"></script>
+    <script src="../scripts/modernizr-custom-3.0.0.min.js"></script>
     <script>
     var fns = fns || {};
 
@@ -53,6 +54,7 @@
     fns.rowSelected = function (model) {
         gp.info(model);
     };
+
     </script>
 </head>
 <body>
@@ -99,7 +101,6 @@
                                  responsive="true"
                                  onrowselect="/test?productid={{ProductID}}&color={{Color}}"
                                  search="top-left"
-                                 search-filter="fns.searchFilter"
                                  oncreated="fns.getData"
                                  update="/Products/Update"
                                  destroy="/Products/Destroy">
@@ -161,6 +162,48 @@
                 swapTabs();
             }
 
+            if (!Modernizr.inputtypes.date) {
+                // load date input type polyfills
+                var css = document.createElement("link");
+                css.rel = 'stylesheet';
+                css.media = 'all';
+                css.type = "text/css";
+                css.href = '../styles/bootstrap-datepicker.min.css';
+                document.body.appendChild(css);
+
+                var s = document.createElement("script");
+                s.type = "text/javascript";
+                s.src = '../Scripts/bootstrap-datepicker.min.js';
+                document.body.appendChild(s);
+
+                var tries = 0;
+                var setDatePickers = function (evt) {
+                    var context = evt.target;
+                    if (typeof ($().datepicker) === 'undefined' && tries++ < 5) {
+                        // wait for the polyfill to load
+                        setTimeout(setDatePickers, 250);
+                    }
+                    else {
+                        if (typeof (Pikaday) !== 'undefined') {
+                            var input, dateInputs = evt.target.querySelectorAll('input[type=date]');
+                            for (var i = 0; i < dateInputs.length; i++) {
+                                input = dateInputs[i];
+
+                                if (input.value && input.value.length && input.value.length >= '2015-05-18'.length) {
+                                    var split = input.value.split('-');
+                                    input.value = [split[1], split[2], split[0]].join('/');
+                                }
+
+                                $(input).datepicker({
+                                    orientation: 'left top'
+                                });
+                            }
+                        }
+                    }
+                };
+
+                document.addEventListener('afterEdit', setDatePickers);
+            }
         })();
     </script>
 

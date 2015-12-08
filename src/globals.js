@@ -19,14 +19,12 @@
     };
 
     // logging
-
-    gp.error = console.log.bind(console);
-    gp.log = gp.verbose = gp.info = gp.warn = function () { };
+    gp.log = window.console ? window.console.log.bind(window.console) : function () { };
+    gp.verbose = gp.info = gp.warn = function () { };
 
     var search = gp.getSearch();
 
     if ('log' in search) {
-        gp.log = console.log.bind(console);
         if (search.log === 'verbose') {
             gp.verbose = gp.info = gp.warn = gp.log;
         }
@@ -83,6 +81,13 @@
     };
 
     var iso8601 = /^[012][0-9]{3}-[01][0-9]-[0123][0-9]/;
+
+    gp.getLocalISOString = function (date) {
+        if (typeof date === 'string') return date;
+        var offset = date.getTimezoneOffset();
+        var adjustedDate = new Date(date.valueOf() - (offset * 60000));
+        return adjustedDate.toISOString();
+    };
 
     gp.getType = function (a) {
         if (a === null || a === undefined) {
@@ -280,8 +285,8 @@
             return currentObj;
         }
         catch (err) {
-            console.log('Could not resolve object path: ' + path);
-            console.log(err);
+            gp.log('Could not resolve object path: ' + path);
+            gp.log(err);
         }
     };
 

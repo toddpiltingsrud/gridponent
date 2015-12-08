@@ -95,7 +95,6 @@ gp.Initializer.prototype = {
                 }
             }
         });
-        gp.log(config.Columns);
     },
 
     getPager: function (config) {
@@ -127,7 +126,7 @@ gp.Initializer.prototype = {
             // it's got to be either a function or a URL template
             if (type === 'function' || type === 'urlTemplate') {
                 // add click handler
-                gp.on(config.node, 'click', rowSelector, function (evt) {
+                gp.on(config.node, 'click', rowSelector + ':not(.edit-mode)', function (evt) {
                     // remove previously selected class
                     trs = config.node.querySelectorAll(rowSelector + '.selected');
                     for (i = 0; i < trs.length; i++) {
@@ -139,15 +138,14 @@ gp.Initializer.prototype = {
                     model = gp.getRowModel(config.data.Data, this);
 
                     // ensure row selection doesn't interfere with button clicks in the row
-                    // by making sure the evt target was a cell
+                    // by making sure the evt target is a cell
                     if (gp.in(evt.target, rowSelector + ' > td.body-cell', config.node)) {
                         if (type === 'function') {
                             config.Onrowselect.call(this, model);
                         }
                         else {
                             // it's a urlTemplate
-                            url = gp.processRowTemplate(config.Onrowselect, model);
-                            window.location = url;
+                            window.location = gp.processRowTemplate(config.Onrowselect, model);
                         }
                     }
                 });
@@ -188,8 +186,8 @@ gp.Initializer.prototype = {
             node.innerHTML = gp.templates['gridponent'](this.config);
         }
         catch (ex) {
-            console.log(ex.message);
-            console.log(ex.stack);
+            gp.log(ex.message);
+            gp.log(ex.stack);
         }
     },
 
@@ -220,14 +218,26 @@ gp.Initializer.prototype = {
     },
 
     refresh: function (config) {
-        var rowsTemplate = gp.helpers['tableRows'];
+        var rowsTemplate = gp.templates['gridponent-body'];
         var pagerTemplate = gp.templates['gridponent-pager'];
-        var html = rowsTemplate.call(config);
-        config.node.querySelector('.table-body > table > tbody').innerHTML = html;
+        var html = rowsTemplate(config);
+        config.node.querySelector('.table-body').innerHTML = html;
         html = pagerTemplate(config);
         config.node.querySelector('.table-pager').innerHTML = html;
         html = gp.helpers['sortStyle'].call(config);
         config.node.querySelector('style.sort-style').innerHTML = html;
+    },
+
+    restoreCells: function (config, row, tr) {
+        var col,
+            i = 0;
+            helper = gp.helpers['bodyCellContent'],
+            cells = tr.querySelectorAll('td.body-cell');
+        for ( ; i < cells.length; i++) {
+            col = config.Columns[i];
+            cells[i].innerHTML = helper.call(this.config, col);
+        }
+        gp.removeClass(tr, 'edit-mode');
     },
 
     update: function () {
@@ -264,7 +274,7 @@ gp.Initializer.prototype = {
                     self.cancelEdit(row, tr);
                     break;
                 default:
-                    console.log('Unrecognized command: ' + command);
+                    gp.log('Unrecognized command: ' + command);
                     break;
             }
         });
@@ -278,16 +288,25 @@ gp.Initializer.prototype = {
             gp.info('editRow:tr:');
             gp.info(tr);
             // put the row in edit mode
-            var template = gp.templates['gridponent-edit-cells'];
-            tr.innerHTML = template(this.config);
+            // IE9 can't set innerHTML of tr, so iterate through each cell
+            // besides, that way we can just skip readonly cells
+            var helper = gp.helpers['editCellContent'];
+            var col, cells = tr.querySelectorAll('td.body-cell');
+            for (var i = 0; i < cells.length; i++) {
+                col = this.config.Columns[i];
+                if (!col.ReadOnly) {
+                    cells[i].innerHTML = helper.call(this.config, col);
+                }
+            }
+            gp.addClass(tr, 'edit-mode');
             tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
             gp.raiseCustomEvent(tr, 'afterEdit', {
                 model: row
             });
         }
         catch (ex) {
-            console.log(ex.message);
-            console.log(ex.stack);
+            gp.log(ex.message);
+            if (ex.stack) gp.log(ex.stack);
         }
     },
 
@@ -311,11 +330,7 @@ gp.Initializer.prototype = {
 
                 }
                 else {
-                    // put the cells back
-                    self.config.Row = response.Row;
-                    var template = gp.templates['gridponent-cells'];
-                    var html = template(self.config);
-                    tr.innerHTML = html;
+                    self.restoreCells(self.config, row, tr);
                     // dispose of the ChangeMonitor
                     monitor = tr['gp-change-monitor'];
                     if (monitor) {
@@ -329,23 +344,21 @@ gp.Initializer.prototype = {
             });
         }
         catch (ex) {
-            console.log(ex.message);
-            console.log(ex.stack);
+            gp.log(ex.message);
+            gp.log(ex.stack);
         }
     },
 
     cancelEdit: function (row, tr) {
         try {
-            var template = gp.templates['gridponent-cells'];
-            var html = template(this.config);
-            tr.innerHTML = html;
+            this.restoreCells(this.config, row, tr);
             gp.raiseCustomEvent(tr, 'cancelEdit', {
                 model: row
             });
         }
         catch (ex) {
-            console.log(ex.message);
-            console.log(ex.stack);
+            gp.log(ex.message);
+            gp.log(ex.stack);
         }
     },
 
@@ -372,8 +385,8 @@ gp.Initializer.prototype = {
             });
         }
         catch (ex) {
-            console.log(ex.message);
-            console.log(ex.stack);
+            gp.log(ex.message);
+            gp.log(ex.stack);
         }
     }
 

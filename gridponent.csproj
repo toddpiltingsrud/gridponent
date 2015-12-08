@@ -34,21 +34,27 @@
     <RootNamespace>tp_table</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="scripts\bootstrap-datepicker.min.js" />
     <Content Include="scripts\dates.js" />
     <Content Include="scripts\gryst.js" />
     <Content Include="scripts\gryst.min.js" />
+    <Content Include="scripts\intl-polyfill.js" />
+    <Content Include="scripts\modernizr-custom-3.0.0.min.js" />
     <Content Include="spec\Out.txt">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Out.tt</DependentUpon>
     </Content>
     <Content Include="spec\OutSource.txt" />
-    <Content Include="spec\Styles.css" />
+    <Content Include="styles\bootstrap-datepicker.min.css" />
+    <Content Include="styles\pikaday.css" />
+    <Content Include="styles\Styles.css" />
     <Content Include="gridponent.js">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>gridponent.tt</DependentUpon>
     </Content>
+    <Content Include="src\object-proxy.js" />
     <Content Include="src\format.js" />
     <Content Include="src\custom-event-polyfill.js" />
     <Content Include="src\mock-http.js" />
@@ -102,8 +108,6 @@
     <None Include="scripts\gryst.min.js.map" />
     <Content Include="src\Templates\gridponent-tfoot.html" />
     <Content Include="src\Templates\gridponent-cells.html" />
-    <Content Include="src\Templates\gridponent-commands.html" />
-    <Content Include="src\Templates\gridponent-edit-cells.html" />
     <Content Include="src\Templates\gridponent-pager.html" />
     <Content Include="src\Templates\gridponent.html" />
   </ItemGroup>

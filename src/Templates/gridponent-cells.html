@@ -1,7 +1,5 @@
 ﻿{{#each model.Columns as |col|}}
-    {{#if col.Commands}}
-        {{template "gridponent-commands" col}}
-    {{else}}
-        {{helper bodyCell col}}
-    {{/if}}
+    <td class="body-cell">
+        {{helper bodyCellContent col}}
+    </td>
 {{/each}}

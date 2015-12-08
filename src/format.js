@@ -24,7 +24,7 @@
         this.locale = locale || gp.defaultLocale;
         this.currencyCode = currencyCode || gp.defaultCurrencyCode;
         this.supported = (window.Intl !== undefined);
-        if (!this.supported) console.log('Intl internationalization not supported');
+        if (!this.supported) gp.log('Intl internationalization not supported');
     };
 
     gp.Formatter.prototype = {

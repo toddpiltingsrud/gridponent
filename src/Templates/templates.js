@@ -17,62 +17,10 @@ gp.templates['gridponent-body'] = function(model, arg) {
 gp.templates['gridponent-cells'] = function(model, arg) {
     var out = [];
     model.Columns.forEach(function(col, index) {
-                    if (col.Commands) {
-                    out.push(gp.templates['gridponent-commands'](model, col));
-                } else {
-                    out.push(gp.helpers['bodyCell'].call(model, col));
-                }
-        });
-            return out.join('');
-};
-gp.templates['gridponent-commands'] = function(model, arg) {
-    var out = [];
-    out.push('<td class="body-cell commands-cell">');
-    out.push('<div class="btn-group" role="group">');
-                arg.Commands.forEach(function(cmd, index) {
-                        if (cmd == 'Edit') {
-        out.push('                <button type="button" class="btn btn-primary btn-xs" value="');
-    out.push(cmd);
-    out.push('">');
-    out.push('                    <span class="glyphicon glyphicon-edit"></span>');
-    out.push(cmd);
-        out.push('</button>');
-                    }
-                        if (cmd == 'Delete') {
-        out.push('                <button type="button" class="btn btn-danger btn-xs" value="');
-    out.push(cmd);
-    out.push('">');
-    out.push('                    <span class="glyphicon glyphicon-remove"></span>');
-    out.push(cmd);
-        out.push('</button>');
-                    }
-                    });
-        out.push('</div>');
-    out.push('</td>');
-    return out.join('');
-};
-gp.templates['gridponent-edit-cells'] = function(model, arg) {
-    var out = [];
-    model.Columns.forEach(function(col, index) {
-                    if (col.Commands) {
-        out.push('<td class="body-cell commands-cell">');
-    out.push('<div class="btn-group" role="group">');
-    out.push('<button type="button" class="btn btn-primary btn-xs" value="Update">');
-    out.push('<span class="glyphicon glyphicon-save"></span>Save');
-    out.push('</button>');
-    out.push('<button type="button" class="btn btn-default btn-xs" value="Cancel">');
-    out.push('<span class="glyphicon glyphicon-remove"></span>Cancel');
-    out.push('</button>');
-    out.push('</div>');
-    out.push('</td>');
-            } else {
-                    if (col.Readonly) {
-                        out.push(gp.helpers['bodyCell'].call(model, col));
-                    } else {
-                        out.push(gp.helpers['editCell'].call(model, col));
-                    }
-                }
-        });
+            out.push('<td class="body-cell">');
+                out.push(gp.helpers['bodyCellContent'].call(model, col));
+        out.push('</td>');
+    });
             return out.join('');
 };
 gp.templates['gridponent-pager'] = function(model, arg) {
@@ -138,7 +86,7 @@ gp.templates['gridponent-tfoot'] = function(model, arg) {
     out.push('<tr>');
                 model.Columns.forEach(function(col, index) {
         out.push('<td class="footer-cell">');
-                    out.push(gp.helpers['footerCell'].call(model, col));
+                        out.push(gp.helpers['footerCell'].call(model, col));
         out.push('</td>');
                 });
         out.push('</tr>');
