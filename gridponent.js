@@ -1172,15 +1172,14 @@
                         model = gp.getRowModel(config.data.Data, this);
     
                         // ensure row selection doesn't interfere with button clicks in the row
-                        // by making sure the evt target was a cell
+                        // by making sure the evt target is a cell
                         if (gp.in(evt.target, rowSelector + ' > td.body-cell', config.node)) {
                             if (type === 'function') {
                                 config.Onrowselect.call(this, model);
                             }
                             else {
                                 // it's a urlTemplate
-                                url = gp.processRowTemplate(config.Onrowselect, model);
-                                window.location = url;
+                                window.location = gp.processRowTemplate(config.Onrowselect, model);
                             }
                         }
                     });
@@ -1611,31 +1610,32 @@
             }
             return (data.Page - 1) * data.Top;
         },
+    
         get: function (model, callback, error) {
             try {
                 var self = this;
                 var skip = this.getSkip(model);
-                var count, qry = gryst.from(this.data);
-                gp.info('ClientPager: data length: ' + this.data.length);
+    
+                model.Data = this.data;
+    
+                var count;
                 if (gp.isNullOrEmpty(model.Search) === false) {
-                    qry = qry.where(function (row) {
+                    model.Data = model.Data.filter(function (row) {
                         return self.searchFilter(row, model.Search);
                     });
                 }
+                model.TotalRows = model.Data.length;
                 if (gp.isNullOrEmpty(model.OrderBy) === false) {
-                    if (model.Desc) {
-                        qry = qry.orderByDescending(model.OrderBy);
-                    }
-                    else {
-                        qry = qry.orderBy(model.OrderBy);
+                    var col = this.getColumnByField(this.columns, model.OrderBy);
+                    if (col !== undefined) {
+                        var sortFunction = this.getSortFunction(col, model.Desc);
+                        model.Data.sort(function (row1, row2) {
+                            return sortFunction(row1[col.Field], row2[col.Field]);
+                        });
                     }
                 }
-                model.TotalRows = qry.run().length;
                 gp.info('ClientPager: total rows: ' + model.TotalRows);
-                qry = qry.skip(skip).take(model.Top);
-    
-                model.Data = qry.run();
-    
+                model.Data = model.Data.slice(skip).slice(0, model.Top);
             }
             catch (ex) {
                 gp.log(ex);
@@ -1644,6 +1644,69 @@
             }
             callback(model);
         },
+        getColumnByField: function(columns, field) {
+            for (var i = 0; i < columns.length; i++) {
+                if (columns[i].Field === field) return columns[i];
+            }
+        },
+        getSortFunction: function (col, desc) {
+            if (col.Type === 'number' || col.Type === 'date' || col.Type == 'boolean') {
+                if (desc) {
+                    return this.diffSortDesc;
+                }
+                return this.diffSortAsc;
+            }
+            else {
+                if (desc) {
+                    return this.stringSortDesc;
+                }
+                return this.stringSortAsc;
+            }
+        },
+        diffSortDesc: function(a, b) {
+            return b - a;
+        },
+        diffSortAsc: function(a, b) {
+            return a - b;
+        },
+        stringSortDesc: function (a, b) {
+            if (a === null) {
+                if (b != null) {
+                    return 1;
+                }
+            }
+            else if (b === null) {
+                // we already know a isn't null
+                return -1;
+            }
+            if (a > b) {
+                return -1;
+            }
+            if (a < b) {
+                return 1;
+            }
+    
+            return 0;
+        },
+        stringSortAsc: function (a, b) {
+            if (a === null) {
+                if (b != null) {
+                    return -1;
+                }
+            }
+            else if (b === null) {
+                // we already know a isn't null
+                return 1;
+            }
+            if (a > b) {
+                return 1;
+            }
+            if (a < b) {
+                return -1;
+            }
+    
+            return 0;
+        }
     };
     /***************\
       paging model  

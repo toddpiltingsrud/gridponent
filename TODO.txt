@@ -1,8 +1,5 @@
 ﻿When updating rows, account for validation errors from the server.
 
-Add a calendar shim for browsers that don't support date input type.
-We'll need to respond to an event that's fired after putting a row into edit mode. Then query the row for input[type=date].
-
 Ensure we are handling date values correctly. 
 
 Add support for two-way binding using Object.observe: https://github.com/MaxArt2501/object-observe
@@ -18,8 +15,6 @@ Add page size config option (default to 25).
 Provide an easy way to get at the data via JavaScript.
 
 Might need to re-sync column widths anytime the main table content changes (e.g. deleting or adding rows, paging, sorting).
-
-Remove the dependency on gryst.
 
 ChangeMonitor.afterSync should be passed a list of changes. Follow the convention for Object.observe.
 

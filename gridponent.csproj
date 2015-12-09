@@ -36,8 +36,6 @@
   <ItemGroup>
     <Content Include="scripts\bootstrap-datepicker.min.js" />
     <Content Include="scripts\dates.js" />
-    <Content Include="scripts\gryst.js" />
-    <Content Include="scripts\gryst.min.js" />
     <Content Include="scripts\intl-polyfill.js" />
     <Content Include="scripts\modernizr-custom-3.0.0.min.js" />
     <Content Include="spec\Out.txt">
@@ -47,7 +45,6 @@
     </Content>
     <Content Include="spec\OutSource.txt" />
     <Content Include="styles\bootstrap-datepicker.min.css" />
-    <Content Include="styles\pikaday.css" />
     <Content Include="styles\Styles.css" />
     <Content Include="gridponent.js">
       <AutoGen>True</AutoGen>
@@ -105,7 +102,6 @@
   <ItemGroup>
     <Content Include="data\Products.js" />
     <None Include="data\stops.json" />
-    <None Include="scripts\gryst.min.js.map" />
     <Content Include="src\Templates\gridponent-tfoot.html" />
     <Content Include="src\Templates\gridponent-cells.html" />
     <Content Include="src\Templates\gridponent-pager.html" />

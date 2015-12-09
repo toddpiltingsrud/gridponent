@@ -15,7 +15,6 @@
     <script src="https://cdn.polyfill.io/v2/polyfill.js?features=Intl.~locale.en"></script>
     <script src="../data/products.js"></script>
     <!--<script src="../scripts/webcomponents.min.js"></script>-->
-    <script src="../scripts/gryst.min.js"></script>
     <script src="../gridponent.js"></script>
     <script src="../scripts/modernizr-custom-3.0.0.min.js"></script>
     <script>
@@ -48,7 +47,7 @@
     };
 
     fns.average = function (column) {
-        return gryst.agg.avg(this.data.Data, column.Field);
+        return 10;
     };
 
     fns.rowSelected = function (model) {
@@ -134,7 +133,8 @@
     <div id="background"></div>
 
     <script src="tests.js"></script>
-
+    <script src="../scripts/bootstrap-datepicker.min.js"></script>
+    <link href="../styles/bootstrap-datepicker.min.css" rel="stylesheet" />
     <script>
         (function () {
             var tabs = document.getElementsByClassName('tab');
@@ -164,27 +164,27 @@
 
             if (!Modernizr.inputtypes.date) {
                 // load date input type polyfills
-                var css = document.createElement("link");
-                css.rel = 'stylesheet';
-                css.media = 'all';
-                css.type = "text/css";
-                css.href = '../styles/bootstrap-datepicker.min.css';
-                document.body.appendChild(css);
+                //var css = document.createElement("link");
+                //css.rel = 'stylesheet';
+                //css.media = 'all';
+                //css.type = "text/css";
+                //css.href = '../styles/bootstrap-datepicker.min.css';
+                //document.body.appendChild(css);
 
-                var s = document.createElement("script");
-                s.type = "text/javascript";
-                s.src = '../Scripts/bootstrap-datepicker.min.js';
-                document.body.appendChild(s);
+                //var s = document.createElement("script");
+                //s.type = "text/javascript";
+                //s.src = '../Scripts/bootstrap-datepicker.min.js';
+                //document.body.appendChild(s);
 
                 var tries = 0;
                 var setDatePickers = function (evt) {
                     var context = evt.target;
-                    if (typeof ($().datepicker) === 'undefined' && tries++ < 5) {
-                        // wait for the polyfill to load
-                        setTimeout(setDatePickers, 250);
-                    }
-                    else {
-                        if (typeof (Pikaday) !== 'undefined') {
+                    //if (typeof ($().datepicker) === 'undefined' && tries++ < 5) {
+                    //    // wait for the polyfill to load
+                    //    setTimeout(setDatePickers, 250);
+                    //}
+                    //else {
+                        if (typeof ($().datepicker) !== 'undefined') {
                             var input, dateInputs = evt.target.querySelectorAll('input[type=date]');
                             for (var i = 0; i < dateInputs.length; i++) {
                                 input = dateInputs[i];
@@ -199,7 +199,7 @@
                                 });
                             }
                         }
-                    }
+                    //}
                 };
 
                 document.addEventListener('afterEdit', setDatePickers);

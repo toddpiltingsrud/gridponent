@@ -39,11 +39,11 @@
         get: function (url, callback, error) {
             var queryString = url.substring(url.indedOf('?') + 1);
             var model = this.deserialize(queryString);
-            var count, qry = gryst.from(gp.products);
+            var count, data = gp.products;
             if (gp.isNullOrEmpty(model.Search) === false) {
-                var props = Object.getOwnPropertyNames(gp.products[0]);
+                var props = Object.getOwnPropertyNames(data[0]);
                 var search = model.Search.toLowerCase();
-                qry = qry.where(function (row) {
+                data = data.filter(function (row) {
                     for (var i = 0; i < props.length; i++) {
                         if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
                             return true;
@@ -54,16 +54,54 @@
             }
             if (gp.isNullOrEmpty(model.OrderBy) === false) {
                 if (model.Desc) {
-                    qry = qry.orderByDescending(model.OrderBy);
+                    data.sort(function (row1, row2) {
+                        var a = row1[model.OrderBy];
+                        var b = row2[model.OrderBy];
+                        if (a === null) {
+                            if (b != null) {
+                                return 1;
+                            }
+                        }
+                        else if (b === null) {
+                            // we already know a isn't null
+                            return -1;
+                        }
+                        if (a > b) {
+                            return -1;
+                        }
+                        if (a < b) {
+                            return 1;
+                        }
+
+                        return 0;
+                    });
                 }
                 else {
-                    qry = qry.orderBy(model.OrderBy);
+                    data.sort(function (row1, row2) {
+                        var a = row1[model.OrderBy];
+                        var b = row2[model.OrderBy];
+                        if (a === null) {
+                            if (b != null) {
+                                return -1;
+                            }
+                        }
+                        else if (b === null) {
+                            // we already know a isn't null
+                            return 1;
+                        }
+                        if (a > b) {
+                            return 1;
+                        }
+                        if (a < b) {
+                            return -1;
+                        }
+
+                        return 0;
+                    });
                 }
             }
-            count = qry.run().length;
-            qry = qry.skip(skip).take(model.Top);
-
-            model.Data = qry.run();
+            count = data.length;
+            model.Data = model.Data.slice(skip).slice(0, model.Top);
             setTimeout(function () {
                 callback(model);
             });

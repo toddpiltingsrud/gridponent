@@ -242,39 +242,39 @@ QUnit.test("gp.helpers.thead", function (assert) {
 
     testHeaders(headers);
 
-    // no fixed headers, with sorting
-    node = getTableConfig(false, false, false, true).node;
+    //// no fixed headers, with sorting
+    //node = getTableConfig(false, false, false, true).node;
 
-    headers = node.querySelectorAll('div.table-body th.header-cell');
+    //headers = node.querySelectorAll('div.table-body th.header-cell');
 
-    testHeaders(headers);
+    //testHeaders(headers);
 
-    // no fixed headers, no sorting
-    node = getTableConfig(false, false, false, false).node;
+    //// no fixed headers, no sorting
+    //node = getTableConfig(false, false, false, false).node;
 
-    headers = node.querySelectorAll('div.table-body th.header-cell');
+    //headers = node.querySelectorAll('div.table-body th.header-cell');
 
-    assert.ok(headers[0].querySelector('input[type=checkbox]') != null);
+    //assert.ok(headers[0].querySelector('input[type=checkbox]') != null);
 
-    assert.equal(headers[1].innerHTML, 'ID');
+    //assert.equal(headers[1].innerHTML, 'ID');
 
-    assert.equal(headers[2].querySelector('label.table-sort'), null);
+    //assert.equal(headers[2].querySelector('label.table-sort'), null);
 
-    assert.ok(headers[5].querySelector('label.table-sort > input[value=SellStartDate]') != null);
+    //assert.ok(headers[5].querySelector('label.table-sort > input[value=SellStartDate]') != null);
 
-    assert.equal(headers[5].textContent, 'Sell Start Date');
+    //assert.equal(headers[5].textContent, 'Sell Start Date');
 
-    assert.ok(headers[6].querySelector('label.table-sort > input[value=Name]') != null);
+    //assert.ok(headers[6].querySelector('label.table-sort > input[value=Name]') != null);
 
-    assert.equal(headers[6].textContent, 'Markup');
+    //assert.equal(headers[6].textContent, 'Markup');
 
-    assert.equal(headers[8].textContent, 'Test Header');
+    //assert.equal(headers[8].textContent, 'Test Header');
 
-    assert.ok(headers[9].querySelector('input[type=checkbox]') != null);
+    //assert.ok(headers[9].querySelector('input[type=checkbox]') != null);
 
-    assert.equal(headers[10].textContent, 'Test Header');
+    //assert.equal(headers[10].textContent, 'Test Header');
 
-    assert.ok(headers[10].querySelector('input[type=checkbox]') != null);
+    //assert.ok(headers[10].querySelector('input[type=checkbox]') != null);
 
 });
 
