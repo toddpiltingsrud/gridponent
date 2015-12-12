@@ -12,15 +12,15 @@ string path = "";
 
 if (Directory.Exists(@"C:\Users\kitntodd"))
 {
-    path = @"C:\Users\kitntodd\OneDrive\Documents\Code\Projects\gridponent\src\Templates";
+    path = @"C:\Users\kitntodd\OneDrive\Documents\Code\Projects\gridponent\src\views";
 }
 else if (Directory.Exists(@"C:\Users\tpiltingsrud"))
 {
-    path = @"C:\Users\tpiltingsrud\OneDrive\Documents\Code\Projects\gridponent\src\Templates";
+    path = @"C:\Users\tpiltingsrud\OneDrive\Documents\Code\Projects\gridponent\src\views";
 }
 else
 {
-    path = @"C:\Users\todd\OneDrive\Documents\Code\Projects\gridponent\src\Templates";
+    path = @"C:\Users\todd\OneDrive\Documents\Code\Projects\gridponent\src\views";
 }
 
 var files = new DirectoryInfo(path).GetFiles("*.html", SearchOption.TopDirectoryOnly);

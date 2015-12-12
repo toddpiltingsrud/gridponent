@@ -249,6 +249,8 @@
         this.data.HasPages = this.data.PageCount > 1;
         this.data.PreviousPage = this.data.Page === 1 ? 1 : this.data.Page - 1;
         this.data.NextPage = this.data.Page === this.data.PageCount ? this.data.PageCount : this.data.Page + 1;
+        console.log(this.data);
+        console.log(this.data.PageCount);
     });
 
     extend('sortStyle', function () {

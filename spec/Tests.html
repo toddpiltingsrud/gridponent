@@ -8,7 +8,7 @@
     <title>gridponent tests</title>
     <link href="https://code.jquery.com/qunit/qunit-1.20.0.css" rel="stylesheet" />
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
-    <link href="styles.css" rel="stylesheet">
+    <link href="../styles/styles.css" rel="stylesheet">
     <link href="../src/gridponent.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
     <script src="https://code.jquery.com/qunit/qunit-1.20.0.js"></script>
@@ -20,8 +20,8 @@
     <script>
     var fns = fns || {};
 
-    fns.getData = function () {
-        var model = new gridponent.PagingModel(data.products);
+    fns.getData = function (pagingModel) {
+        var model = new gridponent.RequestModel(data.products);
         return model;
     };
 
@@ -100,7 +100,8 @@
                                  responsive="true"
                                  onrowselect="/test?productid={{ProductID}}&color={{Color}}"
                                  search="top-left"
-                                 oncreated="fns.getData"
+                                 data-source="data.products"
+                                 create="/Products/Create"
                                  update="/Products/Update"
                                  destroy="/Products/Destroy">
                         <gp-column header="Product" field="ProductID" template="fns.getName" edit-template="fns.dropdown"></gp-column>

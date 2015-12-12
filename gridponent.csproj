@@ -44,6 +44,8 @@
       <DependentUpon>Out.tt</DependentUpon>
     </Content>
     <Content Include="spec\OutSource.txt" />
+    <Content Include="src\model.js" />
+    <Content Include="src\controller.js" />
     <Content Include="styles\bootstrap-datepicker.min.css" />
     <Content Include="styles\Styles.css" />
     <Content Include="gridponent.js">
@@ -59,7 +61,7 @@
     <Content Include="src\pagers.js" />
     <Content Include="src\change-monitor.js" />
     <Content Include="src\globals.js" />
-    <Content Include="src\paging-model.js" />
+    <Content Include="src\request-model.js" />
     <Content Include="gridponent.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>gridponent.js</LastGenOutput>
@@ -78,13 +80,13 @@
       <DependentUpon>gridponent.css</DependentUpon>
     </None>
     <None Include="src\gridponent.less" />
-    <Content Include="src\Templates\gridponent-body.html" />
-    <Content Include="src\Templates\templates.js">
+    <Content Include="src\views\gridponent-body.html" />
+    <Content Include="src\views\templates.js">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>templates.tt</DependentUpon>
     </Content>
-    <Content Include="src\Templates\templates.tt">
+    <Content Include="src\views\templates.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>templates.js</LastGenOutput>
     </Content>
@@ -97,15 +99,15 @@
       <DependentUpon>gridponent.css</DependentUpon>
     </Content>
     <Content Include="TODO.txt" />
-    <None Include="src\Templates\README.md" />
+    <None Include="src\views\README.md" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="data\Products.js" />
     <None Include="data\stops.json" />
-    <Content Include="src\Templates\gridponent-tfoot.html" />
-    <Content Include="src\Templates\gridponent-cells.html" />
-    <Content Include="src\Templates\gridponent-pager.html" />
-    <Content Include="src\Templates\gridponent.html" />
+    <Content Include="src\views\gridponent-tfoot.html" />
+    <Content Include="src\views\gridponent-cells.html" />
+    <Content Include="src\views\gridponent-pager.html" />
+    <Content Include="src\views\gridponent.html" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />

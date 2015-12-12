@@ -3,19 +3,13 @@ server-side pager
 \***************/
 gp.ServerPager = function (config) {
     this.config = config;
-    this.baseUrl = config.Read;
+    this.url = config.Read;
 };
 
 gp.ServerPager.prototype = {
-    get: function (model, callback, error) {
-        var self = this;
+    read: function (model, callback, error) {
         var h = new gp.Http();
-        // extract only the properties needed for paging
-        var url = this.baseUrl + '?' + h.serialize(model.data, ['Page', 'Top', 'OrderBy', 'Desc', 'Search', 'Skip']);
-        var cb = function (response) {
-            callback(response);
-        };
-        h.get(url, cb, error);
+        h.post(this.url, model, callback, error);
     },
     copyProps: function (from, to) {
         var props = Object.getOwnPropertyNames(from);
@@ -67,7 +61,7 @@ gp.ClientPager.prototype = {
         return (data.Page - 1) * data.Top;
     },
 
-    get: function (model, callback, error) {
+    read: function (model, callback, error) {
         try {
             var self = this;
             var skip = this.getSkip(model);
@@ -75,7 +69,7 @@ gp.ClientPager.prototype = {
             model.Data = this.data;
 
             var count;
-            if (gp.isNullOrEmpty(model.Search) === false) {
+            if (!gp.isNullOrEmpty(model.Search)) {
                 model.Data = model.Data.filter(function (row) {
                     return self.searchFilter(row, model.Search);
                 });
@@ -91,19 +85,19 @@ gp.ClientPager.prototype = {
                 }
             }
             gp.info('ClientPager: total rows: ' + model.TotalRows);
-            model.Data = model.Data.slice(skip).slice(0, model.Top);
+            if (model.Top !== -1) {
+                model.Data = model.Data.slice(skip).slice(0, model.Top);
+            }
         }
         catch (ex) {
-            gp.log(ex);
             gp.log(ex.message);
             gp.log(ex.stack);
         }
         callback(model);
     },
-    getColumnByField: function(columns, field) {
-        for (var i = 0; i < columns.length; i++) {
-            if (columns[i].Field === field) return columns[i];
-        }
+    getColumnByField: function (columns, field) {
+        var col = columns.filter(function (c) { return c.Field === field });
+        return col.length ? col[0] : null;
     },
     getSortFunction: function (col, desc) {
         if (col.Type === 'number' || col.Type === 'date' || col.Type == 'boolean') {

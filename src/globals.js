@@ -431,6 +431,21 @@
         el.className = gp.trim((' ' + el.className + ' ').replace(' ' + cn + ' ', ' '));
     };
 
+    gp.prependChild = function (node, child) {
+        if (typeof node === 'string') node = document.querySelector(node);
+        if (typeof child === 'string') {
+            var div = document.createElement('div');
+            div.innerHTML = child;
+            child = div.firstChild;
+        }
+        var firstChild = node.firstChild;
+        if (!firstChild) {
+            node.appendChild(child);
+        }
+        node.insertBefore(child, firstChild);
+        return child;
+    };
+
     gp.getRowModel = function (data, tr) {
         var index = parseInt(tr.attributes['data-index'].value);
         return data[index];

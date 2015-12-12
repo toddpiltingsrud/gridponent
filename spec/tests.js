@@ -127,6 +127,196 @@ QUnit.test("gp.resolveObjectPath", function (assert) {
 
 });
 
+QUnit.test("gp.RequestModel", function (assert) {
+
+    var rm = new gp.RequestModel();
+
+    assert.equal(rm.PageCount, 0);
+
+    assert.equal(rm.Skip, 0);
+
+    rm.Data = data.products;
+
+    rm.TotalRows = data.products.length;
+
+    assert.equal(rm.PageCount, 0);
+
+    assert.equal(rm.Skip, 0);
+
+    rm.Top = 25;
+
+    assert.equal(rm.PageCount, Math.ceil(data.products.length / 25));
+
+    assert.equal(rm.Skip, 0);
+
+    rm.Page = 3;
+
+    assert.equal(rm.Skip, 50);
+});
+
+QUnit.test("gp.ClientPager", function (assert) {
+
+    var config = getTableConfig();
+
+    var pager = new gp.ClientPager(config);
+
+    pager.data = data.products;
+
+    var model = new gp.RequestModel();
+
+    // turn paging off
+    model.Top = -1;
+
+    pager.read(model, function (response) {
+        assert.ok(response != null);
+        assert.equal(response.Data.length, data.products.length, 'should return all rows');
+    });
+
+    // turn paging on
+    model.Top = 10;
+
+    pager.read(model, function (response) {
+        assert.equal(response.Data.length, 10, 'should return a subset of rows');
+    });
+
+    model.Search = 'BA-8327';
+
+    pager.read(model, function (response) {
+        assert.equal(response.Data.length, 1, 'should return a single row');
+    });
+
+    model.Search = null;
+
+    model.OrderBy = 'MakeFlag';
+
+    pager.read(model, function (response) {
+        assert.equal(response.Data[0].MakeFlag, false, 'ascending sort should put false values at the top');
+    });
+
+    model.Desc = true;
+
+    pager.read(model, function (response) {
+        assert.equal(response.Data[0].MakeFlag, true, 'descending sort should put true values at the top');
+    });
+
+});
+
+QUnit.test("gp.Model", function (assert) {
+
+    var config = getTableConfig();
+
+    var model = new gp.Model(config);
+
+    var request = new gp.RequestModel();
+
+    model.read(request, function (response) {
+        assert.equal(response.Data.length, data.products.length, 'should return all rows');
+    });
+
+    // turn paging off
+    request.Top = -1;
+
+    model.read(request, function (response) {
+        assert.equal(response.Data.length, data.products.length, 'should return all rows');
+    });
+
+    // turn paging on
+    request.Top = 10;
+
+    model.read(request, function (response) {
+        assert.equal(response.Data.length, 10, 'should return a subset of rows');
+    });
+
+    request.Search = 'BA-8327';
+
+    model.read(request, function (response) {
+        assert.equal(response.Data.length, 1, 'should return a single row');
+    });
+
+    request.Search = null;
+
+    request.OrderBy = 'MakeFlag';
+
+    model.read(request, function (response) {
+        assert.equal(response.Data[0].MakeFlag, false, 'ascending sort should put false values at the top');
+    });
+
+    request.Desc = true;
+
+    model.read(request, function (response) {
+        assert.equal(response.Data[0].MakeFlag, true, 'descending sort should put true values at the top');
+    });
+
+
+    // test Read as function
+
+    var done = assert.async();
+
+    config.Read = function (m, callback) {
+        assert.ok(true, 'calling read should execute this function');
+        callback();
+    };
+
+    // create a new model
+    model = new gp.Model(config);
+
+    model.read(request, function (response) {
+        assert.ok(true, 'calling read should execute this function');
+        done();
+    });
+
+
+    // test Read as url
+
+    done = assert.async();
+
+    config.Read = '/Products/Read';
+
+    model = new gp.Model(config);
+
+    request = new gp.RequestModel();
+
+    request.Search = 'BA-8327';
+
+    model.read(request, function (response) {
+        assert.equal(response.Data.length, 1, 'should return a single record');
+        done();
+    });
+
+
+    // create
+    done = assert.async();
+
+    model.create(function (response) {
+        assert.ok('ProductID' in response, 'should return a new record');
+        assert.equal(response.ProductID, 0,'should return a new record');
+        done();
+    });
+
+
+    // update
+    done = assert.async();
+    request = data.products[0];
+    request.Name = 'Test';
+
+    model.update(request, function (response) {
+        assert.equal(response.Name, 'Test', 'should return the updated record');
+        done();
+    });
+
+
+    // destroy
+    done = assert.async();
+    request = data.products[0];
+    model = new gp.Model(config);
+
+    model.destroy(request, function (response) {
+        assert.equal(response, true, 'destroy should return true if the record was found and deleted' );
+        done();
+    });
+
+});
+
 var fns = fns || {};
 
 fns.checkbox = function (col) {
@@ -168,7 +358,8 @@ var getTableConfig = function (fixedHeaders, fixedFooters, responsive, sorting) 
     out.push('             style="width:100%;height:411px" ');
     out.push('             search="top-left"');
     out.push('             search-filter="fns.searchFilter"');
-    out.push('             oncreated="fns.getData"');
+    out.push('             data-source="data.products"');
+    out.push('             create="/Products/Create"');
     out.push('             update="/Products/Update"');
     out.push('             destroy="/Products/Destroy">');
     out.push('    <gp-column header-template="fns.checkbox" template="fns.checkbox"></gp-column>');
@@ -237,44 +428,44 @@ QUnit.test("gp.helpers.thead", function (assert) {
 
     // fixed headers, with sorting
     var node = getTableConfig(true, false, false, true).node;
-
+    console.log(node);
     var headers = node.querySelectorAll('div.table-header th.header-cell');
 
     testHeaders(headers);
 
-    //// no fixed headers, with sorting
-    //node = getTableConfig(false, false, false, true).node;
+    // no fixed headers, with sorting
+    node = getTableConfig(false, false, false, true).node;
 
-    //headers = node.querySelectorAll('div.table-body th.header-cell');
+    headers = node.querySelectorAll('div.table-body th.header-cell');
 
-    //testHeaders(headers);
+    testHeaders(headers);
 
-    //// no fixed headers, no sorting
-    //node = getTableConfig(false, false, false, false).node;
+    // no fixed headers, no sorting
+    node = getTableConfig(false, false, false, false).node;
 
-    //headers = node.querySelectorAll('div.table-body th.header-cell');
+    headers = node.querySelectorAll('div.table-body th.header-cell');
 
-    //assert.ok(headers[0].querySelector('input[type=checkbox]') != null);
+    assert.ok(headers[0].querySelector('input[type=checkbox]') != null);
 
-    //assert.equal(headers[1].innerHTML, 'ID');
+    assert.equal(headers[1].innerHTML, 'ID');
 
-    //assert.equal(headers[2].querySelector('label.table-sort'), null);
+    assert.equal(headers[2].querySelector('label.table-sort'), null);
 
-    //assert.ok(headers[5].querySelector('label.table-sort > input[value=SellStartDate]') != null);
+    assert.ok(headers[5].querySelector('label.table-sort > input[value=SellStartDate]') != null);
 
-    //assert.equal(headers[5].textContent, 'Sell Start Date');
+    assert.equal(headers[5].textContent, 'Sell Start Date');
 
-    //assert.ok(headers[6].querySelector('label.table-sort > input[value=Name]') != null);
+    assert.ok(headers[6].querySelector('label.table-sort > input[value=Name]') != null);
 
-    //assert.equal(headers[6].textContent, 'Markup');
+    assert.equal(headers[6].textContent, 'Markup');
 
-    //assert.equal(headers[8].textContent, 'Test Header');
+    assert.equal(headers[8].textContent, 'Test Header');
 
-    //assert.ok(headers[9].querySelector('input[type=checkbox]') != null);
+    assert.ok(headers[9].querySelector('input[type=checkbox]') != null);
 
-    //assert.equal(headers[10].textContent, 'Test Header');
+    assert.equal(headers[10].textContent, 'Test Header');
 
-    //assert.ok(headers[10].querySelector('input[type=checkbox]') != null);
+    assert.ok(headers[10].querySelector('input[type=checkbox]') != null);
 
 });
 
@@ -288,12 +479,16 @@ QUnit.test("gp.helpers.bodyCell", function (assert) {
 
         assert.ok(cells[3].querySelector('button > span') != null);
 
-        assert.equal(cells[3].textContent, '800');
+        assert.equal(isNaN(parseInt(cells[3].textContent)), false, 'should be a number');
 
         assert.ok(cells[11].querySelector('button') != null);
     }
 
-    var node = getTableConfig(true, false, false, true).node;
+    var config = getTableConfig(true, false, false, true);
+
+    console.log(config);
+
+    var node = config.node;
 
     var cells = node.querySelectorAll('div.table-body tbody > tr:nth-child(3) td.body-cell');
 
@@ -384,10 +579,6 @@ QUnit.test("gp.ChangeMonitor", function (assert) {
 });
 
 QUnit.test("custom search filter", function (assert) {
-
-    if (!window.Event) {
-
-    }
 
     var done = assert.async();
 
@@ -559,5 +750,54 @@ QUnit.test("Intl.NumberFormat", function (assert) {
 
     //formatted = formatter.format(1234.56, 'C0').replace(space, '');
     //assert.equal(formatted, eur + '1.235');
+
+});
+
+QUnit.test("gp.prependChild", function (assert) {
+
+    var child = '<span class="glyphicon glyphicon-ok"></span>';
+
+    gp.prependChild(div[0], child);
+
+    var span = div[0].querySelector('span');
+
+    assert.equal(span, div[0].firstChild);
+
+
+    div.empty();
+
+    child = document.createElement('span');
+
+    gp.prependChild('#div1', child);
+
+    span = div[0].querySelector('span');
+
+    assert.equal(span, div[0].firstChild);
+
+});
+
+QUnit.test("controller.render", function (assert) {
+
+    var config = getTableConfig(true, false, false, true);
+
+    var node = config.node;
+
+    var search = node.querySelector('.table-toolbar input[name=Search]');
+
+    if (config.Search) {
+        assert.ok(search != null, 'there should be a search box');
+    }
+    else {
+        assert.ok(search == null, 'there should be no search box');
+    }
+
+    var pager = node.querySelector('.table-pager input');
+
+    if (config.Paging) {
+        assert.ok(pager != null, 'there should be a pager with some inputs in it');
+    }
+    else {
+        assert.ok(pager == null, 'there should be no pager');
+    }
 
 });

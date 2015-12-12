@@ -4,6 +4,13 @@
 (function (gp) {
     gp.Http = function () { };
 
+    var routes = {
+        read: /Read/g,
+        update: /Update/g,
+        create: /Create/g,
+        destroy: /Destroy/g
+    };
+
     gp.Http.prototype = {
         serialize: function (obj, props) {
             // creates a query string from a simple object
@@ -37,82 +44,127 @@
             return obj;
         },
         get: function (url, callback, error) {
-            var queryString = url.substring(url.indedOf('?') + 1);
-            var model = this.deserialize(queryString);
-            var count, data = gp.products;
-            if (gp.isNullOrEmpty(model.Search) === false) {
-                var props = Object.getOwnPropertyNames(data[0]);
-                var search = model.Search.toLowerCase();
-                data = data.filter(function (row) {
-                    for (var i = 0; i < props.length; i++) {
-                        if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
-                            return true;
-                        }
-                    }
-                    return false;
-                });
-            }
-            if (gp.isNullOrEmpty(model.OrderBy) === false) {
-                if (model.Desc) {
-                    data.sort(function (row1, row2) {
-                        var a = row1[model.OrderBy];
-                        var b = row2[model.OrderBy];
-                        if (a === null) {
-                            if (b != null) {
-                                return 1;
-                            }
-                        }
-                        else if (b === null) {
-                            // we already know a isn't null
-                            return -1;
-                        }
-                        if (a > b) {
-                            return -1;
-                        }
-                        if (a < b) {
-                            return 1;
-                        }
-
-                        return 0;
-                    });
+            if (routes.read.test(url)) {
+                var index = url.substring(url.indexOf('?'));
+                if (index !== -1) {
+                    var queryString = url.substring(index + 1);
+                    var model = this.deserialize(queryString);
+                    this.post(url.substring(0, index), model, callback, error);
                 }
                 else {
-                    data.sort(function (row1, row2) {
-                        var a = row1[model.OrderBy];
-                        var b = row2[model.OrderBy];
-                        if (a === null) {
-                            if (b != null) {
-                                return -1;
-                            }
-                        }
-                        else if (b === null) {
-                            // we already know a isn't null
-                            return 1;
-                        }
-                        if (a > b) {
-                            return 1;
-                        }
-                        if (a < b) {
-                            return -1;
-                        }
-
-                        return 0;
-                    });
+                    this.post(url, null, callback, error);
                 }
             }
-            count = data.length;
-            model.Data = model.Data.slice(skip).slice(0, model.Top);
-            setTimeout(function () {
-                callback(model);
-            });
+            else if (routes.create.test(url)) {
+                var result = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
+                callback(result);
+            }
+            else {
+                throw 'Not found: ' + url;
+            }
         },
-        post: function (url, data, callback, error) {
-            setTimeout(function () {
-                callback({
-                    Row: data,
-                    ValidationErrors: []
-                });
-            });
+        post: function (url, model, callback, error) {
+            mdoel = model || {};
+            if (routes.read.test(url)) {
+                getData(model, callback);
+            }
+            else if (routes.update.test(url)) {
+                var index = data.products.indexOf(model);
+                if (index != -1) {
+                    data.products[index] = model;
+                    callback(model);
+                }
+            }
+            else if (routes.destroy.test(url)) {
+                var index = data.products.indexOf(model);
+                if (index != -1) {
+                    callback(true);
+                }
+                else {
+                    callback(false);
+                }
+            }
+            else {
+                throw '404 Not found: ' + url;
+            }
         }
     };
+
+    var getData = function (model, callback) {
+        var count, d = data.products;
+        if (!gp.isNullOrEmpty(model.Search)) {
+            var props = Object.getOwnPropertyNames(d[0]);
+            var search = model.Search.toLowerCase();
+            d = d.filter(function (row) {
+                for (var i = 0; i < props.length; i++) {
+                    if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+        }
+        if (!gp.isNullOrEmpty(model.OrderBy)) {
+            if (model.Desc) {
+                d.sort(function (row1, row2) {
+                    var a = row1[model.OrderBy];
+                    var b = row2[model.OrderBy];
+                    if (a === null) {
+                        if (b != null) {
+                            return 1;
+                        }
+                    }
+                    else if (b === null) {
+                        // we already know a isn't null
+                        return -1;
+                    }
+                    if (a > b) {
+                        return -1;
+                    }
+                    if (a < b) {
+                        return 1;
+                    }
+
+                    return 0;
+                });
+            }
+            else {
+                d.sort(function (row1, row2) {
+                    var a = row1[model.OrderBy];
+                    var b = row2[model.OrderBy];
+                    if (a === null) {
+                        if (b != null) {
+                            return -1;
+                        }
+                    }
+                    else if (b === null) {
+                        // we already know a isn't null
+                        return 1;
+                    }
+                    if (a > b) {
+                        return 1;
+                    }
+                    if (a < b) {
+                        return -1;
+                    }
+
+                    return 0;
+                });
+            }
+        }
+        count = d.length;
+        if (model.Top !== -1) {
+            model.Data = d.slice(model.Skip).slice(0, model.Top);
+        }
+        else {
+            model.Data = d;
+        }
+        model.ValidationErrors = [];
+        setTimeout(function () {
+            callback(model);
+        });
+
+    };
+
+
 })(gridponent);
