@@ -36,7 +36,7 @@
 .table-container.search-bottom-left {
   padding-bottom: 50px;
 }
-.table-container.search-bottom-left .gridponent-searchbox {
+.table-container.search-bottom-left .table-toolbar {
   position: absolute;
   bottom: 0;
   left: 0;
@@ -44,7 +44,7 @@
 .table-container.search-bottom-right {
   padding-bottom: 50px;
 }
-.table-container.search-bottom-right .gridponent-searchbox {
+.table-container.search-bottom-right .table-toolbar {
   position: absolute;
   bottom: 0;
   right: 0;
@@ -52,7 +52,7 @@
 .table-container.search-top-right {
   padding-top: 40px;
 }
-.table-container.search-top-right .gridponent-searchbox {
+.table-container.search-top-right .table-toolbar {
   position: absolute;
   top: 0;
   right: 0;
@@ -60,7 +60,7 @@
 .table-container.search-top-left {
   padding-top: 40px;
 }
-.table-container.search-top-left .gridponent-searchbox {
+.table-container.search-top-left .table-toolbar {
   position: absolute;
   top: 0;
   left: 0;
@@ -73,6 +73,12 @@
 .table-container.selectable div.table-body > table > tbody > tr.selected {
   background: #333;
   color: #eee;
+}
+.table-container .table-toolbar {
+  min-width: 300px;
+}
+.table-container .table-toolbar button[value=Create] {
+  margin-left: 5px;
 }
 .table-container,
 .table-header > table,
@@ -157,5 +163,8 @@ td.commands-cell {
 }
 .table-header {
   border-bottom: solid 1px #ddd;
+}
+input[type=date] {
+  min-width: 125px;
 }
 /*# sourceMappingURL=gridponent.css.map */

@@ -235,30 +235,30 @@
         },
     
         addCommandHandlers: function (node) {
-            var self = this;
+            var command, tr, self = this;
             // listen for command button clicks
             gp.on(node, 'click', 'button[value]', function (evt) {
                 // 'this' is the element that was clicked
                 gp.info('addCommandHandlers:this:');
                 gp.info(this);
-                var command = this.attributes['value'].value.toLowerCase();
-                var tr = gp.closest(this, 'tr[data-index]', node);
-                var row = self.config.Row = gp.getRowModel(self.config.data.Data, tr);
+                command = this.attributes['value'].value.toLowerCase();
+                tr = gp.closest(this, 'tr[data-index]', node);
+                self.config.Row = tr ? gp.getRowModel(self.config.data.Data, tr) : null;
                 switch (command) {
                     case 'create':
-                        self.createRow();
+                        self.createRow.call(self);
                         break;
                     case 'edit':
-                        self.editRow(row, tr);
+                        self.editRow(self.config.Row, tr);
                         break;
                     case 'delete':
-                        self.deleteRow(row, tr);
+                        self.deleteRow(self.config.Row, tr);
                         break;
                     case 'update':
-                        self.updateRow(row, tr);
+                        self.updateRow(self.config.Row, tr);
                         break;
                     case 'cancel':
-                        self.cancelEdit(row, tr);
+                        self.cancelEdit(self.config.Row, tr);
                         break;
                     default:
                         gp.log('Unrecognized command: ' + command);
@@ -269,39 +269,24 @@
     
         createRow: function () {
             try {
-                gp.raiseCustomEvent(tr, 'beforeCreate', {
-                    model: row
-                });
-                // add a new row
-                if (typeof this.config.Create === 'function') {
-                    this.config.Create(function (newRow) {
+                var self = this;
+                gp.raiseCustomEvent(this.config.node, 'beforeCreate');
     
+                this.model.create(function (row) {
+                    // create a row in create mode
+                    self.config.Row = row;
+                    var tbody = self.config.node.querySelector('div.table-body > table > tbody');
+                    var tr = gp.templates['gridponent-new-row'](self.config);
+                    gp.prependChild(tbody, tr);
+                    tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
+                    gp.raiseCustomEvent(tr, 'afterCreate', {
+                        model: row
                     });
-                }
-                else {
-    
-                }
-    
-                // create a row in edit mode
-                var tbody = config.node.querySelector('div.table-body > table > tbody');
-                var tr = gp.prependChild(tbody, '<tr class="edit-mode"></tr>');
-    
-                var helper = gp.helpers['editCellContent'];
-                var col, cells = tr.querySelectorAll('td.body-cell');
-                for (var i = 0; i < cells.length; i++) {
-                    col = this.config.Columns[i];
-                    if (!col.ReadOnly) {
-                        cells[i].innerHTML = helper.call(this.config, col);
-                    }
-                }
-                gp.addClass(tr, 'edit-mode');
-                tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
-                gp.raiseCustomEvent(tr, 'afterCreate', {
-                    model: row
                 });
             }
             catch (ex) {
-                gp.log(ex.message);
+                if (ex.message) gp.log(ex.message);
+                else gp.log(ex);
                 if (ex.stack) gp.log(ex.stack);
             }
         },
@@ -377,7 +362,16 @@
     
         cancelEdit: function (row, tr) {
             try {
-                this.restoreCells(this.config, row, tr);
+                if (gp.hasClass(tr, 'create-mode')) {
+                    // remove row and tr
+                    tr.remove();
+                    var index = this.config.data.Data.indexOf(row);
+                    this.config.data.Data.splice(index, 1);
+                }
+                else {
+                    this.restoreCells(this.config, row, tr);
+                }
+    
                 gp.raiseCustomEvent(tr, 'cancelEdit', {
                     model: row
                 });
@@ -1063,7 +1057,8 @@
         gp.prependChild = function (node, child) {
             if (typeof node === 'string') node = document.querySelector(node);
             if (typeof child === 'string') {
-                var div = document.createElement('div');
+                // using node.tagName to convert child to DOM node helps ensure that what we create is compatible with node
+                var div = document.createElement(node.tagName.toLowerCase());
                 div.innerHTML = child;
                 child = div.firstChild;
             }
@@ -1195,6 +1190,10 @@
             return out.join('');
         });
     
+        extend('rowIndex', function () {
+            return this.data.Data.indexOf(this.Row);
+        });
+    
         extend('bodyCell', function (col) {
             var type = (col.Type || '').toLowerCase();
             var out = [];
@@ -1257,9 +1256,15 @@
     
     
         extend('editCell', function (col) {
-            var out = [];
+            if (col.Readonly) {
+                return gp.helpers.bodyCell.call(this, col);
+            }
     
-            out.push('<td class="body-cell ' + col.Type + '">');
+            var out = [];
+            var type = col.Type;
+            if (col.Commands) type = 'commands-cell';
+    
+            out.push('<td class="body-cell ' + type + '">');
             out.push(gp.helpers['editCellContent'].call(this, col))
             out.push('</td>');
             return out.join('');
@@ -1278,7 +1283,6 @@
                 }
             }
             else if (col.Commands) {
-                out.push('<td class="body-cell commands-cell">');
                 out.push('<div class="btn-group" role="group">');
                 out.push('<button type="button" class="btn btn-primary btn-xs" value="Update">');
                 out.push('<span class="glyphicon glyphicon-save"></span>Save');
@@ -1287,7 +1291,6 @@
                 out.push('<span class="glyphicon glyphicon-remove"></span>Cancel');
                 out.push('</button>');
                 out.push('</div>');
-                out.push('</td>');
             }
             else {
                 var val = this.Row[col.Field];
@@ -1340,8 +1343,6 @@
             this.data.HasPages = this.data.PageCount > 1;
             this.data.PreviousPage = this.data.Page === 1 ? 1 : this.data.Page - 1;
             this.data.NextPage = this.data.Page === this.data.PageCount ? this.data.PageCount : this.data.Page + 1;
-            console.log(this.data);
-            console.log(this.data.PageCount);
         });
     
         extend('sortStyle', function () {
@@ -1497,11 +1498,12 @@
     (function (gp) {
         gp.Http = function () { };
     
+        // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
         var routes = {
-            read: /Read/g,
-            update: /Update/g,
-            create: /Create/g,
-            destroy: /Destroy/g
+            read: /Read/,
+            update: /Update/,
+            create: /Create/,
+            destroy: /Destroy/
         };
     
         gp.Http.prototype = {
@@ -1537,6 +1539,7 @@
                 return obj;
             },
             get: function (url, callback, error) {
+                console.log(url);
                 if (routes.read.test(url)) {
                     var index = url.substring(url.indexOf('?'));
                     if (index !== -1) {
@@ -1699,12 +1702,23 @@
         },
     
         create: function (callback) {
+            var self = this;
             if (typeof this.config.Create === 'function') {
-                this.config.Create(callback);
+                this.config.Create(function (row) {
+                    if (self.config.data.Data && self.config.data.Data.push) {
+                        self.config.data.Data.push(row);
+                    }
+                    callback(row);
+                });
             }
             else {
                 var http = new gp.Http();
-                http.get(this.config.Create, callback);
+                http.get(this.config.Create, function (row) {
+                    if (self.config.data.Data && self.config.data.Data.push) {
+                        self.config.data.Data.push(row);
+                    }
+                    callback(row);
+                });
             }
         },
     
@@ -2141,6 +2155,17 @@
         });
                 return out.join('');
     };
+    gp.templates['gridponent-new-row'] = function(model, arg) {
+        var out = [];
+        out.push('<tr data-index="');
+        out.push(gp.helpers['rowIndex'].call(model));
+        out.push('" class="create-mode">');
+                model.Columns.forEach(function(col, index) {
+                        out.push(gp.helpers['editCell'].call(model, col));
+                    });
+            out.push('</tr>');
+        return out.join('');
+    };
     gp.templates['gridponent-pager'] = function(model, arg) {
         var out = [];
         out.push(gp.helpers['setPagerFlags'].call(model));
@@ -2218,7 +2243,7 @@
         out.push('" id="');
         out.push(model.ID);
         out.push('">');
-                if (model.Search || model.ToolbarTemplate) {
+                if (model.Search || model.ToolbarTemplate || model.Create) {
             out.push('<div class="table-toolbar">');
                         if (model.ToolbarTemplate) {
                                 out.push(gp.templates['toolbarTemplate'](model));
@@ -2232,6 +2257,11 @@
         out.push('</button>');
         out.push('</span>');
         out.push('</div>');
+                            }
+                                if (model.Create) {
+            out.push('<button class="btn btn-default" type="button" value="Create">');
+        out.push('<span class="glyphicon glyphicon-plus"></span>Add');
+        out.push('</button>');
                             }
                             }
             out.push('</div>');

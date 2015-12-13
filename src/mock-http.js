@@ -4,11 +4,12 @@
 (function (gp) {
     gp.Http = function () { };
 
+    // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
     var routes = {
-        read: /Read/g,
-        update: /Update/g,
-        create: /Create/g,
-        destroy: /Destroy/g
+        read: /Read/,
+        update: /Update/,
+        create: /Create/,
+        destroy: /Destroy/
     };
 
     gp.Http.prototype = {
@@ -44,6 +45,7 @@
             return obj;
         },
         get: function (url, callback, error) {
+            console.log(url);
             if (routes.read.test(url)) {
                 var index = url.substring(url.indexOf('?'));
                 if (index !== -1) {

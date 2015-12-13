@@ -35,8 +35,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="scripts\bootstrap-datepicker.min.js" />
-    <Content Include="scripts\dates.js" />
-    <Content Include="scripts\intl-polyfill.js" />
     <Content Include="scripts\modernizr-custom-3.0.0.min.js" />
     <Content Include="spec\Out.txt">
       <AutoGen>True</AutoGen>
@@ -46,6 +44,7 @@
     <Content Include="spec\OutSource.txt" />
     <Content Include="src\model.js" />
     <Content Include="src\controller.js" />
+    <Content Include="src\views\gridponent-new-row.html" />
     <Content Include="styles\bootstrap-datepicker.min.css" />
     <Content Include="styles\Styles.css" />
     <Content Include="gridponent.js">

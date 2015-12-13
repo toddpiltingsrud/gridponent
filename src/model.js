@@ -36,12 +36,23 @@ gp.Model.prototype = {
     },
 
     create: function (callback) {
+        var self = this;
         if (typeof this.config.Create === 'function') {
-            this.config.Create(callback);
+            this.config.Create(function (row) {
+                if (self.config.data.Data && self.config.data.Data.push) {
+                    self.config.data.Data.push(row);
+                }
+                callback(row);
+            });
         }
         else {
             var http = new gp.Http();
-            http.get(this.config.Create, callback);
+            http.get(this.config.Create, function (row) {
+                if (self.config.data.Data && self.config.data.Data.push) {
+                    self.config.data.Data.push(row);
+                }
+                callback(row);
+            });
         }
     },
 

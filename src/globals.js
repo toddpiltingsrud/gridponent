@@ -434,7 +434,8 @@
     gp.prependChild = function (node, child) {
         if (typeof node === 'string') node = document.querySelector(node);
         if (typeof child === 'string') {
-            var div = document.createElement('div');
+            // using node.tagName to convert child to DOM node helps ensure that what we create is compatible with node
+            var div = document.createElement(node.tagName.toLowerCase());
             div.innerHTML = child;
             child = div.firstChild;
         }

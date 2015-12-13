@@ -153,30 +153,30 @@ gp.Controller.prototype = {
     },
 
     addCommandHandlers: function (node) {
-        var self = this;
+        var command, tr, self = this;
         // listen for command button clicks
         gp.on(node, 'click', 'button[value]', function (evt) {
             // 'this' is the element that was clicked
             gp.info('addCommandHandlers:this:');
             gp.info(this);
-            var command = this.attributes['value'].value.toLowerCase();
-            var tr = gp.closest(this, 'tr[data-index]', node);
-            var row = self.config.Row = gp.getRowModel(self.config.data.Data, tr);
+            command = this.attributes['value'].value.toLowerCase();
+            tr = gp.closest(this, 'tr[data-index]', node);
+            self.config.Row = tr ? gp.getRowModel(self.config.data.Data, tr) : null;
             switch (command) {
                 case 'create':
-                    self.createRow();
+                    self.createRow.call(self);
                     break;
                 case 'edit':
-                    self.editRow(row, tr);
+                    self.editRow(self.config.Row, tr);
                     break;
                 case 'delete':
-                    self.deleteRow(row, tr);
+                    self.deleteRow(self.config.Row, tr);
                     break;
                 case 'update':
-                    self.updateRow(row, tr);
+                    self.updateRow(self.config.Row, tr);
                     break;
                 case 'cancel':
-                    self.cancelEdit(row, tr);
+                    self.cancelEdit(self.config.Row, tr);
                     break;
                 default:
                     gp.log('Unrecognized command: ' + command);
@@ -187,39 +187,24 @@ gp.Controller.prototype = {
 
     createRow: function () {
         try {
-            gp.raiseCustomEvent(tr, 'beforeCreate', {
-                model: row
-            });
-            // add a new row
-            if (typeof this.config.Create === 'function') {
-                this.config.Create(function (newRow) {
+            var self = this;
+            gp.raiseCustomEvent(this.config.node, 'beforeCreate');
 
+            this.model.create(function (row) {
+                // create a row in create mode
+                self.config.Row = row;
+                var tbody = self.config.node.querySelector('div.table-body > table > tbody');
+                var tr = gp.templates['gridponent-new-row'](self.config);
+                gp.prependChild(tbody, tr);
+                tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
+                gp.raiseCustomEvent(tr, 'afterCreate', {
+                    model: row
                 });
-            }
-            else {
-
-            }
-
-            // create a row in edit mode
-            var tbody = config.node.querySelector('div.table-body > table > tbody');
-            var tr = gp.prependChild(tbody, '<tr class="edit-mode"></tr>');
-
-            var helper = gp.helpers['editCellContent'];
-            var col, cells = tr.querySelectorAll('td.body-cell');
-            for (var i = 0; i < cells.length; i++) {
-                col = this.config.Columns[i];
-                if (!col.ReadOnly) {
-                    cells[i].innerHTML = helper.call(this.config, col);
-                }
-            }
-            gp.addClass(tr, 'edit-mode');
-            tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
-            gp.raiseCustomEvent(tr, 'afterCreate', {
-                model: row
             });
         }
         catch (ex) {
-            gp.log(ex.message);
+            if (ex.message) gp.log(ex.message);
+            else gp.log(ex);
             if (ex.stack) gp.log(ex.stack);
         }
     },
@@ -295,7 +280,16 @@ gp.Controller.prototype = {
 
     cancelEdit: function (row, tr) {
         try {
-            this.restoreCells(this.config, row, tr);
+            if (gp.hasClass(tr, 'create-mode')) {
+                // remove row and tr
+                tr.remove();
+                var index = this.config.data.Data.indexOf(row);
+                this.config.data.Data.splice(index, 1);
+            }
+            else {
+                this.restoreCells(this.config, row, tr);
+            }
+
             gp.raiseCustomEvent(tr, 'cancelEdit', {
                 model: row
             });

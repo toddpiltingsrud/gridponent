@@ -104,6 +104,10 @@
         return out.join('');
     });
 
+    extend('rowIndex', function () {
+        return this.data.Data.indexOf(this.Row);
+    });
+
     extend('bodyCell', function (col) {
         var type = (col.Type || '').toLowerCase();
         var out = [];
@@ -166,9 +170,15 @@
 
 
     extend('editCell', function (col) {
-        var out = [];
+        if (col.Readonly) {
+            return gp.helpers.bodyCell.call(this, col);
+        }
 
-        out.push('<td class="body-cell ' + col.Type + '">');
+        var out = [];
+        var type = col.Type;
+        if (col.Commands) type = 'commands-cell';
+
+        out.push('<td class="body-cell ' + type + '">');
         out.push(gp.helpers['editCellContent'].call(this, col))
         out.push('</td>');
         return out.join('');
@@ -187,7 +197,6 @@
             }
         }
         else if (col.Commands) {
-            out.push('<td class="body-cell commands-cell">');
             out.push('<div class="btn-group" role="group">');
             out.push('<button type="button" class="btn btn-primary btn-xs" value="Update">');
             out.push('<span class="glyphicon glyphicon-save"></span>Save');
@@ -196,7 +205,6 @@
             out.push('<span class="glyphicon glyphicon-remove"></span>Cancel');
             out.push('</button>');
             out.push('</div>');
-            out.push('</td>');
         }
         else {
             var val = this.Row[col.Field];
@@ -249,8 +257,6 @@
         this.data.HasPages = this.data.PageCount > 1;
         this.data.PreviousPage = this.data.Page === 1 ? 1 : this.data.Page - 1;
         this.data.NextPage = this.data.Page === this.data.PageCount ? this.data.PageCount : this.data.Page + 1;
-        console.log(this.data);
-        console.log(this.data.PageCount);
     });
 
     extend('sortStyle', function () {

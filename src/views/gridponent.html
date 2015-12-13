@@ -1,5 +1,5 @@
 ﻿<div class="table-container{{helper containerClasses}}" id="{{model.ID}}">
-    {{#if model.Search || model.ToolbarTemplate}}
+    {{#if model.Search || model.ToolbarTemplate || model.Create}}
         <div class="table-toolbar">
             {{#if model.ToolbarTemplate}}
                 {{template toolbarTemplate}}
@@ -13,6 +13,11 @@
                             </button>
                         </span>
                     </div>
+                {{/if}}
+                {{#if model.Create}}
+                    <button class="btn btn-default" type="button" value="Create">
+                        <span class="glyphicon glyphicon-plus"></span>Add
+                    </button>
                 {{/if}}
             {{/if}}
         </div>

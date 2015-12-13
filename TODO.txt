@@ -1,23 +1,16 @@
 ﻿When updating rows, account for validation errors from the server.
 Or handle the beforeUpdate event and validate there. Then cancel the event if validation does not pass.
 
-Implement adding rows. The component can't make any assumptions about the requirements for new records. 
-So this should be handled externally. To enable adding records, configure the component with the "create" attribute.
-This can be either a url or a function. If it's a url, the component will issue a get request against it, expecting a new record back.
-If it's a function, the component will call it with a callback argument.
+If cancel is called, we should revert any edits. That means we'll need to create a copy of the row, preferably with change notification built into the properties.
+If canceled, simply discard the copy. But if saved, update the original with the values from the copy.
 
 Ensure we are handling date values correctly. 
 
 Allow the http module to be configured to use JSON or application/x-www-form-urlencoded.
 
-Figure out why fixed headers/footers gets the widths wrong on first render.
+Figure out why fixed headers/footers gets column widths wrong on first render. Maybe it's because the table shifts around once it's populated.
 
 Add support for two-way binding using Object.observe: https://github.com/MaxArt2501/object-observe
-
-Refactor using MVC pattern. The controller should handle events, then gather some data from a model, hand it off to a view for rendering, then inject it into the table.
-How do we configure the grid for client-side paging? 
-If we simply turn paging on, but don't supply a Read property, we'll need a DataSource. In that case we'll assume client-side paging. 
-If we supply a Read property, we don't need a DataSource. We'll assume server-side paging.
 
 Test without paging. With both read and datasource.
 
@@ -39,8 +32,11 @@ Standardize property capitalization.
 
 Rework classes to make it easy to target specific sections of the grid.
 
+Create an HtmlWriter class. It would expose an API for building nodes, not just concatenating strings. 
+Advantages: 
+- No need to convert strings into nodes using the innerHTML hack. 
+- Arbitrary properties could be attached to nodes during render. Useful for binding table rows to data rows.
+
 Build a jQuery version.
 
 Build a Polymer version.
-
-Create an HtmlWriter class.

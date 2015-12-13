@@ -23,6 +23,17 @@ gp.templates['gridponent-cells'] = function(model, arg) {
     });
             return out.join('');
 };
+gp.templates['gridponent-new-row'] = function(model, arg) {
+    var out = [];
+    out.push('<tr data-index="');
+    out.push(gp.helpers['rowIndex'].call(model));
+    out.push('" class="create-mode">');
+            model.Columns.forEach(function(col, index) {
+                    out.push(gp.helpers['editCell'].call(model, col));
+                });
+        out.push('</tr>');
+    return out.join('');
+};
 gp.templates['gridponent-pager'] = function(model, arg) {
     var out = [];
     out.push(gp.helpers['setPagerFlags'].call(model));
@@ -100,7 +111,7 @@ gp.templates['gridponent'] = function(model, arg) {
     out.push('" id="');
     out.push(model.ID);
     out.push('">');
-            if (model.Search || model.ToolbarTemplate) {
+            if (model.Search || model.ToolbarTemplate || model.Create) {
         out.push('<div class="table-toolbar">');
                     if (model.ToolbarTemplate) {
                             out.push(gp.templates['toolbarTemplate'](model));
@@ -114,6 +125,11 @@ gp.templates['gridponent'] = function(model, arg) {
     out.push('</button>');
     out.push('</span>');
     out.push('</div>');
+                        }
+                            if (model.Create) {
+        out.push('<button class="btn btn-default" type="button" value="Create">');
+    out.push('<span class="glyphicon glyphicon-plus"></span>Add');
+    out.push('</button>');
                         }
                         }
         out.push('</div>');

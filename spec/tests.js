@@ -428,7 +428,6 @@ QUnit.test("gp.helpers.thead", function (assert) {
 
     // fixed headers, with sorting
     var node = getTableConfig(true, false, false, true).node;
-    console.log(node);
     var headers = node.querySelectorAll('div.table-header th.header-cell');
 
     testHeaders(headers);
@@ -485,8 +484,6 @@ QUnit.test("gp.helpers.bodyCell", function (assert) {
     }
 
     var config = getTableConfig(true, false, false, true);
-
-    console.log(config);
 
     var node = config.node;
 
@@ -774,6 +771,20 @@ QUnit.test("gp.prependChild", function (assert) {
 
     assert.equal(span, div[0].firstChild);
 
+    var node = getTableConfig().node;
+
+    var tbody = node.querySelector('tbody');
+
+    child = '<tr data-index="-1"><td class="body-cell"></td></table>';
+
+    var tr = gp.prependChild(tbody, child);
+
+    assert.equal(tr.tagName.toLowerCase(), 'tr', 'prependChild should be able to prepend table rows');
+
+    var tr2 = tbody.querySelector('tr:first-child');
+
+    assert.equal(tr, tr2, 'should be the first child in the table');
+
 });
 
 QUnit.test("controller.render", function (assert) {
@@ -798,6 +809,15 @@ QUnit.test("controller.render", function (assert) {
     }
     else {
         assert.ok(pager == null, 'there should be no pager');
+    }
+
+    var addButton = node.querySelector('.table-toolbar button[value=Create]');
+
+    if (config.Create) {
+        assert.ok(addButton != null, 'there should be a button for adding new rows');
+    }
+    else {
+        assert.ok(addButton == null, 'there should not be a button for adding new rows');
     }
 
 });

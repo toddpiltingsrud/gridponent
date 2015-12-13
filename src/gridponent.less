@@ -40,7 +40,7 @@
     &.search-bottom-left {
         padding-bottom:50px;
 
-        .gridponent-searchbox {
+        .table-toolbar {
             position:absolute;
             bottom:0;
             left:0;
@@ -49,7 +49,7 @@
     &.search-bottom-right {
         padding-bottom:50px;
 
-        .gridponent-searchbox {
+        .table-toolbar {
             position:absolute;
             bottom:0;
             right:0;
@@ -58,7 +58,7 @@
     &.search-top-right {
         padding-top:40px;
 
-        .gridponent-searchbox {
+        .table-toolbar {
             position:absolute;
             top:0;
             right:0;
@@ -67,26 +67,13 @@
     &.search-top-left {
         padding-top:40px;
 
-        .gridponent-searchbox {
+        .table-toolbar {
             position:absolute;
             top:0;
             left:0;
         }
     }
 
-    &.pager-bottom-left .search-bottom-left {
-        .gridponent-searchbox {
-        }
-    }
-    &.pager-bottom-right.search-bottom-right {
-        .gridponent-searchbox {
-        }
-    }
-    &.pager-top-right .search-top-right {
-    }
-    &.pager-top-left .search-top-left {
-    }
-    
     &.selectable {
         div.table-body > table > tbody > tr:hover {
             background:#fff;
@@ -98,6 +85,14 @@
             color:#eee;
         }
 
+    }
+
+    .table-toolbar {
+        min-width:300px;
+
+        button[value=Create] {
+            margin-left:5px;
+        }
     }
 
 }
@@ -214,4 +209,8 @@ td.commands-cell {
 
 .table-header {
     border-bottom: solid 1px #ddd;
+}
+
+input[type=date] {
+    min-width:125px;
 }
