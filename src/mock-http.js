@@ -45,7 +45,6 @@
             return obj;
         },
         get: function (url, callback, error) {
-            console.log(url);
             if (routes.read.test(url)) {
                 var index = url.substring(url.indexOf('?'));
                 if (index !== -1) {

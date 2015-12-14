@@ -825,44 +825,44 @@ QUnit.test("readonly fields", function (assert) {
 
 QUnit.test("controller.render", function (assert) {
 
-    var config = getTableConfig(true, false, false, true);
+    function tests(node) {
+        var search = node.querySelector('.table-toolbar input[name=Search]');
 
-    var node = config.node;
+        if (config.Search) {
+            assert.ok(search != null, 'there should be a search box');
+        }
+        else {
+            assert.ok(search == null, 'there should be no search box');
+        }
 
-    var search = node.querySelector('.table-toolbar input[name=Search]');
+        var pager = node.querySelector('.table-pager input');
 
-    if (config.Search) {
-        assert.ok(search != null, 'there should be a search box');
-    }
-    else {
-        assert.ok(search == null, 'there should be no search box');
-    }
+        if (config.Paging) {
+            assert.ok(pager != null, 'there should be a pager with some inputs in it');
+        }
+        else {
+            assert.ok(pager == null, 'there should be no pager');
+        }
 
-    var pager = node.querySelector('.table-pager input');
+        var addButton = node.querySelector('.table-toolbar button[value=Create]');
 
-    if (config.Paging) {
-        assert.ok(pager != null, 'there should be a pager with some inputs in it');
-    }
-    else {
-        assert.ok(pager == null, 'there should be no pager');
-    }
+        if (config.Create) {
+            assert.ok(addButton != null, 'there should be a button for adding new rows');
+        }
+        else {
+            assert.ok(addButton == null, 'there should not be a button for adding new rows');
+        }
 
-    var addButton = node.querySelector('.table-toolbar button[value=Create]');
+        var columnWidthStyle = node.querySelector('style.column-width-style');
 
-    if (config.Create) {
-        assert.ok(addButton != null, 'there should be a button for adding new rows');
-    }
-    else {
-        assert.ok(addButton == null, 'there should not be a button for adding new rows');
-    }
-
-    var columnWidthStyle = node.querySelector('style.column-width-style');
-
-    if (config.FixedHeaders || config.FixedFooters) {
-        assert.ok(columnWidthStyle != null, 'column width styles should render');
-    }
-    else {
-        assert.ok(columnWidthStyle != null, 'column width styles should not render');
+        assert.ok(columnWidthStyle != null, 'column width styles should always render');
     }
 
+    var config = getTableConfig(true, true, true, true);
+
+    tests(config.node);
+
+    config = getTableConfig();
+
+    tests(config.node);
 });

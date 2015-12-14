@@ -171,11 +171,9 @@ gp.templates['gridponent'] = function(model, arg) {
         out.push('<style type="text/css" class="sort-style">');
                 out.push(gp.helpers['sortStyle'].call(model));
         out.push('</style>');
-            if (model.FixedHeaders || model.FixedFooters) {
-        out.push('<style type="text/css" class="column-width-style">');
-                    out.push(gp.helpers['columnWidthStyle'].call(model));
+    out.push('<style type="text/css" class="column-width-style">');
+                out.push(gp.helpers['columnWidthStyle'].call(model));
         out.push('</style>');
-            }
-        out.push('</div>');
+    out.push('</div>');
     return out.join('');
 };

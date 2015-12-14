@@ -1547,7 +1547,6 @@
                 return obj;
             },
             get: function (url, callback, error) {
-                console.log(url);
                 if (routes.read.test(url)) {
                     var index = url.substring(url.indexOf('?'));
                     if (index !== -1) {
@@ -2311,12 +2310,10 @@
             out.push('<style type="text/css" class="sort-style">');
                     out.push(gp.helpers['sortStyle'].call(model));
             out.push('</style>');
-                if (model.FixedHeaders || model.FixedFooters) {
-            out.push('<style type="text/css" class="column-width-style">');
-                        out.push(gp.helpers['columnWidthStyle'].call(model));
+        out.push('<style type="text/css" class="column-width-style">');
+                    out.push(gp.helpers['columnWidthStyle'].call(model));
             out.push('</style>');
-                }
-            out.push('</div>');
+        out.push('</div>');
         return out.join('');
     };
 })(gridponent);
