@@ -787,6 +787,42 @@ QUnit.test("gp.prependChild", function (assert) {
 
 });
 
+QUnit.test("readonly fields", function (assert) {
+
+    var done = assert.async();
+
+    var config = getTableConfig(true, false, false, true);
+
+    var node = config.node;
+
+    var readonlyColumns = config.Columns.filter(function(col){
+        return col.Readonly;
+    });
+
+    assert.ok(readonlyColumns != null && readonlyColumns.length, 'should find a readonly column');
+
+    // use this index to locate the table cell
+    var index = config.Columns.indexOf(readonlyColumns[0]);
+
+    node.addEventListener('afterEdit', function (evt) {
+        var input = evt.target.querySelector('td:nth-child(' + (index + 1).toString() + ') input');
+        assert.equal(input, null, 'there should not be an input');
+        done();
+    });
+
+    // trigger a click event on an edit button
+    var btn = node.querySelector('button[value=Edit]');
+
+    var event = new CustomEvent('click', {
+        'view': window,
+        'bubbles': true,
+        'cancelable': true
+    });
+
+    btn.dispatchEvent(event);
+
+});
+
 QUnit.test("controller.render", function (assert) {
 
     var config = getTableConfig(true, false, false, true);
@@ -818,6 +854,15 @@ QUnit.test("controller.render", function (assert) {
     }
     else {
         assert.ok(addButton == null, 'there should not be a button for adding new rows');
+    }
+
+    var columnWidthStyle = node.querySelector('style.column-width-style');
+
+    if (config.FixedHeaders || config.FixedFooters) {
+        assert.ok(columnWidthStyle != null, 'column width styles should render');
+    }
+    else {
+        assert.ok(columnWidthStyle != null, 'column width styles should not render');
     }
 
 });

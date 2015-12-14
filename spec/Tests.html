@@ -92,11 +92,8 @@
             <div class="box-border dark">
                 <div class="box dark">
                     <grid-ponent id="gp"
-                                 paging="top-right" 
+                                 paging="bottom-right" 
                                  sorting="true" 
-                                 fixed-headers="true" 
-                                 fixed-footers="true"
-                                 style="width:100%;height:411px" 
                                  responsive="true"
                                  onrowselect="/test?productid={{ProductID}}&color={{Color}}"
                                  search="top-left"
@@ -110,7 +107,7 @@
                         <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.average" format="C"></gp-column>
                         <gp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, yyyy"></gp-column>
                         <gp-column field="Markup" readonly header="Marked-Up Name"></gp-column>
-                        <gp-column commands="Edit,Delete"></gp-column>
+                        <gp-column commands="Edit,Delete" body-style="min-width:145px;"></gp-column>
                     </grid-ponent>
                 </div>
             </div>

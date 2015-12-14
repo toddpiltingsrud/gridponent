@@ -223,7 +223,7 @@ gp.Controller.prototype = {
             var col, cells = tr.querySelectorAll('td.body-cell');
             for (var i = 0; i < cells.length; i++) {
                 col = this.config.Columns[i];
-                if (!col.ReadOnly) {
+                if (!col.Readonly) {
                     cells[i].innerHTML = helper.call(this.config, col);
                 }
             }

@@ -305,7 +305,7 @@
                 var col, cells = tr.querySelectorAll('td.body-cell');
                 for (var i = 0; i < cells.length; i++) {
                     col = this.config.Columns[i];
-                    if (!col.ReadOnly) {
+                    if (!col.Readonly) {
                         cells[i].innerHTML = helper.call(this.config, col);
                     }
                 }
@@ -1197,7 +1197,11 @@
         extend('bodyCell', function (col) {
             var type = (col.Type || '').toLowerCase();
             var out = [];
-            out.push('<td class="body-cell ' + type + '">');
+            out.push('<td class="body-cell ' + type + '"');
+            if (col.BodyStyle) {
+                out.push(' style="' + col.BodyStyle + '"');
+            }
+            out.push('>');
             out.push(gp.helpers['bodyCellContent'].call(this, col))
             out.push('</td>');
             return out.join('');
@@ -1264,7 +1268,11 @@
             var type = col.Type;
             if (col.Commands) type = 'commands-cell';
     
-            out.push('<td class="body-cell ' + type + '">');
+            out.push('<td class="body-cell ' + type + '"');
+            if (col.BodyStyle) {
+                out.push(' style="' + col.BodyStyle + '"');
+            }
+            out.push('>');
             out.push(gp.helpers['editCellContent'].call(this, col))
             out.push('</td>');
             return out.join('');
@@ -1348,13 +1356,13 @@
         extend('sortStyle', function () {
             var out = [];
             if (gp.isNullOrEmpty(this.data.OrderBy) === false) {
-                out.push('#' + this.ID + ' > .table-header > table > thead th.' + this.data.OrderBy + '> label:after');
+                out.push('#' + this.ID + ' thead th.header-cell.' + this.data.OrderBy + '> label:after');
                 out.push('{ content: ');
                 if (this.data.Desc) {
-                    out.push('"\\e113"; }');
+                    out.push('"\\e114"; }');
                 }
                 else {
-                    out.push('"\\e114"; }');
+                    out.push('"\\e113"; }');
                 }
             }
             return out.join('');
@@ -2149,7 +2157,13 @@
     gp.templates['gridponent-cells'] = function(model, arg) {
         var out = [];
         model.Columns.forEach(function(col, index) {
-                out.push('<td class="body-cell">');
+                out.push('    <td class="body-cell" ');
+        if (col.BodyStyle) {
+        out.push(' style="');
+        out.push(col.BodyStyle);
+        out.push('"');
+        }
+        out.push('>');
                     out.push(gp.helpers['bodyCellContent'].call(model, col));
             out.push('</td>');
         });
@@ -2297,10 +2311,12 @@
             out.push('<style type="text/css" class="sort-style">');
                     out.push(gp.helpers['sortStyle'].call(model));
             out.push('</style>');
-        out.push('<style type="text/css" class="column-width-style">');
-                    out.push(gp.helpers['columnWidthStyle'].call(model));
+                if (model.FixedHeaders || model.FixedFooters) {
+            out.push('<style type="text/css" class="column-width-style">');
+                        out.push(gp.helpers['columnWidthStyle'].call(model));
             out.push('</style>');
-        out.push('</div>');
+                }
+            out.push('</div>');
         return out.join('');
     };
 })(gridponent);

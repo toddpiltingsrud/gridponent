@@ -111,7 +111,11 @@
     extend('bodyCell', function (col) {
         var type = (col.Type || '').toLowerCase();
         var out = [];
-        out.push('<td class="body-cell ' + type + '">');
+        out.push('<td class="body-cell ' + type + '"');
+        if (col.BodyStyle) {
+            out.push(' style="' + col.BodyStyle + '"');
+        }
+        out.push('>');
         out.push(gp.helpers['bodyCellContent'].call(this, col))
         out.push('</td>');
         return out.join('');
@@ -178,7 +182,11 @@
         var type = col.Type;
         if (col.Commands) type = 'commands-cell';
 
-        out.push('<td class="body-cell ' + type + '">');
+        out.push('<td class="body-cell ' + type + '"');
+        if (col.BodyStyle) {
+            out.push(' style="' + col.BodyStyle + '"');
+        }
+        out.push('>');
         out.push(gp.helpers['editCellContent'].call(this, col))
         out.push('</td>');
         return out.join('');
@@ -262,13 +270,13 @@
     extend('sortStyle', function () {
         var out = [];
         if (gp.isNullOrEmpty(this.data.OrderBy) === false) {
-            out.push('#' + this.ID + ' > .table-header > table > thead th.' + this.data.OrderBy + '> label:after');
+            out.push('#' + this.ID + ' thead th.header-cell.' + this.data.OrderBy + '> label:after');
             out.push('{ content: ');
             if (this.data.Desc) {
-                out.push('"\\e113"; }');
+                out.push('"\\e114"; }');
             }
             else {
-                out.push('"\\e114"; }');
+                out.push('"\\e113"; }');
             }
         }
         return out.join('');

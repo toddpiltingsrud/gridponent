@@ -46,7 +46,7 @@
     <Content Include="src\controller.js" />
     <Content Include="src\views\gridponent-new-row.html" />
     <Content Include="styles\bootstrap-datepicker.min.css" />
-    <Content Include="styles\Styles.css" />
+    <Content Include="styles\styles.css" />
     <Content Include="gridponent.js">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -90,7 +90,7 @@
       <LastGenOutput>templates.js</LastGenOutput>
     </Content>
     <Content Include="src\helpers.js" />
-    <Content Include="spec\Tests.html" />
+    <Content Include="spec\tests.html" />
     <Content Include="spec\tests.js" />
     <Content Include="src\http.js.txt" />
     <Content Include="scripts\webcomponents.min.js" />
@@ -101,7 +101,7 @@
     <None Include="src\views\README.md" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="data\Products.js" />
+    <Content Include="data\products.js" />
     <None Include="data\stops.json" />
     <Content Include="src\views\gridponent-tfoot.html" />
     <Content Include="src\views\gridponent-cells.html" />

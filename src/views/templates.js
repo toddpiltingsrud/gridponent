@@ -17,7 +17,13 @@ gp.templates['gridponent-body'] = function(model, arg) {
 gp.templates['gridponent-cells'] = function(model, arg) {
     var out = [];
     model.Columns.forEach(function(col, index) {
-            out.push('<td class="body-cell">');
+            out.push('    <td class="body-cell" ');
+    if (col.BodyStyle) {
+    out.push(' style="');
+    out.push(col.BodyStyle);
+    out.push('"');
+    }
+    out.push('>');
                 out.push(gp.helpers['bodyCellContent'].call(model, col));
         out.push('</td>');
     });
@@ -165,9 +171,11 @@ gp.templates['gridponent'] = function(model, arg) {
         out.push('<style type="text/css" class="sort-style">');
                 out.push(gp.helpers['sortStyle'].call(model));
         out.push('</style>');
-    out.push('<style type="text/css" class="column-width-style">');
-                out.push(gp.helpers['columnWidthStyle'].call(model));
+            if (model.FixedHeaders || model.FixedFooters) {
+        out.push('<style type="text/css" class="column-width-style">');
+                    out.push(gp.helpers['columnWidthStyle'].call(model));
         out.push('</style>');
-    out.push('</div>');
+            }
+        out.push('</div>');
     return out.join('');
 };
