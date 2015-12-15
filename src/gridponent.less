@@ -148,8 +148,10 @@ label.table-sort {
     }
 
     .table-body {
+        max-height:400px;
         overflow-y: scroll;
     }
+
 }
 
 .fixed-footers {
@@ -172,8 +174,21 @@ label.table-sort {
     }
 
     .table-body {
+        max-height:400px;
         overflow-y: scroll;
     }
+}
+
+.responsive {
+    overflow:hidden;
+
+            & > div.table-body {
+    overflow-y:auto;
+    > table {
+        min-width:600px;
+    }
+
+} 
 }
 
 .table-pager label input {
@@ -194,13 +209,6 @@ td.commands-cell {
 .gridponent-searchbox {
     max-width: 220px;
     float:left;
-}
-
-.table-responsive {
-    & > div {
-        min-width: 600px;
-        overflow: hidden;
-    }
 }
 
 .table > thead > tr > th {

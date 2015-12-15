@@ -118,6 +118,7 @@ label.table-sort:after {
   white-space: nowrap;
 }
 .fixed-headers .table-body {
+  max-height: 400px;
   overflow-y: scroll;
 }
 .fixed-footers .table-footer {
@@ -136,7 +137,17 @@ label.table-sort:after {
   white-space: nowrap;
 }
 .fixed-footers .table-body {
+  max-height: 400px;
   overflow-y: scroll;
+}
+.responsive {
+  overflow: hidden;
+}
+.responsive > div.table-body {
+  overflow-y: auto;
+}
+.responsive > div.table-body > table {
+  min-width: 600px;
 }
 .table-pager label input {
   display: none;
@@ -153,10 +164,6 @@ td.commands-cell {
 .gridponent-searchbox {
   max-width: 220px;
   float: left;
-}
-.table-responsive > div {
-  min-width: 600px;
-  overflow: hidden;
 }
 .table > thead > tr > th {
   border-bottom: none;

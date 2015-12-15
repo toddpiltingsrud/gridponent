@@ -334,6 +334,9 @@
         if (this.Paging) {
             out.push(' pager-' + this.Paging);
         }
+        if (this.Responsive) {
+            out.push(' responsive');
+        }
         if (this.Search) {
             out.push(' search-' + this.Search);
         }

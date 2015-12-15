@@ -155,7 +155,9 @@
     
                     var fn = function () {
                         if (gp.hasPositiveWidth(nodes)) {
-                            self.syncColumnWidths.call(config);
+                            // call syncColumnWidths twice because the first call causes things to shift around a bit
+                            self.syncColumnWidths.call(config)
+                            self.syncColumnWidths.call(config)
                         }
                         else if (--tries > 0) {
                             gp.warn('gp.Initializer.initialize: tries: ' + tries);
@@ -1420,6 +1422,9 @@
             if (this.Paging) {
                 out.push(' pager-' + this.Paging);
             }
+            if (this.Responsive) {
+                out.push(' responsive');
+            }
             if (this.Search) {
                 out.push(' search-' + this.Search);
             }
@@ -2183,56 +2188,60 @@
         var out = [];
         out.push(gp.helpers['setPagerFlags'].call(model));
                 if (model.data.HasPages) {
-                out.push('    <label class="ms-page-index btn btn-default ');
+                out.push('<div class="btn-group">');
+        out.push('        <label class="ms-page-index btn btn-default ');
         if (model.data.IsFirstPage) {
         out.push(' disabled ');
         }
         out.push('" title="First page">');
         out.push('<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>');
-                    if (model.data.IsFirstPage == false) {
+                        if (model.data.IsFirstPage == false) {
             out.push('<input type="radio" name="Page" value="1" />');
-                    }
+                        }
             out.push('</label>');
-            out.push('    <label class="ms-page-index btn btn-default ');
+            out.push('        <label class="ms-page-index btn btn-default ');
         if (model.data.IsFirstPage) {
         out.push(' disabled ');
         }
         out.push('" title="Previous page">');
         out.push('<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>');
-                    if (model.data.IsFirstPage == false) {
-            out.push('            <input type="radio" name="Page" value="');
+                        if (model.data.IsFirstPage == false) {
+            out.push('                <input type="radio" name="Page" value="');
         out.push(model.data.PreviousPage);
         out.push('" />');
-                    }
+                        }
             out.push('</label>');
-            out.push('    <input type="number" name="Page" value="');
+        out.push('</div>');
+        out.push('    <input type="number" name="Page" value="');
         out.push(model.data.Page);
         out.push('" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" /> of ');
         out.push(model.data.PageCount);
-                out.push('    <label class="ms-page-index btn btn-default ');
+            out.push('<div class="btn-group">');
+        out.push('        <label class="ms-page-index btn btn-default ');
         if (model.data.IsLastPage) {
         out.push(' disabled ');
         }
         out.push('" title="Next page">');
         out.push('<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>');
-                    if (model.data.IsLastPage == false) {
+                        if (model.data.IsLastPage == false) {
             out.push('            <input type="radio" name="Page" value="');
         out.push(model.data.NextPage);
         out.push('" />');
-                    }
+                        }
             out.push('</label>');
-            out.push('    <label class="ms-page-index btn btn-default ');
+            out.push('        <label class="ms-page-index btn btn-default ');
         if (model.data.IsLastPage) {
         out.push(' disabled ');
         }
         out.push('" title="Last page">');
         out.push('<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>');
-                    if (model.data.IsLastPage == false) {
+                        if (model.data.IsLastPage == false) {
             out.push('            <input type="radio" name="Page" value="');
         out.push(model.data.PageCount);
         out.push('" />');
-                    }
+                        }
             out.push('</label>');
+        out.push('</div>');
         }
                 return out.join('');
     };

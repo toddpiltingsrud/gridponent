@@ -4,11 +4,11 @@ Or handle the beforeUpdate event and validate there. Then cancel the event if va
 If cancel is called, we should revert any edits. That means we'll need to create a copy of the row, preferably with change notification built into the properties.
 If canceled, simply discard the copy. But if saved, update the original with the values from the copy.
 
+Pager disappears on mobile.
+
 Ensure we are handling date values correctly. 
 
 Allow the http module to be configured to use JSON or application/x-www-form-urlencoded.
-
-Figure out why fixed headers/footers gets column widths wrong on first render. Maybe it's because the table shifts around once it's populated.
 
 Add support for two-way binding using Object.observe: https://github.com/MaxArt2501/object-observe
 

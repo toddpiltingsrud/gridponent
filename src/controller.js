@@ -73,7 +73,9 @@ gp.Controller.prototype = {
 
                 var fn = function () {
                     if (gp.hasPositiveWidth(nodes)) {
-                        self.syncColumnWidths.call(config);
+                        // call syncColumnWidths twice because the first call causes things to shift around a bit
+                        self.syncColumnWidths.call(config)
+                        self.syncColumnWidths.call(config)
                     }
                     else if (--tries > 0) {
                         gp.warn('gp.Initializer.initialize: tries: ' + tries);
