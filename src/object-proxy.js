@@ -3,17 +3,7 @@
 \***************/
 gp.ObjectProxy = function (obj, onPropertyChanged) {
     var self = this;
-    this.model = obj;
-    this.handlers = [];
-    if (typeof onPropertyChanged === 'function') {
-        this.handlers.push(onPropertyChanged);
-    }
-
-    this.callHandlers = function (prop, oldValue, newValue) {
-        self.handlers.forEach(function (handler) {
-            handler(self, prop, oldValue, newValue);
-        });
-    };
+    var dict = {};
 
     // create mirror properties
     var props = Object.getOwnPropertyNames(obj);
@@ -21,17 +11,19 @@ gp.ObjectProxy = function (obj, onPropertyChanged) {
     props.forEach(function (prop) {
         Object.defineProperty(self, prop, {
             get: function () {
-                return obj[prop];
+                return dict[prop];
             },
             set: function (value) {
-                var previousValue;
-                if (obj[prop] != value) {
-                    previousValue = obj[prop];
-                    obj[prop] = value;
-                    self.callHandlers(prop, previousValue, value);
+                if (dict[prop] != value) {
+                    var oldValue = dict[prop];
+                    dict[prop] = value;
+                    if (typeof onPropertyChanged === 'function') {
+                        onPropertyChanged(self, prop, oldValue, value);
+                    }
                 }
             }
         });
+        dict[prop] = obj[prop];
     });
 };
 

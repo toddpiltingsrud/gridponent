@@ -42,6 +42,7 @@
       <DependentUpon>Out.tt</DependentUpon>
     </Content>
     <Content Include="spec\OutSource.txt" />
+    <Content Include="src\polar.js" />
     <Content Include="src\model.js" />
     <Content Include="src\controller.js" />
     <Content Include="src\views\gridponent-new-row.html" />

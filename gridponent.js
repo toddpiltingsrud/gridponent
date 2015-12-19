@@ -150,22 +150,21 @@
     
                 // sync column widths
                 if (config.FixedHeaders || config.FixedFooters) {
-                    var tries = 3;
-                    var nodes = document.querySelectorAll('#' + config.ID + ' .table-body > table > tbody > tr:first-child > td');
+                    var nodes = node.querySelectorAll('.table-body > table > tbody > tr:first-child > td');
     
-                    var fn = function () {
-                        if (gp.hasPositiveWidth(nodes)) {
-                            // call syncColumnWidths twice because the first call causes things to shift around a bit
-                            self.syncColumnWidths.call(config)
-                            self.syncColumnWidths.call(config)
-                        }
-                        else if (--tries > 0) {
-                            gp.warn('gp.Initializer.initialize: tries: ' + tries);
-                            setTimeout(fn);
-                        }
+                    if (gp.hasPositiveWidth(nodes)) {
+                        // call syncColumnWidths twice because the first call causes things to shift around a bit
+                        self.syncColumnWidths.call(config)
+                        self.syncColumnWidths.call(config)
                     }
-    
-                    fn();
+                    else {
+                        new gp.polar(function () {
+                            return gp.hasPositiveWidth(nodes);
+                        }, function () {
+                            self.syncColumnWidths.call(config)
+                            self.syncColumnWidths.call(config)
+                        });
+                    }
     
                     window.addEventListener('resize', function () {
                         self.syncColumnWidths.call(config);
@@ -237,7 +236,7 @@
         },
     
         addCommandHandlers: function (node) {
-            var command, tr, self = this;
+            var command, tr, row, self = this;
             // listen for command button clicks
             gp.on(node, 'click', 'button[value]', function (evt) {
                 // 'this' is the element that was clicked
@@ -245,22 +244,22 @@
                 gp.info(this);
                 command = this.attributes['value'].value.toLowerCase();
                 tr = gp.closest(this, 'tr[data-index]', node);
-                self.config.Row = tr ? gp.getRowModel(self.config.data.Data, tr) : null;
+                row = tr ? gp.getRowModel(self.config.data.Data, tr) : null;
                 switch (command) {
                     case 'create':
                         self.createRow.call(self);
                         break;
                     case 'edit':
-                        self.editRow(self.config.Row, tr);
+                        self.editRow(row, tr);
                         break;
                     case 'delete':
-                        self.deleteRow(self.config.Row, tr);
+                        self.deleteRow(row, tr);
                         break;
                     case 'update':
-                        self.updateRow(self.config.Row, tr);
+                        self.updateRow(row, tr);
                         break;
                     case 'cancel':
-                        self.cancelEdit(self.config.Row, tr);
+                        self.cancelEdit(row, tr);
                         break;
                     default:
                         gp.log('Unrecognized command: ' + command);
@@ -300,21 +299,24 @@
                 });
                 gp.info('editRow:tr:');
                 gp.info(tr);
+    
+                this.config.Row = new gp.ObjectProxy(row);
+    
                 // put the row in edit mode
                 // IE9 can't set innerHTML of tr, so iterate through each cell
                 // besides, that way we can just skip readonly cells
-                var helper = gp.helpers['editCellContent'];
+                var editCellContent = gp.helpers['editCellContent'];
                 var col, cells = tr.querySelectorAll('td.body-cell');
                 for (var i = 0; i < cells.length; i++) {
                     col = this.config.Columns[i];
                     if (!col.Readonly) {
-                        cells[i].innerHTML = helper.call(this.config, col);
+                        cells[i].innerHTML = editCellContent.call(this.config, col);
                     }
                 }
                 gp.addClass(tr, 'edit-mode');
-                tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
+                tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', this.config.Row, function () { });
                 gp.raiseCustomEvent(tr, 'afterEdit', {
-                    model: row
+                    model: this.config.Row
                 });
             }
             catch (ex) {
@@ -330,12 +332,13 @@
                 var h = new gp.Http();
                 var url = this.config.Update;
                 var monitor;
+                var rowProxy = this.config.Row;
                 gp.raiseCustomEvent(tr, 'beforeUpdate', {
                     model: row
                 });
                 gp.info('updateRow: row:');
                 gp.info(row);
-                h.post(url, row, function (response) {
+                h.post(url, rowProxy, function (response) {
                     gp.info('updateRow: response:');
                     gp.info(response);
                     if (response.ValidationErrors && response.ValidationErrors.length) {
@@ -343,6 +346,7 @@
     
                     }
                     else {
+                        gp.shallowCopy(response.Data, row);
                         self.restoreCells(self.config, row, tr);
                         // dispose of the ChangeMonitor
                         monitor = tr['gp-change-monitor'];
@@ -350,6 +354,8 @@
                             monitor.stop();
                             monitor = null;
                         }
+                        // dispose of the ObjectProxy
+                        delete self.config.Row;
                     }
                     gp.raiseCustomEvent(tr, 'afterUpdate', {
                         model: response.Row
@@ -371,6 +377,8 @@
                     this.config.data.Data.splice(index, 1);
                 }
                 else {
+                    // replace the ObjectProxy with the original row
+                    this.config.Row = row;
                     this.restoreCells(this.config, row, tr);
                 }
     
@@ -702,6 +710,13 @@
         gp.camelize = function (str) {
             return str.replace(/(?:^|[-_])(\w)/g, function (_, c) {
                 return c ? c.toUpperCase() : '';
+            });
+        };
+    
+        gp.shallowCopy = function (from, to) {
+            var props = Object.getOwnPropertyNames(from);
+            props.forEach(function (prop) {
+                to[prop] = from[prop];
             });
         };
     
@@ -1577,20 +1592,14 @@
                     getData(model, callback);
                 }
                 else if (routes.update.test(url)) {
-                    var index = data.products.indexOf(model);
-                    if (index != -1) {
-                        data.products[index] = model;
-                        callback(model);
-                    }
+                    callback({
+                        Data: model,
+                        ValidationErrors:[]
+                    });
                 }
                 else if (routes.destroy.test(url)) {
                     var index = data.products.indexOf(model);
-                    if (index != -1) {
-                        callback(true);
-                    }
-                    else {
-                        callback(false);
-                    }
+                    callback(true);
                 }
                 else {
                     throw '404 Not found: ' + url;
@@ -1673,7 +1682,6 @@
             });
     
         };
-    
     
     })(gridponent);
     /***************\
@@ -1760,17 +1768,7 @@
     \***************/
     gp.ObjectProxy = function (obj, onPropertyChanged) {
         var self = this;
-        this.model = obj;
-        this.handlers = [];
-        if (typeof onPropertyChanged === 'function') {
-            this.handlers.push(onPropertyChanged);
-        }
-    
-        this.callHandlers = function (prop, oldValue, newValue) {
-            self.handlers.forEach(function (handler) {
-                handler(self, prop, oldValue, newValue);
-            });
-        };
+        var dict = {};
     
         // create mirror properties
         var props = Object.getOwnPropertyNames(obj);
@@ -1778,17 +1776,19 @@
         props.forEach(function (prop) {
             Object.defineProperty(self, prop, {
                 get: function () {
-                    return obj[prop];
+                    return dict[prop];
                 },
                 set: function (value) {
-                    var previousValue;
-                    if (obj[prop] != value) {
-                        previousValue = obj[prop];
-                        obj[prop] = value;
-                        self.callHandlers(prop, previousValue, value);
+                    if (dict[prop] != value) {
+                        var oldValue = dict[prop];
+                        dict[prop] = value;
+                        if (typeof onPropertyChanged === 'function') {
+                            onPropertyChanged(self, prop, oldValue, value);
+                        }
                     }
                 }
             });
+            dict[prop] = obj[prop];
         });
     };
     
@@ -1804,12 +1804,6 @@
         read: function (model, callback, error) {
             var h = new gp.Http();
             h.post(this.url, model, callback, error);
-        },
-        copyProps: function (from, to) {
-            var props = Object.getOwnPropertyNames(from);
-            props.forEach(function (prop) {
-                to[prop] = from[prop];
-            });
         }
     };
     
@@ -1952,6 +1946,73 @@
             return 0;
         }
     };
+    /***************\
+         polar
+    \***************/
+    (function () {
+    
+        var testers = [];
+    
+        var timeout = null;
+    
+        var poll = function () {
+    
+            testers.forEach(function (testor) {
+                testor.test();
+            });
+    
+            if (testers.length) {
+                timeout = setTimeout(poll, 250);
+            }
+            else {
+                timeout = null;
+            }
+        };
+    
+        gp.polar = function (fn, val, callback) {
+    
+            testers.push(new gp.testor(fn, val, callback));
+    
+            if (timeout === null) {
+                poll();
+            }
+    
+            this.stop = function () {
+                if (timeout != null) {
+                    clearTimeout(timeout);
+                }
+                if (testers.length) {
+                    testers.splice(0, testers.length);
+                }
+            };
+    
+        };
+    
+        gp.testor = function (test, val, callback) {
+            var result, index;
+    
+            try {
+                this.test = function () {
+                    result = test();
+                    if (result == val) {
+                        callback(result);
+                        index = testers.indexOf(this);
+                        if (index !== -1) {
+                            testers.splice(index, 1);
+                        }
+                    }
+                };
+            }
+            catch (ex) {
+                index = testers.indexOf(this);
+                if (index !== -1) {
+                    testers.splice(index, 1);
+                }
+                gp.log(ex);
+            }
+        };
+    
+    })();
     // pilfered from JQuery
     /*!
      * jQuery JavaScript Library v2.1.4

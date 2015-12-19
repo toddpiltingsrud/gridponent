@@ -10,12 +10,6 @@ gp.ServerPager.prototype = {
     read: function (model, callback, error) {
         var h = new gp.Http();
         h.post(this.url, model, callback, error);
-    },
-    copyProps: function (from, to) {
-        var props = Object.getOwnPropertyNames(from);
-        props.forEach(function (prop) {
-            to[prop] = from[prop];
-        });
     }
 };
 

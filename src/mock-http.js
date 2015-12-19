@@ -70,20 +70,14 @@
                 getData(model, callback);
             }
             else if (routes.update.test(url)) {
-                var index = data.products.indexOf(model);
-                if (index != -1) {
-                    data.products[index] = model;
-                    callback(model);
-                }
+                callback({
+                    Data: model,
+                    ValidationErrors:[]
+                });
             }
             else if (routes.destroy.test(url)) {
                 var index = data.products.indexOf(model);
-                if (index != -1) {
-                    callback(true);
-                }
-                else {
-                    callback(false);
-                }
+                callback(true);
             }
             else {
                 throw '404 Not found: ' + url;
@@ -166,6 +160,5 @@
         });
 
     };
-
 
 })(gridponent);

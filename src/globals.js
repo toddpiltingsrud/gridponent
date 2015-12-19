@@ -80,6 +80,13 @@
         });
     };
 
+    gp.shallowCopy = function (from, to) {
+        var props = Object.getOwnPropertyNames(from);
+        props.forEach(function (prop) {
+            to[prop] = from[prop];
+        });
+    };
+
     var iso8601 = /^[012][0-9]{3}-[01][0-9]-[0123][0-9]/;
 
     gp.getLocalISOString = function (date) {

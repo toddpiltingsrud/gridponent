@@ -127,6 +127,7 @@ QUnit.test("gp.resolveObjectPath", function (assert) {
 
 });
 
+
 QUnit.test("gp.RequestModel", function (assert) {
 
     var rm = new gp.RequestModel();
@@ -300,7 +301,7 @@ QUnit.test("gp.Model", function (assert) {
     request.Name = 'Test';
 
     model.update(request, function (response) {
-        assert.equal(response.Name, 'Test', 'should return the updated record');
+        assert.equal(response.Data.Name, 'Test', 'should return the updated record');
         done();
     });
 
@@ -865,4 +866,32 @@ QUnit.test("controller.render", function (assert) {
     config = getTableConfig();
 
     tests(config.node);
+
+});
+
+QUnit.test("gp.ObjectProxy", function (assert) {
+
+    var row = data.products[0];
+
+    var propertyChanged = false;
+
+    var i;
+
+    var propertyChangedCallback = function (obj, prop, oldValue, newValue) {
+        propertyChanged = true;
+        assert.strictEqual(newValue, i, 'propertyChanged: oldValue = ' + oldValue + '  newValue = ' + newValue);
+    };
+
+    var proxy = new gp.ObjectProxy(row, propertyChangedCallback);
+
+    var props = Object.getOwnPropertyNames(row);
+
+    props.forEach(function (prop) {
+        assert.equal(row[prop], proxy[prop], 'object and its proxy should have identical properties');
+        proxy[prop] = i = !row[prop];
+        assert.notStrictEqual(row[prop], proxy[prop], 'changing proxy should not effect original object');
+    });
+
+    assert.equal(propertyChanged, true, 'propertyChangedCallback should be called');
+
 });

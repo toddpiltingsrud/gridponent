@@ -68,22 +68,21 @@ gp.Controller.prototype = {
 
             // sync column widths
             if (config.FixedHeaders || config.FixedFooters) {
-                var tries = 3;
-                var nodes = document.querySelectorAll('#' + config.ID + ' .table-body > table > tbody > tr:first-child > td');
+                var nodes = node.querySelectorAll('.table-body > table > tbody > tr:first-child > td');
 
-                var fn = function () {
-                    if (gp.hasPositiveWidth(nodes)) {
-                        // call syncColumnWidths twice because the first call causes things to shift around a bit
-                        self.syncColumnWidths.call(config)
-                        self.syncColumnWidths.call(config)
-                    }
-                    else if (--tries > 0) {
-                        gp.warn('gp.Initializer.initialize: tries: ' + tries);
-                        setTimeout(fn);
-                    }
+                if (gp.hasPositiveWidth(nodes)) {
+                    // call syncColumnWidths twice because the first call causes things to shift around a bit
+                    self.syncColumnWidths.call(config)
+                    self.syncColumnWidths.call(config)
                 }
-
-                fn();
+                else {
+                    new gp.polar(function () {
+                        return gp.hasPositiveWidth(nodes);
+                    }, function () {
+                        self.syncColumnWidths.call(config)
+                        self.syncColumnWidths.call(config)
+                    });
+                }
 
                 window.addEventListener('resize', function () {
                     self.syncColumnWidths.call(config);
@@ -155,7 +154,7 @@ gp.Controller.prototype = {
     },
 
     addCommandHandlers: function (node) {
-        var command, tr, self = this;
+        var command, tr, row, self = this;
         // listen for command button clicks
         gp.on(node, 'click', 'button[value]', function (evt) {
             // 'this' is the element that was clicked
@@ -163,22 +162,22 @@ gp.Controller.prototype = {
             gp.info(this);
             command = this.attributes['value'].value.toLowerCase();
             tr = gp.closest(this, 'tr[data-index]', node);
-            self.config.Row = tr ? gp.getRowModel(self.config.data.Data, tr) : null;
+            row = tr ? gp.getRowModel(self.config.data.Data, tr) : null;
             switch (command) {
                 case 'create':
                     self.createRow.call(self);
                     break;
                 case 'edit':
-                    self.editRow(self.config.Row, tr);
+                    self.editRow(row, tr);
                     break;
                 case 'delete':
-                    self.deleteRow(self.config.Row, tr);
+                    self.deleteRow(row, tr);
                     break;
                 case 'update':
-                    self.updateRow(self.config.Row, tr);
+                    self.updateRow(row, tr);
                     break;
                 case 'cancel':
-                    self.cancelEdit(self.config.Row, tr);
+                    self.cancelEdit(row, tr);
                     break;
                 default:
                     gp.log('Unrecognized command: ' + command);
@@ -218,21 +217,24 @@ gp.Controller.prototype = {
             });
             gp.info('editRow:tr:');
             gp.info(tr);
+
+            this.config.Row = new gp.ObjectProxy(row);
+
             // put the row in edit mode
             // IE9 can't set innerHTML of tr, so iterate through each cell
             // besides, that way we can just skip readonly cells
-            var helper = gp.helpers['editCellContent'];
+            var editCellContent = gp.helpers['editCellContent'];
             var col, cells = tr.querySelectorAll('td.body-cell');
             for (var i = 0; i < cells.length; i++) {
                 col = this.config.Columns[i];
                 if (!col.Readonly) {
-                    cells[i].innerHTML = helper.call(this.config, col);
+                    cells[i].innerHTML = editCellContent.call(this.config, col);
                 }
             }
             gp.addClass(tr, 'edit-mode');
-            tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
+            tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', this.config.Row, function () { });
             gp.raiseCustomEvent(tr, 'afterEdit', {
-                model: row
+                model: this.config.Row
             });
         }
         catch (ex) {
@@ -248,12 +250,13 @@ gp.Controller.prototype = {
             var h = new gp.Http();
             var url = this.config.Update;
             var monitor;
+            var rowProxy = this.config.Row;
             gp.raiseCustomEvent(tr, 'beforeUpdate', {
                 model: row
             });
             gp.info('updateRow: row:');
             gp.info(row);
-            h.post(url, row, function (response) {
+            h.post(url, rowProxy, function (response) {
                 gp.info('updateRow: response:');
                 gp.info(response);
                 if (response.ValidationErrors && response.ValidationErrors.length) {
@@ -261,6 +264,7 @@ gp.Controller.prototype = {
 
                 }
                 else {
+                    gp.shallowCopy(response.Data, row);
                     self.restoreCells(self.config, row, tr);
                     // dispose of the ChangeMonitor
                     monitor = tr['gp-change-monitor'];
@@ -268,9 +272,11 @@ gp.Controller.prototype = {
                         monitor.stop();
                         monitor = null;
                     }
+                    // dispose of the ObjectProxy
+                    delete self.config.Row;
                 }
                 gp.raiseCustomEvent(tr, 'afterUpdate', {
-                    model: response.Row
+                    model: response.Data
                 });
             });
         }
@@ -289,6 +295,8 @@ gp.Controller.prototype = {
                 this.config.data.Data.splice(index, 1);
             }
             else {
+                // replace the ObjectProxy with the original row
+                this.config.Row = row;
                 this.restoreCells(this.config, row, tr);
             }
 
