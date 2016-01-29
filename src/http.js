@@ -9,8 +9,13 @@ gp.Http.prototype = {
         var self = this;
         props = props || Object.getOwnPropertyNames(obj);
         var out = [];
-        props.forEach(function (prop) {
-            out.push(encodeURIComponent(prop) + '=' + encodeURIComponent(obj[prop]));
+        props.forEach( function ( prop ) {
+            if ( obj[prop] == null ) {
+                out.push( encodeURIComponent( prop ) + '=' );
+            }
+            else {
+                out.push( encodeURIComponent( prop ) + '=' + encodeURIComponent( obj[prop] ) );
+            }
         });
         return out.join('&');
     },
@@ -28,8 +33,10 @@ gp.Http.prototype = {
         var xhr = this.createXhr('GET', url, callback, error);
         xhr.send();
     },
-    post: function (url, data, callback, error) {
-        var s = this.serialize(data);
+    post: function ( url, data, callback, error ) {
+        // don't post back the data or the types
+        var props = Object.getOwnPropertyNames( data ).filter( function ( p ) { return /Data|Types/i.test(p) == false; } );
+        var s = this.serialize(data, props);
         var xhr = this.createXhr('POST', url, callback, error);
         xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
         xhr.send(s);

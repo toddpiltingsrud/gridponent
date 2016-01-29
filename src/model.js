@@ -3,7 +3,7 @@
 \***************/
 gp.Model = function (config) {
     this.config = config;
-    if (config.Read === 'string') {
+    if (typeof config.Read === 'string') {
         this.pager = new gp.ServerPager(config);
     }
     else if (typeof config.Read !== 'function') {

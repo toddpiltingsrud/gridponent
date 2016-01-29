@@ -286,34 +286,34 @@ QUnit.test("gp.Model", function (assert) {
 
 
     // create
-    done = assert.async();
+    var done2 = assert.async();
 
     model.create(function (response) {
         assert.ok('ProductID' in response, 'should return a new record');
         assert.equal(response.ProductID, 0,'should return a new record');
-        done();
+        done2();
     });
 
 
     // update
-    done = assert.async();
+    var done3 = assert.async();
     request = data.products[0];
     request.Name = 'Test';
 
     model.update(request, function (response) {
         assert.equal(response.Data.Name, 'Test', 'should return the updated record');
-        done();
+        done3();
     });
 
 
     // destroy
-    done = assert.async();
+    var done4 = assert.async();
     request = data.products[0];
     model = new gp.Model(config);
 
     model.destroy(request, function (response) {
         assert.equal(response, true, 'destroy should return true if the record was found and deleted' );
-        done();
+        done4();
     });
 
 });
@@ -475,7 +475,11 @@ QUnit.test("gp.helpers.bodyCell", function (assert) {
 
         assert.ok(cells[0].querySelector('input[type=checkbox]') != null);
 
-        assert.ok(cells[2].querySelector('span.glyphicon.glyphicon-ok') != null);
+        assert.ok( cells[2].querySelector( 'span.glyphicon.glyphicon-ok' ) != null );
+
+        assert.ok( cells[2].attributes['class'].value == 'body-cell boolean', 'should add boolean class to boolean columns' );
+
+        console.log( cells[2].attributes );
 
         assert.ok(cells[3].querySelector('button > span') != null);
 

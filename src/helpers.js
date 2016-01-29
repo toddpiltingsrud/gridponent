@@ -109,7 +109,8 @@
     });
 
     extend('bodyCell', function (col) {
-        var type = (col.Type || '').toLowerCase();
+        var type = ( col.Type || '' ).toLowerCase();
+        gp.info( 'bodyCell: type:', type );
         var out = [];
         out.push('<td class="body-cell ' + type + '"');
         if (col.BodyStyle) {

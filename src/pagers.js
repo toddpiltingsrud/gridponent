@@ -84,8 +84,7 @@ gp.ClientPager.prototype = {
             }
         }
         catch (ex) {
-            gp.log(ex.message);
-            gp.log(ex.stack);
+            gp.error( ex );
         }
         callback(model);
     },

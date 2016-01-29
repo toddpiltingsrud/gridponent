@@ -5,7 +5,7 @@ Ensure we are handling date values correctly.
 
 Allow the http module to be configured to use JSON or application/x-www-form-urlencoded.
 
-Add support for two-way binding using Object.observe: https://github.com/MaxArt2501/object-observe
+Add support for two-way binding using proxies.
 
 Test without paging. With both read and datasource.
 
@@ -21,7 +21,7 @@ Provide an easy way to get at the data via JavaScript.
 
 Might need to re-sync column widths anytime the main table content changes (e.g. deleting or adding rows, paging, sorting).
 
-ChangeMonitor.afterSync should be passed a list of changes. Follow the convention for Object.observe.
+ChangeMonitor.afterSync should be passed a list of changes.
 
 Standardize property capitalization.
 

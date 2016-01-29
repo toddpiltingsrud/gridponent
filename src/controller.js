@@ -90,8 +90,7 @@ gp.Controller.prototype = {
             }
         }
         catch (ex) {
-            gp.log(ex.message);
-            gp.log(ex.stack);
+            gp.error( ex );
         }
     },
 
@@ -127,8 +126,9 @@ gp.Controller.prototype = {
         var html = rowsTemplate(config);
         config.node.querySelector('.table-body').innerHTML = html;
         html = pagerTemplate(config);
-        config.node.querySelector('.table-pager').innerHTML = html;
-        html = gp.helpers['sortStyle'].call(config);
+        var pager = config.node.querySelector( '.table-pager' );
+        if ( pager ) pager.innerHTML = html;
+        html = gp.helpers['sortStyle'].call( config );
         config.node.querySelector('style.sort-style').innerHTML = html;
     },
 
@@ -146,9 +146,10 @@ gp.Controller.prototype = {
 
     update: function () {
         var self = this;
+        gp.info( 'update: data:', this.config.data );
 
-        this.model.read(this.config.data, function (model) {
-            self.config.data = model;
+        this.model.read( this.config.data, function ( model ) {
+            gp.shallowCopy( model, self.config.data );
             self.refresh(self.config);
         });
     },
@@ -204,9 +205,7 @@ gp.Controller.prototype = {
             });
         }
         catch (ex) {
-            if (ex.message) gp.log(ex.message);
-            else gp.log(ex);
-            if (ex.stack) gp.log(ex.stack);
+            gp.error( ex );
         }
     },
 
@@ -238,8 +237,7 @@ gp.Controller.prototype = {
             });
         }
         catch (ex) {
-            gp.log(ex.message);
-            if (ex.stack) gp.log(ex.stack);
+            gp.error( ex );
         }
     },
 
@@ -281,8 +279,7 @@ gp.Controller.prototype = {
             });
         }
         catch (ex) {
-            gp.log(ex.message);
-            gp.log(ex.stack);
+            gp.error( ex );
         }
     },
 
@@ -305,8 +302,7 @@ gp.Controller.prototype = {
             });
         }
         catch (ex) {
-            gp.log(ex.message);
-            gp.log(ex.stack);
+            gp.error( ex );
         }
     },
 
@@ -333,8 +329,7 @@ gp.Controller.prototype = {
             });
         }
         catch (ex) {
-            gp.log(ex.message);
-            gp.log(ex.stack);
+            gp.error( ex );
         }
     },
 

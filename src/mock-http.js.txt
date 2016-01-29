@@ -65,7 +65,7 @@
             }
         },
         post: function (url, model, callback, error) {
-            mdoel = model || {};
+            model = model || {};
             if (routes.read.test(url)) {
                 getData(model, callback);
             }

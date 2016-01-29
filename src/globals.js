@@ -3,37 +3,22 @@
 \***************/
 (function (gp) {
 
-    gp.getSearch = function () {
-        var split, nameValue,
-            obj = {},
-            search = window.location.search;
-        if (search && search.length) {
-            split = search.substring(1).split('&');
-            split.forEach(function (s) {
-                nameValue = s.split('=');
-                if (nameValue.length == 1) obj[nameValue[0]] = null;
-                else obj[nameValue[0]] = nameValue[1];
-            });
-        }
-        return obj;
-    };
-
     // logging
+    gp.logging = 'info';
     gp.log = window.console ? window.console.log.bind(window.console) : function () { };
-    gp.verbose = gp.info = gp.warn = function () { };
-
-    var search = gp.getSearch();
-
-    if ('log' in search) {
-        if (search.log === 'verbose') {
-            gp.verbose = gp.info = gp.warn = gp.log;
+    gp.error = function ( e ) {
+        if ( console && console.error ) {
+            console.error( e );
         }
-        else if (search.log === 'info') {
-            gp.info = gp.warn = gp.log;
-        }
-        else if (search.log === 'warn') {
-            gp.warn = gp.log;
-        }
+    };
+    gp.verbose = function ( arg, p ) {
+        if ( /verbose/.test( gp.logging ) ) gp.log( arg, p );
+    }
+    gp.info = function ( arg, p ) {
+        if ( /info|verbose/.test( gp.logging ) ) gp.log( arg, p );
+    }
+    gp.warn = function ( arg, p ) {
+        if ( /warn|info|verbose/.test( gp.logging ) ) gp.log( arg, p );
     }
 
     gp.getConfig = function (node) {
@@ -291,9 +276,8 @@
 
             return currentObj;
         }
-        catch (err) {
-            gp.log('Could not resolve object path: ' + path);
-            gp.log(err);
+        catch (ex) {
+            gp.error( ex );
         }
     };
 
@@ -340,7 +324,6 @@
         return false;
     };
 
-    var token = /{{.+?}}/g;
 
     gp.resolveTemplate = function (template) {
         // it's either a selector or a function

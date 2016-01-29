@@ -56,7 +56,7 @@
     <Content Include="src\object-proxy.js" />
     <Content Include="src\format.js" />
     <Content Include="src\custom-event-polyfill.js" />
-    <Content Include="src\mock-http.js" />
+    <Content Include="src\mock-http.js.txt" />
     <Content Include="src\ready-check.js" />
     <Content Include="src\pagers.js" />
     <Content Include="src\change-monitor.js" />
@@ -91,9 +91,9 @@
       <LastGenOutput>templates.js</LastGenOutput>
     </Content>
     <Content Include="src\helpers.js" />
-    <Content Include="spec\tests.html" />
+    <Content Include="spec\SpecRunner.html" />
     <Content Include="spec\tests.js" />
-    <Content Include="src\http.js.txt" />
+    <Content Include="src\http.js" />
     <Content Include="scripts\webcomponents.min.js" />
     <Content Include="src\gridponent.min.css">
       <DependentUpon>gridponent.css</DependentUpon>

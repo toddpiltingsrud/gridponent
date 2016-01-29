@@ -60,7 +60,7 @@
             if (index !== -1) {
                 testers.splice(index, 1);
             }
-            gp.log(ex);
+            gp.error( ex );
         }
     };
 

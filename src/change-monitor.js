@@ -12,12 +12,6 @@ gp.ChangeMonitor = function (node, selector, model, afterSync) {
     };
     // add change event handler to node
     gp.on(node, 'change', selector, this.listener);
-
-    //if (Object.observe) {
-    //    Object.observe(model, function (changes) {
-    //        self.syncUI.call(self, changes);
-    //    });
-    //}
 };
 
 gp.ChangeMonitor.prototype = {

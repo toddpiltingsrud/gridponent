@@ -9,7 +9,7 @@
 
     // IE inserts unicode left-to-right-mark characters into the formatted string, 
     // causing the length property to return invalid results, even though the strings look the same.
-    // We could leave them, but it makes the results untestable.
+    // This is unacceptable because it makes equality operations fail.
     var ltr = /\u200E/g;
 
     // constructing Intl.DateTimeFormat objects is resource intensive, so cache them by format, locale, and currencyCode

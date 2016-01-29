@@ -16,6 +16,7 @@ gp.ObjectProxy = function (obj, onPropertyChanged) {
             set: function (value) {
                 if (dict[prop] != value) {
                     var oldValue = dict[prop];
+                    // changing the proxy should not affect the original object
                     dict[prop] = value;
                     if (typeof onPropertyChanged === 'function') {
                         onPropertyChanged(self, prop, oldValue, value);

@@ -17,7 +17,9 @@ gp.templates['gridponent-body'] = function(model, arg) {
 gp.templates['gridponent-cells'] = function(model, arg) {
     var out = [];
     model.Columns.forEach(function(col, index) {
-            out.push('    <td class="body-cell" ');
+            out.push('    <td class="body-cell ');
+    out.push(col.Type);
+    out.push('" ');
     if (col.BodyStyle) {
     out.push(' style="');
     out.push(col.BodyStyle);
