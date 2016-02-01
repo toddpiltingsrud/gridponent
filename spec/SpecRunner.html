@@ -6,17 +6,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>gridponent tests</title>
-    <link href="https://code.jquery.com/qunit/qunit-1.20.0.css" rel="stylesheet" />
-    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
-    <link href="../styles/styles.css" rel="stylesheet">
+    <link href="styles/qunit-1.20.0.css" rel="stylesheet" />
+    <link href="styles/bootstrap.min.css" rel="stylesheet">
+    <link href="styles/styles.css" rel="stylesheet">
     <link href="../src/gridponent.css" rel="stylesheet">
-    <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
-    <script src="https://code.jquery.com/qunit/qunit-1.20.0.js"></script>
+    <script src="scripts/jquery-2.1.4.min.js"></script>
+    <script src="scripts/qunit-1.20.0.js"></script>
     <script src="https://cdn.polyfill.io/v2/polyfill.js?features=Intl.~locale.en"></script>
     <script src="../data/products.js"></script>
     <!--<script src="../scripts/webcomponents.min.js"></script>-->
     <script src="../gridponent.js"></script>
-    <script src="../scripts/modernizr-custom-3.0.0.min.js"></script>
+    <script src="scripts/modernizr-custom-3.0.0.min.js"></script>
     <script>
     var fns = fns || {};
 
@@ -91,14 +91,14 @@
             <h3>table</h3>
             <div class="box-border dark">
                 <div class="box dark">
-                    <grid-ponent id="gp"
-                                 paging="bottom-right" 
+                    <!--<grid-ponent id="gp"
+                                 search="top-left"
+                                 pager="bottom-right" 
                                  fixed-headers
                                  sorting="true" 
                                  responsive="true"
                                  onrowselect="/test?productid={{ProductID}}&color={{Color}}"
-                                 search="top-left"
-                                 data-source="data.products"
+                                 read="data.products"
                                  create="/Products/Create"
                                  update="/Products/Update"
                                  destroy="/Products/Destroy">
@@ -108,21 +108,12 @@
                         <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.average" format="C"></gp-column>
                         <gp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, yyyy"></gp-column>
                         <gp-column field="Markup" readonly header="Marked-Up Name"></gp-column>
-                        <gp-column commands="Edit,Delete" body-style="width:155px;text-align:center"></gp-column>
-                    </grid-ponent>
+                        <gp-column commands="Edit,Delete,Show Row" body-style="width:155px;text-align:center"></gp-column>
+                    </grid-ponent>-->
                 </div>
             </div>
-        </div>
-
-        <h3>logging</h3>
-        <div class="box-border dark">
-            <div class="box dark">
-                <div class="btn-group">
-                    <a class="btn btn-default" href="?">off</a>
-                    <a class="btn btn-default" href="?log">on</a>
-                    <a class="btn btn-default" href="?log=warn">warn</a>
-                    <a class="btn btn-default" href="?log=info">info</a>
-                    <a class="btn btn-default" href="?log=verbose">verbose</a>
+            <div class="box-border dark">
+                <div class="box dark" id="table2">
                 </div>
             </div>
         </div>
@@ -132,11 +123,13 @@
     <div id="background"></div>
 
     <script src="tests.js"></script>
-    <script src="../scripts/bootstrap-datepicker.min.js"></script>
-    <link href="../styles/bootstrap-datepicker.min.css" rel="stylesheet" />
+    <script src="scripts/bootstrap-datepicker.min.js"></script>
+    <link href="styles/bootstrap-datepicker.min.css" rel="stylesheet" />
     <script>
-        (function () {
-            var tabs = document.getElementsByClassName('tab');
+
+        ( function () {
+
+            var tabs = document.getElementsByClassName( 'tab' );
 
             var swapTabs = function () {
                 if (window.location.hash) {
@@ -162,19 +155,6 @@
             }
 
             if (!Modernizr.inputtypes.date) {
-                // load date input type polyfills
-                //var css = document.createElement("link");
-                //css.rel = 'stylesheet';
-                //css.media = 'all';
-                //css.type = "text/css";
-                //css.href = '../styles/bootstrap-datepicker.min.css';
-                //document.body.appendChild(css);
-
-                //var s = document.createElement("script");
-                //s.type = "text/javascript";
-                //s.src = '../Scripts/bootstrap-datepicker.min.js';
-                //document.body.appendChild(s);
-
                 var tries = 0;
                 var setDatePickers = function (evt) {
                     var context = evt.target;

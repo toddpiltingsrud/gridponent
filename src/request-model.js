@@ -5,7 +5,8 @@ gp.RequestModel = function (data) {
     var self = this;
     // properites are capitalized here because that's the convention for server-side classes (C#)
     // we want the serialized version of the corresponding server-side class to look exactly like this prototype
-    this.Top = -1; // this is used as a flag to let the pagers know if paging is enabled
+
+    this.Top = -1; // this is a flag to let the pagers know if paging is enabled
     this.Page = 1;
     this.OrderBy = '';
     this.Desc = false;
@@ -21,10 +22,11 @@ gp.RequestModel = function (data) {
 
     Object.defineProperty(self, 'PageCount', {
         get: function () {
-            if (self.Top !== -1) {
-                return Math.ceil(self.TotalRows / self.Top);
+            if ( self.Top !== -1 ) {
+                return Math.ceil( self.TotalRows / self.Top );
             }
-            return 0;
+            if ( self.TotalRows === 0 ) return 0;
+            return 1;
         }
     });
 

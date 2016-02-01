@@ -21,7 +21,7 @@ gp.ClientPager = function (config) {
     var value, self = this;
     this.data = config.data.Data;
     this.columns = config.Columns.filter(function (c) {
-        return c.Field !== undefined;
+        return c.Field !== undefined || c.Sort !== undefined;
     });
     if (typeof config.SearchFilter === 'function') {
         this.searchFilter = config.SearchFilter;
@@ -41,44 +41,37 @@ gp.ClientPager = function (config) {
 };
 
 gp.ClientPager.prototype = {
-    getSkip: function (model) {
-        var data = model;
-        if (data.PageCount == 0) {
-            return 0;
-        }
-        if (data.Page < 1) {
-            data.Page = 1;
-        }
-        else if (data.Page > data.PageCount) {
-            return data.Page = data.PageCount;
-        }
-        return (data.Page - 1) * data.Top;
-    },
-
     read: function (model, callback, error) {
         try {
             var self = this;
-            var skip = this.getSkip(model);
+            var skip = this.getSkip( model );
 
             model.Data = this.data;
 
             var count;
+            // filter first
             if (!gp.isNullOrEmpty(model.Search)) {
                 model.Data = model.Data.filter(function (row) {
                     return self.searchFilter(row, model.Search);
                 });
             }
+
+            // set TotalRows after filtering, but before paging
             model.TotalRows = model.Data.length;
+
+            // then sort
             if (gp.isNullOrEmpty(model.OrderBy) === false) {
-                var col = this.getColumnByField(this.columns, model.OrderBy);
-                if (col !== undefined) {
-                    var sortFunction = this.getSortFunction(col, model.Desc);
-                    model.Data.sort(function (row1, row2) {
-                        return sortFunction(row1[col.Field], row2[col.Field]);
+                var col = this.getColumnByField( this.columns, model.OrderBy );
+                if (gp.hasValue(col)) {
+                    var sortFunction = this.getSortFunction( col, model.Desc );
+                    var fieldName = col.Field || col.Sort;
+                    model.Data.sort( function ( row1, row2 ) {
+                        return sortFunction( row1[fieldName], row2[fieldName] );
                     });
                 }
             }
-            gp.info('ClientPager: total rows: ' + model.TotalRows);
+
+            // then page
             if (model.Top !== -1) {
                 model.Data = model.Data.slice(skip).slice(0, model.Top);
             }
@@ -88,19 +81,32 @@ gp.ClientPager.prototype = {
         }
         callback(model);
     },
-    getColumnByField: function (columns, field) {
-        var col = columns.filter(function (c) { return c.Field === field });
+    getSkip: function ( model ) {
+        var data = model;
+        if ( data.PageCount == 0 ) {
+            return 0;
+        }
+        if ( data.Page < 1 ) {
+            data.Page = 1;
+        }
+        else if ( data.Page > data.PageCount ) {
+            return data.Page = data.PageCount;
+        }
+        return ( data.Page - 1 ) * data.Top;
+    },
+    getColumnByField: function ( columns, field ) {
+        var col = columns.filter(function (c) { return c.Field === field || c.Sort === field });
         return col.length ? col[0] : null;
     },
     getSortFunction: function (col, desc) {
-        if (col.Type === 'number' || col.Type === 'date' || col.Type == 'boolean') {
-            if (desc) {
+        if ( /number|date|boolean/.test( col.Type ) ) {
+            if ( desc ) {
                 return this.diffSortDesc;
             }
             return this.diffSortAsc;
         }
         else {
-            if (desc) {
+            if ( desc ) {
                 return this.stringSortDesc;
             }
             return this.stringSortAsc;
@@ -122,10 +128,10 @@ gp.ClientPager.prototype = {
             // we already know a isn't null
             return -1;
         }
-        if (a > b) {
+        if (a.toLowerCase() > b.toLowerCase()) {
             return -1;
         }
-        if (a < b) {
+        if (a.toLowerCase() < b.toLowerCase()) {
             return 1;
         }
 
@@ -141,10 +147,10 @@ gp.ClientPager.prototype = {
             // we already know a isn't null
             return 1;
         }
-        if (a > b) {
+        if (a.toLowerCase() > b.toLowerCase()) {
             return 1;
         }
-        if (a < b) {
+        if (a.toLowerCase() < b.toLowerCase()) {
             return -1;
         }
 

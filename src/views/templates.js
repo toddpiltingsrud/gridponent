@@ -1,4 +1,7 @@
-﻿gp.templates = gp.templates || {};
+﻿/***************\
+    templates
+\***************/
+gp.templates = gp.templates || {};
 gp.templates['gridponent-body'] = function(model, arg) {
     var out = [];
     out.push('<table class="table" cellpadding="0" cellspacing="0">');
@@ -169,7 +172,7 @@ gp.templates['gridponent'] = function(model, arg) {
         out.push('</table>');
     out.push('</div>');
             }
-                if (model.Paging) {
+                if (model.Pager) {
         out.push('<div class="table-pager">');
                     out.push(gp.templates['gridponent-pager'](model));
         out.push('</div>');

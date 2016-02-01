@@ -24,24 +24,25 @@
             return out.join('&');
         },
         deserialize: function (queryString) {
-            var nameValue, split = queryString.split('&');
+            var nameValue, split = queryString.split( '&' );
             var obj = {};
-            split.forEach(function (s) {
-                nameValue = s.split('=');
+            if ( !queryString ) return obj;
+            split.forEach( function ( s ) {
+                nameValue = s.split( '=' );
                 var val = nameValue[1];
-                if (val.length === 0) {
+                if ( !val ) {
                     obj[nameValue[0]] = null;
                 }
-                else if (val === 'true' || val === 'false') {
-                    obj[nameValue[0]] = (val === 'true');
+                else if ( /true|false/i.test( val ) ) {
+                    obj[nameValue[0]] = ( /true/i.test( val ) );
                 }
-                else if (parseFloat(val).toString() === val) {
-                    obj[nameValue[0]] = parseFloat(val);
+                else if ( parseFloat( val ).toString() === val ) {
+                    obj[nameValue[0]] = parseFloat( val );
                 }
                 else {
                     obj[nameValue[0]] = val;
                 }
-            });
+            } );
             return obj;
         },
         get: function (url, callback, error) {

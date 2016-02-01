@@ -8,11 +8,116 @@ var gridponent = gridponent || {};
 
 var gp = gridponent;
 
-QUnit.test("gp.getConfig", function (assert) {
+var fns = fns || {};
+
+fns.checkbox = function ( col ) {
+    return '<input type="checkbox" name="test" />';
+};
+
+fns.getButtonIcon = function ( row, col ) {
+    if ( row.MakeFlag ) {
+        return 'glyphicon-edit';
+    }
+    return 'glyphicon-remove';
+};
+
+fns.getButtonText = function ( row, col ) {
+    if ( row.MakeFlag ) {
+        return 'Edit';
+    }
+    return 'Remove';
+};
+
+fns.searchFilter = function ( row, search ) {
+    return row.ProductNumber == search;
+};
+
+var getTableConfig = function ( fixedHeaders, fixedFooters, responsive, sorting, read ) {
+    read = read || 'data.products';
+
+    div.append( '<script type="text/html" id="template1">Test Header</script>' );
+    div.append( '<script type="text/html" id="template2"><input class="form-control" type="checkbox" value="true" checked="{{MakeFlag}}"/></script>' );
+    div.append( '<script type="text/html" id="template3">Test Header<input type="checkbox"/></script>' );
+    div.append( '<script type="text/html" id="template4"><button class="btn"><span class="glyphicon glyphicon-search"></span>{{SafetyStockLevel}}</button></script>' );
+    div.append( '<script type="text/html" id="template5"><button class="btn" value="{{fns.getButtonText}}"><span class="glyphicon {{fns.getButtonIcon}}"></span>{{fns.getButtonText}}</button></script>' );
+
+    var out = [];
+
+    out.push( '<grid-ponent ' );
+    if ( fixedHeaders ) out.push( ' fixed-headers' );
+    if ( fixedFooters ) out.push( ' fixed-footers="true"' );
+    if ( responsive ) out.push( ' responsive="true"' );
+    if ( sorting ) out.push( ' sorting ' );
+    out.push( '             pager = "top-right"' );
+    out.push( '             search="top-left"' );
+    out.push( '             search-filter="fns.searchFilter"' );
+    out.push( '             read="' + read + '"' );
+    out.push( '             create="/Products/Create"' );
+    out.push( '             update="/Products/Update"' );
+    out.push( '             destroy="/Products/Destroy">' );
+    out.push( '    <gp-column header-template="fns.checkbox" template="fns.checkbox"></gp-column>' );
+    out.push( '    <gp-column header="ID" sort="Name" template="fns.getName" edit-template="fns.dropdown"></gp-column>' );
+    out.push( '    <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>' );
+    out.push( '    <gp-column field="SafetyStockLevel" header="Safety Stock Level" template="#template4" footer-template="fns.average"></gp-column>' );
+    out.push( '    <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.average"></gp-column>' );
+    out.push( '    <gp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, yyyy"></gp-column>' );
+    out.push( '    <gp-column field="Markup" readonly></gp-column>' );
+    out.push( '    <gp-column header-template="#template3"></gp-column>' );
+    out.push( '    <gp-column template="#template5"></gp-column>' );
+    out.push( '    <gp-column commands="Edit,Delete"></gp-column>' );
+    out.push( '</grid-ponent>' );
+
+    // if we have web component support, this line will initialize the component automatically
+    // otherwise trigger initialization manually
+    var $node = $( out.join( '' ) );
+
+    var config = $node[0].config;
+
+    if ( !config ) {
+        var i = new gp.Initializer( $node[0] );
+        config = i.config;
+    }
+
+    return config;
+};
+
+QUnit.test( "gp.api", function ( assert ) {
+    var config = getTableConfig();
+
+    $( '#table2' ).append( config.node );
+
+
+    // trigger an initial sort to make sure this column is sorted 
+    config.node.api.sort( 'Name', false );
+
+    // take note of the content of the column before sorting
+    var content1 = document.querySelector( 'tr[data-index="0"] td:nth-child(2)' ).innerHTML;
+
+    console.log( content1 );
+
+    // trigger another sort
+    config.node.api.sort( 'Name', true );
+
+    // take note of the content of the column after sorting
+    var content2 = document.querySelector( 'tr[data-index="0"] td:nth-child(2)' ).innerHTML;
+
+    console.log( content2 );
+
+    assert.notStrictEqual( content1, content2, 'Sorting should change the order' );
+
+    config.node.api.sort( 'Name', false );
+
+    // take note of the content of the column after sorting
+    content2 = document.querySelector( 'tr[data-index="0"] td:nth-child(2)' ).innerHTML;
+
+    assert.strictEqual( content1, content2, 'Sorting again should change it back' );
+} );
+
+QUnit.test("gp.getAttributes", function (assert) {
 
     var elem = $('<tp-custom-element bool="true" number="1" string="my string" novalue></tp-custom-element>');
 
-    var config = gp.getConfig(elem[0]);
+    var config = gp.getAttributes(elem[0]);
 
     assert.equal(config.Bool, true, "should resolve bools");
 
@@ -78,7 +183,7 @@ QUnit.test("gp.closest", function (assert) {
 
 });
 
-QUnit.test("gp.resolveObjectPath", function (assert) {
+QUnit.test( "gp.getObjectAtPath", function ( assert ) {
 
     window.indexer = 'search';
 
@@ -92,41 +197,37 @@ QUnit.test("gp.resolveObjectPath", function (assert) {
         search: 'search'
     };
 
-    var val = gp.resolveObjectPath('window.location.search');
-    assert.equal(val, window.location.search);
+    var val = gp.getObjectAtPath( 'window.location.search' );
+    assert.equal( val, window.location.search );
 
-    val = gp.resolveObjectPath('window.location.search[0]');
-    assert.equal(val, window.location.search[0]);
+    val = gp.getObjectAtPath( 'window.location.search[0]' );
+    assert.equal( val, window.location.search[0] );
 
-    val = gp.resolveObjectPath('window.location["search"]');
-    assert.equal(val, window.location.search);
+    val = gp.getObjectAtPath( 'window.location["search"]' );
+    assert.equal( val, window.location.search );
 
-    val = gp.resolveObjectPath('window.location["search"][0]');
-    assert.equal(val, window.location.search[0]);
+    val = gp.getObjectAtPath( 'window.location["search"][0]' );
+    assert.equal( val, window.location.search[0] );
 
-    val = gp.resolveObjectPath('window.location["search"][0]');
-    assert.equal(val, window.location.search[0]);
+    //val = gp.getObjectAtPath( 'testobj[indexer]' );
+    //assert.equal( val, window.testobj.search );
 
-    val = gp.resolveObjectPath('testobj[indexer]');
-    assert.equal(val, window.testobj.search);
+    val = gp.getObjectAtPath( 'testobj.array[1]' );
+    assert.equal( val, window.testobj.array[1] );
 
-    val = gp.resolveObjectPath('testobj.array[1]');
-    assert.equal(val, window.testobj.array[1]);
+    val = gp.getObjectAtPath( 'testobj["search"]' );
+    assert.equal( val, window.testobj.search );
 
-    val = gp.resolveObjectPath('testobj["search"]');
-    assert.equal(val, window.testobj.search);
+    val = gp.getObjectAtPath( 'testobj["num"]' );
+    assert.equal( val, 1 );
 
-    val = gp.resolveObjectPath('testobj["num"]');
-    assert.equal(val, 1);
+    val = gp.getObjectAtPath( 'testobj["search"][0]' );
+    assert.equal( val, window.testobj.search[0] );
 
-    val = gp.resolveObjectPath('testobj["search"][0]');
-    assert.equal(val, window.testobj.search[0]);
+    //val = gp.getObjectAtPath( 'testobj[indexer]' );
+    //assert.equal( val, window.testobj.search );
 
-    val = gp.resolveObjectPath('testobj[indexer]');
-    assert.equal(val, window.testobj.search);
-
-});
-
+} );
 
 QUnit.test("gp.RequestModel", function (assert) {
 
@@ -140,7 +241,7 @@ QUnit.test("gp.RequestModel", function (assert) {
 
     rm.TotalRows = data.products.length;
 
-    assert.equal(rm.PageCount, 0);
+    assert.equal(rm.PageCount, 1);
 
     assert.equal(rm.Skip, 0);
 
@@ -210,12 +311,7 @@ QUnit.test("gp.Model", function (assert) {
 
     var request = new gp.RequestModel();
 
-    model.read(request, function (response) {
-        assert.equal(response.Data.length, data.products.length, 'should return all rows');
-    });
-
-    // turn paging off
-    request.Top = -1;
+    gridponent.logging = null;
 
     model.read(request, function (response) {
         assert.equal(response.Data.length, data.products.length, 'should return all rows');
@@ -318,79 +414,6 @@ QUnit.test("gp.Model", function (assert) {
 
 });
 
-var fns = fns || {};
-
-fns.checkbox = function (col) {
-    return '<input type="checkbox" name="test" />';
-};
-
-fns.getButtonIcon = function (row, col) {
-    if (row.MakeFlag) {
-        return 'glyphicon-edit';
-    }
-    return 'glyphicon-remove';
-};
-
-fns.getButtonText = function (row, col) {
-    if (row.MakeFlag) {
-        return 'Edit';
-    }
-    return 'Remove';
-};
-
-fns.searchFilter = function (row, search) {
-    return row.ProductNumber == search;
-};
-
-var getTableConfig = function (fixedHeaders, fixedFooters, responsive, sorting) {
-    div.append('<script type="text/html" id="template1">Test Header</script>');
-    div.append('<script type="text/html" id="template2"><input type="checkbox" value="{{MakeFlag}}"/></script>');
-    div.append('<script type="text/html" id="template3">Test Header<input type="checkbox"/></script>');
-    div.append('<script type="text/html" id="template4">{{SafetyStockLevel}}<button class="btn"><span class="glyphicon glyphicon-search"></span></button><input type="checkbox"/></script>');
-    div.append('<script type="text/html" id="template5"><button class="btn"><span class="glyphicon {{fns.getButtonIcon}}"></span>{{fns.getButtonText}}</button></script>');
-
-    var out = [];
-
-    out.push('<grid-ponent paging="bottom-right"');
-    if (fixedHeaders) out.push(' fixed-headers');
-    if (fixedFooters) out.push(' fixed-footers="true"');
-    if (responsive)   out.push(' responsive="true"');
-    if (sorting)      out.push(' sorting ');
-    out.push('             style="width:100%;height:411px" ');
-    out.push('             search="top-left"');
-    out.push('             search-filter="fns.searchFilter"');
-    out.push('             data-source="data.products"');
-    out.push('             create="/Products/Create"');
-    out.push('             update="/Products/Update"');
-    out.push('             destroy="/Products/Destroy">');
-    out.push('    <gp-column header-template="fns.checkbox" template="fns.checkbox"></gp-column>');
-    out.push('    <gp-column header="ID" template="fns.getName" edit-template="fns.dropdown"></gp-column>');
-    out.push('    <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>');
-    out.push('    <gp-column field="SafetyStockLevel" header="Safety Stock Level" template="#template4" footer-template="fns.average"></gp-column>');
-    out.push('    <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.average"></gp-column>');
-    out.push('    <gp-column field="SellStartDate" sort header="Sell Start Date" format="d MMMM, yyyy"></gp-column>');
-    out.push('    <gp-column field="Markup" sort="Name" readonly></gp-column>');
-    out.push('    <gp-column commands="Edit,Delete"></gp-column>');
-    out.push('    <gp-column header-template="#template1" footer-template="#template2"></gp-column>');
-    out.push('    <gp-column header-template="#template2"></gp-column>');
-    out.push('    <gp-column header-template="#template3"></gp-column>');
-    out.push('    <gp-column template="#template5"></gp-column>');
-    out.push('</grid-ponent>');
-
-    // if we have web component support, this line will initialize the component automatically
-    // otherwise trigger initialization manually
-    var $node = $(out.join(''));
-
-    var config = $node[0].config;
-
-    if (!config) {
-        var i = new gp.Initializer($node[0]);
-        config = i.config;
-    }
-
-    return config;
-};
-
 QUnit.test("gp.Table.getConfig", function (assert) {
 
     var config = getTableConfig(true, false, false, true);
@@ -403,7 +426,28 @@ QUnit.test("gp.Table.getConfig", function (assert) {
 
     assert.equal(config.Columns.length, 12);
 
-    assert.equal(config.Columns[1].Header, "ID");
+    assert.equal( config.Columns[1].Header, "ID" );
+
+
+    config = getTableConfig( null, null, null, null, '/Products/Read' );
+
+    assert.strictEqual( config.Read, '/Products/Read', 'Read can be a URL' );
+
+
+    window.model = {};
+
+    window.model.read = function () {
+        return new gp.RequestModel(data.products);
+    };
+
+    config = getTableConfig( null, null, null, null, 'model.read', 'Read can be a function' );
+
+    assert.strictEqual( config.Read, model.read );
+
+
+    config = getTableConfig( null, null, null, null, 'data.products', 'Read can be an array' );
+
+    assert.strictEqual( config.Read, data.products );
 
 });
 
@@ -842,7 +886,7 @@ QUnit.test("controller.render", function (assert) {
 
         var pager = node.querySelector('.table-pager input');
 
-        if (config.Paging) {
+        if (config.Pager) {
             assert.ok(pager != null, 'there should be a pager with some inputs in it');
         }
         else {
@@ -864,6 +908,8 @@ QUnit.test("controller.render", function (assert) {
     }
 
     var config = getTableConfig(true, true, true, true);
+
+    console.log( config );
 
     tests(config.node);
 

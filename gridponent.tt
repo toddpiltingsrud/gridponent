@@ -10,8 +10,8 @@ var gridponent = gridponent || {};
 (function(gp) { 
 <#
 var path = "";
-
 var stripLogging = false;
+var useMocks = true;
 
 if (Directory.Exists(@"C:\Users\kitntodd"))
 {
@@ -30,29 +30,37 @@ var files = new DirectoryInfo(path).GetFiles("*.js", SearchOption.AllDirectories
 
 foreach (var file in files)
 {
-	if (!file.Name.StartsWith("gridponent"))
+	if (useMocks)
 	{
-	    var lines = File.ReadAllLines(file.FullName);
-        foreach (var line in lines)
-        {
-            if (stripLogging && IsLogExpression(line)) continue;
+		if (!file.Name.StartsWith("mock-") 
+			&& files.Where(f => f.Name == "mock-" + file.Name).Any())
+		{
+			continue;
+		}
+	}
+
+	// a mechanism for temporarily excluding files
+	if (file.Name.StartsWith("x-")) continue;
+
+	// line break before each file
+#>
+
+<#
+	var lines = File.ReadAllLines(file.FullName);
+    foreach (var line in lines)
+    {
+        if (stripLogging && IsLogExpression(line)) continue;
 #>
     <#= line #>
-<#      }
-	}
+<#  }
 }
 #>
 })(gridponent);
-
 <#+ 
+System.Text.RegularExpressions.Regex rLog = new System.Text.RegularExpressions.Regex(@"gp\.log\(|gp\.verbose\(|gp\.info\(|gp\.warn\(");
+
 private bool IsLogExpression(string line)
 {
-    var loggingExpr = new string[] { "gp.log(", "gp.verbose(", "gp.info(", "gp.warn(" };
-
-    foreach (var expr in loggingExpr)
-    {
-        if (line.Trim().StartsWith(expr)) return true;
-    }
-    return false;
+	return rLog.IsMatch(line);
 }
 #>

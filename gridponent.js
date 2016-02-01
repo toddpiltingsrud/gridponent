@@ -1,5 +1,40 @@
 ﻿var gridponent = gridponent || {};
 (function(gp) { 
+
+    /***************\
+          API
+    \***************/
+    
+    gp.api = function ( controller ) {
+        this.controller = controller;
+    };
+    
+    gp.api.prototype = {
+    
+        search: function ( searchTerm ) {
+            this.controller.config.data.Search = searchTerm;
+            gp.info( 'search: config:', this.controller.config );
+            this.controller.update();
+        },
+    
+        sort: function ( name, desc ) {
+            this.controller.config.data.OrderBy = name;
+            this.controller.config.data.Desc = (desc == true);
+            this.controller.update();
+        },
+    
+        read: function ( arg ) { },
+    
+        create: function ( arg ) { },
+    
+        update: function ( arg ) { },
+    
+        destroy: function ( arg ) { },
+    
+        cancel: function ( arg ) { }
+    
+    };
+
     /***************\
      change monitor
     \***************/
@@ -23,9 +58,7 @@
             var value = target.value;
             var handled = false;
     
-            if ((name in model) === false) {
-                return;
-            }
+            if ( !( name in model ) ) return;
     
             if (typeof (this.beforeSync) === 'function') {
                 handled = this.beforeSync(name, value, this.model);
@@ -74,46 +107,29 @@
             gp.off(this.node, 'change', this.listener);
         }
     };
+
     /***************\
        controller
     \***************/
-    gp.Controller = function (config) {
+    gp.Controller = function (config, model, requestModel) {
         var self = this;
         this.config = config;
-        this.model = new gp.Model(config);
-        this.requestModel = new gp.RequestModel();
-        if (config.Paging) {
+        this.model = model;
+        this.requestModel = requestModel;
+        if (config.Pager) {
             this.requestModel.Top = 25;
         }
-        this.model.read(this.requestModel, function (data) {
-            self.config.data = data;
-            self.resolveTypes(config);
-            self.render(config);
-            self.beginMonitor(config.node);
-            self.addCommandHandlers(config.node);
-            self.handleRowSelect(config);
-        });
     };
     
     gp.Controller.prototype = {
     
-        resolveTypes: function (config) {
-            config.Columns.forEach(function (col) {
-                for (var i = 0; i < config.data.Data.length; i++) {
-                    if (config.data.Data[i][col.Field] !== null) {
-                        col.Type = gp.getType(config.data.Data[i][col.Field]);
-                        break;
-                    }
-                }
-            });
-        },
-        beginMonitor: function (node) {
+        monitorToolbars: function (node) {
             var self = this;
             // monitor changes to search, sort, and paging
             var monitor = new gp.ChangeMonitor(node, '.table-toolbar [name=Search], thead input, .table-pager input', this.config.data, function (evt) {
                 self.update();
                 // reset the radio inputs
-                var radios = node.querySelectorAll('thead input[type=radio], .table-pager input[type=radio]');
+                var radios = node.querySelectorAll( 'thead input[type=radio], .table-pager input[type=radio]' );
                 for (var i = 0; i < radios.length; i++) {
                     radios[i].checked = false;
                 }
@@ -135,132 +151,78 @@
             };
         },
     
-        render: function (config) {
-            var self = this;
-            try {
-                var node = config.node;
-    
-                node.innerHTML = gp.templates['gridponent'](config);
-    
-                // sync column widths
-                if (config.FixedHeaders || config.FixedFooters) {
-                    var nodes = node.querySelectorAll('.table-body > table > tbody > tr:first-child > td');
-    
-                    if (gp.hasPositiveWidth(nodes)) {
-                        // call syncColumnWidths twice because the first call causes things to shift around a bit
-                        self.syncColumnWidths.call(config)
-                        self.syncColumnWidths.call(config)
-                    }
-                    else {
-                        new gp.polar(function () {
-                            return gp.hasPositiveWidth(nodes);
-                        }, function () {
-                            self.syncColumnWidths.call(config)
-                            self.syncColumnWidths.call(config)
-                        });
-                    }
-    
-                    window.addEventListener('resize', function () {
-                        self.syncColumnWidths.call(config);
-                    });
-                }
-            }
-            catch (ex) {
-                gp.error( ex );
-            }
-        },
-    
-        measureTables: function (node) {
-            // for fixed headers, adjust the padding on the header to match the width of the main table
-            var header = node.querySelector('.table-header');
-            var footer = node.querySelector('.table-footer');
-            if (header || footer) {
-                var bodyWidth = node.querySelector('.table-body > table').offsetWidth;
-                var headerWidth = (header || footer).querySelector('table').offsetWidth;
-                var diff = (headerWidth - bodyWidth);
-                if (diff !== 0) {
-                    var paddingRight = diff;
-                    gp.log('diff:' + diff + ', paddingRight:' + paddingRight);
-                    if (header) {
-                        header.style.paddingRight = paddingRight.toString() + 'px';
-                    }
-                    if (footer) {
-                        footer.style.paddingRight = paddingRight.toString() + 'px';
-                    }
-                }
-            }
-        },
-    
-        syncColumnWidths: function () {
-            var html = gp.helpers.columnWidthStyle.call(this);
-            this.node.querySelector('style.column-width-style').innerHTML = html;
-        },
-    
-        refresh: function (config) {
-            var rowsTemplate = gp.templates['gridponent-body'];
-            var pagerTemplate = gp.templates['gridponent-pager'];
-            var html = rowsTemplate(config);
-            config.node.querySelector('.table-body').innerHTML = html;
-            html = pagerTemplate(config);
-            var pager = config.node.querySelector( '.table-pager' );
-            if ( pager ) pager.innerHTML = html;
-            html = gp.helpers['sortStyle'].call( config );
-            config.node.querySelector('style.sort-style').innerHTML = html;
-        },
-    
-        restoreCells: function (config, row, tr) {
-            var col,
-                i = 0;
-            helper = gp.helpers['bodyCellContent'],
-            cells = tr.querySelectorAll('td.body-cell');
-            for (; i < cells.length; i++) {
-                col = config.Columns[i];
-                cells[i].innerHTML = helper.call(this.config, col);
-            }
-            gp.removeClass(tr, 'edit-mode');
-        },
-    
-        update: function () {
-            var self = this;
-            gp.info( 'update: data:', this.config.data );
-    
-            this.model.read( this.config.data, function ( model ) {
-                gp.shallowCopy( model, self.config.data );
-                self.refresh(self.config);
-            });
-        },
-    
         addCommandHandlers: function (node) {
             var command, tr, row, self = this;
             // listen for command button clicks
             gp.on(node, 'click', 'button[value]', function (evt) {
                 // 'this' is the element that was clicked
-                gp.info('addCommandHandlers:this:');
-                gp.info(this);
-                command = this.attributes['value'].value.toLowerCase();
+                gp.info('addCommandHandlers:this:', this);
+                command = this.attributes['value'].value;
                 tr = gp.closest(this, 'tr[data-index]', node);
                 row = tr ? gp.getRowModel(self.config.data.Data, tr) : null;
                 switch (command) {
-                    case 'create':
-                        self.createRow.call(self);
+                    case 'Create':
+                        self.createRow();
                         break;
-                    case 'edit':
+                    case 'Edit':
                         self.editRow(row, tr);
                         break;
-                    case 'delete':
-                        self.deleteRow(row, tr);
-                        break;
-                    case 'update':
+                    case 'Update':
                         self.updateRow(row, tr);
                         break;
-                    case 'cancel':
+                    case 'Cancel':
                         self.cancelEdit(row, tr);
                         break;
+                    case 'Delete':
+                        self.deleteRow( row, tr );
+                        break;
                     default:
-                        gp.log('Unrecognized command: ' + command);
+                        console.log( command );
+                        // check the api for an extension
+                        if ( command in node.api ) {
+                            node.api[command]( row, tr );
+                        }
+                        else {
+                            gp.log( 'Unrecognized command: ' + command );
+                        }
                         break;
                 }
             });
+        },
+    
+        handleRowSelect: function ( config ) {
+            var trs, i = 0, model, type, url, rowSelector = 'div.table-body > table > tbody > tr';
+            if ( gp.hasValue( config.Onrowselect ) ) {
+                type = typeof config.Onrowselect;
+                if ( type === 'string' && config.Onrowselect.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
+                // it's got to be either a function or a URL template
+                if ( /function|urlTemplate/.test( type ) ) {
+                    // add click handler
+                    gp.on( config.node, 'click', rowSelector + ':not(.edit-mode)', function ( evt ) {
+                        // remove previously selected class
+                        trs = config.node.querySelectorAll( rowSelector + '.selected' );
+                        for ( i = 0; i < trs.length; i++ ) {
+                            gp.removeClass( trs[i], 'selected' );
+                        }
+                        // add selected class
+                        gp.addClass( this, 'selected' );
+                        // get the model for this row
+                        model = gp.getRowModel( config.data.Data, this );
+    
+                        // ensure row selection doesn't interfere with button clicks in the row
+                        // by making sure the evt target is a cell
+                        if ( gp.in( evt.target, rowSelector + ' > td.body-cell', config.node ) ) {
+                            if ( type === 'function' ) {
+                                config.Onrowselect.call( this, model );
+                            }
+                            else {
+                                // it's a urlTemplate
+                                window.location = gp.processRowTemplate( config.Onrowselect, model );
+                            }
+                        }
+                    } );
+                }
+            }
         },
     
         createRow: function () {
@@ -409,42 +371,41 @@
             }
         },
     
-        handleRowSelect: function (config) {
-            var trs, i = 0, model, type, url, rowSelector = 'div.table-body > table > tbody > tr';
-            if (gp.hasValue(config.Onrowselect)) {
-                type = typeof config.Onrowselect;
-                if (type === 'string' && config.Onrowselect.indexOf('{{') !== -1) type = 'urlTemplate';
-                // it's got to be either a function or a URL template
-                if (type === 'function' || type === 'urlTemplate') {
-                    // add click handler
-                    gp.on(config.node, 'click', rowSelector + ':not(.edit-mode)', function (evt) {
-                        // remove previously selected class
-                        trs = config.node.querySelectorAll(rowSelector + '.selected');
-                        for (i = 0; i < trs.length; i++) {
-                            gp.removeClass(trs[i], 'selected');
-                        }
-                        // add selected class
-                        gp.addClass(this, 'selected');
-                        // get the model for this row
-                        model = gp.getRowModel(config.data.Data, this);
+        refresh: function ( config ) {
+            var rowsTemplate = gp.templates['gridponent-body'];
+            var pagerTemplate = gp.templates['gridponent-pager'];
+            var html = rowsTemplate( config );
+            config.node.querySelector( '.table-body' ).innerHTML = html;
+            html = pagerTemplate( config );
+            var pager = config.node.querySelector( '.table-pager' );
+            if ( pager ) pager.innerHTML = html;
+            html = gp.helpers['sortStyle'].call( config );
+            config.node.querySelector( 'style.sort-style' ).innerHTML = html;
+        },
     
-                        // ensure row selection doesn't interfere with button clicks in the row
-                        // by making sure the evt target is a cell
-                        if (gp.in(evt.target, rowSelector + ' > td.body-cell', config.node)) {
-                            if (type === 'function') {
-                                config.Onrowselect.call(this, model);
-                            }
-                            else {
-                                // it's a urlTemplate
-                                window.location = gp.processRowTemplate(config.Onrowselect, model);
-                            }
-                        }
-                    });
-                }
+        restoreCells: function ( config, row, tr ) {
+            var col,
+                i = 0;
+            helper = gp.helpers['bodyCellContent'],
+            cells = tr.querySelectorAll( 'td.body-cell' );
+            for ( ; i < cells.length; i++ ) {
+                col = config.Columns[i];
+                cells[i].innerHTML = helper.call( this.config, col );
             }
-        }
+            gp.removeClass( tr, 'edit-mode' );
+        },
     
+        update: function () {
+            var self = this;
+            gp.info( 'update: data:', this.config.data );
+    
+            this.model.read( this.config.data, function ( model ) {
+                gp.shallowCopy( model, self.config.data );
+                self.refresh( self.config );
+            } );
+        }
     };
+
     /***************\
       CustomEvent
     \***************/
@@ -462,6 +423,7 @@
         window.CustomEvent = CustomEvent;
     
     })();
+
     /***************\
        formatter
     \***************/
@@ -620,49 +582,49 @@
         }
     
     })();
+
     /***************\
          globals
     \***************/
-    (function (gp) {
+    ( function ( gp ) {
+    
+        var rexp = {
+            splitPath: /[^\[\]\.\s]+|\[\d+\]/g,
+            indexer: /\[\d+\]/,
+            iso8601: /^[012][0-9]{3}-[01][0-9]-[0123][0-9]/,
+            quoted: /^['"].+['"]$/
+        };
     
         // logging
         gp.logging = 'info';
-        gp.log = window.console ? window.console.log.bind(window.console) : function () { };
+        gp.log = window.console ? window.console.log.bind( window.console ) : function () { };
         gp.error = function ( e ) {
             if ( console && console.error ) {
                 console.error( e );
             }
         };
-        gp.verbose = function ( arg, p ) {
-            if ( /verbose/.test( gp.logging ) ) gp.log( arg, p );
-        }
-        gp.info = function ( arg, p ) {
-            if ( /info|verbose/.test( gp.logging ) ) gp.log( arg, p );
-        }
-        gp.warn = function ( arg, p ) {
-            if ( /warn|info|verbose/.test( gp.logging ) ) gp.log( arg, p );
-        }
+        gp.verbose = /verbose/.test( gp.logging ) ? gp.log : function () { };
+        gp.info = /verbose|info/.test( gp.logging ) ? gp.log : function () { };
+        gp.warn = /verbose|info|warn/.test( gp.logging ) ? gp.log : function () { };
     
-        gp.getConfig = function (node) {
-            gp.verbose('getConfig: node:');
-            gp.verbose(node);
+        gp.getAttributes = function ( node ) {
+            gp.verbose( 'getConfig: node:', node );
             var config = {}, name, attr, attrs = node.attributes;
             config.node = node;
-            for (var i = attrs.length - 1; i >= 0; i--) {
+            for ( var i = attrs.length - 1; i >= 0; i-- ) {
                 attr = attrs[i];
-                name = gp.camelize(attr.name);
+                name = gp.camelize( attr.name );
                 // convert "true", "false" and empty to boolean
-                config[name] = attr.value === "true" || attr.value === "false" || attr.value === '' ? (attr.value === "true" || attr.value === '') : attr.value;
+                config[name] = attr.value === "true" || attr.value === "false" || attr.value === '' ? ( attr.value === "true" || attr.value === '' ) : attr.value;
             }
-            gp.verbose('getConfig: config:');
-            gp.verbose(config);
+            gp.verbose( 'getConfig: config:', config );
             return config;
         };
     
-        gp.padLeft = function (str, length, char) {
+        gp.padLeft = function ( str, length, char ) {
             var s = str.toString();
             char = char || ' ';
-            while (s.length < length)
+            while ( s.length < length )
                 s = char + s;
             return s;
         };
@@ -671,81 +633,79 @@
     
         var escaped = ['&amp;', '&lt;', '&gt;', '&quot;', '&apos;', '&#96;'];
     
-        gp.escapeHTML = function (obj) {
-            if (typeof obj !== 'string') {
+        gp.escapeHTML = function ( obj ) {
+            if ( typeof obj !== 'string' ) {
                 return obj;
             }
-            for (var i = 0; i < chars.length; i++) {
-                obj = obj.replace(chars[i], escaped[i]);
+            for ( var i = 0; i < chars.length; i++ ) {
+                obj = obj.replace( chars[i], escaped[i] );
             }
             return obj;
         };
     
-        gp.camelize = function (str) {
-            return str.replace(/(?:^|[-_])(\w)/g, function (_, c) {
+        gp.camelize = function ( str ) {
+            return str.replace( /(?:^|[-_])(\w)/g, function ( _, c ) {
                 return c ? c.toUpperCase() : '';
-            });
+            } );
         };
     
-        gp.shallowCopy = function (from, to) {
-            var props = Object.getOwnPropertyNames(from);
-            props.forEach(function (prop) {
+        gp.shallowCopy = function ( from, to ) {
+            var props = Object.getOwnPropertyNames( from );
+            props.forEach( function ( prop ) {
                 to[prop] = from[prop];
-            });
+            } );
         };
     
-        var iso8601 = /^[012][0-9]{3}-[01][0-9]-[0123][0-9]/;
-    
-        gp.getLocalISOString = function (date) {
-            if (typeof date === 'string') return date;
+        gp.getLocalISOString = function ( date ) {
+            if ( typeof date === 'string' ) return date;
             var offset = date.getTimezoneOffset();
-            var adjustedDate = new Date(date.valueOf() - (offset * 60000));
+            var adjustedDate = new Date( date.valueOf() - ( offset * 60000 ) );
             return adjustedDate.toISOString();
         };
     
-        gp.getType = function (a) {
-            if (a === null || a === undefined) {
+        gp.getType = function ( a ) {
+            if ( a === null || a === undefined ) {
                 return a;
             }
-            if (a instanceof Date) {
+            if ( a instanceof Date ) {
                 return 'date';
             }
-            if (typeof (a) === 'string' && iso8601.test(a)) {
+            if ( typeof ( a ) === 'string' && rexp.iso8601.test( a ) ) {
                 return 'dateString';
             }
-            if (Array.isArray(a)) {
+            if ( Array.isArray( a ) ) {
                 return 'array';
             }
             // 'number','string','boolean','function','object'
-            return typeof (a);
+            return typeof ( a );
         };
     
-        gp.on = function (elem, event, targetSelector, listener) {
+        gp.on = function ( elem, event, targetSelector, listener ) {
             // if elem is a selector, convert it to an element
-            if (typeof (elem) === 'string') {
-                elem = document.querySelector(elem);
+            if ( typeof ( elem ) === 'string' ) {
+                elem = document.querySelector( elem );
             }
     
-            if (!gp.hasValue(elem)) {
+            if ( !gp.hasValue( elem ) ) {
                 return;
             }
     
             // this allows us to attach an event handler to the document
             // and handle events that match a selector
-            var privateListener = function (evt) {
+            var privateListener = function ( evt ) {
     
                 var e = evt.target;
     
                 // get all the elements that match targetSelector
-                var potentials = elem.querySelectorAll(targetSelector);
+                var potentials = elem.querySelectorAll( targetSelector );
     
                 // find the first element that matches targetSelector
                 // usually this will be the first one
-                while (e) {
-                    for (var j = 0; j < potentials.length; j++) {
-                        if (e == potentials[j]) {
+                while ( e ) {
+                    for ( var j = 0; j < potentials.length; j++ ) {
+                        if ( e == potentials[j] ) {
                             // set 'this' to the matching element
-                            listener.call(e, evt);
+                            listener.call( e, evt );
                             return;
                         }
                     }
@@ -754,57 +714,57 @@
             };
     
             // handle event
-            elem.addEventListener(event, privateListener, false);
+            elem.addEventListener( event, privateListener, false );
     
             // use an array to store listener and privateListener 
             // so we can remove the handler with gp.off
             var propName = 'gp-listeners-' + event;
-            var listeners = elem[propName] || (elem[propName] = []);
-            listeners.push({
+            var listeners = elem[propName] || ( elem[propName] = [] );
+            listeners.push( {
                 pub: listener,
                 priv: privateListener
-            });
+            } );
         };
     
-        gp.off = function (elem, event, listener) {
+        gp.off = function ( elem, event, listener ) {
             // check for a matching listener store on the element
             var listeners = elem['gp-listeners-' + event];
-            if (listeners) {
-                for (var i = 0; i < listeners.length; i++) {
-                    if (listeners[i].pub === listener) {
+            if ( listeners ) {
+                for ( var i = 0; i < listeners.length; i++ ) {
+                    if ( listeners[i].pub === listener ) {
     
                         // remove the event handler
-                        elem.removeEventListener(event, listeners[i].priv);
+                        elem.removeEventListener( event, listeners[i].priv );
     
                         // remove it from the listener store
-                        listeners.splice(i, 1);
+                        listeners.splice( i, 1 );
                         return;
                     }
                 }
             }
         };
     
-        gp.closest = function (elem, selector, parentNode) {
+        gp.closest = function ( elem, selector, parentNode ) {
             var e, potentials, j;
             parentNode = parentNode || document;
             // if elem is a selector, convert it to an element
-            if (typeof (elem) === 'string') {
-                elem = document.querySelector(elem);
+            if ( typeof ( elem ) === 'string' ) {
+                elem = document.querySelector( elem );
             }
-            gp.info('closest: elem:');
-            gp.info(elem);
+            gp.info( 'closest: elem:' );
+            gp.info( elem );
     
-            if (elem) {
+            if ( elem ) {
                 // start with elem's immediate parent
                 e = elem.parentElement;
     
-                potentials = parentNode.querySelectorAll(selector);
+                potentials = parentNode.querySelectorAll( selector );
     
-                while (e) {
-                    for (j = 0; j < potentials.length; j++) {
-                        if (e == potentials[j]) {
-                            gp.info('closest: e:');
-                            gp.info(e);
+                while ( e ) {
+                    for ( j = 0; j < potentials.length; j++ ) {
+                        if ( e == potentials[j] ) {
+                            gp.info( 'closest: e:' );
+                            gp.info( e );
                             return e;
                         }
                     }
@@ -813,35 +773,35 @@
             }
         };
     
-        gp.in = function (elem, selector, parent) {
+        gp.in = function ( elem, selector, parent ) {
             parent = parent || document;
             // if elem is a selector, convert it to an element
-            if (typeof (elem) === 'string') {
-                elem = parent.querySelector(elem);
+            if ( typeof ( elem ) === 'string' ) {
+                elem = parent.querySelector( elem );
             }
             // if selector is a string, convert it to a node list
-            if (typeof (selector) === 'string') {
-                selector = parent.querySelectorAll(selector);
+            if ( typeof ( selector ) === 'string' ) {
+                selector = parent.querySelectorAll( selector );
             }
-            for (var i = 0; i < selector.length; i++) {
-                if (selector[i] === elem) return true;
+            for ( var i = 0; i < selector.length; i++ ) {
+                if ( selector[i] === elem ) return true;
             }
             return false;
         };
     
-        gp.hasValue = function (val) {
+        gp.hasValue = function ( val ) {
             return val !== undefined && val !== null;
         };
     
-        gp.isNullOrEmpty = function (val) {
-            return gp.hasValue(val) === false || val.length === undefined || val.length === 0;
+        gp.isNullOrEmpty = function ( val ) {
+            return gp.hasValue( val ) === false || val.length === undefined || val.length === 0;
         };
     
-        gp.coalesce = function (array) {
-            if (gp.isNullOrEmpty(array)) return array;
+        gp.coalesce = function ( array ) {
+            if ( gp.isNullOrEmpty( array ) ) return array;
     
-            for (var i = 0; i < array.length; i++) {
-                if (gp.hasValue(array[i])) {
+            for ( var i = 0; i < array.length; i++ ) {
+                if ( gp.hasValue( array[i] ) ) {
                     return array[i];
                 }
             }
@@ -849,113 +809,90 @@
             return array[array.length - 1];
         };
     
-        var quoted = /^['"].+['"]$/;
+        gp.getObjectAtPath = function ( path, root ) {
+            if ( !path ) return;
     
-        gp.resolveObjectPath = function (path, root) {
-            // split by dots, then square brackets
-            try {
-                if (typeof path !== 'string') return null;
-                gp.verbose('resolveObjectPath:');
-                var currentObj = root || window;
-                var paths = path.split('.');
+            path = Array.isArray( path ) ? path : path.match( rexp.splitPath );
     
-                for (var i = 0; i < paths.length && gp.hasValue(currentObj); i++) {
-                    var name = paths[i];
-                    gp.verbose(name)
-                    var split = name.split('[');
-                    var objName = split[0];
-                    gp.verbose('objName: ' + objName);
-                    if (objName !== 'window' || i !== 0) {
-                        currentObj = currentObj[objName];
-                    }
-                    gp.verbose('currentObj: ' + currentObj);
-                    if (gp.hasValue(currentObj) && split.length > 1) {
+            if ( path[0] === 'window' ) path = path.splice( 1 );
     
-                        for (var j = 1; j < split.length; j++) {
-                            var indexer = split[j].slice(0, -1);
-                            // check to see if indexer is a number
-                            if (isNaN(parseInt(indexer))) {
-                                if (quoted.test(indexer)) {
-                                    indexer = indexer.slice(1, -1);
-                                }
-                                else {
-                                    indexer = gp.resolveObjectPath(indexer);
-                                }
-                                gp.verbose('indexer: ' + indexer);
-                                currentObj = currentObj[indexer];
-                            }
-                            else {
-                                gp.verbose('indexer: ' + indexer);
-                                currentObj = currentObj[parseInt(indexer)];
-                            }
-                            gp.verbose('currentObj: ' + currentObj);
-                        }
+            // o is our placeholder
+            var o = root || window,
+                segment;
     
-                    }
+            for ( var i = 0; i < path.length; i++ ) {
+                // is this segment an array index?
+                segment = path[i];
+                if ( rexp.indexer.test( segment ) ) {
+                    // convert to int
+                    segment = parseInt( /\d+/.exec( segment ) );
+                }
+                else if ( rexp.quoted.test( segment ) ) {
+                    segment = segment.slice( 1, -1 );
                 }
     
-                gp.verbose(currentObj);
+                o = o[segment];
     
-                return currentObj;
+                if ( o === undefined ) return;
             }
-            catch (ex) {
-                gp.error( ex );
-            }
+    
+            return o;
         };
     
-        gp.resolveObject = function (obj, name) {
-            var val;
-            if (gp.hasValue(obj[name])) {
-                val = gp.resolveObjectPath(obj[name]);
-                if (gp.hasValue(val)) {
-                    obj[name] = val;
-                    return true;
-                }
-            }
-            return false;
-        };
+        //gp.resolveObject = function ( path ) {
+        //    // used to find functions, objects and arrays
+        //    // for the various config options
+        //    var val;
+        //    if (gp.hasValue(obj[name])) {
+        //        val = gp.getObjectAtPath(path);
+        //        if (gp.hasValue(val)) {
+        //            return val;
+        //        }
+        //    }
+        //    return path;
+        //};
     
         var FP = Function.prototype;
     
         var callbind = FP.bind
-           ? FP.bind.bind(FP.call)
-           : (function (call) {
-               return function (func) {
+           ? FP.bind.bind( FP.call )
+           : ( function ( call ) {
+               return function ( func ) {
                    return function () {
-                       return call.apply(func, arguments);
+                       return call.apply( func, arguments );
                    };
                };
-           }(FP.call));
+           }( FP.call ) );
     
         var uids = {};
-        var slice = callbind(''.slice);
+        var slice = callbind( ''.slice );
         var zero = 0;
-        var numberToString = callbind(zero.toString);
+        var numberToString = callbind( zero.toString );
     
         gp.createUID = function () {
             // id's can't begin with a number
-            var key = 'gp' + slice(numberToString(Math.random(), 36), 2);
+            var key = 'gp' + slice( numberToString( Math.random(), 36 ), 2 );
             return key in uids ? createUID() : uids[key] = key;
         };
     
-        gp.hasPositiveWidth = function(nodes) {
-            if (gp.isNullOrEmpty(nodes)) return false;
-            for (var i = 0; i < nodes.length; i++) {
-                if (nodes[i].offsetWidth > 0) return true;
+        gp.hasPositiveWidth = function ( nodes ) {
+            if ( gp.isNullOrEmpty( nodes ) ) return false;
+            for ( var i = 0; i < nodes.length; i++ ) {
+                if ( nodes[i].offsetWidth > 0 ) return true;
             }
             return false;
         };
     
     
-        gp.resolveTemplate = function (template) {
+        gp.resolveTemplate = function ( template ) {
             // it's either a selector or a function
-            var t = gp.resolveObjectPath(template);
-            if (typeof (t) === 'function') {
+            var t = gp.getObjectAtPath( template );
+            if ( typeof ( t ) === 'function' ) {
                 return t;
             }
             else {
-                t = document.querySelector(template);
-                if (t) {
+                t = document.querySelector( template );
+                if ( t ) {
                     return t.innerHTML;
                 }
             }
@@ -964,115 +901,105 @@
     
         gp.formatter = new gp.Formatter();
     
-        gp.getFormattedValue = function (row, col, escapeHTML) {
-            var type = (col.Type || '').toLowerCase();
+        gp.getFormattedValue = function ( row, col, escapeHTML ) {
+            var type = ( col.Type || '' ).toLowerCase();
             var val = row[col.Field];
     
-            if (type === 'date' || type === 'datestring') {
+            if ( /date|datestring/.test( type ) ) {
                 // apply default formatting to dates
                 //return gp.formatDate(val, col.Format || 'M/d/yyyy');
-                return gp.formatter.format(val, col.Format);
+                return gp.formatter.format( val, col.Format );
             }
-            if (type === 'number' && col.Format) {
-                return gp.formatter.format(val, col.Format);
+            if ( type === 'number' && col.Format ) {
+                return gp.formatter.format( val, col.Format );
             }
-            if (type === 'string' && escapeHTML) {
-                return gp.escapeHTML(val);
+            if ( type === 'string' && escapeHTML ) {
+                return gp.escapeHTML( val );
             }
             return val;
         };
     
-        gp.processRowTemplate = function (template, row, col) {
-            gp.info('gp.processTemplate: template: ');
-            gp.info(template);
-            var fn, val, match, tokens = template.match(/{{.+?}}/g);
-            if (tokens) {
-                for (var i = 0; i < tokens.length; i++) {
-                    match = tokens[i].slice(2, -2);
-                    if (match in row) {
+        gp.processRowTemplate = function ( template, row, col ) {
+            var fn, val, match, tokens = template.match( /{{.+?}}/g );
+            if ( tokens ) {
+                for ( var i = 0; i < tokens.length; i++ ) {
+                    match = tokens[i].slice( 2, -2 );
+                    if ( match in row ) {
                         val = row[match];
-                        if (gp.hasValue(val) === false) val = '';
-                        template = template.replace(tokens[i], val);
+                        if ( gp.hasValue( val ) === false ) val = '';
+                        template = template.replace( tokens[i], val );
                     }
                     else {
-                        fn = gp.resolveObjectPath(match);
-                        if (typeof fn === 'function') {
-                            template = template.replace(tokens[i], fn.call(this, row, col));
+                        fn = gp.getObjectAtPath( match );
+                        if ( typeof fn === 'function' ) {
+                            template = template.replace( tokens[i], fn.call( this, row, col ) );
                         }
                     }
                 }
             }
-            gp.info('gp.processTemplate: template:');
-            gp.info(template);
             return template;
         };
     
-        gp.processColumnTemplate = function (template, col) {
-            var fn, match, tokens = template.match(/{{.+?}}/g);
-            if (tokens) {
-                for (var i = 0; i < tokens.length; i++) {
-                    match = tokens[i].slice(2, -2);
-                    fn = gp.resolveObjectPath(match);
-                    if (typeof fn === 'function') {
-                        template = template.replace(tokens[i], fn.call(this, col));
+        gp.processColumnTemplate = function ( template, col ) {
+            var fn, match, tokens = template.match( /{{.+?}}/g );
+            if ( tokens ) {
+                for ( var i = 0; i < tokens.length; i++ ) {
+                    match = tokens[i].slice( 2, -2 );
+                    fn = gp.getObjectAtPath( match );
+                    if ( typeof fn === 'function' ) {
+                        template = template.replace( tokens[i], fn.call( this, col ) );
                     }
                 }
             }
-            gp.info('gp.processTemplate: template:');
-            gp.info(template);
             return template;
         };
     
-        gp.trim = function (str) {
-            return str.trim ? str.trim() : str.replace(/^\s+|\s+$/g, '');
+        gp.trim = function ( str ) {
+            return str.trim ? str.trim() : str.replace( /^\s+|\s+$/g, '' );
         };
     
-        gp.hasClass = function(el, cn)
-        {
-            return (' ' + el.className + ' ').indexOf(' ' + cn + ' ') !== -1;
+        gp.hasClass = function ( el, cn ) {
+            return ( ' ' + el.className + ' ' ).indexOf( ' ' + cn + ' ' ) !== -1;
         };
     
-        gp.addClass = function(el, cn)
-        {
-            if (!gp.hasClass(el, cn)) {
-                el.className = (el.className === '') ? cn : el.className + ' ' + cn;
+        gp.addClass = function ( el, cn ) {
+            if ( !gp.hasClass( el, cn ) ) {
+                el.className = ( el.className === '' ) ? cn : el.className + ' ' + cn;
             }
         };
     
-        gp.removeClass = function (el, cn) {
-            el.className = gp.trim((' ' + el.className + ' ').replace(' ' + cn + ' ', ' '));
+        gp.removeClass = function ( el, cn ) {
+            el.className = gp.trim(( ' ' + el.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
         };
     
-        gp.prependChild = function (node, child) {
-            if (typeof node === 'string') node = document.querySelector(node);
-            if (typeof child === 'string') {
+        gp.prependChild = function ( node, child ) {
+            if ( typeof node === 'string' ) node = document.querySelector( node );
+            if ( typeof child === 'string' ) {
                 // using node.tagName to convert child to DOM node helps ensure that what we create is compatible with node
-                var div = document.createElement(node.tagName.toLowerCase());
+                var div = document.createElement( node.tagName.toLowerCase() );
                 div.innerHTML = child;
                 child = div.firstChild;
             }
             var firstChild = node.firstChild;
-            if (!firstChild) {
-                node.appendChild(child);
+            if ( !firstChild ) {
+                node.appendChild( child );
             }
-            node.insertBefore(child, firstChild);
+            node.insertBefore( child, firstChild );
             return child;
         };
     
-        gp.getRowModel = function (data, tr) {
-            var index = parseInt(tr.attributes['data-index'].value);
+        gp.getRowModel = function ( data, tr ) {
+            var index = parseInt( tr.attributes['data-index'].value );
             return data[index];
         };
     
-        gp.raiseCustomEvent = function(node, name, detail) {
-            var event = new CustomEvent(name, { bubbles: true, detail: detail, cancelable: true });
-            node.dispatchEvent(event);
-            gp.info('raiseCustomEvent: name: ' + name); 
-            gp.info('raiseCustomEvent: node: ');
-            gp.info(node);
+        gp.raiseCustomEvent = function ( node, name, detail ) {
+            var event = new CustomEvent( name, { bubbles: true, detail: detail, cancelable: true } );
+            node.dispatchEvent( event );
         };
     
-    })(gridponent);
+    } )( gridponent );
+
     /***************\
       table helpers
     \***************/
@@ -1097,7 +1024,7 @@
     
             if (this.ToolbarTemplate) {
                 // it's either a selector or a function name
-                template = gp.resolveObjectPath(this.ToolbarTemplate);
+                template = gp.getObjectAtPath(this.ToolbarTemplate);
                 if (typeof (template) === 'function') {
                     out.push(template(this));
                 }
@@ -1151,7 +1078,7 @@
                 }
                 else if (gp.hasValue(sort)) {
                     out.push('<label class="table-sort">');
-                    out.push('<input type="checkbox" name="OrderBy" value="' + sort + '" />');
+                    out.push('<input type="radio" name="OrderBy" value="' + sort + '" />');
                     out.push(gp.coalesce([col.Header, col.Field, sort]));
                     out.push('</label>');
                 }
@@ -1223,13 +1150,21 @@
                         out.push(cmd);
                         out.push('</button>');
                     }
-                    if (cmd == 'Delete') {
+                    else if (cmd == 'Delete') {
                         out.push('<button type="button" class="btn btn-danger btn-xs" value="');
                         out.push(cmd);
                         out.push('">');
                         out.push('<span class="glyphicon glyphicon-remove"></span>');
                         out.push(cmd);
                         out.push('</button>');
+                    }
+                    else {
+                        out.push( '<button type="button" class="btn btn-danger btn-xs" value="' );
+                        out.push( cmd );
+                        out.push( '">' );
+                        out.push( '<span class="glyphicon glyphicon-cog"></span>' );
+                        out.push( cmd );
+                        out.push( '</button>' );
                     }
                 });
                 out.push('</div>');
@@ -1364,10 +1299,8 @@
                 index = 0,
                 bodyCols = document.querySelectorAll('#' + this.ID + ' .table-body > table > tbody > tr:first-child > td');
     
-            gp.info('columnWidthStyle: bodycols:');
-            gp.info(bodyCols);
-            gp.info('columnWidthStyle: this:');
-            gp.info(this);
+            gp.info('columnWidthStyle: bodycols:', bodyCols);
+            gp.info('columnWidthStyle: this:', this);
     
             // even though the table might not exist yet, we still should render width styles because there might be fixed widths specified
             this.Columns.forEach(function (col) {
@@ -1407,8 +1340,8 @@
             if (this.FixedFooters) {
                 out.push(' fixed-footers');
             }
-            if (this.Paging) {
-                out.push(' pager-' + this.Paging);
+            if (this.Pager) {
+                out.push(' pager-' + this.Pager);
             }
             if (this.Responsive) {
                 out.push(' responsive');
@@ -1423,87 +1356,99 @@
         });
     
     })();
+
     /***************\
-         http        
+       Initializer
     \***************/
-    gp.Http = function () { };
-    
-    gp.Http.prototype = {
-        serialize: function (obj, props) {
-            // creates a query string from a simple object
-            var self = this;
-            props = props || Object.getOwnPropertyNames(obj);
-            var out = [];
-            props.forEach( function ( prop ) {
-                if ( obj[prop] == null ) {
-                    out.push( encodeURIComponent( prop ) + '=' );
-                }
-                else {
-                    out.push( encodeURIComponent( prop ) + '=' + encodeURIComponent( obj[prop] ) );
-                }
-            });
-            return out.join('&');
-        },
-        createXhr: function (type, url, callback, error) {
-            var xhr = new XMLHttpRequest();
-            xhr.open(type.toUpperCase(), url, true);
-            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-            xhr.onload = function () {
-                callback(JSON.parse(xhr.responseText), xhr);
-            }
-            xhr.onerror = error;
-            return xhr;
-        },
-        get: function (url, callback, error) {
-            var xhr = this.createXhr('GET', url, callback, error);
-            xhr.send();
-        },
-        post: function ( url, data, callback, error ) {
-            // don't post back the data or the types
-            var props = Object.getOwnPropertyNames( data ).filter( function ( p ) { return /Data|Types/i.test(p) == false; } );
-            var s = this.serialize(data, props);
-            var xhr = this.createXhr('POST', url, callback, error);
-            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-            xhr.send(s);
-        }
-    };
-    /***************\
-     main component
-    \***************/
-    gp.Initializer = function (node) {
-        this.initialize(node);
+    gp.Initializer = function ( node ) {
+        this.node = node;
     };
     
     gp.Initializer.prototype = {
     
-        initialize: function (node) {
+        initialize: function () {
             var self = this;
-            this.config = this.getConfig(node);
-            node.config = this.config;
-            gp.info(this.config);
-            new gp.Controller(self.config);
+            this.config = this.getConfig(this.node);
+            this.node.config = this.config;
+            var model = new gp.Model( this.config );
+            var requestModel = new gp.RequestModel();
+            var controller = new gp.Controller( self.config, model, requestModel );
+            this.node.api = new gp.api( controller );
+    
+            model.read( requestModel, function ( data ) {
+                self.config.data = data;
+                self.resolvePaging( self.config );
+                self.resolveTypes( self.config );
+                self.render( self.config );
+                controller.monitorToolbars( self.config.node );
+                controller.addCommandHandlers( self.config.node );
+                controller.handleRowSelect( self.config );
+            } );
         },
     
         getConfig: function (node) {
             var self = this;
-            var config = gp.getConfig(node);
+            var obj, config = gp.getAttributes(node);
             config.Columns = [];
             config.data = {};
             config.ID = gp.createUID();
             for (var i = 0; i < node.children.length; i++) {
                 var col = node.children[i];
-                var colConfig = gp.getConfig(col);
+                var colConfig = gp.getAttributes(col);
                 config.Columns.push(colConfig);
                 this.resolveCommands(colConfig);
                 this.resolveTemplates(colConfig);
             }
             config.Footer = this.resolveFooter(config);
-            var options = 'Onrowselect SearchFilter DataSource Read Create Update Destroy'.split(' ');
-            options.forEach(function (option) {
-                gp.resolveObject(config, option);
+            var options = 'Onrowselect SearchFilter Read Create Update Destroy'.split(' ');
+            options.forEach( function ( option ) {
+                // see if this config option points to a function, object or array
+                // otherwise it must be a URL
+                obj = gp.getObjectAtPath( config[option] );
+                if ( gp.hasValue( obj ) ) config[option] = obj;
             });
             gp.info(config);
             return config;
+        },
+    
+        render: function ( config ) {
+            var self = this;
+            try {
+                var node = config.node;
+    
+                node.innerHTML = gp.templates['gridponent']( config );
+    
+                // sync column widths
+                if ( config.FixedHeaders || config.FixedFooters ) {
+                    var nodes = node.querySelectorAll( '.table-body > table > tbody > tr:first-child > td' );
+    
+                    if ( gp.hasPositiveWidth( nodes ) ) {
+                        // call syncColumnWidths twice because the first call causes things to shift around a bit
+                        self.syncColumnWidths( config )
+                        self.syncColumnWidths( config )
+                    }
+                    //else {
+                    //    new gp.polar(function () {
+                    //        return gp.hasPositiveWidth(nodes);
+                    //    }, function () {
+                    //        self.syncColumnWidths.call(config)
+                    //        self.syncColumnWidths.call(config)
+                    //    });
+                    //}
+    
+                    window.addEventListener( 'resize', function () {
+                        self.syncColumnWidths( config );
+                    } );
+                }
+            }
+            catch ( ex ) {
+                gp.error( ex );
+            }
+        },
+    
+        syncColumnWidths: function (config) {
+            var html = gp.helpers.columnWidthStyle.call( config );
+            config.node.querySelector( 'style.column-width-style' ).innerHTML = html;
         },
     
         resolveFooter: function (config) {
@@ -1526,51 +1471,245 @@
             }
         },
     
-        resolveTypes: function (config) {
-            config.Columns.forEach(function (col) {
-                for (var i = 0; i < config.data.Data.length; i++) {
-                    if (config.data.Data[i][col.Field] !== null) {
-                        col.Type = gp.getType(config.data.Data[i][col.Field]);
+        resolvePaging: function ( config ) {
+            // if we've got all the data, do paging/sorting/searching on the client
+    
+        },
+    
+        resolveTypes: function ( config ) {
+            if ( !config.data.Data ) return;
+            config.Columns.forEach( function ( col ) {
+                for ( var i = 0; i < config.data.Data.length; i++ ) {
+                    if ( config.data.Data[i][col.Field] !== null ) {
+                        col.Type = gp.getType( config.data.Data[i][col.Field] );
                         break;
                     }
                 }
-            });
+            } );
         }
+        //measureTables: function (node) {
+        //    // for fixed headers, adjust the padding on the header to match the width of the main table
+        //    var header = node.querySelector('.table-header');
+        //    var footer = node.querySelector('.table-footer');
+        //    if (header || footer) {
+        //        var bodyWidth = node.querySelector('.table-body > table').offsetWidth;
+        //        var headerWidth = (header || footer).querySelector('table').offsetWidth;
+        //        var diff = (headerWidth - bodyWidth);
+        //        if (diff !== 0) {
+        //            var paddingRight = diff;
+        //            gp.log('diff:' + diff + ', paddingRight:' + paddingRight);
+        //            if (header) {
+        //                header.style.paddingRight = paddingRight.toString() + 'px';
+        //            }
+        //            if (footer) {
+        //                footer.style.paddingRight = paddingRight.toString() + 'px';
+        //            }
+        //        }
+        //    }
+        //}
+    
     };
+
+    /***************\
+       mock-http
+    \***************/
+    (function (gp) {
+        gp.Http = function () { };
+    
+        // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
+        var routes = {
+            read: /Read/,
+            update: /Update/,
+            create: /Create/,
+            destroy: /Destroy/
+        };
+    
+        gp.Http.prototype = {
+            serialize: function (obj, props) {
+                // creates a query string from a simple object
+                var self = this;
+                props = props || Object.getOwnPropertyNames(obj);
+                var out = [];
+                props.forEach(function (prop) {
+                    out.push(encodeURIComponent(prop) + '=' + encodeURIComponent(obj[prop]));
+                });
+                return out.join('&');
+            },
+            deserialize: function (queryString) {
+                var nameValue, split = queryString.split( '&' );
+                var obj = {};
+                if ( !queryString ) return obj;
+                split.forEach( function ( s ) {
+                    nameValue = s.split( '=' );
+                    var val = nameValue[1];
+                    if ( !val ) {
+                        obj[nameValue[0]] = null;
+                    }
+                    else if ( /true|false/i.test( val ) ) {
+                        obj[nameValue[0]] = ( /true/i.test( val ) );
+                    }
+                    else if ( parseFloat( val ).toString() === val ) {
+                        obj[nameValue[0]] = parseFloat( val );
+                    }
+                    else {
+                        obj[nameValue[0]] = val;
+                    }
+                } );
+                return obj;
+            },
+            get: function (url, callback, error) {
+                if (routes.read.test(url)) {
+                    var index = url.substring(url.indexOf('?'));
+                    if (index !== -1) {
+                        var queryString = url.substring(index + 1);
+                        var model = this.deserialize(queryString);
+                        this.post(url.substring(0, index), model, callback, error);
+                    }
+                    else {
+                        this.post(url, null, callback, error);
+                    }
+                }
+                else if (routes.create.test(url)) {
+                    var result = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
+                    callback(result);
+                }
+                else {
+                    throw 'Not found: ' + url;
+                }
+            },
+            post: function (url, model, callback, error) {
+                model = model || {};
+                if (routes.read.test(url)) {
+                    getData(model, callback);
+                }
+                else if (routes.update.test(url)) {
+                    callback({
+                        Data: model,
+                        ValidationErrors:[]
+                    });
+                }
+                else if (routes.destroy.test(url)) {
+                    var index = data.products.indexOf(model);
+                    callback(true);
+                }
+                else {
+                    throw '404 Not found: ' + url;
+                }
+            }
+        };
+    
+        var getData = function (model, callback) {
+            var count, d = data.products;
+            if (!gp.isNullOrEmpty(model.Search)) {
+                var props = Object.getOwnPropertyNames(d[0]);
+                var search = model.Search.toLowerCase();
+                d = d.filter(function (row) {
+                    for (var i = 0; i < props.length; i++) {
+                        if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
+                            return true;
+                        }
+                    }
+                    return false;
+                });
+            }
+            if (!gp.isNullOrEmpty(model.OrderBy)) {
+                if (model.Desc) {
+                    d.sort(function (row1, row2) {
+                        var a = row1[model.OrderBy];
+                        var b = row2[model.OrderBy];
+                        if (a === null) {
+                            if (b != null) {
+                                return 1;
+                            }
+                        }
+                        else if (b === null) {
+                            // we already know a isn't null
+                            return -1;
+                        }
+                        if (a > b) {
+                            return -1;
+                        }
+                        if (a < b) {
+                            return 1;
+                        }
+    
+                        return 0;
+                    });
+                }
+                else {
+                    d.sort(function (row1, row2) {
+                        var a = row1[model.OrderBy];
+                        var b = row2[model.OrderBy];
+                        if (a === null) {
+                            if (b != null) {
+                                return -1;
+                            }
+                        }
+                        else if (b === null) {
+                            // we already know a isn't null
+                            return 1;
+                        }
+                        if (a > b) {
+                            return 1;
+                        }
+                        if (a < b) {
+                            return -1;
+                        }
+    
+                        return 0;
+                    });
+                }
+            }
+            count = d.length;
+            if (model.Top !== -1) {
+                model.Data = d.slice(model.Skip).slice(0, model.Top);
+            }
+            else {
+                model.Data = d;
+            }
+            model.ValidationErrors = [];
+            setTimeout(function () {
+                callback(model);
+            });
+    
+        };
+    
+    })(gridponent);
+
     /***************\
          model
     \***************/
-    gp.Model = function (config) {
+    gp.Model = function ( config ) {
         this.config = config;
-        if (typeof config.Read === 'string') {
-            this.pager = new gp.ServerPager(config);
-        }
-        else if (typeof config.Read !== 'function') {
-            // even if paging isn't enabled, we can still use a ClientPager for searching and sorting
-            this.pager = new gp.ClientPager(config);
-            // set pager.data even if config.DataSource is undefined
-            this.pager.data = config.DataSource;
+        this.dal = null;
+        var type = gp.getType(config.Read);
+        if ( type == 'string' ) {
+            this.dal = new gp.ServerPager(config);
         }
     };
     
     gp.Model.prototype = {
     
         read: function (requestModel, callback) {
-            if (this.pager) {
-                this.pager.read(requestModel, function (response) {
-                    // response should be a RequestModel object with data
-                    callback(response);
-                });
-            }
-            else if (typeof this.config.Read === 'function') {
-                this.config.Read(requestModel, callback);
-            }
-            else if (typeof this.config.Read === 'string') {
-                var http = new gp.Http();
-                http.post(this.config.Read, requestModel, callback);
-            }
-            else {
-                callback();
+            var type = gp.getType( this.config.Read );
+            switch ( type ) {
+                case 'string':
+                    var http = new gp.Http();
+                    http.post( this.config.Read, requestModel, callback );
+                    break;
+                case 'function':
+                    this.config.Read( requestModel, callback );
+                    break;
+                case 'object':
+                    // Read is a RequestModel
+                    callback( this.config.Read );
+                case 'array':
+                    this.config.data.Data = this.config.Read;
+                    var dal = new gp.ClientPager( this.config );
+                    dal.read( requestModel, callback );
+                    break;
+                default:
+                    callback();
             }
         },
     
@@ -1616,6 +1755,7 @@
         }
     
     };
+
     /***************\
        ObjectProxy
     \***************/
@@ -1646,6 +1786,7 @@
         });
     };
     
+
     /***************\
     server-side pager
     \***************/
@@ -1669,7 +1810,7 @@
         var value, self = this;
         this.data = config.data.Data;
         this.columns = config.Columns.filter(function (c) {
-            return c.Field !== undefined;
+            return c.Field !== undefined || c.Sort !== undefined;
         });
         if (typeof config.SearchFilter === 'function') {
             this.searchFilter = config.SearchFilter;
@@ -1689,44 +1830,37 @@
     };
     
     gp.ClientPager.prototype = {
-        getSkip: function (model) {
-            var data = model;
-            if (data.PageCount == 0) {
-                return 0;
-            }
-            if (data.Page < 1) {
-                data.Page = 1;
-            }
-            else if (data.Page > data.PageCount) {
-                return data.Page = data.PageCount;
-            }
-            return (data.Page - 1) * data.Top;
-        },
-    
         read: function (model, callback, error) {
             try {
                 var self = this;
-                var skip = this.getSkip(model);
+                var skip = this.getSkip( model );
     
                 model.Data = this.data;
     
                 var count;
+                // filter first
                 if (!gp.isNullOrEmpty(model.Search)) {
                     model.Data = model.Data.filter(function (row) {
                         return self.searchFilter(row, model.Search);
                     });
                 }
+    
+                // set TotalRows after filtering, but before paging
                 model.TotalRows = model.Data.length;
+    
+                // then sort
                 if (gp.isNullOrEmpty(model.OrderBy) === false) {
-                    var col = this.getColumnByField(this.columns, model.OrderBy);
-                    if (col !== undefined) {
-                        var sortFunction = this.getSortFunction(col, model.Desc);
-                        model.Data.sort(function (row1, row2) {
-                            return sortFunction(row1[col.Field], row2[col.Field]);
+                    var col = this.getColumnByField( this.columns, model.OrderBy );
+                    if (gp.hasValue(col)) {
+                        var sortFunction = this.getSortFunction( col, model.Desc );
+                        var fieldName = col.Field || col.Sort;
+                        model.Data.sort( function ( row1, row2 ) {
+                            return sortFunction( row1[fieldName], row2[fieldName] );
                         });
                     }
                 }
-                gp.info('ClientPager: total rows: ' + model.TotalRows);
+    
+                // then page
                 if (model.Top !== -1) {
                     model.Data = model.Data.slice(skip).slice(0, model.Top);
                 }
@@ -1736,19 +1870,32 @@
             }
             callback(model);
         },
-        getColumnByField: function (columns, field) {
-            var col = columns.filter(function (c) { return c.Field === field });
+        getSkip: function ( model ) {
+            var data = model;
+            if ( data.PageCount == 0 ) {
+                return 0;
+            }
+            if ( data.Page < 1 ) {
+                data.Page = 1;
+            }
+            else if ( data.Page > data.PageCount ) {
+                return data.Page = data.PageCount;
+            }
+            return ( data.Page - 1 ) * data.Top;
+        },
+        getColumnByField: function ( columns, field ) {
+            var col = columns.filter(function (c) { return c.Field === field || c.Sort === field });
             return col.length ? col[0] : null;
         },
         getSortFunction: function (col, desc) {
-            if (col.Type === 'number' || col.Type === 'date' || col.Type == 'boolean') {
-                if (desc) {
+            if ( /number|date|boolean/.test( col.Type ) ) {
+                if ( desc ) {
                     return this.diffSortDesc;
                 }
                 return this.diffSortAsc;
             }
             else {
-                if (desc) {
+                if ( desc ) {
                     return this.stringSortDesc;
                 }
                 return this.stringSortAsc;
@@ -1770,10 +1917,10 @@
                 // we already know a isn't null
                 return -1;
             }
-            if (a > b) {
+            if (a.toLowerCase() > b.toLowerCase()) {
                 return -1;
             }
-            if (a < b) {
+            if (a.toLowerCase() < b.toLowerCase()) {
                 return 1;
             }
     
@@ -1789,83 +1936,17 @@
                 // we already know a isn't null
                 return 1;
             }
-            if (a > b) {
+            if (a.toLowerCase() > b.toLowerCase()) {
                 return 1;
             }
-            if (a < b) {
+            if (a.toLowerCase() < b.toLowerCase()) {
                 return -1;
             }
     
             return 0;
         }
     };
-    /***************\
-         polar
-    \***************/
-    (function () {
-    
-        var testers = [];
-    
-        var timeout = null;
-    
-        var poll = function () {
-    
-            testers.forEach(function (testor) {
-                testor.test();
-            });
-    
-            if (testers.length) {
-                timeout = setTimeout(poll, 250);
-            }
-            else {
-                timeout = null;
-            }
-        };
-    
-        gp.polar = function (fn, val, callback) {
-    
-            testers.push(new gp.testor(fn, val, callback));
-    
-            if (timeout === null) {
-                poll();
-            }
-    
-            this.stop = function () {
-                if (timeout != null) {
-                    clearTimeout(timeout);
-                }
-                if (testers.length) {
-                    testers.splice(0, testers.length);
-                }
-            };
-    
-        };
-    
-        gp.testor = function (test, val, callback) {
-            var result, index;
-    
-            try {
-                this.test = function () {
-                    result = test();
-                    if (result == val) {
-                        callback(result);
-                        index = testers.indexOf(this);
-                        if (index !== -1) {
-                            testers.splice(index, 1);
-                        }
-                    }
-                };
-            }
-            catch (ex) {
-                index = testers.indexOf(this);
-                if (index !== -1) {
-                    testers.splice(index, 1);
-                }
-                gp.error( ex );
-            }
-        };
-    
-    })();
+
     // pilfered from JQuery
     /*!
      * jQuery JavaScript Library v2.1.4
@@ -1950,6 +2031,7 @@
             }
         }
     };
+
     /***************\
       RequestModel
     \***************/
@@ -1957,7 +2039,8 @@
         var self = this;
         // properites are capitalized here because that's the convention for server-side classes (C#)
         // we want the serialized version of the corresponding server-side class to look exactly like this prototype
-        this.Top = -1; // this is used as a flag to let the pagers know if paging is enabled
+    
+        this.Top = -1; // this is a flag to let the pagers know if paging is enabled
         this.Page = 1;
         this.OrderBy = '';
         this.Desc = false;
@@ -1973,10 +2056,11 @@
     
         Object.defineProperty(self, 'PageCount', {
             get: function () {
-                if (self.Top !== -1) {
-                    return Math.ceil(self.TotalRows / self.Top);
+                if ( self.Top !== -1 ) {
+                    return Math.ceil( self.TotalRows / self.Top );
                 }
-                return 0;
+                if ( self.TotalRows === 0 ) return 0;
+                return 1;
             }
         });
     
@@ -1992,70 +2076,41 @@
             }
         });
     };
+
     /***************\
-     main component
+       Gridponent
     \***************/
-    //gp.Table = function (node) {
     
-    //    var i = new gp.Initializer(node);
-    
-    //    this.config = i.config;
-    //    //this.initialize(node);
-    //};
-    
+    // check for web component support
     if (document.registerElement) {
     
-        gp.Table = Object.create(HTMLElement.prototype);
+        gp.Gridponent = Object.create(HTMLElement.prototype);
     
-        //gp.Table.constructor = gp.Table;
-    
-        gp.Table.createdCallback = function () {
-            gp.info(this);
-            new gp.Initializer(this);
+        gp.Gridponent.createdCallback = function () {
+            new gp.Initializer(this).initialize();
         };
     
         document.registerElement('grid-ponent', {
-            prototype: gp.Table
+            prototype: gp.Gridponent
         });
     }
     else {
-        gp.Table = Object.create(Object.prototype);
-    
-        //gp.Table.constructor = gp.Table;
-    
-        gp.ready(function () {
-            var node, nodes = document.querySelectorAll('grid-ponent');
-            for (var i = 0; i < nodes.length; i++) {
-                node = nodes[i];
-                new gp.Initializer(node);
+        // no web component support
+        // provide a static function to initialize grid-ponent elements manually
+        gp.initialize = function (root) {
+            root = root || document;
+            var node, nodes = root.querySelectorAll( 'grid-ponent' );
+            for ( var i = 0; i < nodes.length; i++ ) {
+                new gp.Initializer( nodes[i] ).initialize();
             }
-        });
+        };
+    
+        gp.ready( gp.initialize( document ) );
     }
-    
-    gp.Table.api = {
-        filter: function (obj) {
-            // obj is either a search term or a function 
-        },
-        sort: function (obj) {
-            // obj is either a function or a sort expression
-        },
-        getPage: function(index) {
-    
-        },
-        create: function (row) {
-    
-        },
-        read: function (page) {
-            // page is an object specifying sort, search, page, etc.
-            // if not supplied, read acts like a refresh function
-        },
-        update: function (index, row) {
-    
-        },
-        destroy: function(index) {
-    
-        }
-    };
+
+    /***************\
+        templates
+    \***************/
     gp.templates = gp.templates || {};
     gp.templates['gridponent-body'] = function(model, arg) {
         var out = [];
@@ -2227,7 +2282,7 @@
             out.push('</table>');
         out.push('</div>');
                 }
-                    if (model.Paging) {
+                    if (model.Pager) {
             out.push('<div class="table-pager">');
                         out.push(gp.templates['gridponent-pager'](model));
             out.push('</div>');
@@ -2242,4 +2297,3 @@
         return out.join('');
     };
 })(gridponent);
-

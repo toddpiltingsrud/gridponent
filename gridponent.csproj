@@ -34,20 +34,27 @@
     <RootNamespace>tp_table</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="scripts\bootstrap-datepicker.min.js" />
-    <Content Include="scripts\modernizr-custom-3.0.0.min.js" />
+    <Content Include="spec\fonts\glyphicons-halflings-regular.svg" />
+    <Content Include="spec\scripts\bootstrap-datepicker.min.js" />
+    <Content Include="spec\scripts\bootstrap.min.js" />
+    <Content Include="spec\scripts\jquery-2.1.4.min.js" />
+    <Content Include="spec\scripts\modernizr-custom-3.0.0.min.js" />
+    <Content Include="spec\scripts\qunit-1.20.0.js" />
     <Content Include="spec\Out.txt">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Out.tt</DependentUpon>
     </Content>
     <Content Include="spec\OutSource.txt" />
-    <Content Include="src\polar.js" />
+    <Content Include="src\api.js" />
+    <Content Include="src\x-polar.js" />
     <Content Include="src\model.js" />
     <Content Include="src\controller.js" />
     <Content Include="src\views\gridponent-new-row.html" />
-    <Content Include="styles\bootstrap-datepicker.min.css" />
-    <Content Include="styles\styles.css" />
+    <Content Include="spec\styles\bootstrap-datepicker.min.css" />
+    <Content Include="spec\styles\bootstrap.min.css" />
+    <Content Include="spec\styles\qunit-1.20.0.css" />
+    <Content Include="spec\styles\styles.css" />
     <Content Include="gridponent.js">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -56,7 +63,7 @@
     <Content Include="src\object-proxy.js" />
     <Content Include="src\format.js" />
     <Content Include="src\custom-event-polyfill.js" />
-    <Content Include="src\mock-http.js.txt" />
+    <Content Include="src\mock-http.js" />
     <Content Include="src\ready-check.js" />
     <Content Include="src\pagers.js" />
     <Content Include="src\change-monitor.js" />
@@ -70,8 +77,11 @@
       <DependentUpon>gridponent.less</DependentUpon>
     </Content>
     <Content Include="src\initializer.js" />
-    <Content Include="src\table.js" />
+    <Content Include="src\z-gridponent.js" />
     <None Include="README.md" />
+    <None Include="spec\fonts\glyphicons-halflings-regular.eot" />
+    <None Include="spec\fonts\glyphicons-halflings-regular.ttf" />
+    <None Include="spec\fonts\glyphicons-halflings-regular.woff" />
     <None Include="spec\Out.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Out.txt</LastGenOutput>
@@ -94,7 +104,7 @@
     <Content Include="spec\SpecRunner.html" />
     <Content Include="spec\tests.js" />
     <Content Include="src\http.js" />
-    <Content Include="scripts\webcomponents.min.js" />
+    <Content Include="spec\scripts\webcomponents.min.js" />
     <Content Include="src\gridponent.min.css">
       <DependentUpon>gridponent.css</DependentUpon>
     </Content>

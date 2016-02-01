@@ -22,7 +22,7 @@
 
         if (this.ToolbarTemplate) {
             // it's either a selector or a function name
-            template = gp.resolveObjectPath(this.ToolbarTemplate);
+            template = gp.getObjectAtPath(this.ToolbarTemplate);
             if (typeof (template) === 'function') {
                 out.push(template(this));
             }
@@ -76,7 +76,7 @@
             }
             else if (gp.hasValue(sort)) {
                 out.push('<label class="table-sort">');
-                out.push('<input type="checkbox" name="OrderBy" value="' + sort + '" />');
+                out.push('<input type="radio" name="OrderBy" value="' + sort + '" />');
                 out.push(gp.coalesce([col.Header, col.Field, sort]));
                 out.push('</label>');
             }
@@ -148,13 +148,21 @@
                     out.push(cmd);
                     out.push('</button>');
                 }
-                if (cmd == 'Delete') {
+                else if (cmd == 'Delete') {
                     out.push('<button type="button" class="btn btn-danger btn-xs" value="');
                     out.push(cmd);
                     out.push('">');
                     out.push('<span class="glyphicon glyphicon-remove"></span>');
                     out.push(cmd);
                     out.push('</button>');
+                }
+                else {
+                    out.push( '<button type="button" class="btn btn-danger btn-xs" value="' );
+                    out.push( cmd );
+                    out.push( '">' );
+                    out.push( '<span class="glyphicon glyphicon-cog"></span>' );
+                    out.push( cmd );
+                    out.push( '</button>' );
                 }
             });
             out.push('</div>');
@@ -289,10 +297,8 @@
             index = 0,
             bodyCols = document.querySelectorAll('#' + this.ID + ' .table-body > table > tbody > tr:first-child > td');
 
-        gp.info('columnWidthStyle: bodycols:');
-        gp.info(bodyCols);
-        gp.info('columnWidthStyle: this:');
-        gp.info(this);
+        gp.info('columnWidthStyle: bodycols:', bodyCols);
+        gp.info('columnWidthStyle: this:', this);
 
         // even though the table might not exist yet, we still should render width styles because there might be fixed widths specified
         this.Columns.forEach(function (col) {
@@ -332,8 +338,8 @@
         if (this.FixedFooters) {
             out.push(' fixed-footers');
         }
-        if (this.Paging) {
-            out.push(' pager-' + this.Paging);
+        if (this.Pager) {
+            out.push(' pager-' + this.Pager);
         }
         if (this.Responsive) {
             out.push(' responsive');

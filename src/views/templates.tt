@@ -6,6 +6,9 @@
 <#@ import namespace="System.Collections.Generic" #>
 <#@ import namespace="System.Text.RegularExpressions" #>
 <#@ output extension=".js" #>
+/***************\
+    templates
+\***************/
 gp.templates = gp.templates || {};
 <#
 string path = "";

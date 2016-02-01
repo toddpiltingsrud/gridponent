@@ -1,43 +1,25 @@
 ﻿/***************\
    controller
 \***************/
-gp.Controller = function (config) {
+gp.Controller = function (config, model, requestModel) {
     var self = this;
     this.config = config;
-    this.model = new gp.Model(config);
-    this.requestModel = new gp.RequestModel();
-    if (config.Paging) {
+    this.model = model;
+    this.requestModel = requestModel;
+    if (config.Pager) {
         this.requestModel.Top = 25;
     }
-    this.model.read(this.requestModel, function (data) {
-        self.config.data = data;
-        self.resolveTypes(config);
-        self.render(config);
-        self.beginMonitor(config.node);
-        self.addCommandHandlers(config.node);
-        self.handleRowSelect(config);
-    });
 };
 
 gp.Controller.prototype = {
 
-    resolveTypes: function (config) {
-        config.Columns.forEach(function (col) {
-            for (var i = 0; i < config.data.Data.length; i++) {
-                if (config.data.Data[i][col.Field] !== null) {
-                    col.Type = gp.getType(config.data.Data[i][col.Field]);
-                    break;
-                }
-            }
-        });
-    },
-    beginMonitor: function (node) {
+    monitorToolbars: function (node) {
         var self = this;
         // monitor changes to search, sort, and paging
         var monitor = new gp.ChangeMonitor(node, '.table-toolbar [name=Search], thead input, .table-pager input', this.config.data, function (evt) {
             self.update();
             // reset the radio inputs
-            var radios = node.querySelectorAll('thead input[type=radio], .table-pager input[type=radio]');
+            var radios = node.querySelectorAll( 'thead input[type=radio], .table-pager input[type=radio]' );
             for (var i = 0; i < radios.length; i++) {
                 radios[i].checked = false;
             }
@@ -59,132 +41,78 @@ gp.Controller.prototype = {
         };
     },
 
-    render: function (config) {
-        var self = this;
-        try {
-            var node = config.node;
-
-            node.innerHTML = gp.templates['gridponent'](config);
-
-            // sync column widths
-            if (config.FixedHeaders || config.FixedFooters) {
-                var nodes = node.querySelectorAll('.table-body > table > tbody > tr:first-child > td');
-
-                if (gp.hasPositiveWidth(nodes)) {
-                    // call syncColumnWidths twice because the first call causes things to shift around a bit
-                    self.syncColumnWidths.call(config)
-                    self.syncColumnWidths.call(config)
-                }
-                else {
-                    new gp.polar(function () {
-                        return gp.hasPositiveWidth(nodes);
-                    }, function () {
-                        self.syncColumnWidths.call(config)
-                        self.syncColumnWidths.call(config)
-                    });
-                }
-
-                window.addEventListener('resize', function () {
-                    self.syncColumnWidths.call(config);
-                });
-            }
-        }
-        catch (ex) {
-            gp.error( ex );
-        }
-    },
-
-    measureTables: function (node) {
-        // for fixed headers, adjust the padding on the header to match the width of the main table
-        var header = node.querySelector('.table-header');
-        var footer = node.querySelector('.table-footer');
-        if (header || footer) {
-            var bodyWidth = node.querySelector('.table-body > table').offsetWidth;
-            var headerWidth = (header || footer).querySelector('table').offsetWidth;
-            var diff = (headerWidth - bodyWidth);
-            if (diff !== 0) {
-                var paddingRight = diff;
-                gp.log('diff:' + diff + ', paddingRight:' + paddingRight);
-                if (header) {
-                    header.style.paddingRight = paddingRight.toString() + 'px';
-                }
-                if (footer) {
-                    footer.style.paddingRight = paddingRight.toString() + 'px';
-                }
-            }
-        }
-    },
-
-    syncColumnWidths: function () {
-        var html = gp.helpers.columnWidthStyle.call(this);
-        this.node.querySelector('style.column-width-style').innerHTML = html;
-    },
-
-    refresh: function (config) {
-        var rowsTemplate = gp.templates['gridponent-body'];
-        var pagerTemplate = gp.templates['gridponent-pager'];
-        var html = rowsTemplate(config);
-        config.node.querySelector('.table-body').innerHTML = html;
-        html = pagerTemplate(config);
-        var pager = config.node.querySelector( '.table-pager' );
-        if ( pager ) pager.innerHTML = html;
-        html = gp.helpers['sortStyle'].call( config );
-        config.node.querySelector('style.sort-style').innerHTML = html;
-    },
-
-    restoreCells: function (config, row, tr) {
-        var col,
-            i = 0;
-        helper = gp.helpers['bodyCellContent'],
-        cells = tr.querySelectorAll('td.body-cell');
-        for (; i < cells.length; i++) {
-            col = config.Columns[i];
-            cells[i].innerHTML = helper.call(this.config, col);
-        }
-        gp.removeClass(tr, 'edit-mode');
-    },
-
-    update: function () {
-        var self = this;
-        gp.info( 'update: data:', this.config.data );
-
-        this.model.read( this.config.data, function ( model ) {
-            gp.shallowCopy( model, self.config.data );
-            self.refresh(self.config);
-        });
-    },
-
     addCommandHandlers: function (node) {
         var command, tr, row, self = this;
         // listen for command button clicks
         gp.on(node, 'click', 'button[value]', function (evt) {
             // 'this' is the element that was clicked
-            gp.info('addCommandHandlers:this:');
-            gp.info(this);
-            command = this.attributes['value'].value.toLowerCase();
+            gp.info('addCommandHandlers:this:', this);
+            command = this.attributes['value'].value;
             tr = gp.closest(this, 'tr[data-index]', node);
             row = tr ? gp.getRowModel(self.config.data.Data, tr) : null;
             switch (command) {
-                case 'create':
-                    self.createRow.call(self);
+                case 'Create':
+                    self.createRow();
                     break;
-                case 'edit':
+                case 'Edit':
                     self.editRow(row, tr);
                     break;
-                case 'delete':
-                    self.deleteRow(row, tr);
-                    break;
-                case 'update':
+                case 'Update':
                     self.updateRow(row, tr);
                     break;
-                case 'cancel':
+                case 'Cancel':
                     self.cancelEdit(row, tr);
                     break;
+                case 'Delete':
+                    self.deleteRow( row, tr );
+                    break;
                 default:
-                    gp.log('Unrecognized command: ' + command);
+                    console.log( command );
+                    // check the api for an extension
+                    if ( command in node.api ) {
+                        node.api[command]( row, tr );
+                    }
+                    else {
+                        gp.log( 'Unrecognized command: ' + command );
+                    }
                     break;
             }
         });
+    },
+
+    handleRowSelect: function ( config ) {
+        var trs, i = 0, model, type, url, rowSelector = 'div.table-body > table > tbody > tr';
+        if ( gp.hasValue( config.Onrowselect ) ) {
+            type = typeof config.Onrowselect;
+            if ( type === 'string' && config.Onrowselect.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
+            // it's got to be either a function or a URL template
+            if ( /function|urlTemplate/.test( type ) ) {
+                // add click handler
+                gp.on( config.node, 'click', rowSelector + ':not(.edit-mode)', function ( evt ) {
+                    // remove previously selected class
+                    trs = config.node.querySelectorAll( rowSelector + '.selected' );
+                    for ( i = 0; i < trs.length; i++ ) {
+                        gp.removeClass( trs[i], 'selected' );
+                    }
+                    // add selected class
+                    gp.addClass( this, 'selected' );
+                    // get the model for this row
+                    model = gp.getRowModel( config.data.Data, this );
+
+                    // ensure row selection doesn't interfere with button clicks in the row
+                    // by making sure the evt target is a cell
+                    if ( gp.in( evt.target, rowSelector + ' > td.body-cell', config.node ) ) {
+                        if ( type === 'function' ) {
+                            config.Onrowselect.call( this, model );
+                        }
+                        else {
+                            // it's a urlTemplate
+                            window.location = gp.processRowTemplate( config.Onrowselect, model );
+                        }
+                    }
+                } );
+            }
+        }
     },
 
     createRow: function () {
@@ -333,39 +261,37 @@ gp.Controller.prototype = {
         }
     },
 
-    handleRowSelect: function (config) {
-        var trs, i = 0, model, type, url, rowSelector = 'div.table-body > table > tbody > tr';
-        if (gp.hasValue(config.Onrowselect)) {
-            type = typeof config.Onrowselect;
-            if (type === 'string' && config.Onrowselect.indexOf('{{') !== -1) type = 'urlTemplate';
-            // it's got to be either a function or a URL template
-            if (type === 'function' || type === 'urlTemplate') {
-                // add click handler
-                gp.on(config.node, 'click', rowSelector + ':not(.edit-mode)', function (evt) {
-                    // remove previously selected class
-                    trs = config.node.querySelectorAll(rowSelector + '.selected');
-                    for (i = 0; i < trs.length; i++) {
-                        gp.removeClass(trs[i], 'selected');
-                    }
-                    // add selected class
-                    gp.addClass(this, 'selected');
-                    // get the model for this row
-                    model = gp.getRowModel(config.data.Data, this);
+    refresh: function ( config ) {
+        var rowsTemplate = gp.templates['gridponent-body'];
+        var pagerTemplate = gp.templates['gridponent-pager'];
+        var html = rowsTemplate( config );
+        config.node.querySelector( '.table-body' ).innerHTML = html;
+        html = pagerTemplate( config );
+        var pager = config.node.querySelector( '.table-pager' );
+        if ( pager ) pager.innerHTML = html;
+        html = gp.helpers['sortStyle'].call( config );
+        config.node.querySelector( 'style.sort-style' ).innerHTML = html;
+    },
 
-                    // ensure row selection doesn't interfere with button clicks in the row
-                    // by making sure the evt target is a cell
-                    if (gp.in(evt.target, rowSelector + ' > td.body-cell', config.node)) {
-                        if (type === 'function') {
-                            config.Onrowselect.call(this, model);
-                        }
-                        else {
-                            // it's a urlTemplate
-                            window.location = gp.processRowTemplate(config.Onrowselect, model);
-                        }
-                    }
-                });
-            }
+    restoreCells: function ( config, row, tr ) {
+        var col,
+            i = 0;
+        helper = gp.helpers['bodyCellContent'],
+        cells = tr.querySelectorAll( 'td.body-cell' );
+        for ( ; i < cells.length; i++ ) {
+            col = config.Columns[i];
+            cells[i].innerHTML = helper.call( this.config, col );
         }
-    }
+        gp.removeClass( tr, 'edit-mode' );
+    },
 
+    update: function () {
+        var self = this;
+        gp.info( 'update: data:', this.config.data );
+
+        this.model.read( this.config.data, function ( model ) {
+            gp.shallowCopy( model, self.config.data );
+            self.refresh( self.config );
+        } );
+    }
 };

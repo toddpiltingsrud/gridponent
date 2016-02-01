@@ -1,37 +1,37 @@
 ﻿/***************\
      model
 \***************/
-gp.Model = function (config) {
+gp.Model = function ( config ) {
     this.config = config;
-    if (typeof config.Read === 'string') {
-        this.pager = new gp.ServerPager(config);
-    }
-    else if (typeof config.Read !== 'function') {
-        // even if paging isn't enabled, we can still use a ClientPager for searching and sorting
-        this.pager = new gp.ClientPager(config);
-        // set pager.data even if config.DataSource is undefined
-        this.pager.data = config.DataSource;
+    this.dal = null;
+    var type = gp.getType(config.Read);
+    if ( type == 'string' ) {
+        this.dal = new gp.ServerPager(config);
     }
 };
 
 gp.Model.prototype = {
 
     read: function (requestModel, callback) {
-        if (this.pager) {
-            this.pager.read(requestModel, function (response) {
-                // response should be a RequestModel object with data
-                callback(response);
-            });
-        }
-        else if (typeof this.config.Read === 'function') {
-            this.config.Read(requestModel, callback);
-        }
-        else if (typeof this.config.Read === 'string') {
-            var http = new gp.Http();
-            http.post(this.config.Read, requestModel, callback);
-        }
-        else {
-            callback();
+        var type = gp.getType( this.config.Read );
+        switch ( type ) {
+            case 'string':
+                var http = new gp.Http();
+                http.post( this.config.Read, requestModel, callback );
+                break;
+            case 'function':
+                this.config.Read( requestModel, callback );
+                break;
+            case 'object':
+                // Read is a RequestModel
+                callback( this.config.Read );
+            case 'array':
+                this.config.data.Data = this.config.Read;
+                var dal = new gp.ClientPager( this.config );
+                dal.read( requestModel, callback );
+                break;
+            default:
+                callback();
         }
     },
 

@@ -21,9 +21,7 @@ gp.ChangeMonitor.prototype = {
         var value = target.value;
         var handled = false;
 
-        if ((name in model) === false) {
-            return;
-        }
+        if ( !( name in model ) ) return;
 
         if (typeof (this.beforeSync) === 'function') {
             handled = this.beforeSync(name, value, this.model);
