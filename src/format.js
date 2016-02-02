@@ -115,7 +115,8 @@
             dateTimeTokens.forEach(function (token) {
                 if (!(token[1] in options) && format.match(token[0])) {
                     options[token[1]] = token[2];
-                    if (token.length === 4) {
+                    if ( token.length === 4 ) {
+                        // set hour12 to true|false
                         options.hour12 = (token[3] === 'hour12');
                     }
                 }
@@ -147,8 +148,7 @@
             });
             var digits = format.match(/\d+/);
             if (digits) {
-                options.minimumFractionDigits = parseInt(digits);
-                options.maximumFractionDigits = parseInt(digits);
+                options.minimumFractionDigits = options.maximumFractionDigits = parseInt(digits);
             }
         }
 

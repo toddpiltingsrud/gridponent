@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=9">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>gridponent tests</title>
@@ -70,6 +70,7 @@
                 <ul class="nav navbar-nav">
                     <li><a href="#table">gridponent</a></li>
                     <li><a href="#tests">tests</a></li>
+                    <li><a href="#coverage">coverage</a></li>
                 </ul>
             </div>
         </div>
@@ -91,31 +92,73 @@
             <h3>table</h3>
             <div class="box-border dark">
                 <div class="box dark">
-                    <!--<grid-ponent id="gp"
-                                 search="top-left"
-                                 pager="bottom-right" 
-                                 fixed-headers
-                                 sorting="true" 
-                                 responsive="true"
-                                 onrowselect="/test?productid={{ProductID}}&color={{Color}}"
-                                 read="data.products"
-                                 create="/Products/Create"
-                                 update="/Products/Update"
-                                 destroy="/Products/Destroy">
-                        <gp-column header="Product" field="ProductID" template="fns.getName" edit-template="fns.dropdown"></gp-column>
-                        <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>
-                        <gp-column field="SafetyStockLevel" header="Safety Stock Level" footer-template="fns.average"></gp-column>
-                        <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.average" format="C"></gp-column>
-                        <gp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, yyyy"></gp-column>
-                        <gp-column field="Markup" readonly header="Marked-Up Name"></gp-column>
-                        <gp-column commands="Edit,Delete,Show Row" body-style="width:155px;text-align:center"></gp-column>
-                    </grid-ponent>-->
                 </div>
             </div>
+        </div>
+
+        <div class="tab" id="coverage">
+            <h3>coverage report</h3>
             <div class="box-border dark">
-                <div class="box dark" id="table2">
+                <div class="box dark">
                 </div>
             </div>
+
+            <h3>gaps</h3>
+
+            <div class="box-border dark">
+                <div id="coverage-gaps" class="box dark">
+                </div>
+            </div>
+
+            <script>
+                var cov = cov || {};
+                $( function () {
+                    var boxWidth = $( '#coverage .box' ).width() - 2;
+                    $( '#coverage .box' ).first().html( '<canvas id="coverage-bar" class="coverage-bar" width="' + boxWidth + '" height="30"></canvas>' );
+
+                    // calculate width of segments in coverage-bar based on cov.maxCoverage
+
+                    var canvas = document.getElementById( 'coverage-bar' );
+                    var ctx = canvas.getContext( '2d' );
+
+                    var lineargradient = ctx.createLinearGradient( 0, 0, 0, 30 );
+                    lineargradient.addColorStop( 0, '#55FF55' );
+                    lineargradient.addColorStop( 1, '#00AA00' );
+
+                    ctx.fillStyle = lineargradient;
+
+                    var barWidth = $( canvas ).width();
+
+                    //var barWidth = bar.width();
+                    var segmentWidth = barWidth / cov.maxCoverage;
+
+                    cov.callout = function ( index ) {
+                        var left = ((index - 1) / cov.maxCoverage) * barWidth;
+                        ctx.fillRect( left, 0, segmentWidth, 30 );
+                    }
+                } );
+            </script>
+            <style type="text/css">
+                .coverage-bar {
+                    width:100%;
+                    height:30px;
+                    position:relative;
+                    border:solid 1px #ccc;
+                    border-radius:16px;
+                    margin:0 auto;
+                }
+                .cov-segment {
+                    /* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#c9de96+0,8ab66b+44,398235+100;Green+3D+%233 */
+                    background: rgb(201,222,150); /* Old browsers */
+                    background: -moz-linear-gradient(top,  rgba(201,222,150,1) 0%, rgba(138,182,107,1) 44%, rgba(57,130,53,1) 100%); /* FF3.6-15 */
+                    background: -webkit-linear-gradient(top,  rgba(201,222,150,1) 0%,rgba(138,182,107,1) 44%,rgba(57,130,53,1) 100%); /* Chrome10-25,Safari5.1-6 */
+                    background: linear-gradient(to bottom,  rgba(201,222,150,1) 0%,rgba(138,182,107,1) 44%,rgba(57,130,53,1) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+                    filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#c9de96', endColorstr='#398235',GradientType=0 ); /* IE6-9 */
+                    position:absolute;
+                    height:100%;
+                    top:0;
+                }
+            </style>
         </div>
 
     </div>

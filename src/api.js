@@ -9,25 +9,31 @@ gp.api = function ( controller ) {
 gp.api.prototype = {
 
     search: function ( searchTerm ) {
-        this.controller.config.data.Search = searchTerm;
-        gp.info( 'search: config:', this.controller.config );
-        this.controller.update();
+        this.controller.search( searchTerm );
     },
 
     sort: function ( name, desc ) {
-        this.controller.config.data.OrderBy = name;
-        this.controller.config.data.Desc = (desc == true);
-        this.controller.update();
+        this.controller.sort( name, desc );
+    },
+
+    page: function ( pageNbr ) {
+        this.controller.page( pageNbr );
     },
 
     read: function ( arg ) { },
 
-    create: function ( arg ) { },
+    create: function (callback) {
+        this.controller.createRow(callback);
+    },
 
     update: function ( arg ) { },
 
     destroy: function ( arg ) { },
 
-    cancel: function ( arg ) { }
+    cancel: function ( arg ) { },
+
+    dispose: function () {
+        this.controller.dispose();
+    }
 
 };

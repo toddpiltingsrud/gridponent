@@ -9,6 +9,8 @@ gp.Controller = function (config, model, requestModel) {
     if (config.Pager) {
         this.requestModel.Top = 25;
     }
+    this.attachReadEvents();
+    this.monitor = null;
 };
 
 gp.Controller.prototype = {
@@ -16,15 +18,32 @@ gp.Controller.prototype = {
     monitorToolbars: function (node) {
         var self = this;
         // monitor changes to search, sort, and paging
-        var monitor = new gp.ChangeMonitor(node, '.table-toolbar [name=Search], thead input, .table-pager input', this.config.data, function (evt) {
+        this.monitor = new gp.ChangeMonitor( node, '.table-toolbar [name=Search], thead input, .table-pager input', this.config.data, function ( evt ) {
+            //var name = evt.target.name;
+            //switch ( name ) {
+            //    case 'Search':
+            //        self.search(self.config.data.Search);
+            //        break;
+            //    case 'OrderBy':
+            //        self.sort( self.config.data.OrderBy, self.config.data.Desc );
+            //        break;
+            //    case 'Page':
+            //        self.page( self.config.data.Page );
+            //        break;
+            //    default:
+            //        self.update();
+            //        break;
+            //}
+
             self.update();
             // reset the radio inputs
             var radios = node.querySelectorAll( 'thead input[type=radio], .table-pager input[type=radio]' );
             for (var i = 0; i < radios.length; i++) {
                 radios[i].checked = false;
             }
-        });
-        monitor.beforeSync = function (name, value, model) {
+        } );
+        this.monitor.beforeSync = function ( name, value, model ) {
+            gp.info( 'beforeSync called' );
             // the OrderBy property requires special handling
             if (name === 'OrderBy') {
                 if (model[name] === value) {
@@ -39,6 +58,7 @@ gp.Controller.prototype = {
             }
             return false;
         };
+        this.monitor.start();
     },
 
     addCommandHandlers: function (node) {
@@ -67,7 +87,6 @@ gp.Controller.prototype = {
                     self.deleteRow( row, tr );
                     break;
                 default:
-                    console.log( command );
                     // check the api for an extension
                     if ( command in node.api ) {
                         node.api[command]( row, tr );
@@ -115,21 +134,68 @@ gp.Controller.prototype = {
         }
     },
 
-    createRow: function () {
+    attachReadEvents: function () {
+        gp.on( this.config.node, gp.events.beforeRead, this.addBusy );
+        gp.on( this.config.node, gp.events.afterRead, this.removeBusy );
+    },
+
+    removeReadEvents: function () {
+        gp.off( this.config.node, gp.events.beforeRead, this.addBusy );
+        gp.off( this.config.node, gp.events.afterRead, this.removeBusy );
+    },
+
+    addBusy: function(evt) {
+        var tblContainer = evt.target.querySelector( 'div.table-container' );
+        if ( tblContainer ) {
+            gp.addClass( tblContainer, 'busy' );
+        }
+    },
+
+    removeBusy: function ( evt ) {
+        var tblContainer = evt.target.querySelector( 'div.table-container' );
+        tblContainer = tblContainer || document.querySelector( 'div.table-container.busy' );
+        if ( tblContainer ) {
+            gp.removeClass( tblContainer, 'busy' );
+        }
+        else {
+            gp.warn( 'could not remove busy class' );
+        }
+    },
+
+    search: function(searchTerm) {
+        this.config.data.Search = searchTerm;
+        var searchBox = this.config.node.querySelector( 'div.table-toolbar input[name=Search' );
+        searchBox.value = searchTerm;
+        this.update();
+    },
+
+    sort: function(field, desc) {
+        this.config.data.OrderBy = field;
+        this.config.data.Desc = ( desc == true );
+        this.update();
+    },
+
+    page: function(pageNumber) {
+        this.config.data.Page = pageNumber;
+        this.update();
+    },
+
+    createRow: function (callback) {
         try {
             var self = this;
-            gp.raiseCustomEvent(this.config.node, 'beforeCreate');
 
             this.model.create(function (row) {
                 // create a row in create mode
                 self.config.Row = row;
-                var tbody = self.config.node.querySelector('div.table-body > table > tbody');
+                gp.info( 'createRow: Columns:', self.config.Columns );
+                var tbody = self.config.node.querySelector( 'div.table-body > table > tbody' );
+                // bind the new record to the view
                 var tr = gp.templates['gridponent-new-row'](self.config);
                 gp.prependChild(tbody, tr);
                 tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
-                gp.raiseCustomEvent(tr, 'afterCreate', {
-                    model: row
-                });
+                if ( typeof callback === 'function' ) {
+                    callback( row );
+                }
             });
         }
         catch (ex) {
@@ -288,10 +354,15 @@ gp.Controller.prototype = {
     update: function () {
         var self = this;
         gp.info( 'update: data:', this.config.data );
-
         this.model.read( this.config.data, function ( model ) {
             gp.shallowCopy( model, self.config.data );
             self.refresh( self.config );
         } );
+    },
+
+    dispose: function () {
+        gp.raiseCustomEvent( this.config.node, gp.events.beforeDispose );
+        this.removeReadEvents();
+        this.monitor.stop();
     }
 };

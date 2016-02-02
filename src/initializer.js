@@ -41,7 +41,7 @@ gp.Initializer.prototype = {
             this.resolveTemplates(colConfig);
         }
         config.Footer = this.resolveFooter(config);
-        var options = 'Onrowselect SearchFilter Read Create Update Destroy'.split(' ');
+        var options = 'Onrowselect SearchFunction Read Create Update Destroy'.split(' ');
         options.forEach( function ( option ) {
             // see if this config option points to a function, object or array
             // otherwise it must be a URL
@@ -118,7 +118,7 @@ gp.Initializer.prototype = {
     },
 
     resolveTypes: function ( config ) {
-        if ( !config.data.Data ) return;
+        if ( !config || !config.data || !config.data.Data ) return;
         config.Columns.forEach( function ( col ) {
             for ( var i = 0; i < config.data.Data.length; i++ ) {
                 if ( config.data.Data[i][col.Field] !== null ) {

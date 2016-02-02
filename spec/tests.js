@@ -32,8 +32,20 @@ fns.searchFilter = function ( row, search ) {
     return row.ProductNumber == search;
 };
 
-var getTableConfig = function ( fixedHeaders, fixedFooters, responsive, sorting, read ) {
-    read = read || 'data.products';
+var configOptions = {
+    fixedHeaders: false,
+    fixedFooters: false,
+    responsive: false,
+    sorting: false,
+    read: null,
+    searchFilter: null,
+    customCommand: null,
+    orRowSelect: null
+};
+
+var getTableConfig = function ( options ) {
+    options = options || {};
+    options.read = options.read || 'data.products';
 
     div.append( '<script type="text/html" id="template1">Test Header</script>' );
     div.append( '<script type="text/html" id="template2"><input class="form-control" type="checkbox" value="true" checked="{{MakeFlag}}"/></script>' );
@@ -44,18 +56,19 @@ var getTableConfig = function ( fixedHeaders, fixedFooters, responsive, sorting,
     var out = [];
 
     out.push( '<grid-ponent ' );
-    if ( fixedHeaders ) out.push( ' fixed-headers' );
-    if ( fixedFooters ) out.push( ' fixed-footers="true"' );
-    if ( responsive ) out.push( ' responsive="true"' );
-    if ( sorting ) out.push( ' sorting ' );
+    if ( options.fixedHeaders ) out.push( ' fixed-headers' );
+    if ( options.fixedFooters ) out.push( ' fixed-footers="true"' );
+    if ( options.responsive ) out.push( '   responsive="true"' );
+    if ( options.sorting ) out.push( '      sorting ' );
+    if ( options.onRowSelect ) out.push( '  onrowselect="' + options.onRowSelect + '"' );
+    if ( options.searchFilter ) out.push( ' search-function="' + options.searchFilter + '"' );
     out.push( '             pager = "top-right"' );
     out.push( '             search="top-left"' );
-    out.push( '             search-filter="fns.searchFilter"' );
-    out.push( '             read="' + read + '"' );
+    out.push( '             read="' + options.read + '"' );
     out.push( '             create="/Products/Create"' );
     out.push( '             update="/Products/Update"' );
     out.push( '             destroy="/Products/Destroy">' );
-    out.push( '    <gp-column header-template="fns.checkbox" template="fns.checkbox"></gp-column>' );
+    out.push( '    <gp-column header-template="fns.checkbox" template="fns.checkbox" footer-template="fns.checkbox"></gp-column>' );
     out.push( '    <gp-column header="ID" sort="Name" template="fns.getName" edit-template="fns.dropdown"></gp-column>' );
     out.push( '    <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>' );
     out.push( '    <gp-column field="SafetyStockLevel" header="Safety Stock Level" template="#template4" footer-template="fns.average"></gp-column>' );
@@ -64,7 +77,11 @@ var getTableConfig = function ( fixedHeaders, fixedFooters, responsive, sorting,
     out.push( '    <gp-column field="Markup" readonly></gp-column>' );
     out.push( '    <gp-column header-template="#template3"></gp-column>' );
     out.push( '    <gp-column template="#template5"></gp-column>' );
+    out.push( '    <gp-column field="ProductNumber" header="Product #"></gp-column>' );
     out.push( '    <gp-column commands="Edit,Delete"></gp-column>' );
+    if ( options.customCommand ) {
+        out.push( '    <gp-column commands="' + options.customCommand + '"></gp-column>' );
+    }
     out.push( '</grid-ponent>' );
 
     // if we have web component support, this line will initialize the component automatically
@@ -81,36 +98,214 @@ var getTableConfig = function ( fixedHeaders, fixedFooters, responsive, sorting,
     return config;
 };
 
-QUnit.test( "gp.api", function ( assert ) {
+var productsTable = function () {
+    var out = [];
+
+    out.push( '<grid-ponent id="gp"' );
+    out.push( '                search="top-left"' );
+    out.push( '                pager="bottom-right" ' );
+    out.push( '                fixed-headers' );
+    out.push( '                sorting="true" ' );
+    out.push( '                responsive="true"' );
+    out.push( '                onrowselect="/test?productid={{ProductID}}&color={{Color}}"' );
+    out.push( '                read="data.products"' );
+    out.push( '                create="/Products/Create"' );
+    out.push( '                update="/Products/Update"' );
+    out.push( '                destroy="/Products/Destroy">' );
+    out.push( '    <gp-column header="Product" field="ProductID" template="fns.getName" edit-template="fns.dropdown"></gp-column>' );
+    out.push( '    <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>' );
+    out.push( '    <gp-column field="SafetyStockLevel" header="Safety Stock Level" footer-template="fns.average"></gp-column>' );
+    out.push( '    <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.average" format="C"></gp-column>' );
+    out.push( '    <gp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, yyyy"></gp-column>' );
+    out.push( '    <gp-column field="Markup" readonly header="Marked-Up Name"></gp-column>' );
+    out.push( '    <gp-column commands="Edit,Delete,Show Row" body-style="width:155px;text-align:center"></gp-column>' );
+    out.push( '</grid-ponent>' );
+
+    // if we have web component support, this line will initialize the component automatically
+    // otherwise trigger initialization manually
+    var $node = $( out.join( '' ) );
+
+    var config = $node[0].config;
+
+    if ( !config ) {
+        var i = new gp.Initializer( $node[0] );
+        config = i.config;
+    }
+
+    return config;
+};
+
+QUnit.test( "create", function ( assert ) {
     var config = getTableConfig();
 
-    $( '#table2' ).append( config.node );
+    $( '#table .box' ).empty().append( config.node );
+
+    var cellCount1 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
+
+    var done = assert.async();
+
+    config.node.api.create( function ( row ) {
+        var cellCount2 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
+        assert.ok( gp.hasValue(row), 'api should return a row' );
+        assert.strictEqual( cellCount1, cellCount2, 'should create the same number of cells' );
+        console.log( row );
+        done();
+    } );
+} );
+
+QUnit.test( "gp.api.search", function ( assert ) {
+    var config = getTableConfig();
+
+    //$( '#table .box' ).append( config.node );
+
+    config.node.api.search( 'Bearing' );
+
+    // take note of the content of the column before sorting
+    var rows = config.node.querySelectorAll( 'div.table-body tbody tr' );
+
+    assert.strictEqual( rows.length, 3, 'Should yield 3 rows' );
+} );
+
+QUnit.test( "gp.api.sort", function ( assert ) {
+    var config = getTableConfig();
+
+    //$( '#table .box' ).append( config.node );
 
 
     // trigger an initial sort to make sure this column is sorted 
     config.node.api.sort( 'Name', false );
 
     // take note of the content of the column before sorting
-    var content1 = document.querySelector( 'tr[data-index="0"] td:nth-child(2)' ).innerHTML;
-
-    console.log( content1 );
+    var content1 = config.node.querySelector( 'tr[data-index="0"] td:nth-child(2)' ).innerHTML;
 
     // trigger another sort
     config.node.api.sort( 'Name', true );
 
     // take note of the content of the column after sorting
-    var content2 = document.querySelector( 'tr[data-index="0"] td:nth-child(2)' ).innerHTML;
-
-    console.log( content2 );
+    var content2 = config.node.querySelector( 'tr[data-index="0"] td:nth-child(2)' ).innerHTML;
 
     assert.notStrictEqual( content1, content2, 'Sorting should change the order' );
 
     config.node.api.sort( 'Name', false );
 
     // take note of the content of the column after sorting
-    content2 = document.querySelector( 'tr[data-index="0"] td:nth-child(2)' ).innerHTML;
+    content2 = config.node.querySelector( 'tr[data-index="0"] td:nth-child(2)' ).innerHTML;
 
     assert.strictEqual( content1, content2, 'Sorting again should change it back' );
+} );
+
+QUnit.test( "create", function ( assert ) {
+    var config = getTableConfig();
+
+    $( '#table .box' ).empty().append( config.node );
+
+    var cellCount1 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
+
+    var done = assert.async();
+
+    config.node.api.create( function ( row ) {
+        var cellCount2 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
+        assert.ok( gp.hasValue( row ), 'api should return a row' );
+        assert.strictEqual( cellCount1, cellCount2, 'should create the same number of cells' );
+        console.log( row );
+        done();
+    } );
+} );
+
+QUnit.test( "dispose", function ( assert ) {
+    var config = getTableConfig();
+
+    $( '#table .box' ).empty().append( config.node );
+
+    var done = assert.async();
+
+    var handler = function () {
+        assert.ok( true, 'dispose was called' );
+        config.node.removeEventListener( gp.events.beforeDispose, handler, false );
+        done();
+    };
+
+    config.node.addEventListener( gp.events.beforeDispose, handler, false );
+
+    config.node.remove();
+} );
+
+QUnit.test( "ChangeMonitor.beforeSync", function ( assert ) {
+    var config = getTableConfig();
+
+    $( '#table .box' ).empty().append( config.node );
+
+    // set one of the radio buttons a couple of times
+    var sortInput = config.node.querySelector( 'input[name=OrderBy]' );
+
+    sortInput.checked = true;
+
+    gp.raiseCustomEvent( sortInput, 'change' );
+
+    assert.equal( config.data.Desc, false );
+
+    // Need a fresh reference to the input or the second change event won't do anything.
+    // That's probably because the header gets recreated. If so, is that necessary?
+    sortInput = config.node.querySelector( 'input[name=OrderBy]' );
+
+    sortInput.checked = true;
+
+    gp.raiseCustomEvent( sortInput, 'change' );
+
+    assert.equal( config.data.Desc, true );
+
+} );
+
+QUnit.test( "custom command", function ( assert ) {
+
+    var options = gp.shallowCopy( configOptions );
+
+    options.customCommand = 'Assert';
+
+    var config = getTableConfig( options );
+
+    var done = assert.async();
+
+    config.node.api.Assert = function ( row, tr ) {
+        assert.ok( true, 'custom commands work' );
+        done();
+    };
+
+    var btn = config.node.querySelector( 'button[value=Assert]' );
+
+    $( btn ).click();
+
+    options.customCommand = 'does not exist';
+
+    config = getTableConfig( options );
+
+    var btn = config.node.querySelector( 'button[value="does not exist"]' );
+
+    $( btn ).click();
+
+} );
+
+QUnit.test( "row selection", function ( assert ) {
+
+    var done = assert.async();
+
+    var options = gp.shallowCopy( configOptions );
+
+    options.onRowSelect = 'onRowSelect';
+
+    onRowSelect = function () {
+        assert.ok( true, 'row selection works' );
+        done();
+    };
+
+    var config = getTableConfig( options );
+
+    assert.equal( config.Onrowselect, onRowSelect, 'onRowSelect can be a function' );
+
+    var btn = config.node.querySelector( 'td.body-cell' );
+
+    $( btn ).click();
+
 } );
 
 QUnit.test("gp.getAttributes", function (assert) {
@@ -416,7 +611,12 @@ QUnit.test("gp.Model", function (assert) {
 
 QUnit.test("gp.Table.getConfig", function (assert) {
 
-    var config = getTableConfig(true, false, false, true);
+    var options = gp.shallowCopy( configOptions );
+
+    options.fixedHeaders = true;
+    options.sorting = true;
+
+    var config = getTableConfig(options);
 
     assert.equal(config.Sorting, true);
 
@@ -424,30 +624,43 @@ QUnit.test("gp.Table.getConfig", function (assert) {
 
     assert.equal(config.Sorting, true);
 
-    assert.equal(config.Columns.length, 12);
+    assert.equal(config.Columns.length, 11);
 
     assert.equal( config.Columns[1].Header, "ID" );
 
+    var options = gp.shallowCopy( configOptions );
 
-    config = getTableConfig( null, null, null, null, '/Products/Read' );
+    options.read = '/Products/Read';
+
+    config = getTableConfig( options );
 
     assert.strictEqual( config.Read, '/Products/Read', 'Read can be a URL' );
 
 
     window.model = {};
 
-    window.model.read = function () {
-        return new gp.RequestModel(data.products);
+    window.model.read = function ( requestModel, callback ) {
+        var model = new gp.RequestModel( data.products );
+        callback( model );
     };
 
-    config = getTableConfig( null, null, null, null, 'model.read', 'Read can be a function' );
+    var options = gp.shallowCopy( configOptions );
 
-    assert.strictEqual( config.Read, model.read );
+    options.read = 'model.read';
 
+    config = getTableConfig( options );
 
-    config = getTableConfig( null, null, null, null, 'data.products', 'Read can be an array' );
+    assert.strictEqual( config.Read, model.read, 'Read can be a function' );
 
-    assert.strictEqual( config.Read, data.products );
+    assert.strictEqual( config.data.Data.length, data.products.length );
+
+    options = gp.shallowCopy( configOptions );
+
+    options.read = 'data.products';
+
+    config = getTableConfig( options );
+
+    assert.strictEqual( config.Read, data.products, 'Read can be an array' );
 
 });
 
@@ -456,60 +669,63 @@ QUnit.test("gp.helpers.thead", function (assert) {
     function testHeaders(headers) {
         assert.ok(headers[0].querySelector('input[type=checkbox]') != null);
 
-        assert.equal(headers[1].innerHTML, 'ID');
+        assert.equal( headers[1].innerHTML, '<label class="table-sort"><input type="radio" name="OrderBy" value="Name">ID</label>' );
 
-        assert.ok(headers[2].querySelector('label.table-sort > input[type=checkbox]') != null);
+        assert.ok(headers[2].querySelector('label.table-sort > input[type=radio]') != null);
 
         assert.equal(headers[6].querySelector('label.table-sort').textContent, 'Markup');
 
-        assert.equal(headers[8].textContent, 'Test Header');
+        //assert.ok(headers[9].querySelector('input[type=radio]') != null);
 
-        assert.ok(headers[9].querySelector('input[type=checkbox]') != null);
-
-        assert.equal(headers[10].textContent, 'Test Header');
-
-        assert.ok(headers[10].querySelector('input[type=checkbox]') != null);
     }
 
+    var options = gp.shallowCopy( configOptions );
+
+    options.fixedHeaders = true;
+    options.sorting = true;
+
     // fixed headers, with sorting
-    var node = getTableConfig(true, false, false, true).node;
+    var node = getTableConfig(options).node;
     var headers = node.querySelectorAll('div.table-header th.header-cell');
 
     testHeaders(headers);
 
+    options = gp.shallowCopy( configOptions );
+    options.sorting = true;
+
     // no fixed headers, with sorting
-    node = getTableConfig(false, false, false, true).node;
+    node = getTableConfig(options).node;
 
     headers = node.querySelectorAll('div.table-body th.header-cell');
 
     testHeaders(headers);
 
     // no fixed headers, no sorting
-    node = getTableConfig(false, false, false, false).node;
+    node = getTableConfig(configOptions).node;
 
     headers = node.querySelectorAll('div.table-body th.header-cell');
 
-    assert.ok(headers[0].querySelector('input[type=checkbox]') != null);
+    //assert.ok(headers[0].querySelector('input[type=checkbox]') != null, 'functions as templates');
 
-    assert.equal(headers[1].innerHTML, 'ID');
+    //assert.equal(headers[1].innerHTML, 'ID');
 
-    assert.equal(headers[2].querySelector('label.table-sort'), null);
+    //assert.equal(headers[2].querySelector('label.table-sort'), null);
 
-    assert.ok(headers[5].querySelector('label.table-sort > input[value=SellStartDate]') != null);
+    //assert.ok(headers[5].querySelector('label.table-sort > input[value=SellStartDate]') != null);
 
-    assert.equal(headers[5].textContent, 'Sell Start Date');
+    //assert.equal(headers[5].textContent, 'Sell Start Date');
 
-    assert.ok(headers[6].querySelector('label.table-sort > input[value=Name]') != null);
+    //assert.ok(headers[6].querySelector('label.table-sort > input[value=Name]') != null);
 
-    assert.equal(headers[6].textContent, 'Markup');
+    //assert.equal(headers[6].textContent, 'Markup');
 
-    assert.equal(headers[8].textContent, 'Test Header');
+    //assert.equal(headers[8].textContent, 'Test Header');
 
-    assert.ok(headers[9].querySelector('input[type=checkbox]') != null);
+    //assert.ok(headers[9].querySelector('input[type=checkbox]') != null);
 
-    assert.equal(headers[10].textContent, 'Test Header');
+    //assert.equal(headers[10].textContent, 'Test Header');
 
-    assert.ok(headers[10].querySelector('input[type=checkbox]') != null);
+    //assert.ok(headers[10].querySelector('input[type=checkbox]') != null);
 
 });
 
@@ -517,22 +733,23 @@ QUnit.test("gp.helpers.bodyCell", function (assert) {
 
     function testCells(cells) {
 
-        assert.ok(cells[0].querySelector('input[type=checkbox]') != null);
+        assert.ok(cells[0].querySelector('input[type=checkbox]') != null, 'there should be a checkbox');
 
         assert.ok( cells[2].querySelector( 'span.glyphicon.glyphicon-ok' ) != null );
 
         assert.ok( cells[2].attributes['class'].value == 'body-cell boolean', 'should add boolean class to boolean columns' );
 
-        console.log( cells[2].attributes );
-
         assert.ok(cells[3].querySelector('button > span') != null);
 
         assert.equal(isNaN(parseInt(cells[3].textContent)), false, 'should be a number');
 
-        assert.ok(cells[11].querySelector('button') != null);
     }
 
-    var config = getTableConfig(true, false, false, true);
+    var options = gp.shallowCopy( configOptions );
+    options.fixedHeaders = true;
+    options.sorting = true;
+
+    var config = getTableConfig(options);
 
     var node = config.node;
 
@@ -540,16 +757,16 @@ QUnit.test("gp.helpers.bodyCell", function (assert) {
 
     testCells(cells);
 
-    var rows = node.querySelectorAll('div.table-body tbody > tr');
+    var rows = node.querySelectorAll( 'div.table-body tbody > tr' );
 
     for (var i = 0; i < rows.length; i++) {
         var make = data.products[i].MakeFlag;
         if (make) {
-            assert.ok(rows[i].querySelector('td:nth-child(12) span.glyphicon-edit') != null);
-            assert.ok(rows[i].querySelector('td:nth-child(3) span.glyphicon-ok') != null);
+            assert.ok(rows[i].querySelector('td:nth-child(9) span.glyphicon-edit') != null, 'template should create an edit button');
+            assert.ok(rows[i].querySelector('td:nth-child(3) span.glyphicon-ok') != null, 'there should be a checkmark');
         }
         else {
-            assert.ok(rows[i].querySelector('td:nth-child(12) span.glyphicon-remove') != null);
+            assert.ok(rows[i].querySelector('td:nth-child(9) span.glyphicon-remove') != null, 'template should create a remove button');
         }
     }
 
@@ -557,13 +774,19 @@ QUnit.test("gp.helpers.bodyCell", function (assert) {
 
 QUnit.test("gp.helpers.footerCell", function (assert) {
 
-    var node = getTableConfig(true, false, false, true).node;
+    var options = gp.shallowCopy( configOptions );
+    options.fixedHeaders = true;
+    options.sorting = true;
 
-    var cell = node.querySelector('.table-body tfoot tr:first-child td.footer-cell:nth-child(9)');
+    var node = getTableConfig(options).node;
 
-    assert.ok(cell.querySelector('input[type=checkbox][value]') != null)
+    var cell = node.querySelector('.table-body tfoot tr:first-child td.footer-cell:nth-child(1)');
 
-    node = getTableConfig(true, true, false, true).node;
+    assert.ok(cell.querySelector('input[type=checkbox]') != null)
+
+    options.fixedFooters = true;
+
+    node = getTableConfig(options).node;
 
     cell = node.querySelector('.table-footer tr:first-child td.footer-cell:nth-child(4)');
 
@@ -609,12 +832,12 @@ QUnit.test("gp.ChangeMonitor", function (assert) {
 
 
     monitor.beforeSync = function (name, value, model) {
-        assert.equal(model.bool, true);
+        assert.equal( model.bool, true, 'beforeSync should return values before changing them' );
         done2();
     };
 
     monitor.afterSync = function (target, m) {
-        assert.equal(model.bool, false);
+        assert.equal(model.bool, false, 'afterSync should return values after changing them');
         done3();
     };
 
@@ -634,16 +857,25 @@ QUnit.test("custom search filter", function (assert) {
         'cancelable': true
     });
 
-    var config = getTableConfig(true, false, false, true);
+    var options = gp.shallowCopy( configOptions );
+    options.fixedHeaders = true;
+    options.sorting = true;
+    options.searchFilter = 'fns.searchFilter';
+
+    var config = getTableConfig( options );
+
+    //$( '#table .box' ).append( config.node );
 
     var productNumber = 'BA-8327';
 
     // find the search box
-    var searchInput = config.node.querySelector('input[name=Search]');
+    var searchInput = config.node.querySelector( 'input[name=Search]' );
+
+    console.log( config.node );
 
     searchInput.value = productNumber;
 
-    assert.equal(config.SearchFilter, fns.searchFilter);
+    assert.equal(config.SearchFunction, fns.searchFilter);
 
     // listen for the change event
     config.node.addEventListener('change', function (evt) {
@@ -662,7 +894,11 @@ QUnit.test("beforeEdit and afterEdit events", function (assert) {
     var done1 = assert.async();
     var done2 = assert.async();
 
-    var node = getTableConfig(true, false, false, true).node;
+    var options = gp.shallowCopy( configOptions );
+    options.fixedHeaders = true;
+    options.sorting = true;
+
+    var node = getTableConfig(options).node;
 
     node.addEventListener('beforeEdit', function (evt) {
         assert.ok(evt != null);
@@ -809,7 +1045,6 @@ QUnit.test("gp.prependChild", function (assert) {
 
     assert.equal(span, div[0].firstChild);
 
-
     div.empty();
 
     child = document.createElement('span');
@@ -840,7 +1075,11 @@ QUnit.test("readonly fields", function (assert) {
 
     var done = assert.async();
 
-    var config = getTableConfig(true, false, false, true);
+    var options = gp.shallowCopy( configOptions );
+    options.fixedHeaders = true;
+    options.sorting = true;
+
+    var config = getTableConfig(options);
 
     var node = config.node;
 
@@ -907,9 +1146,13 @@ QUnit.test("controller.render", function (assert) {
         assert.ok(columnWidthStyle != null, 'column width styles should always render');
     }
 
-    var config = getTableConfig(true, true, true, true);
+    var options = gp.shallowCopy( configOptions );
+    options.fixedHeaders = true;
+    options.fixedFooters = true;
+    options.responsive = true;
+    options.sorting = true;
 
-    console.log( config );
+    var config = getTableConfig(options);
 
     tests(config.node);
 
@@ -945,3 +1188,57 @@ QUnit.test("gp.ObjectProxy", function (assert) {
     assert.equal(propertyChanged, true, 'propertyChangedCallback should be called');
 
 });
+
+QUnit.test( 'coverage report', function ( assert ) {
+
+    assert.ok( true );
+
+    if ( cov ) {
+
+        var gaps = [];
+
+        setTimeout( function () {
+            var gapStart, gapEnd;
+            for ( var i = 1; i <= cov.maxCoverage; i++ ) {
+                if ( !cov.covered[i] ) {
+                    if ( !gapStart ) {
+                        gapStart = i;
+                    }
+                    else {
+                        gapEnd = i;
+                    }
+                }
+                // are we in a gap?
+                else if ( gapStart ) {
+                    gaps.push( { start: gapStart, end: gapEnd } );
+                    // reset
+                    gapStart = null;
+                    gapEnd = null;
+                }
+            }
+
+            var out = [];
+
+            out.push( '<ul>' );
+
+            gaps.forEach(function(gap){
+                out.push( '<li>' );
+                out.push( gap.start );
+                if ( gap.end ) {
+                    out.push( ' - ' );
+                    out.push( gap.end );
+                }
+                out.push( '</li>' );
+            });
+
+            out.push( '</ul>' );
+
+            if ( gaps.length > 40 ) {
+                out.push( '<p>That&apos;s a lot of gaps!</p>' );
+            }
+
+            $( '#coverage-gaps' ).html( out.join( '' ) );
+        } );
+    }
+
+} );

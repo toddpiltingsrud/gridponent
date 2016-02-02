@@ -65,10 +65,12 @@
     };
 
     gp.shallowCopy = function ( from, to ) {
+        to = to || {};
         var props = Object.getOwnPropertyNames( from );
         props.forEach( function ( prop ) {
             to[prop] = from[prop];
         } );
+        return to;
     };
 
     gp.getLocalISOString = function ( date ) {
@@ -102,6 +104,11 @@
         }
 
         if ( !gp.hasValue( elem ) ) {
+            return;
+        }
+
+        if ( typeof targetSelector === 'function' ) {
+            elem.addEventListener( event, targetSelector, false );
             return;
         }
 
@@ -156,6 +163,9 @@
                     return;
                 }
             }
+        }
+        else {
+            elem.removeEventListener( event, listener );
         }
     };
 
@@ -253,19 +263,6 @@
 
         return o;
     };
-
-    //gp.resolveObject = function ( path ) {
-    //    // used to find functions, objects and arrays
-    //    // for the various config options
-    //    var val;
-    //    if (gp.hasValue(obj[name])) {
-    //        val = gp.getObjectAtPath(path);
-    //        if (gp.hasValue(val)) {
-    //            return val;
-    //        }
-    //    }
-    //    return path;
-    //};
 
     var FP = Function.prototype;
 
@@ -411,6 +408,19 @@
     gp.raiseCustomEvent = function ( node, name, detail ) {
         var event = new CustomEvent( name, { bubbles: true, detail: detail, cancelable: true } );
         node.dispatchEvent( event );
+        gp.info( 'raiseCustomEvent: name', name );
+    };
+
+    gp.events = {
+        beforeRead: 'beforeRead',
+        beforeCreate: 'beforeCreate',
+        beforeUpdate: 'beforeUpdate',
+        beforeDestroy: 'beforeDestroy',
+        afterRead: 'afterRead',
+        afterCreate: 'afterCreate',
+        afterUpdate: 'afterUpdate',
+        afterDestroy: 'afterDestroy',
+        beforeDispose: 'beforeDispose'
     };
 
 } )( gridponent );

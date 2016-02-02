@@ -1,18 +1,19 @@
-﻿<grid-ponent paging="bottom-right" 
-                sorting="true" 
-                fixed-headers="true" 
-                fixed-footers="true"
-                style="width:100%;height:411px" 
-                responsive="true"
+﻿<grid-ponent id="gp"
                 search="top-left"
-                oncreated="fns.getData"
+                pager="bottom-right" 
+                fixed-headers
+                sorting="true" 
+                responsive="true"
+                onrowselect="/test?productid={{ProductID}}&color={{Color}}"
+                read="data.products"
+                create="/Products/Create"
                 update="/Products/Update"
                 destroy="/Products/Destroy">
-    <gp-column field="ProductID" header="ID" template="fns.getName" edit-template="fns.dropdown"></gp-column>
+    <gp-column header="Product" field="ProductID" template="fns.getName" edit-template="fns.dropdown"></gp-column>
     <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>
     <gp-column field="SafetyStockLevel" header="Safety Stock Level" footer-template="fns.average"></gp-column>
-    <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.average"></gp-column>
+    <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.average" format="C"></gp-column>
     <gp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, yyyy"></gp-column>
-    <gp-column field="Markup" header="Marked-Up Name"></gp-column>
-    <gp-column commands="Edit,Delete"></gp-column>
+    <gp-column field="Markup" readonly header="Marked-Up Name"></gp-column>
+    <gp-column commands="Edit,Delete,Show Row" body-style="width:155px;text-align:center"></gp-column>
 </grid-ponent>

@@ -23,14 +23,14 @@ gp.ClientPager = function (config) {
     this.columns = config.Columns.filter(function (c) {
         return c.Field !== undefined || c.Sort !== undefined;
     });
-    if (typeof config.SearchFilter === 'function') {
-        this.searchFilter = config.SearchFilter;
+    if (typeof config.SearchFunction === 'function') {
+        this.searchFilter = config.SearchFunction;
     }
     else {
         this.searchFilter = function (row, search) {
             var s = search.toLowerCase();
             for (var i = 0; i < self.columns.length; i++) {
-                value = gp.getFormattedValue(row, self.columns[i], false);
+                value = gp.getFormattedValue( row, self.columns[i], false );
                 if (gp.hasValue(value) && value.toString().toLowerCase().indexOf(s) !== -1) {
                     return true;
                 }
@@ -155,5 +155,26 @@ gp.ClientPager.prototype = {
         }
 
         return 0;
+    }
+};
+
+gp.FunctionPager = function ( config ) {
+    this.config = config;
+};
+
+gp.FunctionPager.prototype = {
+    read: function ( model, callback, error ) {
+        try {
+            this.config.Read( model, callback );
+        }
+        catch (ex) {
+            if (typeof error === 'function') {
+                error( ex );
+            }
+            else {
+                callback();
+            }
+            gp.error( ex );
+        }
     }
 };

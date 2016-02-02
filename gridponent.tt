@@ -6,12 +6,33 @@
 <#@ import namespace="System.Collections.Generic" #>
 <#@ import namespace="System.Text.RegularExpressions" #>
 <#@ output extension=".js" #>
-var gridponent = gridponent || {};
-(function(gp) { 
 <#
 var path = "";
 var stripLogging = false;
+var coverage = false;
 var useMocks = true;
+
+if (coverage)
+{
+#>
+// code coverage
+var cov = cov || {};
+cov.covered = [];
+cov.cover = function(index) {
+	cov.covered[index] = true;
+	if (cov.callout) {
+	    cov.callout(index);
+	}
+};
+
+<#
+}
+#>
+// namespace
+var gridponent = gridponent || {};
+
+(function(gp) { 
+<#
 
 if (Directory.Exists(@"C:\Users\kitntodd"))
 {
@@ -38,6 +59,13 @@ foreach (var file in files)
 			continue;
 		}
 	}
+    else
+    {
+		if (file.Name.StartsWith("mock-"))
+		{
+			continue;
+		}
+    }
 
 	// a mechanism for temporarily excluding files
 	if (file.Name.StartsWith("x-")) continue;
@@ -52,9 +80,17 @@ foreach (var file in files)
         if (stripLogging && IsLogExpression(line)) continue;
 #>
     <#= line #>
-<#  }
+<#  
+		if (coverage) {
+#>
+<#= OutputCoverage(line) #><#  
+		}
+	}
 }
 #>
+
+cov.maxCoverage = <#= coverageIndex #>;
+
 })(gridponent);
 <#+ 
 System.Text.RegularExpressions.Regex rLog = new System.Text.RegularExpressions.Regex(@"gp\.log\(|gp\.verbose\(|gp\.info\(|gp\.warn\(");
@@ -62,5 +98,29 @@ System.Text.RegularExpressions.Regex rLog = new System.Text.RegularExpressions.R
 private bool IsLogExpression(string line)
 {
 	return rLog.IsMatch(line);
+}
+
+int coverageIndex = 0;
+System.Text.RegularExpressions.Regex comment = new System.Text.RegularExpressions.Regex(@"\s*//");
+System.Text.RegularExpressions.Regex function = new System.Text.RegularExpressions.Regex(@"function.+\{$");
+System.Text.RegularExpressions.Regex ifStatement = new System.Text.RegularExpressions.Regex(@"if.+\{$");
+System.Text.RegularExpressions.Regex elseStatement = new System.Text.RegularExpressions.Regex(@"else.+\{$");
+System.Text.RegularExpressions.Regex lineEnd = new System.Text.RegularExpressions.Regex(@"\{$|;$");
+bool inQualifyingStatement = false;
+
+private string OutputCoverage(string line)
+{
+	if (!comment.IsMatch(line) && 
+		(function.IsMatch(line) || ifStatement.IsMatch(line) || elseStatement.IsMatch(line)))
+	{
+		inQualifyingStatement = true;
+	}
+	if (inQualifyingStatement && lineEnd.IsMatch(line))
+	{
+		inQualifyingStatement = false;
+		return "cov.cover("+ (++coverageIndex).ToString() + ");\r\n";
+	}
+
+	return "";
 }
 #>

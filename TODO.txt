@@ -13,6 +13,9 @@ Without knowing how many records there are, it would have to set Top to -1 to re
 If we want, we could use a function to set first read parameters.)
 In that case, subsequent read requests (page, sort and search) would use a ClientPager.
 
+Add support for the other lifecycle callback methods:
+// http://www.html5rocks.com/en/tutorials/webcomponents/customelements/
+
 For progress indicator, add/remove a class to the top level element.
 Do this by raising an event and handling it.
 

@@ -22,7 +22,7 @@ gp.RequestModel = function (data) {
 
     Object.defineProperty(self, 'PageCount', {
         get: function () {
-            if ( self.Top !== -1 ) {
+            if ( self.Top > 0 ) {
                 return Math.ceil( self.TotalRows / self.Top );
             }
             if ( self.TotalRows === 0 ) return 0;

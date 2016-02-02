@@ -183,6 +183,11 @@ gp.templates['gridponent'] = function(model, arg) {
     out.push('<style type="text/css" class="column-width-style">');
                 out.push(gp.helpers['columnWidthStyle'].call(model));
         out.push('</style>');
+    out.push('<div class="progress-overlay">');
+    out.push('<div class="progress progress-container">');
+    out.push('<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>');
+    out.push('</div>');
+    out.push('</div>');
     out.push('</div>');
     return out.join('');
 };

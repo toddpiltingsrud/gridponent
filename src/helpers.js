@@ -226,7 +226,7 @@
         else {
             var val = this.Row[col.Field];
             // render empty cell if this field doesn't exist in the data
-            if (val === undefined) return '<td class="body-cell"></td>';
+            if (val === undefined) return '';
             // render null as empty string
             if (val === null) val = '';
             out.push('<input class="form-control" name="' + col.Field + '" type="');
@@ -296,9 +296,6 @@
             out = [],
             index = 0,
             bodyCols = document.querySelectorAll('#' + this.ID + ' .table-body > table > tbody > tr:first-child > td');
-
-        gp.info('columnWidthStyle: bodycols:', bodyCols);
-        gp.info('columnWidthStyle: this:', this);
 
         // even though the table might not exist yet, we still should render width styles because there might be fixed widths specified
         this.Columns.forEach(function (col) {

@@ -11,6 +11,11 @@ if (document.registerElement) {
         new gp.Initializer(this).initialize();
     };
 
+    gp.Gridponent.detachedCallback = function () {
+        gp.info( 'detachedCallback called' );
+        this.api.dispose();
+    };
+
     document.registerElement('grid-ponent', {
         prototype: gp.Gridponent
     });
