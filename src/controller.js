@@ -125,6 +125,7 @@ gp.Controller.prototype = {
                             config.Onrowselect.call( this, model );
                         }
                         else {
+
                             // it's a urlTemplate
                             window.location = gp.processRowTemplate( config.Onrowselect, model );
                         }
@@ -175,9 +176,9 @@ gp.Controller.prototype = {
         this.update();
     },
 
-    page: function(pageNumber) {
+    page: function(pageNumber, callback) {
         this.config.data.Page = pageNumber;
-        this.update();
+        this.update(callback);
     },
 
     createRow: function (callback) {
@@ -189,10 +190,24 @@ gp.Controller.prototype = {
                 self.config.Row = row;
                 gp.info( 'createRow: Columns:', self.config.Columns );
                 var tbody = self.config.node.querySelector( 'div.table-body > table > tbody' );
-                // bind the new record to the view
-                var tr = gp.templates['gridponent-new-row'](self.config);
-                gp.prependChild(tbody, tr);
+                var rowIndex = self.config.data.Data.indexOf( row );
+
+                var builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', rowIndex ).addClass('create-mode');
+
+                self.config.Columns.forEach( function ( col ) {
+                    builder.startElem( 'td' ).addClass( 'body-cell' ).endElem();
+                } );
+
+                var tr = builder.close();
+
+                gp.log( 'createRow: tr:', tr );
+
+                gp.prependChild( tbody, tr );
+
+                self.editRow( row, tr );
+
                 tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
+
                 if ( typeof callback === 'function' ) {
                     callback( row );
                 }
@@ -200,6 +215,8 @@ gp.Controller.prototype = {
         }
         catch (ex) {
             gp.error( ex );
+
+            callback();
         }
     },
 
@@ -351,12 +368,13 @@ gp.Controller.prototype = {
         gp.removeClass( tr, 'edit-mode' );
     },
 
-    update: function () {
+    update: function (callback) {
         var self = this;
         gp.info( 'update: data:', this.config.data );
         this.model.read( this.config.data, function ( model ) {
             gp.shallowCopy( model, self.config.data );
             self.refresh( self.config );
+            if ( typeof callback === 'function' ) callback(self.config.data);
         } );
     },
 

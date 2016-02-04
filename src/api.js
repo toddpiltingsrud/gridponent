@@ -16,8 +16,8 @@ gp.api.prototype = {
         this.controller.sort( name, desc );
     },
 
-    page: function ( pageNbr ) {
-        this.controller.page( pageNbr );
+    page: function ( pageNbr, callback ) {
+        this.controller.page( pageNbr, callback );
     },
 
     read: function ( arg ) { },

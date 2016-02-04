@@ -31,5 +31,5 @@ else {
         }
     };
 
-    gp.ready( gp.initialize( document ) );
+    gp.ready( gp.initialize );
 }

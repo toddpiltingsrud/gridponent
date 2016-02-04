@@ -34,6 +34,8 @@ gp.Model.prototype = {
 
         gp.raiseCustomEvent( this.config.node, gp.events.beforeRead, requestModel );
 
+        gp.info( 'Model.dal: :', this.dal );
+
         this.dal.read( requestModel, function (arg) {
             gp.raiseCustomEvent( self.config.node, gp.events.afterRead, requestModel );
             callback(arg);

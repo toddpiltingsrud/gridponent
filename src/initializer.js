@@ -7,7 +7,7 @@ gp.Initializer = function ( node ) {
 
 gp.Initializer.prototype = {
 
-    initialize: function () {
+    initialize: function (callback) {
         var self = this;
         this.config = this.getConfig(this.node);
         this.node.config = this.config;
@@ -24,7 +24,12 @@ gp.Initializer.prototype = {
             controller.monitorToolbars( self.config.node );
             controller.addCommandHandlers( self.config.node );
             controller.handleRowSelect( self.config );
+
+            if ( typeof callback === 'function' ) callback( self.config );
         } );
+
+        return this.config;
+
     },
 
     getConfig: function (node) {
@@ -43,11 +48,23 @@ gp.Initializer.prototype = {
         config.Footer = this.resolveFooter(config);
         var options = 'Onrowselect SearchFunction Read Create Update Destroy'.split(' ');
         options.forEach( function ( option ) {
-            // see if this config option points to a function, object or array
-            // otherwise it must be a URL
-            obj = gp.getObjectAtPath( config[option] );
-            if ( gp.hasValue( obj ) ) config[option] = obj;
-        });
+
+            if ( gp.hasValue(config[option]) ) {
+                // see if this config option points to an object
+                // otherwise it must be a URL
+                gp.info( 'getConfig: options: ' + option, config[option] );
+
+                obj = gp.getObjectAtPath( config[option] );
+
+                gp.info( 'getConfig: obj: ', obj );
+
+                if ( gp.hasValue( obj ) ) config[option] = obj;
+
+                gp.info( 'getConfig: options: ' + option, config[option] );
+
+            }
+
+        } );
         gp.info(config);
         return config;
     },

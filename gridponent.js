@@ -21,8 +21,8 @@ var gridponent = gridponent || {};
             this.controller.sort( name, desc );
         },
     
-        page: function ( pageNbr ) {
-            this.controller.page( pageNbr );
+        page: function ( pageNbr, callback ) {
+            this.controller.page( pageNbr, callback );
         },
     
         read: function ( arg ) { },
@@ -230,6 +230,7 @@ var gridponent = gridponent || {};
                                 config.Onrowselect.call( this, model );
                             }
                             else {
+    
                                 // it's a urlTemplate
                                 window.location = gp.processRowTemplate( config.Onrowselect, model );
                             }
@@ -280,9 +281,9 @@ var gridponent = gridponent || {};
             this.update();
         },
     
-        page: function(pageNumber) {
+        page: function(pageNumber, callback) {
             this.config.data.Page = pageNumber;
-            this.update();
+            this.update(callback);
         },
     
         createRow: function (callback) {
@@ -294,10 +295,24 @@ var gridponent = gridponent || {};
                     self.config.Row = row;
                     gp.info( 'createRow: Columns:', self.config.Columns );
                     var tbody = self.config.node.querySelector( 'div.table-body > table > tbody' );
-                    // bind the new record to the view
-                    var tr = gp.templates['gridponent-new-row'](self.config);
-                    gp.prependChild(tbody, tr);
+                    var rowIndex = self.config.data.Data.indexOf( row );
+    
+                    var builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', rowIndex ).addClass('create-mode');
+    
+                    self.config.Columns.forEach( function ( col ) {
+                        builder.startElem( 'td' ).addClass( 'body-cell' ).endElem();
+                    } );
+    
+                    var tr = builder.close();
+    
+                    gp.log( 'createRow: tr:', tr );
+    
+                    gp.prependChild( tbody, tr );
+    
+                    self.editRow( row, tr );
+    
                     tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
+    
                     if ( typeof callback === 'function' ) {
                         callback( row );
                     }
@@ -305,6 +320,8 @@ var gridponent = gridponent || {};
             }
             catch (ex) {
                 gp.error( ex );
+    
+                callback();
             }
         },
     
@@ -456,12 +473,13 @@ var gridponent = gridponent || {};
             gp.removeClass( tr, 'edit-mode' );
         },
     
-        update: function () {
+        update: function (callback) {
             var self = this;
             gp.info( 'update: data:', this.config.data );
             this.model.read( this.config.data, function ( model ) {
                 gp.shallowCopy( model, self.config.data );
                 self.refresh( self.config );
+                if ( typeof callback === 'function' ) callback(self.config.data);
             } );
         },
     
@@ -1035,6 +1053,18 @@ var gridponent = gridponent || {};
             el.className = gp.trim(( ' ' + el.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
         };
     
+        gp.appendChild = function ( node, child ) {
+            if ( typeof node === 'string' ) node = document.querySelector( node );
+            if ( typeof child === 'string' ) {
+                // using node.tagName to convert child to DOM node helps ensure that what we create is compatible with node
+                var div = document.createElement( node.tagName.toLowerCase() );
+                div.innerHTML = child;
+                child = div.firstChild;
+            }
+            node.appendChild( child );
+            return child;
+        };
+    
         gp.prependChild = function ( node, child ) {
             if ( typeof node === 'string' ) node = document.querySelector( node );
             if ( typeof child === 'string' ) {
@@ -1439,7 +1469,7 @@ var gridponent = gridponent || {};
     
     gp.Initializer.prototype = {
     
-        initialize: function () {
+        initialize: function (callback) {
             var self = this;
             this.config = this.getConfig(this.node);
             this.node.config = this.config;
@@ -1456,7 +1486,12 @@ var gridponent = gridponent || {};
                 controller.monitorToolbars( self.config.node );
                 controller.addCommandHandlers( self.config.node );
                 controller.handleRowSelect( self.config );
+    
+                if ( typeof callback === 'function' ) callback( self.config );
             } );
+    
+            return this.config;
+    
         },
     
         getConfig: function (node) {
@@ -1475,11 +1510,23 @@ var gridponent = gridponent || {};
             config.Footer = this.resolveFooter(config);
             var options = 'Onrowselect SearchFunction Read Create Update Destroy'.split(' ');
             options.forEach( function ( option ) {
-                // see if this config option points to a function, object or array
-                // otherwise it must be a URL
-                obj = gp.getObjectAtPath( config[option] );
-                if ( gp.hasValue( obj ) ) config[option] = obj;
-            });
+    
+                if ( gp.hasValue(config[option]) ) {
+                    // see if this config option points to an object
+                    // otherwise it must be a URL
+                    gp.info( 'getConfig: options: ' + option, config[option] );
+    
+                    obj = gp.getObjectAtPath( config[option] );
+    
+                    gp.info( 'getConfig: obj: ', obj );
+    
+                    if ( gp.hasValue( obj ) ) config[option] = obj;
+    
+                    gp.info( 'getConfig: options: ' + option, config[option] );
+    
+                }
+    
+            } );
             gp.info(config);
             return config;
         },
@@ -1785,6 +1832,8 @@ var gridponent = gridponent || {};
     
             gp.raiseCustomEvent( this.config.node, gp.events.beforeRead, requestModel );
     
+            gp.info( 'Model.dal: :', this.dal );
+    
             this.dal.read( requestModel, function (arg) {
                 gp.raiseCustomEvent( self.config.node, gp.events.afterRead, requestModel );
                 callback(arg);
@@ -1851,6 +1900,68 @@ var gridponent = gridponent || {};
                     callback( arg );
                 } );
             }
+        }
+    
+    };
+
+    /***************\
+       NodeBuilder
+    \***************/
+    
+    gp.NodeBuilder = function ( ) {
+        this.node = null;
+    };
+    
+    gp.NodeBuilder.prototype = {
+    
+        startElem: function ( tagName, value ) {
+            var n = document.createElement( tagName );
+    
+            if ( value != undefined ) {
+                n.innerHTML = value;
+            }
+    
+            if ( this.node ) {
+                this.node.appendChild( n );
+            }
+    
+            this.node = n;
+    
+            return this;
+        },
+    
+        addClass: function ( name ) {
+            var hasClass = ( ' ' + this.node.className + ' ' ).indexOf( ' ' + name + ' ' ) !== -1;
+            if ( !hasClass ) {
+                this.node.className = ( this.node.className === '' ) ? name : this.node.className + ' ' + name;
+            }
+            return this;
+        },
+    
+        endElem: function () {
+            if ( this.node.parentElement ) {
+                this.node = this.node.parentElement;
+            }
+            return this;
+        },
+    
+        attr: function ( name, value ) {
+            var attr = document.createAttribute( name );
+    
+            if ( value != undefined ) {
+                attr.value = value;
+            }
+    
+            this.node.setAttributeNode( attr );
+    
+            return this;
+        },
+    
+        close: function () {
+            while ( this.node.parentElement ) {
+                this.node = this.node.parentElement;
+            }
+            return this.node;
         }
     
     };
@@ -2233,7 +2344,7 @@ var gridponent = gridponent || {};
             }
         };
     
-        gp.ready( gp.initialize( document ) );
+        gp.ready( gp.initialize );
     }
 
     /***************\
@@ -2430,6 +2541,5 @@ var gridponent = gridponent || {};
         return out.join('');
     };
 
-cov.maxCoverage = 0;
 
 })(gridponent);

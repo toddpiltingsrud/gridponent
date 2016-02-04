@@ -1,4 +1,10 @@
-﻿If paging is turned off, use client pager to sort and search.
+﻿Create a way to intercept onrowselect so it doesn't set window.location.
+
+Create, Update, and Destroy should be resolved in the same way as Read. Functions should be supported.
+
+Render the table columns and container first. Then read. Then render the table body.
+
+If paging is turned off, use client pager to sort and search.
 Problem: we won't know whether we can use client pager until after we've retrieved data from the server.
 
 Now that we've gotten rid of DataSource, how should we handle all the various scenarios?

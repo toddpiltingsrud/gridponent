@@ -38,6 +38,9 @@ var configOptions = {
     responsive: false,
     sorting: false,
     read: null,
+    create: '/Products/Create',
+    update: null,
+    destroy: null,
     searchFilter: null,
     customCommand: null,
     orRowSelect: null
@@ -62,12 +65,12 @@ var getTableConfig = function ( options ) {
     if ( options.sorting ) out.push( '      sorting ' );
     if ( options.onRowSelect ) out.push( '  onrowselect="' + options.onRowSelect + '"' );
     if ( options.searchFilter ) out.push( ' search-function="' + options.searchFilter + '"' );
+    if ( options.read ) out.push( '         read="' + options.read + '"' );
+    if ( options.create ) out.push( '       create="' + options.create + '"' );
+    if ( options.update ) out.push( '       update="' + options.update + '"' );
+    if ( options.destroy ) out.push( '      destroy="' + options.destroy + '"' );
     out.push( '             pager = "top-right"' );
-    out.push( '             search="top-left"' );
-    out.push( '             read="' + options.read + '"' );
-    out.push( '             create="/Products/Create"' );
-    out.push( '             update="/Products/Update"' );
-    out.push( '             destroy="/Products/Destroy">' );
+    out.push( '             search="top-left">' );
     out.push( '    <gp-column header-template="fns.checkbox" template="fns.checkbox" footer-template="fns.checkbox"></gp-column>' );
     out.push( '    <gp-column header="ID" sort="Name" template="fns.getName" edit-template="fns.dropdown"></gp-column>' );
     out.push( '    <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>' );
@@ -90,9 +93,10 @@ var getTableConfig = function ( options ) {
 
     var config = $node[0].config;
 
+
     if ( !config ) {
-        var i = new gp.Initializer( $node[0] );
-        config = i.config;
+        config = new gp.Initializer( $node[0] ).initialize();
+        console.log( config );
     }
 
     return config;
@@ -135,7 +139,7 @@ var productsTable = function () {
     return config;
 };
 
-QUnit.test( "create", function ( assert ) {
+QUnit.test( "api.create 1", function ( assert ) {
     var config = getTableConfig();
 
     $( '#table .box' ).empty().append( config.node );
@@ -146,14 +150,35 @@ QUnit.test( "create", function ( assert ) {
 
     config.node.api.create( function ( row ) {
         var cellCount2 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
-        assert.ok( gp.hasValue(row), 'api should return a row' );
+        assert.ok( gp.hasValue( row ), 'api should return a row' );
         assert.strictEqual( cellCount1, cellCount2, 'should create the same number of cells' );
         console.log( row );
         done();
     } );
 } );
 
-QUnit.test( "gp.api.search", function ( assert ) {
+QUnit.test( "api.create 2", function ( assert ) {
+
+    createFn = function () {
+        return { "ProductID": 0, "Name": "test", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": null, "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0.0000, "ListPrice": 0.0000, "Size": null, "SizeUnitMeasureCode": null, "WeightUnitMeasureCode": null, "Weight": null, "DaysToManufacture": 0, "ProductLine": null, "Class": null, "Style": null, "ProductSubcategoryID": null, "ProductModelID": null, "SellStartDate": new Date(), "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "694215b7-70dd-4c0d-acb1-d734ba44c0c8", "ModifiedDate": null, "Markup": "" };
+    };
+
+    var options = gp.shallowCopy( configOptions );
+    options.create = 'createFn';
+
+    var config = getTableConfig(options);
+
+    $( '#table .box' ).empty().append( config.node );
+
+    var done = assert.async();
+
+    config.node.api.create( function ( row ) {
+        assert.strictEqual( row.Name, "test", 'create should support functions' );
+        done();
+    } );
+} );
+
+QUnit.test( "api.search", function ( assert ) {
     var config = getTableConfig();
 
     //$( '#table .box' ).append( config.node );
@@ -166,7 +191,7 @@ QUnit.test( "gp.api.search", function ( assert ) {
     assert.strictEqual( rows.length, 3, 'Should yield 3 rows' );
 } );
 
-QUnit.test( "gp.api.sort", function ( assert ) {
+QUnit.test( "api.sort", function ( assert ) {
     var config = getTableConfig();
 
     //$( '#table .box' ).append( config.node );
@@ -194,41 +219,44 @@ QUnit.test( "gp.api.sort", function ( assert ) {
     assert.strictEqual( content1, content2, 'Sorting again should change it back' );
 } );
 
-QUnit.test( "create", function ( assert ) {
-    var config = getTableConfig();
+QUnit.test( "api.page", function ( assert ) {
 
-    $( '#table .box' ).empty().append( config.node );
+    var options = gp.shallowCopy( configOptions );
+    options.paging = true;
 
-    var cellCount1 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
+    var config = getTableConfig(options);
 
     var done = assert.async();
 
-    config.node.api.create( function ( row ) {
-        var cellCount2 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
-        assert.ok( gp.hasValue( row ), 'api should return a row' );
-        assert.strictEqual( cellCount1, cellCount2, 'should create the same number of cells' );
-        console.log( row );
+    config.node.api.page( 2, function ( model ) {
+        assert.strictEqual( model.Page, 2, 'should be able to set the page' );
         done();
     } );
 } );
 
-QUnit.test( "dispose", function ( assert ) {
-    var config = getTableConfig();
 
-    $( '#table .box' ).empty().append( config.node );
+if ( document.registerElement ) {
 
-    var done = assert.async();
+    QUnit.test( "dispose", function ( assert ) {
+        var config = getTableConfig();
 
-    var handler = function () {
-        assert.ok( true, 'dispose was called' );
-        config.node.removeEventListener( gp.events.beforeDispose, handler, false );
-        done();
-    };
+        $( '#table .box' ).empty().append( config.node );
 
-    config.node.addEventListener( gp.events.beforeDispose, handler, false );
+        var done = assert.async();
 
-    config.node.remove();
-} );
+        var handler = function () {
+            assert.ok( true, 'dispose was called' );
+            config.node.removeEventListener( gp.events.beforeDispose, handler, false );
+            done();
+        };
+
+        config.node.addEventListener( gp.events.beforeDispose, handler, false );
+
+        config.node.parentNode.removeChild( config.node );
+    } );
+
+}
+
 
 QUnit.test( "ChangeMonitor.beforeSync", function ( assert ) {
     var config = getTableConfig();
@@ -669,13 +697,11 @@ QUnit.test("gp.helpers.thead", function (assert) {
     function testHeaders(headers) {
         assert.ok(headers[0].querySelector('input[type=checkbox]') != null);
 
-        assert.equal( headers[1].innerHTML, '<label class="table-sort"><input type="radio" name="OrderBy" value="Name">ID</label>' );
+        assert.ok( headers[1].querySelector( 'input[type=radio][name=OrderBy]' ) != null );
 
         assert.ok(headers[2].querySelector('label.table-sort > input[type=radio]') != null);
 
         assert.equal(headers[6].querySelector('label.table-sort').textContent, 'Markup');
-
-        //assert.ok(headers[9].querySelector('input[type=radio]') != null);
 
     }
 
@@ -965,10 +991,14 @@ QUnit.test("Intl.DateTimeFormat", function (assert) {
         || formatted == 'S'); // IE11
 
     formatted = formatter.format(date, 'tt');
-    assert.ok(formatted.indexOf('Central Standard Time') != -1);
+    assert.ok( formatted.indexOf( 'Central Standard Time' ) != -1
+        || formatted == '12/6/2015', // IE
+        formatted );
 
     formatted = formatter.format(date, 't');
-    assert.ok(formatted.indexOf('CST') != -1);
+    assert.ok(formatted.indexOf('CST') != -1
+        || formatted == '12/6/2015', // IE
+        formatted );
 
     // era is not supported in IE
     formatted = formatter.format(date, 'ee');
