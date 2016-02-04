@@ -39,15 +39,15 @@ var configOptions = {
     sorting: false,
     read: null,
     create: '/Products/Create',
-    update: null,
-    destroy: null,
+    update: '/Products/Update',
+    destroy: '/Products/Destroy',
     searchFilter: null,
     customCommand: null,
     orRowSelect: null
 };
 
 var getTableConfig = function ( options ) {
-    options = options || {};
+    options = options || configOptions;
     options.read = options.read || 'data.products';
 
     div.append( '<script type="text/html" id="template1">Test Header</script>' );
@@ -159,6 +159,8 @@ QUnit.test( "api.create 1", function ( assert ) {
 
 QUnit.test( "api.create 2", function ( assert ) {
 
+    // first try it with a function that returns a row directly
+
     createFn = function () {
         return { "ProductID": 0, "Name": "test", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": null, "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0.0000, "ListPrice": 0.0000, "Size": null, "SizeUnitMeasureCode": null, "WeightUnitMeasureCode": null, "Weight": null, "DaysToManufacture": 0, "ProductLine": null, "Class": null, "Style": null, "ProductSubcategoryID": null, "ProductModelID": null, "SellStartDate": new Date(), "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "694215b7-70dd-4c0d-acb1-d734ba44c0c8", "ModifiedDate": null, "Markup": "" };
     };
@@ -173,8 +175,23 @@ QUnit.test( "api.create 2", function ( assert ) {
     var done = assert.async();
 
     config.node.api.create( function ( row ) {
-        assert.strictEqual( row.Name, "test", 'create should support functions' );
+        assert.strictEqual( row.Name, "test", 'create should support functions that return a row' );
         done();
+    } );
+
+    // now do it again with a callback
+
+    createFn = function ( callback ) {
+        callback(
+            { "ProductID": 0, "Name": "test", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": null, "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0.0000, "ListPrice": 0.0000, "Size": null, "SizeUnitMeasureCode": null, "WeightUnitMeasureCode": null, "Weight": null, "DaysToManufacture": 0, "ProductLine": null, "Class": null, "Style": null, "ProductSubcategoryID": null, "ProductModelID": null, "SellStartDate": new Date(), "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "694215b7-70dd-4c0d-acb1-d734ba44c0c8", "ModifiedDate": null, "Markup": "" }
+        );
+    };
+
+    var done2 = assert.async();
+
+    config.node.api.create( function ( row ) {
+        assert.strictEqual( row.Name, "test", 'create should support functions that use a callback' );
+        done2();
     } );
 } );
 

@@ -53,6 +53,7 @@
     <Content Include="spec\OutSource.txt" />
     <Content Include="spec\styles\bootstrap-theme.css" />
     <Content Include="spec\styles\bootstrap-theme.min.css" />
+    <Content Include="src\string-builder.js" />
     <Content Include="src\node-builder.js" />
     <Content Include="src\api.js" />
     <Content Include="src\gridponent.css">

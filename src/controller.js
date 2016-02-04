@@ -185,6 +185,11 @@ gp.Controller.prototype = {
         try {
             var self = this;
 
+            if ( !gp.hasValue( this.config.Create ) ) {
+                callback();
+                return;
+            }
+
             this.model.create(function (row) {
                 // create a row in create mode
                 self.config.Row = row;
@@ -252,42 +257,49 @@ gp.Controller.prototype = {
         }
     },
 
-    updateRow: function (row, tr) {
+    updateRow: function (row, tr, callback) {
         try {
             // save the row and return it to read mode
             var self = this;
-            var h = new gp.Http();
-            var url = this.config.Update;
             var monitor;
             var rowProxy = this.config.Row;
+
+            if ( !gp.hasValue( this.config.Update ) ) {
+                if ( typeof callback === 'funcntion' ) {
+                    callback();
+                }
+                return;
+            }
+
             gp.raiseCustomEvent(tr, 'beforeUpdate', {
                 model: row
             });
             gp.info('updateRow: row:');
-            gp.info(row);
-            h.post(url, rowProxy, function (response) {
-                gp.info('updateRow: response:');
-                gp.info(response);
-                if (response.ValidationErrors && response.ValidationErrors.length) {
+            gp.info( row );
+
+            this.model.update( row, function ( response ) {
+                gp.info( 'updateRow: response:' );
+                gp.info( response );
+                if ( response.ValidationErrors && response.ValidationErrors.length ) {
                     // TODO: handle validation errors
 
                 }
                 else {
-                    gp.shallowCopy(response.Data, row);
-                    self.restoreCells(self.config, row, tr);
+                    gp.shallowCopy( response.Data, row );
+                    self.restoreCells( self.config, row, tr );
                     // dispose of the ChangeMonitor
                     monitor = tr['gp-change-monitor'];
-                    if (monitor) {
+                    if ( monitor ) {
                         monitor.stop();
                         monitor = null;
                     }
                     // dispose of the ObjectProxy
                     delete self.config.Row;
                 }
-                gp.raiseCustomEvent(tr, 'afterUpdate', {
+                gp.raiseCustomEvent( tr, 'afterUpdate', {
                     model: response.Data
-                });
-            });
+                } );
+            } );
         }
         catch (ex) {
             gp.error( ex );
@@ -317,27 +329,44 @@ gp.Controller.prototype = {
         }
     },
 
-    deleteRow: function (row, tr) {
+    deleteRow: function (row, tr, callback) {
         try {
-            var confirmed = confirm('Are you sure you want to delete this item?');
-            if (!confirmed) return;
-            var self = this;
-            var h = new gp.Http();
-            var url = this.config.Destroy;
+            if ( !gp.hasValue( this.config.Destroy ) ) {
+                if ( typeof callback === 'funcntion' ) {
+                    callback();
+                }
+                return;
+            }
+
+            var self = this,
+                url = this.config.Destroy,
+                confirmed = confirm( 'Are you sure you want to delete this item?' );
+
+            if ( !confirmed ) {
+                if ( typeof callback === 'funcntion' ) {
+                    callback();
+                }
+                return;
+            }
+
             gp.raiseCustomEvent(tr, 'beforeDelete', {
                 model: row
-            });
-            h.post(url, row, function (response) {
+            } );
+
+            this.model.destroy( function ( response ) {
                 // remove the row from the model
-                var index = self.config.data.Data.indexOf(row);
-                if (index != -1) {
-                    self.config.data.Data.splice(index, 1);
-                    self.refresh(self.config);
+                var index = self.config.data.Data.indexOf( row );
+                if ( index != -1 ) {
+                    self.config.data.Data.splice( index, 1 );
+                    self.refresh( self.config );
                 }
-                gp.raiseCustomEvent(tr, 'afterDelete', {
+                gp.raiseCustomEvent( tr, 'afterDelete', {
                     model: row
-                });
-            });
+                } );
+                if ( typeof callback === 'funcntion' ) {
+                    callback();
+                }
+            } );
         }
         catch (ex) {
             gp.error( ex );

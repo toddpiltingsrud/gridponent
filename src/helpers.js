@@ -122,63 +122,64 @@
         return out.join('');
     });
 
-    extend('bodyCellContent', function (col) {
+    extend( 'bodyCellContent', function ( col ) {
+        var self = this;
         var template, format, val = gp.getFormattedValue(this.Row, col, true);
 
         var type = (col.Type || '').toLowerCase();
-        var out = [];
+        var html = new gp.StringBuilder();
 
         // check for a template
         if (col.Template) {
             if (typeof (col.Template) === 'function') {
-                out.push(col.Template.call(this, this.Row, col));
+                html.add(col.Template.call(this, this.Row, col));
             }
             else {
-                out.push(gp.processRowTemplate.call(this, col.Template, this.Row, col));
+                html.add(gp.processRowTemplate.call(this, col.Template, this.Row, col));
             }
         }
-        else if (col.Commands) {
-            out.push('<div class="btn-group" role="group">');
+        else if (col.Commands && col.Commands.length) {
+            html.add('<div class="btn-group" role="group">');
             col.Commands.forEach(function (cmd, index) {
-                if (cmd == 'Edit') {
-                    out.push('<button type="button" class="btn btn-primary btn-xs" value="');
-                    out.push(cmd);
-                    out.push('">');
-                    out.push('<span class="glyphicon glyphicon-edit"></span>');
-                    out.push(cmd);
-                    out.push('</button>');
+                if (cmd == 'Edit' && gp.hasValue(self.Update )) {
+                    html.add('<button type="button" class="btn btn-primary btn-xs" value="')
+                        .add(cmd)
+                        .add('">')
+                        .add('<span class="glyphicon glyphicon-edit"></span>')
+                        .add(cmd)
+                        .add('</button>');
                 }
-                else if (cmd == 'Delete') {
-                    out.push('<button type="button" class="btn btn-danger btn-xs" value="');
-                    out.push(cmd);
-                    out.push('">');
-                    out.push('<span class="glyphicon glyphicon-remove"></span>');
-                    out.push(cmd);
-                    out.push('</button>');
+                else if ( cmd == 'Delete' && gp.hasValue( self.Destroy ) ) {
+                    html.add('<button type="button" class="btn btn-danger btn-xs" value="')
+                        .add(cmd)
+                        .add('">')
+                        .add('<span class="glyphicon glyphicon-remove"></span>')
+                        .add(cmd)
+                        .add('</button>');
                 }
                 else {
-                    out.push( '<button type="button" class="btn btn-danger btn-xs" value="' );
-                    out.push( cmd );
-                    out.push( '">' );
-                    out.push( '<span class="glyphicon glyphicon-cog"></span>' );
-                    out.push( cmd );
-                    out.push( '</button>' );
+                    html.add( '<button type="button" class="btn btn-danger btn-xs" value="' )
+                        .add( cmd )
+                        .add( '">' )
+                        .add( '<span class="glyphicon glyphicon-cog"></span>' )
+                        .add( cmd )
+                        .add( '</button>' );
                 }
             });
-            out.push('</div>');
+            html.add('</div>');
         }
         else if (gp.hasValue(val)) {
             // show a checkmark for bools
             if (type === 'boolean') {
                 if (val === true) {
-                    out.push('<span class="glyphicon glyphicon-ok"></span>');
+                    html.add('<span class="glyphicon glyphicon-ok"></span>');
                 }
             }
             else {
-                out.push(val);
+                html.add(val);
             }
         }
-        return out.join('');
+        return html.toString();
     });
 
 

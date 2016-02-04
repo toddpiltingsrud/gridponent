@@ -43,17 +43,30 @@ gp.Model.prototype = {
     },
 
     create: function (callback) {
-        var self = this;
+        var self = this,
+            calledBack = false,
+            row;
+
         gp.raiseCustomEvent( this.config.node, gp.events.beforeCreate );
 
-        if (typeof this.config.Create === 'function') {
-            this.config.Create(function (row) {
+        if ( typeof this.config.Create === 'function' ) {
+            // provide for the possibility that the supplied function may either
+            // execute the callback or return the row directly
+            row = this.config.Create( function ( row ) {
+                calledBack = true;
                 if (self.config.data.Data && self.config.data.Data.push) {
                     self.config.data.Data.push(row);
                 }
                 gp.raiseCustomEvent( self.config.node, gp.events.afterCreate, row );
                 callback( row );
-            });
+            } );
+            if ( !calledBack ) {
+                if ( self.config.data.Data && self.config.data.Data.push ) {
+                    self.config.data.Data.push( row );
+                }
+                gp.raiseCustomEvent( self.config.node, gp.events.afterCreate, row );
+                callback( row );
+            }
         }
         else {
             // ask the server for a new record
