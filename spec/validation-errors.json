@@ -1,0 +1,50 @@
+﻿[
+  {
+    "Key": "Name",
+    "Value": {
+      "Value": {
+        "AttemptedValue": "",
+        "Culture": "en-US",
+        "RawValue": [ "" ]
+      },
+      "Errors": [
+        {
+          "Exception": null,
+          "ErrorMessage": "Required"
+        }
+      ]
+    }
+  },
+  {
+    "Key": "ProductNumber",
+    "Value": {
+      "Value": {
+        "AttemptedValue": "",
+        "Culture": "en-US",
+        "RawValue": [ "" ]
+      },
+      "Errors": [
+        {
+          "Exception": null,
+          "ErrorMessage": "Required"
+        }
+      ]
+    }
+  },
+  {
+    "Key": "SafetyStockLevel",
+    "Value": {
+      "Value": {
+        "AttemptedValue": "non",
+        "Culture": "en-US",
+        "RawValue": [ "non" ]
+      },
+      "Errors": [
+        {
+          "Exception": null,
+          "ErrorMessage": "The value 'non' is not valid for Safety Stock Level."
+        }
+      ]
+    }
+  }
+]

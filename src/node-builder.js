@@ -34,6 +34,11 @@ gp.NodeBuilder.prototype = {
         return this;
     },
 
+    html: function ( html ) {
+        if (gp.hasClass(html) && html !== '') this.node.innerHTML = html;
+        return this;
+    },
+
     endElem: function () {
         if ( this.node.parentElement ) {
             this.node = this.node.parentElement;

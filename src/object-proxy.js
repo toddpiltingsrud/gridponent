@@ -30,4 +30,3 @@ gp.ObjectProxy = function (obj, onPropertyChanged, syncChanges) {
         dict[prop] = obj[prop];
     });
 };
-

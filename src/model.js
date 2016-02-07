@@ -39,7 +39,7 @@ gp.Model.prototype = {
 
         this.dal.read( requestModel, function (arg) {
             gp.raiseCustomEvent( self.config.node, gp.events.afterRead, requestModel );
-            callback(arg);
+            gp.tryCallback( callback, self.config.node, arg );
         } );
     },
 
@@ -55,7 +55,7 @@ gp.Model.prototype = {
                     self.config.data.Data.push(row);
                 }
                 gp.raiseCustomEvent( self.config.node, gp.events.afterCreate, row );
-                callback( row );
+                gp.tryCallback( callback, self.config.node, row );
             } );
         }
         else {
@@ -66,25 +66,26 @@ gp.Model.prototype = {
                     self.config.data.Data.push(row);
                 }
                 gp.raiseCustomEvent( self.config.node, gp.events.afterCreate, row );
-                callback( row );
-            });
+                gp.tryCallback( callback, self.config.node, row );
+            } );
         }
     },
 
-    update: function (row, callback) {
+    update: function (updateModel, callback) {
         var self = this;
+        // config.Update can be a function or URL
         gp.raiseCustomEvent( this.config.node, gp.events.beforeUpdate );
         if ( typeof this.config.Update === 'function' ) {
-            this.config.Update( row, function (arg) {
+            this.config.Update( updateModel, function ( arg ) {
                 gp.raiseCustomEvent( self.config.node, gp.events.afterUpdate );
-                callback(arg);
+                gp.tryCallback( callback, self.config.node, arg );
             } );
         }
         else {
             var http = new gp.Http();
-            http.post( this.config.Update, row, function (arg) {
+            http.post( this.config.Update, updateModel, function ( arg ) {
                 gp.raiseCustomEvent( self.config.node, gp.events.afterUpdate );
-                callback( arg );
+                gp.tryCallback( callback, self.config.node, arg );
             } );
         }
     },
@@ -95,14 +96,14 @@ gp.Model.prototype = {
         if ( typeof this.config.Destroy === 'function' ) {
             this.config.Destroy( row, function ( arg ) {
                 gp.raiseCustomEvent( self.config.node, gp.events.afterDestroy );
-                callback( arg );
+                gp.tryCallback( callback, self.config.node, arg );
             } );
         }
         else {
             var http = new gp.Http();
             http.post( this.config.Destroy, row, function ( arg ) {
                 gp.raiseCustomEvent( self.config.node, gp.events.afterDestroy );
-                callback( arg );
+                gp.tryCallback( callback, self.config.node, arg );
             } );
         }
     }

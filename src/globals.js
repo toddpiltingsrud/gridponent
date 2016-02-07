@@ -422,7 +422,7 @@
     gp.getTableRow = function ( data, row, node ) {
         var index = data.indexOf( row );
         if ( index == -1 ) return;
-        return node.querySelector( 'tr[data-index=' + index + ']' );
+        return node.querySelector( 'tr[data-index="' + index + '"]' );
     };
 
     gp.raiseCustomEvent = function ( node, name, detail ) {
@@ -441,6 +441,26 @@
         afterUpdate: 'afterUpdate',
         afterDestroy: 'afterDestroy',
         beforeDispose: 'beforeDispose'
+    };
+
+    gp.tryCallback = function ( callback, $this, args ) {
+        if ( typeof callback !== 'function' ) return;
+        // anytime there's the possibility of executing 
+        // user-supplied code, wrap it with a try-catch block
+        // so it doesn't affect my component
+        // keep your sloppy JavaScript OUT of my area
+        try {
+            if ( args == undefined ) {
+                callback.call( $this );
+            }
+            else {
+                args = Array.isArray( args ) ? args : [args];
+                callback.apply( $this, args );
+            }
+        }
+        catch ( ex ) {
+            gp.error( ex );
+        }
     };
 
 } )( gridponent );

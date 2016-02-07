@@ -102,6 +102,59 @@ var getTableConfig = function ( options ) {
     return config;
 };
 
+var getValidationErrors = function () {
+    return [
+        {
+            "Key": "Name",
+            "Value": {
+                "Value": {
+                    "AttemptedValue": "",
+                    "Culture": "en-US",
+                    "RawValue": [""]
+                },
+                "Errors": [
+                {
+                    "Exception": null,
+                    "ErrorMessage": "Required"
+                }
+                ]
+            }
+        },
+        {
+            "Key": "ProductNumber",
+            "Value": {
+                "Value": {
+                    "AttemptedValue": "",
+                    "Culture": "en-US",
+                    "RawValue": [""]
+                },
+                "Errors": [
+                {
+                    "Exception": null,
+                    "ErrorMessage": "Required"
+                }
+                ]
+            }
+        },
+        {
+            "Key": "SafetyStockLevel",
+            "Value": {
+                "Value": {
+                    "AttemptedValue": "non",
+                    "Culture": "en-US",
+                    "RawValue": ["non"]
+                },
+                "Errors": [
+                {
+                    "Exception": null,
+                    "ErrorMessage": "The value 'non' is not valid for Safety Stock Level."
+                }
+                ]
+            }
+        }
+    ];
+};
+
 var productsTable = function () {
     var out = [];
 
@@ -147,10 +200,10 @@ QUnit.test( 'api.create 1', function ( assert ) {
     var done = assert.async();
 
     config.node.api.create( function ( row ) {
+        console.log( 'api.create 1', row );
         var cellCount2 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
         assert.ok( gp.hasValue( row ), 'api should return a row' );
         assert.strictEqual( cellCount1, cellCount2, 'should create the same number of cells' );
-        console.log( row );
         $( '#table .box' ).empty();
         config.node.api.dispose();
         done();
@@ -193,60 +246,61 @@ QUnit.test( 'api.create 2', function ( assert ) {
     } );
 } );
 
-//QUnit.test( 'api.update', function ( assert ) {
+QUnit.test( 'api.update', function ( assert ) {
 
-//    // this would be called instead of posting the row to a URL
-//    updateFn = function ( updateModel, callback ) {
-//        // simulate some validation errors
-//        updateModel.ValidationErrors = [];
-//        callback( updateModel );
-//    };
+    // this would be called instead of posting the row to a URL
+    updateFn = function ( updateModel, callback ) {
+        // simulate some validation errors
+        updateModel.ValidationErrors = getValidationErrors();
+        callback( updateModel );
+    };
 
-//    var options = gp.shallowCopy( configOptions );
+    var options = gp.shallowCopy( configOptions );
 
-//    options.update = 'updateFn';
+    options.update = 'updateFn';
 
-//    var config = getTableConfig( options );
+    var config = getTableConfig( options );
 
-//    var done1 = assert.async();
+    var done1 = assert.async();
 
-//    var row = config.node.api.getData( 0 );
+    var row = config.node.api.getData( 0 );
 
-//    row.Name = 'test';
+    row.Name = 'test';
 
-//    config.node.api.update( row, function ( row ) {
-//        assert.strictEqual( row.Name, 'test', 'create should support functions that return a row' );
-//        config.node.api.dispose();
-//        done1();
-//    } );
+    config.node.api.update( row, function ( updateModel ) {
+        console.log( updateModel );
+        assert.strictEqual( updateModel.Row.Name, 'test', 'update should support functions' );
+        config.node.api.dispose();
+        done1();
+    } );
 
-//    // now try it with a URL
-//    options.update = '/Products/Update';
+    // now try it with a URL
+    options.update = '/Products/Update';
 
-//    config = getTableConfig( options );
+    config = getTableConfig( options );
 
-//    var done2 = assert.async();
+    var done2 = assert.async();
 
-//    config.node.api.create( function ( row ) {
-//        assert.strictEqual( row.Name, 'test', 'create should support functions that use a callback' );
-//        config.node.api.dispose();
-//        done2();
-//    } );
+    config.node.api.update( row, function ( updateModel ) {
+        assert.strictEqual( updateModel.Row.Name, 'test', 'update should support functions that use a URL' );
+        config.node.api.dispose();
+        done2();
+    } );
 
-//    // now try it with a null update setting
-//    options.update = null;
+    // now try it with a null update setting
+    options.update = null;
 
-//    config = getTableConfig( options );
+    config = getTableConfig( options );
 
-//    var done3 = assert.async();
+    var done3 = assert.async();
 
-//    config.node.api.create( function ( row ) {
-//        assert.ok( row == undefined, 'empty create setting should execute the callback with no arguments' );
-//        config.node.api.dispose();
-//        done3();
-//    } );
+    config.node.api.update( row, function ( updateModel ) {
+        assert.ok( updateModel == undefined, 'empty update setting should execute the callback with no arguments' );
+        config.node.api.dispose();
+        done3();
+    } );
 
-//} );
+} );
 
 QUnit.test( 'api.search', function ( assert ) {
     var config = getTableConfig();
@@ -686,11 +740,12 @@ QUnit.test( 'gp.Model', function ( assert ) {
 
     // update
     var done3 = assert.async();
-    request = data.products[0];
-    request.Name = 'Test';
+    var row = data.products[0];
+    row.Name = 'Test';
+    request = new gp.UpdateModel( row );
 
-    model.update( request, function ( response ) {
-        assert.equal( response.Data.Name, 'Test', 'should return the updated record' );
+    model.update( request, function ( updateModel ) {
+        assert.equal( updateModel.Row.Name, 'Test', 'should return the updated record' );
         done3();
     } );
 

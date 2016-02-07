@@ -35,9 +35,13 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="gridponent.js">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
       <DependentUpon>gridponent.tt</DependentUpon>
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+    </Content>
+    <Content Include="gridponent.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>gridponent.js</LastGenOutput>
     </Content>
     <Content Include="spec\fonts\glyphicons-halflings-regular.svg" />
     <Content Include="spec\scripts\bootstrap-datepicker.min.js" />
@@ -80,10 +84,6 @@
     <Content Include="src\change-monitor.js" />
     <Content Include="src\globals.js" />
     <Content Include="src\request-model.js" />
-    <Content Include="gridponent.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>gridponent.js</LastGenOutput>
-    </Content>
     <Content Include="src\initializer.js" />
     <Content Include="src\z-gridponent.js" />
     <None Include="compilerconfig.json" />
@@ -99,6 +99,7 @@
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>Out.txt</LastGenOutput>
     </None>
+    <None Include="spec\validation-errors.json" />
     <None Include="src\gridponent.less" />
     <Content Include="src\views\gridponent-body.html" />
     <Content Include="src\views\templates.js">

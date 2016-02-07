@@ -38,6 +38,7 @@ var gridponent = gridponent || {};
     
         // This would have to be called after having retrieved the row from the table with getData().
         // The controller will attempt to figure out which tr it is by first calling indexOf(row) on the data.
+        // So the original row object reference has to be preserved.
         // this function is mainly for testing
         update: function ( row, callback ) {
             this.controller.updateRow( row, null, callback );
@@ -301,42 +302,47 @@ var gridponent = gridponent || {};
                 var self = this;
     
                 if ( !gp.hasValue( this.config.Create ) ) {
-                    callback();
+                    gp.tryCallback( callback, self.config.node );
                     return;
                 }
     
                 this.model.create(function (row) {
                     // create a row in create mode
                     self.config.Row = row;
-                    gp.info( 'createRow: Columns:', self.config.Columns );
+    
+                    gp.info( 'createRow.Columns:', self.config.Columns );
+    
                     var tbody = self.config.node.querySelector( 'div.table-body > table > tbody' );
                     var rowIndex = self.config.data.Data.indexOf( row );
-    
+                    gp.info( 'createRow.rowIndex:', rowIndex );
+                    var editCellContent = gp.helpers['editCellContent'];
                     var builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', rowIndex ).addClass('create-mode');
     
+                    // put the row in edit mode
+                    // IE9 can't set innerHTML of tr, so iterate through each cell
+                    // besides, that way we can just skip readonly cells
                     self.config.Columns.forEach( function ( col ) {
-                        builder.startElem( 'td' ).addClass( 'body-cell' ).endElem();
+                        var html = col.ReadOnly ? '' : editCellContent.call( self.config, col );
+                        builder.startElem( 'td' ).addClass( 'body-cell' ).html(html).endElem();
                     } );
     
                     var tr = builder.close();
     
-                    gp.log( 'createRow: tr:', tr );
+                    gp.info( 'createRow.tr:', tr );
     
                     gp.prependChild( tbody, tr );
     
-                    self.editRow( row, tr );
-    
                     tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
     
-                    if ( typeof callback === 'function' ) {
-                        callback( row );
-                    }
-                });
+                    gp.info( 'createRow.tr:', tr );
+    
+                    gp.tryCallback( callback, self.config.node, row );
+                } );
             }
             catch (ex) {
                 gp.error( ex );
     
-                callback();
+                gp.tryCallback( callback, self.config.node );
             }
         },
     
@@ -345,10 +351,10 @@ var gridponent = gridponent || {};
                 gp.raiseCustomEvent(tr, 'beforeEdit', {
                     model: row
                 });
-                gp.info('editRow:tr:');
-                gp.info(tr);
     
                 this.config.Row = new gp.ObjectProxy(row);
+    
+                gp.info('editRow.tr:', tr);
     
                 // put the row in edit mode
                 // IE9 can't set innerHTML of tr, so iterate through each cell
@@ -373,29 +379,34 @@ var gridponent = gridponent || {};
         },
     
         updateRow: function (row, tr, callback) {
+            // save the row and return it to read mode
+    
             try {
-                // save the row and return it to read mode
                 var monitor,
                     self = this,
+                    updateModel = new gp.UpdateModel( row ),
                     tr = tr || gp.getTableRow(this.config.data.Data, row, this.config.node);
     
+                // if there is no Update configuration setting, we're done here
                 if ( !gp.hasValue( this.config.Update ) ) {
-                    if ( typeof callback === 'funcntion' ) callback();
+                    gp.tryCallback( callback, self.config.node );
                     return;
                 }
     
                 gp.raiseCustomEvent(tr, 'beforeUpdate', {
-                    model: row
+                    model: updateModel
                 });
     
-                gp.info( 'updateRow: row:', row );
+                gp.info( 'updateRow.row:', row );
     
-                this.model.update( row, function ( updateModel ) {
+                this.model.update( updateModel, function ( updateModel ) {
     
-                    gp.info( 'updateRow: updateModel:', updateModel );
+                    gp.info( 'updateRow.updateModel:', updateModel );
     
                     if ( updateModel.ValidationErrors && updateModel.ValidationErrors.length ) {
                         // TODO: handle validation errors
+    
+    
     
     
     
@@ -419,7 +430,7 @@ var gridponent = gridponent || {};
                         model: updateModel.Row
                     } );
     
-                    if ( typeof callback === 'function' ) callback( updateModel );
+                    gp.tryCallback( callback, self.config.node, updateModel );
                 } );
             }
             catch (ex) {
@@ -453,9 +464,7 @@ var gridponent = gridponent || {};
         deleteRow: function (row, tr, callback) {
             try {
                 if ( !gp.hasValue( this.config.Destroy ) ) {
-                    if ( typeof callback === 'funcntion' ) {
-                        callback();
-                    }
+                    gp.tryCallback( callback, this.config.node );
                     return;
                 }
     
@@ -464,9 +473,7 @@ var gridponent = gridponent || {};
                     confirmed = confirm( 'Are you sure you want to delete this item?' );
     
                 if ( !confirmed ) {
-                    if ( typeof callback === 'funcntion' ) {
-                        callback();
-                    }
+                    gp.tryCallback( callback, this.config.node );
                     return;
                 }
     
@@ -484,9 +491,7 @@ var gridponent = gridponent || {};
                     gp.raiseCustomEvent( tr, 'afterDelete', {
                         model: row
                     } );
-                    if ( typeof callback === 'funcntion' ) {
-                        callback();
-                    }
+                    gp.tryCallback( callback, self.config.node, response );
                 } );
             }
             catch (ex) {
@@ -520,11 +525,11 @@ var gridponent = gridponent || {};
     
         update: function (callback) {
             var self = this;
-            gp.info( 'update: data:', this.config.data );
+            gp.info( 'update.data:', this.config.data );
             this.model.read( this.config.data, function ( model ) {
                 gp.shallowCopy( model, self.config.data );
                 self.refresh( self.config );
-                if ( typeof callback === 'function' ) callback(self.config.data);
+                gp.tryCallback( callback, self.config.node, self.config.data );
             } );
         },
     
@@ -1136,7 +1141,7 @@ var gridponent = gridponent || {};
         gp.getTableRow = function ( data, row, node ) {
             var index = data.indexOf( row );
             if ( index == -1 ) return;
-            return node.querySelector( 'tr[data-index=' + index + ']' );
+            return node.querySelector( 'tr[data-index="' + index + '"]' );
         };
     
         gp.raiseCustomEvent = function ( node, name, detail ) {
@@ -1155,6 +1160,26 @@ var gridponent = gridponent || {};
             afterUpdate: 'afterUpdate',
             afterDestroy: 'afterDestroy',
             beforeDispose: 'beforeDispose'
+        };
+    
+        gp.tryCallback = function ( callback, $this, args ) {
+            if ( typeof callback !== 'function' ) return;
+            // anytime there's the possibility of executing 
+            // user-supplied code, wrap it with a try-catch block
+            // so it doesn't affect my component
+            // keep your sloppy JavaScript OUT of my area
+            try {
+                if ( args == undefined ) {
+                    callback.call( $this );
+                }
+                else {
+                    args = Array.isArray( args ) ? args : [args];
+                    callback.apply( $this, args );
+                }
+            }
+            catch ( ex ) {
+                gp.error( ex );
+            }
         };
     
     } )( gridponent );
@@ -1521,6 +1546,51 @@ var gridponent = gridponent || {};
     })();
 
     /***************\
+         http        
+    \***************/
+    gp.Http = function () { };
+    
+    gp.Http.prototype = {
+        serialize: function (obj, props) {
+            // creates a query string from a simple object
+            var self = this;
+            props = props || Object.getOwnPropertyNames(obj);
+            var out = [];
+            props.forEach( function ( prop ) {
+                if ( obj[prop] == null ) {
+                    out.push( encodeURIComponent( prop ) + '=' );
+                }
+                else {
+                    out.push( encodeURIComponent( prop ) + '=' + encodeURIComponent( obj[prop] ) );
+                }
+            });
+            return out.join('&');
+        },
+        createXhr: function (type, url, callback, error) {
+            var xhr = new XMLHttpRequest();
+            xhr.open(type.toUpperCase(), url, true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.onload = function () {
+                callback(JSON.parse(xhr.responseText), xhr);
+            }
+            xhr.onerror = error;
+            return xhr;
+        },
+        get: function (url, callback, error) {
+            var xhr = this.createXhr('GET', url, callback, error);
+            xhr.send();
+        },
+        post: function ( url, data, callback, error ) {
+            // don't post back the data or the types
+            var props = Object.getOwnPropertyNames( data ).filter( function ( p ) { return /Data|Types/i.test(p) == false; } );
+            var s = this.serialize(data, props);
+            var xhr = this.createXhr('POST', url, callback, error);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.send(s);
+        }
+    };
+
+    /***************\
        Initializer
     \***************/
     gp.Initializer = function ( node ) {
@@ -1684,172 +1754,6 @@ var gridponent = gridponent || {};
     };
 
     /***************\
-       mock-http
-    \***************/
-    (function (gp) {
-        gp.Http = function () { };
-    
-        // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
-        var routes = {
-            read: /Read/,
-            update: /Update/,
-            create: /Create/,
-            destroy: /Destroy/
-        };
-    
-        gp.Http.prototype = {
-            serialize: function (obj, props) {
-                // creates a query string from a simple object
-                var self = this;
-                props = props || Object.getOwnPropertyNames(obj);
-                var out = [];
-                props.forEach(function (prop) {
-                    out.push(encodeURIComponent(prop) + '=' + encodeURIComponent(obj[prop]));
-                });
-                return out.join('&');
-            },
-            deserialize: function (queryString) {
-                var nameValue, split = queryString.split( '&' );
-                var obj = {};
-                if ( !queryString ) return obj;
-                split.forEach( function ( s ) {
-                    nameValue = s.split( '=' );
-                    var val = nameValue[1];
-                    if ( !val ) {
-                        obj[nameValue[0]] = null;
-                    }
-                    else if ( /true|false/i.test( val ) ) {
-                        obj[nameValue[0]] = ( /true/i.test( val ) );
-                    }
-                    else if ( parseFloat( val ).toString() === val ) {
-                        obj[nameValue[0]] = parseFloat( val );
-                    }
-                    else {
-                        obj[nameValue[0]] = val;
-                    }
-                } );
-                return obj;
-            },
-            get: function (url, callback, error) {
-                if (routes.read.test(url)) {
-                    var index = url.substring(url.indexOf('?'));
-                    if (index !== -1) {
-                        var queryString = url.substring(index + 1);
-                        var model = this.deserialize(queryString);
-                        this.post(url.substring(0, index), model, callback, error);
-                    }
-                    else {
-                        this.post(url, null, callback, error);
-                    }
-                }
-                else if (routes.create.test(url)) {
-                    var result = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
-                    callback(result);
-                }
-                else {
-                    throw 'Not found: ' + url;
-                }
-            },
-            post: function (url, model, callback, error) {
-                model = model || {};
-                if (routes.read.test(url)) {
-                    getData(model, callback);
-                }
-                else if (routes.update.test(url)) {
-                    callback({
-                        Data: model,
-                        ValidationErrors:[]
-                    });
-                }
-                else if (routes.destroy.test(url)) {
-                    var index = data.products.indexOf(model);
-                    callback(true);
-                }
-                else {
-                    throw '404 Not found: ' + url;
-                }
-            }
-        };
-    
-        var getData = function (model, callback) {
-            var count, d = data.products;
-            if (!gp.isNullOrEmpty(model.Search)) {
-                var props = Object.getOwnPropertyNames(d[0]);
-                var search = model.Search.toLowerCase();
-                d = d.filter(function (row) {
-                    for (var i = 0; i < props.length; i++) {
-                        if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
-                            return true;
-                        }
-                    }
-                    return false;
-                });
-            }
-            if (!gp.isNullOrEmpty(model.OrderBy)) {
-                if (model.Desc) {
-                    d.sort(function (row1, row2) {
-                        var a = row1[model.OrderBy];
-                        var b = row2[model.OrderBy];
-                        if (a === null) {
-                            if (b != null) {
-                                return 1;
-                            }
-                        }
-                        else if (b === null) {
-                            // we already know a isn't null
-                            return -1;
-                        }
-                        if (a > b) {
-                            return -1;
-                        }
-                        if (a < b) {
-                            return 1;
-                        }
-    
-                        return 0;
-                    });
-                }
-                else {
-                    d.sort(function (row1, row2) {
-                        var a = row1[model.OrderBy];
-                        var b = row2[model.OrderBy];
-                        if (a === null) {
-                            if (b != null) {
-                                return -1;
-                            }
-                        }
-                        else if (b === null) {
-                            // we already know a isn't null
-                            return 1;
-                        }
-                        if (a > b) {
-                            return 1;
-                        }
-                        if (a < b) {
-                            return -1;
-                        }
-    
-                        return 0;
-                    });
-                }
-            }
-            count = d.length;
-            if (model.Top !== -1) {
-                model.Data = d.slice(model.Skip).slice(0, model.Top);
-            }
-            else {
-                model.Data = d;
-            }
-            model.ValidationErrors = [];
-            setTimeout(function () {
-                callback(model);
-            });
-    
-        };
-    
-    })(gridponent);
-
-    /***************\
          model
     \***************/
     gp.Model = function ( config ) {
@@ -1890,7 +1794,7 @@ var gridponent = gridponent || {};
     
             this.dal.read( requestModel, function (arg) {
                 gp.raiseCustomEvent( self.config.node, gp.events.afterRead, requestModel );
-                callback(arg);
+                gp.tryCallback( callback, self.config.node, arg );
             } );
         },
     
@@ -1906,7 +1810,7 @@ var gridponent = gridponent || {};
                         self.config.data.Data.push(row);
                     }
                     gp.raiseCustomEvent( self.config.node, gp.events.afterCreate, row );
-                    callback( row );
+                    gp.tryCallback( callback, self.config.node, row );
                 } );
             }
             else {
@@ -1917,25 +1821,26 @@ var gridponent = gridponent || {};
                         self.config.data.Data.push(row);
                     }
                     gp.raiseCustomEvent( self.config.node, gp.events.afterCreate, row );
-                    callback( row );
-                });
+                    gp.tryCallback( callback, self.config.node, row );
+                } );
             }
         },
     
-        update: function (row, callback) {
+        update: function (updateModel, callback) {
             var self = this;
+            // config.Update can be a function or URL
             gp.raiseCustomEvent( this.config.node, gp.events.beforeUpdate );
             if ( typeof this.config.Update === 'function' ) {
-                this.config.Update( row, function (arg) {
+                this.config.Update( updateModel, function ( arg ) {
                     gp.raiseCustomEvent( self.config.node, gp.events.afterUpdate );
-                    callback(arg);
+                    gp.tryCallback( callback, self.config.node, arg );
                 } );
             }
             else {
                 var http = new gp.Http();
-                http.post( this.config.Update, row, function (arg) {
+                http.post( this.config.Update, updateModel, function ( arg ) {
                     gp.raiseCustomEvent( self.config.node, gp.events.afterUpdate );
-                    callback( arg );
+                    gp.tryCallback( callback, self.config.node, arg );
                 } );
             }
         },
@@ -1946,14 +1851,14 @@ var gridponent = gridponent || {};
             if ( typeof this.config.Destroy === 'function' ) {
                 this.config.Destroy( row, function ( arg ) {
                     gp.raiseCustomEvent( self.config.node, gp.events.afterDestroy );
-                    callback( arg );
+                    gp.tryCallback( callback, self.config.node, arg );
                 } );
             }
             else {
                 var http = new gp.Http();
                 http.post( this.config.Destroy, row, function ( arg ) {
                     gp.raiseCustomEvent( self.config.node, gp.events.afterDestroy );
-                    callback( arg );
+                    gp.tryCallback( callback, self.config.node, arg );
                 } );
             }
         }
@@ -1993,6 +1898,11 @@ var gridponent = gridponent || {};
                 this.node.className = ( this.node.className === '' ) ? name : this.node.className + ' ' + name;
             }
     
+            return this;
+        },
+    
+        html: function ( html ) {
+            if (gp.hasClass(html) && html !== '') this.node.innerHTML = html;
             return this;
         },
     
@@ -2056,7 +1966,6 @@ var gridponent = gridponent || {};
             dict[prop] = obj[prop];
         });
     };
-    
 
     /***************\
     server-side pager
@@ -2403,6 +2312,7 @@ var gridponent = gridponent || {};
     
         this.Row = row;
         this.ValidationErrors = validationErrors;
+        this.Original = gp.shallowCopy( row );
     
     };
 

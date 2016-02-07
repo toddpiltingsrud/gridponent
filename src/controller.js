@@ -186,42 +186,47 @@ gp.Controller.prototype = {
             var self = this;
 
             if ( !gp.hasValue( this.config.Create ) ) {
-                callback();
+                gp.tryCallback( callback, self.config.node );
                 return;
             }
 
             this.model.create(function (row) {
                 // create a row in create mode
                 self.config.Row = row;
-                gp.info( 'createRow: Columns:', self.config.Columns );
+
+                gp.info( 'createRow.Columns:', self.config.Columns );
+
                 var tbody = self.config.node.querySelector( 'div.table-body > table > tbody' );
                 var rowIndex = self.config.data.Data.indexOf( row );
-
+                gp.info( 'createRow.rowIndex:', rowIndex );
+                var editCellContent = gp.helpers['editCellContent'];
                 var builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', rowIndex ).addClass('create-mode');
 
+                // put the row in edit mode
+                // IE9 can't set innerHTML of tr, so iterate through each cell
+                // besides, that way we can just skip readonly cells
                 self.config.Columns.forEach( function ( col ) {
-                    builder.startElem( 'td' ).addClass( 'body-cell' ).endElem();
+                    var html = col.ReadOnly ? '' : editCellContent.call( self.config, col );
+                    builder.startElem( 'td' ).addClass( 'body-cell' ).html(html).endElem();
                 } );
 
                 var tr = builder.close();
 
-                gp.log( 'createRow: tr:', tr );
+                gp.info( 'createRow.tr:', tr );
 
                 gp.prependChild( tbody, tr );
 
-                self.editRow( row, tr );
-
                 tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
 
-                if ( typeof callback === 'function' ) {
-                    callback( row );
-                }
-            });
+                gp.info( 'createRow.tr:', tr );
+
+                gp.tryCallback( callback, self.config.node, row );
+            } );
         }
         catch (ex) {
             gp.error( ex );
 
-            callback();
+            gp.tryCallback( callback, self.config.node );
         }
     },
 
@@ -230,10 +235,10 @@ gp.Controller.prototype = {
             gp.raiseCustomEvent(tr, 'beforeEdit', {
                 model: row
             });
-            gp.info('editRow:tr:');
-            gp.info(tr);
 
             this.config.Row = new gp.ObjectProxy(row);
+
+            gp.info('editRow.tr:', tr);
 
             // put the row in edit mode
             // IE9 can't set innerHTML of tr, so iterate through each cell
@@ -258,29 +263,34 @@ gp.Controller.prototype = {
     },
 
     updateRow: function (row, tr, callback) {
+        // save the row and return it to read mode
+
         try {
-            // save the row and return it to read mode
             var monitor,
                 self = this,
+                updateModel = new gp.UpdateModel( row ),
                 tr = tr || gp.getTableRow(this.config.data.Data, row, this.config.node);
 
+            // if there is no Update configuration setting, we're done here
             if ( !gp.hasValue( this.config.Update ) ) {
-                if ( typeof callback === 'funcntion' ) callback();
+                gp.tryCallback( callback, self.config.node );
                 return;
             }
 
             gp.raiseCustomEvent(tr, 'beforeUpdate', {
-                model: row
+                model: updateModel
             });
 
-            gp.info( 'updateRow: row:', row );
+            gp.info( 'updateRow.row:', row );
 
-            this.model.update( row, function ( updateModel ) {
+            this.model.update( updateModel, function ( updateModel ) {
 
-                gp.info( 'updateRow: updateModel:', updateModel );
+                gp.info( 'updateRow.updateModel:', updateModel );
 
                 if ( updateModel.ValidationErrors && updateModel.ValidationErrors.length ) {
                     // TODO: handle validation errors
+
+
 
 
 
@@ -304,7 +314,7 @@ gp.Controller.prototype = {
                     model: updateModel.Row
                 } );
 
-                if ( typeof callback === 'function' ) callback( updateModel );
+                gp.tryCallback( callback, self.config.node, updateModel );
             } );
         }
         catch (ex) {
@@ -338,9 +348,7 @@ gp.Controller.prototype = {
     deleteRow: function (row, tr, callback) {
         try {
             if ( !gp.hasValue( this.config.Destroy ) ) {
-                if ( typeof callback === 'funcntion' ) {
-                    callback();
-                }
+                gp.tryCallback( callback, this.config.node );
                 return;
             }
 
@@ -349,9 +357,7 @@ gp.Controller.prototype = {
                 confirmed = confirm( 'Are you sure you want to delete this item?' );
 
             if ( !confirmed ) {
-                if ( typeof callback === 'funcntion' ) {
-                    callback();
-                }
+                gp.tryCallback( callback, this.config.node );
                 return;
             }
 
@@ -369,9 +375,7 @@ gp.Controller.prototype = {
                 gp.raiseCustomEvent( tr, 'afterDelete', {
                     model: row
                 } );
-                if ( typeof callback === 'funcntion' ) {
-                    callback();
-                }
+                gp.tryCallback( callback, self.config.node, response );
             } );
         }
         catch (ex) {
@@ -405,11 +409,11 @@ gp.Controller.prototype = {
 
     update: function (callback) {
         var self = this;
-        gp.info( 'update: data:', this.config.data );
+        gp.info( 'update.data:', this.config.data );
         this.model.read( this.config.data, function ( model ) {
             gp.shallowCopy( model, self.config.data );
             self.refresh( self.config );
-            if ( typeof callback === 'function' ) callback(self.config.data);
+            gp.tryCallback( callback, self.config.node, self.config.data );
         } );
     },
 

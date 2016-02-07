@@ -71,10 +71,7 @@
                 getData(model, callback);
             }
             else if (routes.update.test(url)) {
-                callback({
-                    Data: model,
-                    ValidationErrors:[]
-                });
+                callback(model);
             }
             else if (routes.destroy.test(url)) {
                 var index = data.products.indexOf(model);
