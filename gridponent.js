@@ -13,6 +13,11 @@ var gridponent = gridponent || {};
     
     gp.api.prototype = {
     
+        getData: function ( index ) {
+            if ( typeof index == 'number' ) return this.controller.config.data.Data[index];
+            return this.controller.config.data.Data;
+        },
+    
         search: function ( searchTerm ) {
             this.controller.search( searchTerm );
         },
@@ -31,7 +36,12 @@ var gridponent = gridponent || {};
             this.controller.createRow(callback);
         },
     
-        update: function ( arg ) { },
+        // This would have to be called after having retrieved the row from the table with getData().
+        // The controller will attempt to figure out which tr it is by first calling indexOf(row) on the data.
+        // this function is mainly for testing
+        update: function ( row, callback ) {
+            this.controller.updateRow( row, null, callback );
+        },
     
         destroy: function ( arg ) { },
     
@@ -365,32 +375,35 @@ var gridponent = gridponent || {};
         updateRow: function (row, tr, callback) {
             try {
                 // save the row and return it to read mode
-                var self = this;
-                var monitor;
-                var rowProxy = this.config.Row;
+                var monitor,
+                    self = this,
+                    tr = tr || gp.getTableRow(this.config.data.Data, row, this.config.node);
     
                 if ( !gp.hasValue( this.config.Update ) ) {
-                    if ( typeof callback === 'funcntion' ) {
-                        callback();
-                    }
+                    if ( typeof callback === 'funcntion' ) callback();
                     return;
                 }
     
                 gp.raiseCustomEvent(tr, 'beforeUpdate', {
                     model: row
                 });
-                gp.info('updateRow: row:');
-                gp.info( row );
     
-                this.model.update( row, function ( response ) {
-                    gp.info( 'updateRow: response:' );
-                    gp.info( response );
-                    if ( response.ValidationErrors && response.ValidationErrors.length ) {
+                gp.info( 'updateRow: row:', row );
+    
+                this.model.update( row, function ( updateModel ) {
+    
+                    gp.info( 'updateRow: updateModel:', updateModel );
+    
+                    if ( updateModel.ValidationErrors && updateModel.ValidationErrors.length ) {
                         // TODO: handle validation errors
+    
+    
     
                     }
                     else {
-                        gp.shallowCopy( response.Data, row );
+                        // copy the returned row back to the internal data array
+                        gp.shallowCopy( updateModel.Row, row );
+                        // refresh the UI
                         self.restoreCells( self.config, row, tr );
                         // dispose of the ChangeMonitor
                         monitor = tr['gp-change-monitor'];
@@ -401,9 +414,12 @@ var gridponent = gridponent || {};
                         // dispose of the ObjectProxy
                         delete self.config.Row;
                     }
+    
                     gp.raiseCustomEvent( tr, 'afterUpdate', {
-                        model: response.Data
+                        model: updateModel.Row
                     } );
+    
+                    if ( typeof callback === 'function' ) callback( updateModel );
                 } );
             }
             catch (ex) {
@@ -701,11 +717,12 @@ var gridponent = gridponent || {};
     \***************/
     ( function ( gp ) {
     
-        var rexp = {
+        gp.rexp = {
             splitPath: /[^\[\]\.\s]+|\[\d+\]/g,
             indexer: /\[\d+\]/,
             iso8601: /^[012][0-9]{3}-[01][0-9]-[0123][0-9]/,
-            quoted: /^['"].+['"]$/
+            quoted: /^['"].+['"]$/,
+            trueFalse: /true|false/i
         };
     
         // logging
@@ -728,7 +745,8 @@ var gridponent = gridponent || {};
                 attr = attrs[i];
                 name = gp.camelize( attr.name );
                 // convert "true", "false" and empty to boolean
-                config[name] = attr.value === "true" || attr.value === "false" || attr.value === '' ? ( attr.value === "true" || attr.value === '' ) : attr.value;
+                config[name] = gp.rexp.trueFalse.test( attr.value ) || attr.value === '' ?
+                    ( attr.value === "true" || attr.value === '' ) : attr.value;
             }
             gp.verbose( 'getConfig: config:', config );
             return config;
@@ -785,7 +803,7 @@ var gridponent = gridponent || {};
             if ( a instanceof Date ) {
                 return 'date';
             }
-            if ( typeof ( a ) === 'string' && rexp.iso8601.test( a ) ) {
+            if ( typeof ( a ) === 'string' && gp.rexp.iso8601.test( a ) ) {
                 return 'dateString';
             }
             if ( Array.isArray( a ) ) {
@@ -935,7 +953,7 @@ var gridponent = gridponent || {};
         gp.getObjectAtPath = function ( path, root ) {
             if ( !path ) return;
     
-            path = Array.isArray( path ) ? path : path.match( rexp.splitPath );
+            path = Array.isArray( path ) ? path : path.match( gp.rexp.splitPath );
     
             if ( path[0] === 'window' ) path = path.splice( 1 );
     
@@ -946,11 +964,11 @@ var gridponent = gridponent || {};
             for ( var i = 0; i < path.length; i++ ) {
                 // is this segment an array index?
                 segment = path[i];
-                if ( rexp.indexer.test( segment ) ) {
+                if ( gp.rexp.indexer.test( segment ) ) {
                     // convert to int
                     segment = parseInt( /\d+/.exec( segment ) );
                 }
-                else if ( rexp.quoted.test( segment ) ) {
+                else if ( gp.rexp.quoted.test( segment ) ) {
                     segment = segment.slice( 1, -1 );
                 }
     
@@ -1115,6 +1133,12 @@ var gridponent = gridponent || {};
             return data[index];
         };
     
+        gp.getTableRow = function ( data, row, node ) {
+            var index = data.indexOf( row );
+            if ( index == -1 ) return;
+            return node.querySelector( 'tr[data-index=' + index + ']' );
+        };
+    
         gp.raiseCustomEvent = function ( node, name, detail ) {
             var event = new CustomEvent( name, { bubbles: true, detail: detail, cancelable: true } );
             node.dispatchEvent( event );
@@ -1155,31 +1179,31 @@ var gridponent = gridponent || {};
         });
     
         extend('toolbarTemplate', function () {
-            var out = [];
+            var html = new gp.StringBuilder();
     
             if (this.ToolbarTemplate) {
                 // it's either a selector or a function name
                 template = gp.getObjectAtPath(this.ToolbarTemplate);
                 if (typeof (template) === 'function') {
-                    out.push(template(this));
+                    html.add(template(this));
                 }
                 else {
                     template = document.querySelector(this.ToolbarTemplate);
                     if (template) {
-                        out.push(template.innerHTML);
+                        html.add(template.innerHTML);
                     }
                 }
             }
     
-            return out.join('');
+            return html.toString();
         });
     
         extend('thead', function () {
             var self = this;
-            var out = [];
+            var html = new gp.StringBuilder();
             var sort, type, template;
-            out.push('<thead>');
-            out.push('<tr>');
+            html.add('<thead>');
+            html.add('<tr>');
             this.Columns.forEach(function (col) {
                 if (self.Sorting) {
                     // if sort isn't specified, use the field
@@ -1195,7 +1219,7 @@ var gridponent = gridponent || {};
                     }
                 }
                 type = gp.coalesce([col.Type, '']).toLowerCase();
-                out.push('<th class="header-cell ' + type + ' ' + sort + '">');
+                html.add('<th class="header-cell ' + type + ' ' + sort + '">');
     
                 gp.verbose('helpers.thead: col:');
                 gp.verbose(col);
@@ -1205,40 +1229,40 @@ var gridponent = gridponent || {};
                     gp.verbose('helpers.thead: col.HeaderTemplate:');
                     gp.verbose(col.HeaderTemplate);
                     if (typeof (col.HeaderTemplate) === 'function') {
-                        out.push(col.HeaderTemplate.call(self, col));
+                        html.add(col.HeaderTemplate.call(self, col));
                     }
                     else {
-                        out.push(gp.processColumnTemplate.call(this, col.HeaderTemplate, col));
+                        html.add(gp.processColumnTemplate.call(this, col.HeaderTemplate, col));
                     }
                 }
                 else if (gp.hasValue(sort)) {
-                    out.push('<label class="table-sort">');
-                    out.push('<input type="radio" name="OrderBy" value="' + sort + '" />');
-                    out.push(gp.coalesce([col.Header, col.Field, sort]));
-                    out.push('</label>');
+                    html.add('<label class="table-sort">')
+                    .add('<input type="radio" name="OrderBy" value="' + sort + '" />')
+                    .add(gp.coalesce([col.Header, col.Field, sort]))
+                    .add('</label>');
                 }
                 else {
-                    out.push(gp.coalesce([col.Header, col.Field, '&nbsp;']));
+                    html.add(gp.coalesce([col.Header, col.Field, '&nbsp;']));
                 }
-                out.push('</th>');
+                html.add('</th>');
             });
-            out.push('</tr>');
-            out.push('</thead>');
-            return out.join('');
+            html.add('</tr>')
+                .add('</thead>');
+            return html.toString();
         });
     
         extend('tableRows', function() {
             var self = this;
-            var out = [];
+            var html = new gp.StringBuilder();
             this.data.Data.forEach(function (row, index) {
                 self.Row = row;
-                out.push('<tr data-index="');
-                out.push(index);
-                out.push('">');
-                out.push(gp.templates['gridponent-cells'](self));
-                out.push('</tr>');
+                html.add('<tr data-index="')
+                .add(index)
+                .add('">')
+                .add(gp.templates['gridponent-cells'](self))
+                .add('</tr>');
             });
-            return out.join('');
+            return html.toString();
         });
     
         extend('rowIndex', function () {
@@ -1248,23 +1272,25 @@ var gridponent = gridponent || {};
         extend('bodyCell', function (col) {
             var type = ( col.Type || '' ).toLowerCase();
             gp.info( 'bodyCell: type:', type );
-            var out = [];
-            out.push('<td class="body-cell ' + type + '"');
+            var html = new gp.StringBuilder();
+            html.add('<td class="body-cell ' + type + '"');
             if (col.BodyStyle) {
-                out.push(' style="' + col.BodyStyle + '"');
+                html.add(' style="' + col.BodyStyle + '"');
             }
-            out.push('>');
-            out.push(gp.helpers['bodyCellContent'].call(this, col))
-            out.push('</td>');
-            return out.join('');
+            html.add('>')
+                .add(gp.helpers['bodyCellContent'].call(this, col))
+                .add('</td>');
+            return html.toString();
         });
     
         extend( 'bodyCellContent', function ( col ) {
-            var self = this;
-            var template, format, val = gp.getFormattedValue(this.Row, col, true);
-    
-            var type = (col.Type || '').toLowerCase();
-            var html = new gp.StringBuilder();
+            var self = this,
+                template,
+                format,
+                hasDeleteBtn = false,
+                val = gp.getFormattedValue( this.Row, col, true ),
+                type = (col.Type || '').toLowerCase(),
+                html = new gp.StringBuilder();
     
             // check for a template
             if (col.Template) {
@@ -1279,7 +1305,7 @@ var gridponent = gridponent || {};
                 html.add('<div class="btn-group" role="group">');
                 col.Commands.forEach(function (cmd, index) {
                     if (cmd == 'Edit' && gp.hasValue(self.Update )) {
-                        html.add('<button type="button" class="btn btn-primary btn-xs" value="')
+                        html.add('<button type="button" class="btn btn-default btn-xs" value="')
                             .add(cmd)
                             .add('">')
                             .add('<span class="glyphicon glyphicon-edit"></span>')
@@ -1287,22 +1313,26 @@ var gridponent = gridponent || {};
                             .add('</button>');
                     }
                     else if ( cmd == 'Delete' && gp.hasValue( self.Destroy ) ) {
-                        html.add('<button type="button" class="btn btn-danger btn-xs" value="')
-                            .add(cmd)
-                            .add('">')
-                            .add('<span class="glyphicon glyphicon-remove"></span>')
-                            .add(cmd)
-                            .add('</button>');
+                        // put the delete btn last
+                        hasDeleteBtn = true;
                     }
                     else {
-                        html.add( '<button type="button" class="btn btn-danger btn-xs" value="' )
+                        html.add( '<button type="button" class="btn btn-default btn-xs" value="' )
                             .add( cmd )
                             .add( '">' )
                             .add( '<span class="glyphicon glyphicon-cog"></span>' )
                             .add( cmd )
                             .add( '</button>' );
                     }
-                });
+                } );
+    
+                // put the delete btn last
+                if ( hasDeleteBtn ) {
+                    html.add( '<button type="button" class="btn btn-danger btn-xs" value="Delete">' )
+                        .add( '<span class="glyphicon glyphicon-remove"></span>Delete' )
+                        .add( '</button>' );
+                }
+    
                 html.add('</div>');
             }
             else if (gp.hasValue(val)) {
@@ -1325,41 +1355,41 @@ var gridponent = gridponent || {};
                 return gp.helpers.bodyCell.call(this, col);
             }
     
-            var out = [];
+            var html = new gp.StringBuilder();
             var type = col.Type;
             if (col.Commands) type = 'commands-cell';
     
-            out.push('<td class="body-cell ' + type + '"');
+            html.add('<td class="body-cell ' + type + '"');
             if (col.BodyStyle) {
-                out.push(' style="' + col.BodyStyle + '"');
+                html.add(' style="' + col.BodyStyle + '"');
             }
-            out.push('>');
-            out.push(gp.helpers['editCellContent'].call(this, col))
-            out.push('</td>');
-            return out.join('');
+            html.add('>')
+            .add(gp.helpers['editCellContent'].call(this, col))
+            .add('</td>');
+            return html.toString();
         });
     
         extend('editCellContent', function (col) {
-            var template, out = [];
+            var template, html = new gp.StringBuilder();
     
             // check for a template
             if (col.EditTemplate) {
                 if (typeof (col.EditTemplate) === 'function') {
-                    out.push(col.EditTemplate.call(this, this.Row, col));
+                    html.add(col.EditTemplate.call(this, this.Row, col));
                 }
                 else {
-                    out.push(gp.processRowTemplate.call(this, col.EditTemplate, this.Row, col));
+                    html.add(gp.processRowTemplate.call(this, col.EditTemplate, this.Row, col));
                 }
             }
             else if (col.Commands) {
-                out.push('<div class="btn-group" role="group">');
-                out.push('<button type="button" class="btn btn-primary btn-xs" value="Update">');
-                out.push('<span class="glyphicon glyphicon-save"></span>Save');
-                out.push('</button>');
-                out.push('<button type="button" class="btn btn-default btn-xs" value="Cancel">');
-                out.push('<span class="glyphicon glyphicon-remove"></span>Cancel');
-                out.push('</button>');
-                out.push('</div>');
+                html.add('<div class="btn-group" role="group">')
+                    .add('<button type="button" class="btn btn-primary btn-xs" value="Update">')
+                    .add('<span class="glyphicon glyphicon-save"></span>Save')
+                    .add('</button>')
+                    .add('<button type="button" class="btn btn-default btn-xs" value="Cancel">')
+                    .add('<span class="glyphicon glyphicon-remove"></span>Cancel')
+                    .add('</button>')
+                    .add('</div>');
             }
             else {
                 var val = this.Row[col.Field];
@@ -1367,43 +1397,43 @@ var gridponent = gridponent || {};
                 if (val === undefined) return '';
                 // render null as empty string
                 if (val === null) val = '';
-                out.push('<input class="form-control" name="' + col.Field + '" type="');
+                html.add('<input class="form-control" name="' + col.Field + '" type="');
                 switch (col.Type) {
                     case 'date':
                     case 'dateString':
                         // use the required format for the date input element
                         val = gp.getLocalISOString(val).substring(0, 10);
-                        out.push('date" value="' + gp.escapeHTML(val) + '" />');
+                        html.add('date" value="' + gp.escapeHTML(val) + '" />');
                         break;
                     case 'number':
-                        out.push('number" value="' + gp.escapeHTML(val) + '" />');
+                        html.add('number" value="' + gp.escapeHTML(val) + '" />');
                         break;
                     case 'boolean':
-                        out.push('checkbox" value="true"');
+                        html.add('checkbox" value="true"');
                         if (val) {
-                            out.push(' checked="checked"');
+                            html.add(' checked="checked"');
                         }
-                        out.push(' />');
+                        html.add(' />');
                         break;
                     default:
-                        out.push('text" value="' + gp.escapeHTML(val) + '" />');
+                        html.add('text" value="' + gp.escapeHTML(val) + '" />');
                         break;
                 };
             }
-            return out.join('');
+            return html.toString();
         });
     
         extend('footerCell', function (col) {
-            var out = [];
+            var html = new gp.StringBuilder();
             if (col.FooterTemplate) {
                 if (typeof (col.FooterTemplate) === 'function') {
-                    out.push(col.FooterTemplate.call(this, col));
+                    html.add(col.FooterTemplate.call(this, col));
                 }
                 else {
-                    out.push(gp.processColumnTemplate.call(this, col.FooterTemplate, col));
+                    html.add(gp.processColumnTemplate.call(this, col.FooterTemplate, col));
                 }
             }
-            return out.join('');
+            return html.toString();
         });
     
         extend('setPagerFlags', function () {
@@ -1415,77 +1445,77 @@ var gridponent = gridponent || {};
         });
     
         extend('sortStyle', function () {
-            var out = [];
+            var html = new gp.StringBuilder();
             if (gp.isNullOrEmpty(this.data.OrderBy) === false) {
-                out.push('#' + this.ID + ' thead th.header-cell.' + this.data.OrderBy + '> label:after');
-                out.push('{ content: ');
+                html.add('#' + this.ID + ' thead th.header-cell.' + this.data.OrderBy + '> label:after')
+                    .add('{ content: ');
                 if (this.data.Desc) {
-                    out.push('"\\e114"; }');
+                    html.add('"\\e114"; }');
                 }
                 else {
-                    out.push('"\\e113"; }');
+                    html.add('"\\e113"; }');
                 }
             }
-            return out.join('');
+            return html.toString();
         });
     
         extend('columnWidthStyle', function () {
             var self = this,
-                out = [],
+                html = new gp.StringBuilder(),
                 index = 0,
                 bodyCols = document.querySelectorAll('#' + this.ID + ' .table-body > table > tbody > tr:first-child > td');
     
             // even though the table might not exist yet, we still should render width styles because there might be fixed widths specified
             this.Columns.forEach(function (col) {
-                out.push('#' + self.ID + ' .table-header th.header-cell:nth-child(' + (index + 1) + '),');
-                out.push('#' + self.ID + ' .table-footer td.footer-cell:nth-child(' + (index + 1) + ')');
+                html.add('#' + self.ID + ' .table-header th.header-cell:nth-child(' + (index + 1) + '),')
+                    .add('#' + self.ID + ' .table-footer td.footer-cell:nth-child(' + (index + 1) + ')');
                 if (col.Width) {
                     // fixed width should include the body
-                    out.push(',');
-                    out.push('#' + self.ID + ' > .table-body > table > thead th:nth-child(' + (index + 1) + '),');
-                    out.push('#' + self.ID + ' > .table-body > table > tbody td:nth-child(' + (index + 1) + ')');
-                    out.push('{ width:');
-                    out.push(col.Width);
-                    if (isNaN(col.Width) == false) out.push('px');
+                    html.add(',')
+                        .add('#' + self.ID + ' > .table-body > table > thead th:nth-child(' + (index + 1) + '),')
+                        .add('#' + self.ID + ' > .table-body > table > tbody td:nth-child(' + (index + 1) + ')')
+                        .add('{ width:')
+                        .add(col.Width);
+                    if (isNaN(col.Width) == false) html.add('px');
                 }
                 else if (bodyCols.length && (self.FixedHeaders || self.FixedFooters)) {
                     // sync header and footer to body
                     width = bodyCols[index].offsetWidth;
-                    out.push('{ width:');
-                    out.push(bodyCols[index].offsetWidth);
-                    out.push('px');
+                    html.add('{ width:')
+                        .add(bodyCols[index].offsetWidth)
+                        .add('px');
                 }
-                out.push(';}');
+                html.add(';}');
                 index++;
             });
     
-            gp.verbose('columnWidthStyle: out:');
-            gp.verbose(out.join(''));
+            gp.verbose('columnWidthStyle: html:');
+            gp.verbose(html.toString());
     
-            return out.join('');
+            return html.toString();
         });
     
         extend('containerClasses', function () {
-            var out = [];
+            var html = new gp.StringBuilder();
             if (this.FixedHeaders) {
-                out.push(' fixed-headers');
+                html.add(' fixed-headers');
             }
             if (this.FixedFooters) {
-                out.push(' fixed-footers');
+                html.add(' fixed-footers');
             }
             if (this.Pager) {
-                out.push(' pager-' + this.Pager);
+                html.add(' pager-' + this.Pager);
             }
             if (this.Responsive) {
-                out.push(' responsive');
+                html.add(' responsive');
             }
             if (this.Search) {
-                out.push(' search-' + this.Search);
+                html.add(' search-' + this.Search);
             }
             if (this.Onrowselect) {
-                out.push(' selectable');
+                html.add(' selectable');
             }
-            return out.join('');
+            return html.toString();
         });
     
     })();
@@ -1544,20 +1574,13 @@ var gridponent = gridponent || {};
                 if ( gp.hasValue(config[option]) ) {
                     // see if this config option points to an object
                     // otherwise it must be a URL
-                    gp.info( 'getConfig: options: ' + option, config[option] );
-    
                     obj = gp.getObjectAtPath( config[option] );
     
-                    gp.info( 'getConfig: obj: ', obj );
-    
                     if ( gp.hasValue( obj ) ) config[option] = obj;
-    
-                    gp.info( 'getConfig: options: ' + option, config[option] );
-    
                 }
     
             } );
-            gp.info(config);
+            gp.info('getConfig.config:', config);
             return config;
         },
     
@@ -1843,6 +1866,7 @@ var gridponent = gridponent || {};
                 break;
             case 'object':
                 // Read is a RequestModel
+                this.config.data = config.Read;
                 this.dal = new gp.ClientPager( this.config );
                 break;
             case 'array':
@@ -1872,29 +1896,18 @@ var gridponent = gridponent || {};
     
         create: function (callback) {
             var self = this,
-                calledBack = false,
                 row;
     
             gp.raiseCustomEvent( this.config.node, gp.events.beforeCreate );
     
             if ( typeof this.config.Create === 'function' ) {
-                // provide for the possibility that the supplied function may either
-                // execute the callback or return the row directly
-                row = this.config.Create( function ( row ) {
-                    calledBack = true;
+                this.config.Create( function ( row ) {
                     if (self.config.data.Data && self.config.data.Data.push) {
                         self.config.data.Data.push(row);
                     }
                     gp.raiseCustomEvent( self.config.node, gp.events.afterCreate, row );
                     callback( row );
                 } );
-                if ( !calledBack ) {
-                    if ( self.config.data.Data && self.config.data.Data.push ) {
-                        self.config.data.Data.push( row );
-                    }
-                    gp.raiseCustomEvent( self.config.node, gp.events.afterCreate, row );
-                    callback( row );
-                }
             }
             else {
                 // ask the server for a new record
@@ -2205,6 +2218,10 @@ var gridponent = gridponent || {};
         }
     };
     
+    /***************\
+      FunctionPager
+    \***************/
+    
     gp.FunctionPager = function ( config ) {
         this.config = config;
     };
@@ -2212,7 +2229,9 @@ var gridponent = gridponent || {};
     gp.FunctionPager.prototype = {
         read: function ( model, callback, error ) {
             try {
-                this.config.Read( model, callback );
+                var result = this.config.Read( model, callback );
+    
+                if ( result != undefined ) callback( result );
             }
             catch (ex) {
                 if (typeof error === 'function') {
@@ -2374,6 +2393,16 @@ var gridponent = gridponent || {};
         toString: function ( ) {
             return this.out.join('');
         }
+    
+    };
+
+    /***************\
+       UpdateModel
+    \***************/
+    gp.UpdateModel = function ( row, validationErrors ) {
+    
+        this.Row = row;
+        this.ValidationErrors = validationErrors;
     
     };
 

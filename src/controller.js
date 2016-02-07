@@ -260,32 +260,35 @@ gp.Controller.prototype = {
     updateRow: function (row, tr, callback) {
         try {
             // save the row and return it to read mode
-            var self = this;
-            var monitor;
-            var rowProxy = this.config.Row;
+            var monitor,
+                self = this,
+                tr = tr || gp.getTableRow(this.config.data.Data, row, this.config.node);
 
             if ( !gp.hasValue( this.config.Update ) ) {
-                if ( typeof callback === 'funcntion' ) {
-                    callback();
-                }
+                if ( typeof callback === 'funcntion' ) callback();
                 return;
             }
 
             gp.raiseCustomEvent(tr, 'beforeUpdate', {
                 model: row
             });
-            gp.info('updateRow: row:');
-            gp.info( row );
 
-            this.model.update( row, function ( response ) {
-                gp.info( 'updateRow: response:' );
-                gp.info( response );
-                if ( response.ValidationErrors && response.ValidationErrors.length ) {
+            gp.info( 'updateRow: row:', row );
+
+            this.model.update( row, function ( updateModel ) {
+
+                gp.info( 'updateRow: updateModel:', updateModel );
+
+                if ( updateModel.ValidationErrors && updateModel.ValidationErrors.length ) {
                     // TODO: handle validation errors
+
+
 
                 }
                 else {
-                    gp.shallowCopy( response.Data, row );
+                    // copy the returned row back to the internal data array
+                    gp.shallowCopy( updateModel.Row, row );
+                    // refresh the UI
                     self.restoreCells( self.config, row, tr );
                     // dispose of the ChangeMonitor
                     monitor = tr['gp-change-monitor'];
@@ -296,9 +299,12 @@ gp.Controller.prototype = {
                     // dispose of the ObjectProxy
                     delete self.config.Row;
                 }
+
                 gp.raiseCustomEvent( tr, 'afterUpdate', {
-                    model: response.Data
+                    model: updateModel.Row
                 } );
+
+                if ( typeof callback === 'function' ) callback( updateModel );
             } );
         }
         catch (ex) {

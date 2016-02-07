@@ -3,11 +3,12 @@
 \***************/
 ( function ( gp ) {
 
-    var rexp = {
+    gp.rexp = {
         splitPath: /[^\[\]\.\s]+|\[\d+\]/g,
         indexer: /\[\d+\]/,
         iso8601: /^[012][0-9]{3}-[01][0-9]-[0123][0-9]/,
-        quoted: /^['"].+['"]$/
+        quoted: /^['"].+['"]$/,
+        trueFalse: /true|false/i
     };
 
     // logging
@@ -30,7 +31,8 @@
             attr = attrs[i];
             name = gp.camelize( attr.name );
             // convert "true", "false" and empty to boolean
-            config[name] = attr.value === "true" || attr.value === "false" || attr.value === '' ? ( attr.value === "true" || attr.value === '' ) : attr.value;
+            config[name] = gp.rexp.trueFalse.test( attr.value ) || attr.value === '' ?
+                ( attr.value === "true" || attr.value === '' ) : attr.value;
         }
         gp.verbose( 'getConfig: config:', config );
         return config;
@@ -87,7 +89,7 @@
         if ( a instanceof Date ) {
             return 'date';
         }
-        if ( typeof ( a ) === 'string' && rexp.iso8601.test( a ) ) {
+        if ( typeof ( a ) === 'string' && gp.rexp.iso8601.test( a ) ) {
             return 'dateString';
         }
         if ( Array.isArray( a ) ) {
@@ -237,7 +239,7 @@
     gp.getObjectAtPath = function ( path, root ) {
         if ( !path ) return;
 
-        path = Array.isArray( path ) ? path : path.match( rexp.splitPath );
+        path = Array.isArray( path ) ? path : path.match( gp.rexp.splitPath );
 
         if ( path[0] === 'window' ) path = path.splice( 1 );
 
@@ -248,11 +250,11 @@
         for ( var i = 0; i < path.length; i++ ) {
             // is this segment an array index?
             segment = path[i];
-            if ( rexp.indexer.test( segment ) ) {
+            if ( gp.rexp.indexer.test( segment ) ) {
                 // convert to int
                 segment = parseInt( /\d+/.exec( segment ) );
             }
-            else if ( rexp.quoted.test( segment ) ) {
+            else if ( gp.rexp.quoted.test( segment ) ) {
                 segment = segment.slice( 1, -1 );
             }
 
@@ -415,6 +417,12 @@
     gp.getRowModel = function ( data, tr ) {
         var index = parseInt( tr.attributes['data-index'].value );
         return data[index];
+    };
+
+    gp.getTableRow = function ( data, row, node ) {
+        var index = data.indexOf( row );
+        if ( index == -1 ) return;
+        return node.querySelector( 'tr[data-index=' + index + ']' );
     };
 
     gp.raiseCustomEvent = function ( node, name, detail ) {

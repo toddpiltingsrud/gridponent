@@ -52,20 +52,13 @@ gp.Initializer.prototype = {
             if ( gp.hasValue(config[option]) ) {
                 // see if this config option points to an object
                 // otherwise it must be a URL
-                gp.info( 'getConfig: options: ' + option, config[option] );
-
                 obj = gp.getObjectAtPath( config[option] );
 
-                gp.info( 'getConfig: obj: ', obj );
-
                 if ( gp.hasValue( obj ) ) config[option] = obj;
-
-                gp.info( 'getConfig: options: ' + option, config[option] );
-
             }
 
         } );
-        gp.info(config);
+        gp.info('getConfig.config:', config);
         return config;
     },
 

@@ -8,6 +8,11 @@ gp.api = function ( controller ) {
 
 gp.api.prototype = {
 
+    getData: function ( index ) {
+        if ( typeof index == 'number' ) return this.controller.config.data.Data[index];
+        return this.controller.config.data.Data;
+    },
+
     search: function ( searchTerm ) {
         this.controller.search( searchTerm );
     },
@@ -26,7 +31,12 @@ gp.api.prototype = {
         this.controller.createRow(callback);
     },
 
-    update: function ( arg ) { },
+    // This would have to be called after having retrieved the row from the table with getData().
+    // The controller will attempt to figure out which tr it is by first calling indexOf(row) on the data.
+    // this function is mainly for testing
+    update: function ( row, callback ) {
+        this.controller.updateRow( row, null, callback );
+    },
 
     destroy: function ( arg ) { },
 

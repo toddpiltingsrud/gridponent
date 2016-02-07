@@ -18,31 +18,31 @@
     });
 
     extend('toolbarTemplate', function () {
-        var out = [];
+        var html = new gp.StringBuilder();
 
         if (this.ToolbarTemplate) {
             // it's either a selector or a function name
             template = gp.getObjectAtPath(this.ToolbarTemplate);
             if (typeof (template) === 'function') {
-                out.push(template(this));
+                html.add(template(this));
             }
             else {
                 template = document.querySelector(this.ToolbarTemplate);
                 if (template) {
-                    out.push(template.innerHTML);
+                    html.add(template.innerHTML);
                 }
             }
         }
 
-        return out.join('');
+        return html.toString();
     });
 
     extend('thead', function () {
         var self = this;
-        var out = [];
+        var html = new gp.StringBuilder();
         var sort, type, template;
-        out.push('<thead>');
-        out.push('<tr>');
+        html.add('<thead>');
+        html.add('<tr>');
         this.Columns.forEach(function (col) {
             if (self.Sorting) {
                 // if sort isn't specified, use the field
@@ -58,7 +58,7 @@
                 }
             }
             type = gp.coalesce([col.Type, '']).toLowerCase();
-            out.push('<th class="header-cell ' + type + ' ' + sort + '">');
+            html.add('<th class="header-cell ' + type + ' ' + sort + '">');
 
             gp.verbose('helpers.thead: col:');
             gp.verbose(col);
@@ -68,40 +68,40 @@
                 gp.verbose('helpers.thead: col.HeaderTemplate:');
                 gp.verbose(col.HeaderTemplate);
                 if (typeof (col.HeaderTemplate) === 'function') {
-                    out.push(col.HeaderTemplate.call(self, col));
+                    html.add(col.HeaderTemplate.call(self, col));
                 }
                 else {
-                    out.push(gp.processColumnTemplate.call(this, col.HeaderTemplate, col));
+                    html.add(gp.processColumnTemplate.call(this, col.HeaderTemplate, col));
                 }
             }
             else if (gp.hasValue(sort)) {
-                out.push('<label class="table-sort">');
-                out.push('<input type="radio" name="OrderBy" value="' + sort + '" />');
-                out.push(gp.coalesce([col.Header, col.Field, sort]));
-                out.push('</label>');
+                html.add('<label class="table-sort">')
+                .add('<input type="radio" name="OrderBy" value="' + sort + '" />')
+                .add(gp.coalesce([col.Header, col.Field, sort]))
+                .add('</label>');
             }
             else {
-                out.push(gp.coalesce([col.Header, col.Field, '&nbsp;']));
+                html.add(gp.coalesce([col.Header, col.Field, '&nbsp;']));
             }
-            out.push('</th>');
+            html.add('</th>');
         });
-        out.push('</tr>');
-        out.push('</thead>');
-        return out.join('');
+        html.add('</tr>')
+            .add('</thead>');
+        return html.toString();
     });
 
     extend('tableRows', function() {
         var self = this;
-        var out = [];
+        var html = new gp.StringBuilder();
         this.data.Data.forEach(function (row, index) {
             self.Row = row;
-            out.push('<tr data-index="');
-            out.push(index);
-            out.push('">');
-            out.push(gp.templates['gridponent-cells'](self));
-            out.push('</tr>');
+            html.add('<tr data-index="')
+            .add(index)
+            .add('">')
+            .add(gp.templates['gridponent-cells'](self))
+            .add('</tr>');
         });
-        return out.join('');
+        return html.toString();
     });
 
     extend('rowIndex', function () {
@@ -111,23 +111,25 @@
     extend('bodyCell', function (col) {
         var type = ( col.Type || '' ).toLowerCase();
         gp.info( 'bodyCell: type:', type );
-        var out = [];
-        out.push('<td class="body-cell ' + type + '"');
+        var html = new gp.StringBuilder();
+        html.add('<td class="body-cell ' + type + '"');
         if (col.BodyStyle) {
-            out.push(' style="' + col.BodyStyle + '"');
+            html.add(' style="' + col.BodyStyle + '"');
         }
-        out.push('>');
-        out.push(gp.helpers['bodyCellContent'].call(this, col))
-        out.push('</td>');
-        return out.join('');
+        html.add('>')
+            .add(gp.helpers['bodyCellContent'].call(this, col))
+            .add('</td>');
+        return html.toString();
     });
 
     extend( 'bodyCellContent', function ( col ) {
-        var self = this;
-        var template, format, val = gp.getFormattedValue(this.Row, col, true);
-
-        var type = (col.Type || '').toLowerCase();
-        var html = new gp.StringBuilder();
+        var self = this,
+            template,
+            format,
+            hasDeleteBtn = false,
+            val = gp.getFormattedValue( this.Row, col, true ),
+            type = (col.Type || '').toLowerCase(),
+            html = new gp.StringBuilder();
 
         // check for a template
         if (col.Template) {
@@ -142,7 +144,7 @@
             html.add('<div class="btn-group" role="group">');
             col.Commands.forEach(function (cmd, index) {
                 if (cmd == 'Edit' && gp.hasValue(self.Update )) {
-                    html.add('<button type="button" class="btn btn-primary btn-xs" value="')
+                    html.add('<button type="button" class="btn btn-default btn-xs" value="')
                         .add(cmd)
                         .add('">')
                         .add('<span class="glyphicon glyphicon-edit"></span>')
@@ -150,22 +152,26 @@
                         .add('</button>');
                 }
                 else if ( cmd == 'Delete' && gp.hasValue( self.Destroy ) ) {
-                    html.add('<button type="button" class="btn btn-danger btn-xs" value="')
-                        .add(cmd)
-                        .add('">')
-                        .add('<span class="glyphicon glyphicon-remove"></span>')
-                        .add(cmd)
-                        .add('</button>');
+                    // put the delete btn last
+                    hasDeleteBtn = true;
                 }
                 else {
-                    html.add( '<button type="button" class="btn btn-danger btn-xs" value="' )
+                    html.add( '<button type="button" class="btn btn-default btn-xs" value="' )
                         .add( cmd )
                         .add( '">' )
                         .add( '<span class="glyphicon glyphicon-cog"></span>' )
                         .add( cmd )
                         .add( '</button>' );
                 }
-            });
+            } );
+
+            // put the delete btn last
+            if ( hasDeleteBtn ) {
+                html.add( '<button type="button" class="btn btn-danger btn-xs" value="Delete">' )
+                    .add( '<span class="glyphicon glyphicon-remove"></span>Delete' )
+                    .add( '</button>' );
+            }
+
             html.add('</div>');
         }
         else if (gp.hasValue(val)) {
@@ -188,41 +194,41 @@
             return gp.helpers.bodyCell.call(this, col);
         }
 
-        var out = [];
+        var html = new gp.StringBuilder();
         var type = col.Type;
         if (col.Commands) type = 'commands-cell';
 
-        out.push('<td class="body-cell ' + type + '"');
+        html.add('<td class="body-cell ' + type + '"');
         if (col.BodyStyle) {
-            out.push(' style="' + col.BodyStyle + '"');
+            html.add(' style="' + col.BodyStyle + '"');
         }
-        out.push('>');
-        out.push(gp.helpers['editCellContent'].call(this, col))
-        out.push('</td>');
-        return out.join('');
+        html.add('>')
+        .add(gp.helpers['editCellContent'].call(this, col))
+        .add('</td>');
+        return html.toString();
     });
 
     extend('editCellContent', function (col) {
-        var template, out = [];
+        var template, html = new gp.StringBuilder();
 
         // check for a template
         if (col.EditTemplate) {
             if (typeof (col.EditTemplate) === 'function') {
-                out.push(col.EditTemplate.call(this, this.Row, col));
+                html.add(col.EditTemplate.call(this, this.Row, col));
             }
             else {
-                out.push(gp.processRowTemplate.call(this, col.EditTemplate, this.Row, col));
+                html.add(gp.processRowTemplate.call(this, col.EditTemplate, this.Row, col));
             }
         }
         else if (col.Commands) {
-            out.push('<div class="btn-group" role="group">');
-            out.push('<button type="button" class="btn btn-primary btn-xs" value="Update">');
-            out.push('<span class="glyphicon glyphicon-save"></span>Save');
-            out.push('</button>');
-            out.push('<button type="button" class="btn btn-default btn-xs" value="Cancel">');
-            out.push('<span class="glyphicon glyphicon-remove"></span>Cancel');
-            out.push('</button>');
-            out.push('</div>');
+            html.add('<div class="btn-group" role="group">')
+                .add('<button type="button" class="btn btn-primary btn-xs" value="Update">')
+                .add('<span class="glyphicon glyphicon-save"></span>Save')
+                .add('</button>')
+                .add('<button type="button" class="btn btn-default btn-xs" value="Cancel">')
+                .add('<span class="glyphicon glyphicon-remove"></span>Cancel')
+                .add('</button>')
+                .add('</div>');
         }
         else {
             var val = this.Row[col.Field];
@@ -230,43 +236,43 @@
             if (val === undefined) return '';
             // render null as empty string
             if (val === null) val = '';
-            out.push('<input class="form-control" name="' + col.Field + '" type="');
+            html.add('<input class="form-control" name="' + col.Field + '" type="');
             switch (col.Type) {
                 case 'date':
                 case 'dateString':
                     // use the required format for the date input element
                     val = gp.getLocalISOString(val).substring(0, 10);
-                    out.push('date" value="' + gp.escapeHTML(val) + '" />');
+                    html.add('date" value="' + gp.escapeHTML(val) + '" />');
                     break;
                 case 'number':
-                    out.push('number" value="' + gp.escapeHTML(val) + '" />');
+                    html.add('number" value="' + gp.escapeHTML(val) + '" />');
                     break;
                 case 'boolean':
-                    out.push('checkbox" value="true"');
+                    html.add('checkbox" value="true"');
                     if (val) {
-                        out.push(' checked="checked"');
+                        html.add(' checked="checked"');
                     }
-                    out.push(' />');
+                    html.add(' />');
                     break;
                 default:
-                    out.push('text" value="' + gp.escapeHTML(val) + '" />');
+                    html.add('text" value="' + gp.escapeHTML(val) + '" />');
                     break;
             };
         }
-        return out.join('');
+        return html.toString();
     });
 
     extend('footerCell', function (col) {
-        var out = [];
+        var html = new gp.StringBuilder();
         if (col.FooterTemplate) {
             if (typeof (col.FooterTemplate) === 'function') {
-                out.push(col.FooterTemplate.call(this, col));
+                html.add(col.FooterTemplate.call(this, col));
             }
             else {
-                out.push(gp.processColumnTemplate.call(this, col.FooterTemplate, col));
+                html.add(gp.processColumnTemplate.call(this, col.FooterTemplate, col));
             }
         }
-        return out.join('');
+        return html.toString();
     });
 
     extend('setPagerFlags', function () {
@@ -278,77 +284,77 @@
     });
 
     extend('sortStyle', function () {
-        var out = [];
+        var html = new gp.StringBuilder();
         if (gp.isNullOrEmpty(this.data.OrderBy) === false) {
-            out.push('#' + this.ID + ' thead th.header-cell.' + this.data.OrderBy + '> label:after');
-            out.push('{ content: ');
+            html.add('#' + this.ID + ' thead th.header-cell.' + this.data.OrderBy + '> label:after')
+                .add('{ content: ');
             if (this.data.Desc) {
-                out.push('"\\e114"; }');
+                html.add('"\\e114"; }');
             }
             else {
-                out.push('"\\e113"; }');
+                html.add('"\\e113"; }');
             }
         }
-        return out.join('');
+        return html.toString();
     });
 
     extend('columnWidthStyle', function () {
         var self = this,
-            out = [],
+            html = new gp.StringBuilder(),
             index = 0,
             bodyCols = document.querySelectorAll('#' + this.ID + ' .table-body > table > tbody > tr:first-child > td');
 
         // even though the table might not exist yet, we still should render width styles because there might be fixed widths specified
         this.Columns.forEach(function (col) {
-            out.push('#' + self.ID + ' .table-header th.header-cell:nth-child(' + (index + 1) + '),');
-            out.push('#' + self.ID + ' .table-footer td.footer-cell:nth-child(' + (index + 1) + ')');
+            html.add('#' + self.ID + ' .table-header th.header-cell:nth-child(' + (index + 1) + '),')
+                .add('#' + self.ID + ' .table-footer td.footer-cell:nth-child(' + (index + 1) + ')');
             if (col.Width) {
                 // fixed width should include the body
-                out.push(',');
-                out.push('#' + self.ID + ' > .table-body > table > thead th:nth-child(' + (index + 1) + '),');
-                out.push('#' + self.ID + ' > .table-body > table > tbody td:nth-child(' + (index + 1) + ')');
-                out.push('{ width:');
-                out.push(col.Width);
-                if (isNaN(col.Width) == false) out.push('px');
+                html.add(',')
+                    .add('#' + self.ID + ' > .table-body > table > thead th:nth-child(' + (index + 1) + '),')
+                    .add('#' + self.ID + ' > .table-body > table > tbody td:nth-child(' + (index + 1) + ')')
+                    .add('{ width:')
+                    .add(col.Width);
+                if (isNaN(col.Width) == false) html.add('px');
             }
             else if (bodyCols.length && (self.FixedHeaders || self.FixedFooters)) {
                 // sync header and footer to body
                 width = bodyCols[index].offsetWidth;
-                out.push('{ width:');
-                out.push(bodyCols[index].offsetWidth);
-                out.push('px');
+                html.add('{ width:')
+                    .add(bodyCols[index].offsetWidth)
+                    .add('px');
             }
-            out.push(';}');
+            html.add(';}');
             index++;
         });
 
-        gp.verbose('columnWidthStyle: out:');
-        gp.verbose(out.join(''));
+        gp.verbose('columnWidthStyle: html:');
+        gp.verbose(html.toString());
 
-        return out.join('');
+        return html.toString();
     });
 
     extend('containerClasses', function () {
-        var out = [];
+        var html = new gp.StringBuilder();
         if (this.FixedHeaders) {
-            out.push(' fixed-headers');
+            html.add(' fixed-headers');
         }
         if (this.FixedFooters) {
-            out.push(' fixed-footers');
+            html.add(' fixed-footers');
         }
         if (this.Pager) {
-            out.push(' pager-' + this.Pager);
+            html.add(' pager-' + this.Pager);
         }
         if (this.Responsive) {
-            out.push(' responsive');
+            html.add(' responsive');
         }
         if (this.Search) {
-            out.push(' search-' + this.Search);
+            html.add(' search-' + this.Search);
         }
         if (this.Onrowselect) {
-            out.push(' selectable');
+            html.add(' selectable');
         }
-        return out.join('');
+        return html.toString();
     });
 
 })();

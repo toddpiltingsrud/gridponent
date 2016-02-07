@@ -1,6 +1,29 @@
-﻿Create a way to intercept onrowselect so it doesn't set window.location.
+﻿Onrowselect should test for a JS object. If it doesn't find one assume it's a url.
+Instead of setting window.location, create a hidden anchor tag inside the component and click it.
+That way it could be intercepted by event handlers.
 
-Create, Update, and Destroy should be resolved in the same way as Read. Functions should be supported.
+Create a list of supported config options for gp.getAttributes.
+
+Change config.data to config.PageModel
+
+Always but the delete button last.
+
+Handle validation errors.
+
+Create a filter API:
+
+node.api.filter({
+	ID: [2,3,4],
+	Name: ['Name1','Name2','Name3']
+});
+
+The model would apply it thusly:
+
+select * 
+from Products
+where ID in (2,3,4)
+and Name in ('Name1','Name2','Name3')
+
 
 Render the table columns and container first. Then read. Then render the table body.
 

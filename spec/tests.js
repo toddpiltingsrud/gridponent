@@ -1,8 +1,8 @@
 var div = null;
 
-$(function () {
-    div = $('<div id="div1" style="display:none"></div>').appendTo('body');
-});
+$( function () {
+    div = $( '<div id="div1" style="display:none"></div>' ).appendTo( 'body' );
+} );
 
 var gridponent = gridponent || {};
 
@@ -69,7 +69,7 @@ var getTableConfig = function ( options ) {
     if ( options.create ) out.push( '       create="' + options.create + '"' );
     if ( options.update ) out.push( '       update="' + options.update + '"' );
     if ( options.destroy ) out.push( '      destroy="' + options.destroy + '"' );
-    out.push( '             pager = "top-right"' );
+    out.push( '             pager="top-right"' );
     out.push( '             search="top-left">' );
     out.push( '    <gp-column header-template="fns.checkbox" template="fns.checkbox" footer-template="fns.checkbox"></gp-column>' );
     out.push( '    <gp-column header="ID" sort="Name" template="fns.getName" edit-template="fns.dropdown"></gp-column>' );
@@ -139,10 +139,8 @@ var productsTable = function () {
     return config;
 };
 
-QUnit.test( "api.create 1", function ( assert ) {
+QUnit.test( 'api.create 1', function ( assert ) {
     var config = getTableConfig();
-
-    $( '#table .box' ).empty().append( config.node );
 
     var cellCount1 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
 
@@ -153,33 +151,13 @@ QUnit.test( "api.create 1", function ( assert ) {
         assert.ok( gp.hasValue( row ), 'api should return a row' );
         assert.strictEqual( cellCount1, cellCount2, 'should create the same number of cells' );
         console.log( row );
+        $( '#table .box' ).empty();
+        config.node.api.dispose();
         done();
     } );
 } );
 
-QUnit.test( "api.create 2", function ( assert ) {
-
-    // first try it with a function that returns a row directly
-
-    createFn = function () {
-        return { "ProductID": 0, "Name": "test", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": null, "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0.0000, "ListPrice": 0.0000, "Size": null, "SizeUnitMeasureCode": null, "WeightUnitMeasureCode": null, "Weight": null, "DaysToManufacture": 0, "ProductLine": null, "Class": null, "Style": null, "ProductSubcategoryID": null, "ProductModelID": null, "SellStartDate": new Date(), "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "694215b7-70dd-4c0d-acb1-d734ba44c0c8", "ModifiedDate": null, "Markup": "" };
-    };
-
-    var options = gp.shallowCopy( configOptions );
-    options.create = 'createFn';
-
-    var config = getTableConfig(options);
-
-    $( '#table .box' ).empty().append( config.node );
-
-    var done = assert.async();
-
-    config.node.api.create( function ( row ) {
-        assert.strictEqual( row.Name, "test", 'create should support functions that return a row' );
-        done();
-    } );
-
-    // now do it again with a callback
+QUnit.test( 'api.create 2', function ( assert ) {
 
     createFn = function ( callback ) {
         callback(
@@ -187,15 +165,90 @@ QUnit.test( "api.create 2", function ( assert ) {
         );
     };
 
-    var done2 = assert.async();
+    var options = gp.shallowCopy( configOptions );
+    options.create = 'createFn';
+
+    var config = getTableConfig( options );
+
+    var done = assert.async();
 
     config.node.api.create( function ( row ) {
-        assert.strictEqual( row.Name, "test", 'create should support functions that use a callback' );
-        done2();
+        console.log( row );
+        assert.strictEqual( row.Name, 'test', 'create should support functions that return a row' );
+        config.node.api.dispose();
+        done();
+    } );
+
+    // now try it with a null create setting
+    options.create = null;
+
+    config = getTableConfig( options );
+
+    var done3 = assert.async();
+
+    config.node.api.create( function ( row ) {
+        assert.ok( row == undefined, 'empty create setting should execute the callback with no arguments' );
+        config.node.api.dispose();
+        done3();
     } );
 } );
 
-QUnit.test( "api.search", function ( assert ) {
+//QUnit.test( 'api.update', function ( assert ) {
+
+//    // this would be called instead of posting the row to a URL
+//    updateFn = function ( updateModel, callback ) {
+//        // simulate some validation errors
+//        updateModel.ValidationErrors = [];
+//        callback( updateModel );
+//    };
+
+//    var options = gp.shallowCopy( configOptions );
+
+//    options.update = 'updateFn';
+
+//    var config = getTableConfig( options );
+
+//    var done1 = assert.async();
+
+//    var row = config.node.api.getData( 0 );
+
+//    row.Name = 'test';
+
+//    config.node.api.update( row, function ( row ) {
+//        assert.strictEqual( row.Name, 'test', 'create should support functions that return a row' );
+//        config.node.api.dispose();
+//        done1();
+//    } );
+
+//    // now try it with a URL
+//    options.update = '/Products/Update';
+
+//    config = getTableConfig( options );
+
+//    var done2 = assert.async();
+
+//    config.node.api.create( function ( row ) {
+//        assert.strictEqual( row.Name, 'test', 'create should support functions that use a callback' );
+//        config.node.api.dispose();
+//        done2();
+//    } );
+
+//    // now try it with a null update setting
+//    options.update = null;
+
+//    config = getTableConfig( options );
+
+//    var done3 = assert.async();
+
+//    config.node.api.create( function ( row ) {
+//        assert.ok( row == undefined, 'empty create setting should execute the callback with no arguments' );
+//        config.node.api.dispose();
+//        done3();
+//    } );
+
+//} );
+
+QUnit.test( 'api.search', function ( assert ) {
     var config = getTableConfig();
 
     //$( '#table .box' ).append( config.node );
@@ -208,7 +261,7 @@ QUnit.test( "api.search", function ( assert ) {
     assert.strictEqual( rows.length, 3, 'Should yield 3 rows' );
 } );
 
-QUnit.test( "api.sort", function ( assert ) {
+QUnit.test( 'api.sort', function ( assert ) {
     var config = getTableConfig();
 
     //$( '#table .box' ).append( config.node );
@@ -236,12 +289,12 @@ QUnit.test( "api.sort", function ( assert ) {
     assert.strictEqual( content1, content2, 'Sorting again should change it back' );
 } );
 
-QUnit.test( "api.page", function ( assert ) {
+QUnit.test( 'api.page', function ( assert ) {
 
     var options = gp.shallowCopy( configOptions );
     options.paging = true;
 
-    var config = getTableConfig(options);
+    var config = getTableConfig( options );
 
     var done = assert.async();
 
@@ -254,7 +307,7 @@ QUnit.test( "api.page", function ( assert ) {
 
 if ( document.registerElement ) {
 
-    QUnit.test( "dispose", function ( assert ) {
+    QUnit.test( 'dispose', function ( assert ) {
         var config = getTableConfig();
 
         $( '#table .box' ).empty().append( config.node );
@@ -275,7 +328,7 @@ if ( document.registerElement ) {
 }
 
 
-QUnit.test( "ChangeMonitor.beforeSync", function ( assert ) {
+QUnit.test( 'ChangeMonitor.beforeSync', function ( assert ) {
     var config = getTableConfig();
 
     $( '#table .box' ).empty().append( config.node );
@@ -301,7 +354,7 @@ QUnit.test( "ChangeMonitor.beforeSync", function ( assert ) {
 
 } );
 
-QUnit.test( "custom command", function ( assert ) {
+QUnit.test( 'custom command', function ( assert ) {
 
     var options = gp.shallowCopy( configOptions );
 
@@ -330,7 +383,7 @@ QUnit.test( "custom command", function ( assert ) {
 
 } );
 
-QUnit.test( "row selection", function ( assert ) {
+QUnit.test( 'row selection', function ( assert ) {
 
     var done = assert.async();
 
@@ -353,77 +406,77 @@ QUnit.test( "row selection", function ( assert ) {
 
 } );
 
-QUnit.test("gp.getAttributes", function (assert) {
+QUnit.test( 'gp.getAttributes', function ( assert ) {
 
-    var elem = $('<tp-custom-element bool="true" number="1" string="my string" novalue></tp-custom-element>');
+    var elem = $( '<tp-custom-element bool="true" number="1" string="my string" novalue></tp-custom-element>' );
 
-    var config = gp.getAttributes(elem[0]);
+    var config = gp.getAttributes( elem[0] );
 
-    assert.equal(config.Bool, true, "should resolve bools");
+    assert.equal( config.Bool, true, "should resolve bools" );
 
-    assert.equal(config.Number, "1", "should not resolve numbers");
+    assert.equal( config.Number, '1', 'should not resolve numbers' );
 
-    assert.equal(config.String, "my string", "should resolve strings");
+    assert.equal( config.String, 'my string', 'should resolve strings' );
 
-    assert.equal(config.Novalue, true, "empty values should be resolve to true");
-});
+    assert.equal( config.Novalue, true, 'empty values should be resolve to true' );
+} );
 
-QUnit.test("gp.coalesce", function (assert) {
+QUnit.test( 'gp.coalesce', function ( assert ) {
 
-    assert.equal(gp.coalesce([null, undefined]), undefined);
+    assert.equal( gp.coalesce( [null, undefined] ), undefined );
 
-    assert.equal(gp.coalesce([null, undefined, false]), false);
+    assert.equal( gp.coalesce( [null, undefined, false] ), false );
 
-    assert.equal(gp.coalesce([null, undefined, '']), '');
+    assert.equal( gp.coalesce( [null, undefined, ''] ), '' );
 
-    assert.equal(gp.coalesce([null, '', undefined]), '');
+    assert.equal( gp.coalesce( [null, '', undefined] ), '' );
 
-    assert.equal(gp.coalesce([0, '', undefined]), 0);
+    assert.equal( gp.coalesce( [0, '', undefined] ), 0 );
 
-    assert.equal(gp.coalesce(null), null);
+    assert.equal( gp.coalesce( null ), null );
 
     var emptyArray = [];
 
-    assert.equal(gp.coalesce(emptyArray), emptyArray);
-});
+    assert.equal( gp.coalesce( emptyArray ), emptyArray );
+} );
 
-QUnit.test("CustomEvent", function (assert) {
+QUnit.test( 'CustomEvent', function ( assert ) {
 
     var done = assert.async();
 
-    document.addEventListener('myCustomEvent', function (evt) {
-        assert.ok(evt.detail != null);
+    document.addEventListener( 'myCustomEvent', function ( evt ) {
+        assert.ok( evt.detail != null );
         done();
-    });
+    } );
 
-    var myCustomEvent = new CustomEvent('myCustomEvent', { detail: 'test', bubbles: true });
+    var myCustomEvent = new CustomEvent( 'myCustomEvent', { detail: 'test', bubbles: true } );
 
-    div[0].dispatchEvent(myCustomEvent);
+    div[0].dispatchEvent( myCustomEvent );
 
-});
+} );
 
-QUnit.test("gp.getType", function (assert) {
-    var notDefined = gp.getType(notDefined);
-    assert.equal(gp.getType(true), 'boolean');
-    assert.equal(gp.getType(null), null);
-    assert.equal(gp.getType(new Date()), 'date');
-    assert.equal(gp.getType('2015-11-24'), 'dateString');
-    assert.equal(gp.getType('2015-31-24'), 'string');
-    assert.equal(notDefined, undefined);
-    assert.equal(gp.getType(3.0), 'number');
-    assert.equal(gp.getType({}), 'object');
-    assert.equal(gp.getType([]), 'array');
-});
+QUnit.test( 'gp.getType', function ( assert ) {
+    var notDefined = gp.getType( notDefined );
+    assert.equal( gp.getType( true ), 'boolean' );
+    assert.equal( gp.getType( null ), null );
+    assert.equal( gp.getType( new Date() ), 'date' );
+    assert.equal( gp.getType( '2015-11-24' ), 'dateString' );
+    assert.equal( gp.getType( '2015-31-24' ), 'string' );
+    assert.equal( notDefined, undefined );
+    assert.equal( gp.getType( 3.0 ), 'number' );
+    assert.equal( gp.getType( {} ), 'object' );
+    assert.equal( gp.getType( [] ), 'array' );
+} );
 
-QUnit.test("gp.closest", function (assert) {
+QUnit.test( 'gp.closest', function ( assert ) {
 
-    var body = gp.closest(div[0], 'body');
+    var body = gp.closest( div[0], 'body' );
 
-    assert.ok(body !== undefined);
+    assert.ok( body !== undefined );
 
-});
+} );
 
-QUnit.test( "gp.getObjectAtPath", function ( assert ) {
+QUnit.test( 'gp.getObjectAtPath', function ( assert ) {
 
     window.indexer = 'search';
 
@@ -469,38 +522,38 @@ QUnit.test( "gp.getObjectAtPath", function ( assert ) {
 
 } );
 
-QUnit.test("gp.RequestModel", function (assert) {
+QUnit.test( 'gp.RequestModel', function ( assert ) {
 
     var rm = new gp.RequestModel();
 
-    assert.equal(rm.PageCount, 0);
+    assert.equal( rm.PageCount, 0 );
 
-    assert.equal(rm.Skip, 0);
+    assert.equal( rm.Skip, 0 );
 
     rm.Data = data.products;
 
     rm.TotalRows = data.products.length;
 
-    assert.equal(rm.PageCount, 1);
+    assert.equal( rm.PageCount, 1 );
 
-    assert.equal(rm.Skip, 0);
+    assert.equal( rm.Skip, 0 );
 
     rm.Top = 25;
 
-    assert.equal(rm.PageCount, Math.ceil(data.products.length / 25));
+    assert.equal( rm.PageCount, Math.ceil( data.products.length / 25 ) );
 
-    assert.equal(rm.Skip, 0);
+    assert.equal( rm.Skip, 0 );
 
     rm.Page = 3;
 
-    assert.equal(rm.Skip, 50);
-});
+    assert.equal( rm.Skip, 50 );
+} );
 
-QUnit.test("gp.ClientPager", function (assert) {
+QUnit.test( 'gp.ClientPager', function ( assert ) {
 
     var config = getTableConfig();
 
-    var pager = new gp.ClientPager(config);
+    var pager = new gp.ClientPager( config );
 
     pager.data = data.products;
 
@@ -509,98 +562,98 @@ QUnit.test("gp.ClientPager", function (assert) {
     // turn paging off
     model.Top = -1;
 
-    pager.read(model, function (response) {
-        assert.ok(response != null);
-        assert.equal(response.Data.length, data.products.length, 'should return all rows');
-    });
+    pager.read( model, function ( response ) {
+        assert.ok( response != null );
+        assert.equal( response.Data.length, data.products.length, 'should return all rows' );
+    } );
 
     // turn paging on
     model.Top = 10;
 
-    pager.read(model, function (response) {
-        assert.equal(response.Data.length, 10, 'should return a subset of rows');
-    });
+    pager.read( model, function ( response ) {
+        assert.equal( response.Data.length, 10, 'should return a subset of rows' );
+    } );
 
     model.Search = 'BA-8327';
 
-    pager.read(model, function (response) {
-        assert.equal(response.Data.length, 1, 'should return a single row');
-    });
+    pager.read( model, function ( response ) {
+        assert.equal( response.Data.length, 1, 'should return a single row' );
+    } );
 
     model.Search = null;
 
     model.OrderBy = 'MakeFlag';
 
-    pager.read(model, function (response) {
-        assert.equal(response.Data[0].MakeFlag, false, 'ascending sort should put false values at the top');
-    });
+    pager.read( model, function ( response ) {
+        assert.equal( response.Data[0].MakeFlag, false, 'ascending sort should put false values at the top' );
+    } );
 
     model.Desc = true;
 
-    pager.read(model, function (response) {
-        assert.equal(response.Data[0].MakeFlag, true, 'descending sort should put true values at the top');
-    });
+    pager.read( model, function ( response ) {
+        assert.equal( response.Data[0].MakeFlag, true, 'descending sort should put true values at the top' );
+    } );
 
-});
+} );
 
-QUnit.test("gp.Model", function (assert) {
+QUnit.test( 'gp.Model', function ( assert ) {
 
     var config = getTableConfig();
 
-    var model = new gp.Model(config);
+    var model = new gp.Model( config );
 
     var request = new gp.RequestModel();
 
     gridponent.logging = null;
 
-    model.read(request, function (response) {
-        assert.equal(response.Data.length, data.products.length, 'should return all rows');
-    });
+    model.read( request, function ( response ) {
+        assert.equal( response.Data.length, data.products.length, 'should return all rows' );
+    } );
 
     // turn paging on
     request.Top = 10;
 
-    model.read(request, function (response) {
-        assert.equal(response.Data.length, 10, 'should return a subset of rows');
-    });
+    model.read( request, function ( response ) {
+        assert.equal( response.Data.length, 10, 'should return a subset of rows' );
+    } );
 
     request.Search = 'BA-8327';
 
-    model.read(request, function (response) {
-        assert.equal(response.Data.length, 1, 'should return a single row');
-    });
+    model.read( request, function ( response ) {
+        assert.equal( response.Data.length, 1, 'should return a single row' );
+    } );
 
     request.Search = null;
 
     request.OrderBy = 'MakeFlag';
 
-    model.read(request, function (response) {
-        assert.equal(response.Data[0].MakeFlag, false, 'ascending sort should put false values at the top');
-    });
+    model.read( request, function ( response ) {
+        assert.equal( response.Data[0].MakeFlag, false, 'ascending sort should put false values at the top' );
+    } );
 
     request.Desc = true;
 
-    model.read(request, function (response) {
-        assert.equal(response.Data[0].MakeFlag, true, 'descending sort should put true values at the top');
-    });
+    model.read( request, function ( response ) {
+        assert.equal( response.Data[0].MakeFlag, true, 'descending sort should put true values at the top' );
+    } );
 
 
     // test Read as function
 
     var done = assert.async();
 
-    config.Read = function (m, callback) {
-        assert.ok(true, 'calling read should execute this function');
+    config.Read = function ( m, callback ) {
+        assert.ok( true, 'calling read should execute this function' );
         callback();
     };
 
     // create a new model
-    model = new gp.Model(config);
+    model = new gp.Model( config );
 
-    model.read(request, function (response) {
-        assert.ok(true, 'calling read should execute this function');
+    model.read( request, function ( response ) {
+        assert.ok( true, 'calling read should execute this function' );
         done();
-    });
+    } );
 
 
     // test Read as url
@@ -609,26 +662,26 @@ QUnit.test("gp.Model", function (assert) {
 
     config.Read = '/Products/Read';
 
-    model = new gp.Model(config);
+    model = new gp.Model( config );
 
     request = new gp.RequestModel();
 
     request.Search = 'BA-8327';
 
-    model.read(request, function (response) {
-        assert.equal(response.Data.length, 1, 'should return a single record');
+    model.read( request, function ( response ) {
+        assert.equal( response.Data.length, 1, 'should return a single record' );
         done();
-    });
+    } );
 
 
     // create
     var done2 = assert.async();
 
-    model.create(function (response) {
-        assert.ok('ProductID' in response, 'should return a new record');
-        assert.equal(response.ProductID, 0,'should return a new record');
+    model.create( function ( response ) {
+        assert.ok( 'ProductID' in response, 'should return a new record' );
+        assert.equal( response.ProductID, 0, 'should return a new record' );
         done2();
-    });
+    } );
 
 
     // update
@@ -636,42 +689,42 @@ QUnit.test("gp.Model", function (assert) {
     request = data.products[0];
     request.Name = 'Test';
 
-    model.update(request, function (response) {
-        assert.equal(response.Data.Name, 'Test', 'should return the updated record');
+    model.update( request, function ( response ) {
+        assert.equal( response.Data.Name, 'Test', 'should return the updated record' );
         done3();
-    });
+    } );
 
 
     // destroy
     var done4 = assert.async();
     request = data.products[0];
-    model = new gp.Model(config);
+    model = new gp.Model( config );
 
-    model.destroy(request, function (response) {
-        assert.equal(response, true, 'destroy should return true if the record was found and deleted' );
+    model.destroy( request, function ( response ) {
+        assert.equal( response, true, 'destroy should return true if the record was found and deleted' );
         done4();
-    });
+    } );
 
-});
+} );
 
-QUnit.test("gp.Table.getConfig", function (assert) {
+QUnit.test( 'gp.Table.getConfig', function ( assert ) {
 
     var options = gp.shallowCopy( configOptions );
 
     options.fixedHeaders = true;
     options.sorting = true;
 
-    var config = getTableConfig(options);
+    var config = getTableConfig( options );
 
-    assert.equal(config.Sorting, true);
+    assert.equal( config.Sorting, true );
 
-    assert.equal(config.FixedHeaders, true);
+    assert.equal( config.FixedHeaders, true );
 
-    assert.equal(config.Sorting, true);
+    assert.equal( config.Sorting, true );
 
-    assert.equal(config.Columns.length, 11);
+    assert.equal( config.Columns.length, 11 );
 
-    assert.equal( config.Columns[1].Header, "ID" );
+    assert.equal( config.Columns[1].Header, 'ID' );
 
     var options = gp.shallowCopy( configOptions );
 
@@ -707,18 +760,18 @@ QUnit.test("gp.Table.getConfig", function (assert) {
 
     assert.strictEqual( config.Read, data.products, 'Read can be an array' );
 
-});
+} );
 
-QUnit.test("gp.helpers.thead", function (assert) {
+QUnit.test( 'gp.helpers.thead', function ( assert ) {
 
-    function testHeaders(headers) {
-        assert.ok(headers[0].querySelector('input[type=checkbox]') != null);
+    function testHeaders( headers ) {
+        assert.ok( headers[0].querySelector( 'input[type=checkbox]' ) != null );
 
         assert.ok( headers[1].querySelector( 'input[type=radio][name=OrderBy]' ) != null );
 
-        assert.ok(headers[2].querySelector('label.table-sort > input[type=radio]') != null);
+        assert.ok( headers[2].querySelector( 'label.table-sort > input[type=radio]' ) != null );
 
-        assert.equal(headers[6].querySelector('label.table-sort').textContent, 'Markup');
+        assert.equal( headers[6].querySelector( 'label.table-sort' ).textContent, 'Markup' );
 
     }
 
@@ -728,25 +781,25 @@ QUnit.test("gp.helpers.thead", function (assert) {
     options.sorting = true;
 
     // fixed headers, with sorting
-    var node = getTableConfig(options).node;
-    var headers = node.querySelectorAll('div.table-header th.header-cell');
+    var node = getTableConfig( options ).node;
+    var headers = node.querySelectorAll( 'div.table-header th.header-cell' );
 
-    testHeaders(headers);
+    testHeaders( headers );
 
     options = gp.shallowCopy( configOptions );
     options.sorting = true;
 
     // no fixed headers, with sorting
-    node = getTableConfig(options).node;
+    node = getTableConfig( options ).node;
 
-    headers = node.querySelectorAll('div.table-body th.header-cell');
+    headers = node.querySelectorAll( 'div.table-body th.header-cell' );
 
-    testHeaders(headers);
+    testHeaders( headers );
 
     // no fixed headers, no sorting
-    node = getTableConfig(configOptions).node;
+    node = getTableConfig( configOptions ).node;
 
-    headers = node.querySelectorAll('div.table-body th.header-cell');
+    headers = node.querySelectorAll( 'div.table-body th.header-cell' );
 
     //assert.ok(headers[0].querySelector('input[type=checkbox]') != null, 'functions as templates');
 
@@ -770,21 +823,21 @@ QUnit.test("gp.helpers.thead", function (assert) {
 
     //assert.ok(headers[10].querySelector('input[type=checkbox]') != null);
 
-});
+} );
 
-QUnit.test("gp.helpers.bodyCell", function (assert) {
+QUnit.test( 'gp.helpers.bodyCell', function ( assert ) {
 
-    function testCells(cells) {
+    function testCells( cells ) {
 
-        assert.ok(cells[0].querySelector('input[type=checkbox]') != null, 'there should be a checkbox');
+        assert.ok( cells[0].querySelector( 'input[type=checkbox]' ) != null, 'there should be a checkbox' );
 
         assert.ok( cells[2].querySelector( 'span.glyphicon.glyphicon-ok' ) != null );
 
         assert.ok( cells[2].attributes['class'].value == 'body-cell boolean', 'should add boolean class to boolean columns' );
 
-        assert.ok(cells[3].querySelector('button > span') != null);
+        assert.ok( cells[3].querySelector( 'button > span' ) != null );
 
-        assert.equal(isNaN(parseInt(cells[3].textContent)), false, 'should be a number');
+        assert.equal( isNaN( parseInt( cells[3].textContent ) ), false, 'should be a number' );
 
     }
 
@@ -792,52 +845,52 @@ QUnit.test("gp.helpers.bodyCell", function (assert) {
     options.fixedHeaders = true;
     options.sorting = true;
 
-    var config = getTableConfig(options);
+    var config = getTableConfig( options );
 
     var node = config.node;
 
-    var cells = node.querySelectorAll('div.table-body tbody > tr:nth-child(3) td.body-cell');
+    var cells = node.querySelectorAll( 'div.table-body tbody > tr:nth-child(3) td.body-cell' );
 
-    testCells(cells);
+    testCells( cells );
 
     var rows = node.querySelectorAll( 'div.table-body tbody > tr' );
 
-    for (var i = 0; i < rows.length; i++) {
+    for ( var i = 0; i < rows.length; i++ ) {
         var make = data.products[i].MakeFlag;
-        if (make) {
-            assert.ok(rows[i].querySelector('td:nth-child(9) span.glyphicon-edit') != null, 'template should create an edit button');
-            assert.ok(rows[i].querySelector('td:nth-child(3) span.glyphicon-ok') != null, 'there should be a checkmark');
+        if ( make ) {
+            assert.ok( rows[i].querySelector( 'td:nth-child(9) span.glyphicon-edit' ) != null, 'template should create an edit button' );
+            assert.ok( rows[i].querySelector( 'td:nth-child(3) span.glyphicon-ok' ) != null, 'there should be a checkmark' );
         }
         else {
-            assert.ok(rows[i].querySelector('td:nth-child(9) span.glyphicon-remove') != null, 'template should create a remove button');
+            assert.ok( rows[i].querySelector( 'td:nth-child(9) span.glyphicon-remove' ) != null, 'template should create a remove button' );
         }
     }
 
-});
+} );
 
-QUnit.test("gp.helpers.footerCell", function (assert) {
+QUnit.test( 'gp.helpers.footerCell', function ( assert ) {
 
     var options = gp.shallowCopy( configOptions );
     options.fixedHeaders = true;
     options.sorting = true;
 
-    var node = getTableConfig(options).node;
+    var node = getTableConfig( options ).node;
 
-    var cell = node.querySelector('.table-body tfoot tr:first-child td.footer-cell:nth-child(1)');
+    var cell = node.querySelector( '.table-body tfoot tr:first-child td.footer-cell:nth-child(1)' );
 
-    assert.ok(cell.querySelector('input[type=checkbox]') != null)
+    assert.ok( cell.querySelector( 'input[type=checkbox]' ) != null )
 
     options.fixedFooters = true;
 
-    node = getTableConfig(options).node;
+    node = getTableConfig( options ).node;
 
-    cell = node.querySelector('.table-footer tr:first-child td.footer-cell:nth-child(4)');
+    cell = node.querySelector( '.table-footer tr:first-child td.footer-cell:nth-child(4)' );
 
-    assert.equal(isNaN(parseFloat(cell.textContent)), false);
+    assert.equal( isNaN( parseFloat( cell.textContent ) ), false );
 
-});
+} );
 
-QUnit.test("gp.ChangeMonitor", function (assert) {
+QUnit.test( 'gp.ChangeMonitor', function ( assert ) {
 
     var model = {
         number: 1,
@@ -846,59 +899,59 @@ QUnit.test("gp.ChangeMonitor", function (assert) {
         name: 'Todd'
     };
 
-    $(div).empty();
+    $( div ).empty();
 
-    div.append('<input type="number" name="number" value="1" />');
-    div.append('<input type="date" name="date" value="2015-01-01" />');
-    div.append('<input type="checkbox" name="bool" value="true" />');
-    div.append('<input type="checkbox" name="name" value="Todd" checked="checked" />');
-    div.append('<input type="text" name="notInModel" value="text" />');
+    div.append( '<input type="number" name="number" value="1" />' );
+    div.append( '<input type="date" name="date" value="2015-01-01" />' );
+    div.append( '<input type="checkbox" name="bool" value="true" />' );
+    div.append( '<input type="checkbox" name="name" value="Todd" checked="checked" />' );
+    div.append( '<input type="text" name="notInModel" value="text" />' );
 
     var done1 = assert.async();
     var done2 = assert.async();
     var done3 = assert.async();
 
-    var monitor = new gp.ChangeMonitor(div[0], '[name]', model, function (target, m) {
-        assert.equal(model.number, 2);
+    var monitor = new gp.ChangeMonitor( div[0], '[name]', model, function ( target, m ) {
+        assert.equal( model.number, 2 );
         done1();
-    });
+    } );
 
-    var numberInput = div[0].querySelector('[name=number]');
+    var numberInput = div[0].querySelector( '[name=number]' );
     numberInput.value = '2';
-    monitor.syncModel(numberInput, model);
+    monitor.syncModel( numberInput, model );
 
 
-    var textInput = div[0].querySelector('[name=notInModel]');
+    var textInput = div[0].querySelector( '[name=notInModel]' );
     textInput.value = 'more text';
-    monitor.syncModel(textInput, model);
-    assert.equal('notInModel' in model, false, 'ChangeMonitor should ignore values that are not present in the model.');
+    monitor.syncModel( textInput, model );
+    assert.equal( 'notInModel' in model, false, 'ChangeMonitor should ignore values that are not present in the model.' );
 
 
-    monitor.beforeSync = function (name, value, model) {
+    monitor.beforeSync = function ( name, value, model ) {
         assert.equal( model.bool, true, 'beforeSync should return values before changing them' );
         done2();
     };
 
-    monitor.afterSync = function (target, m) {
-        assert.equal(model.bool, false, 'afterSync should return values after changing them');
+    monitor.afterSync = function ( target, m ) {
+        assert.equal( model.bool, false, 'afterSync should return values after changing them' );
         done3();
     };
 
-    var boolInput = div[0].querySelector('[name=bool]');
+    var boolInput = div[0].querySelector( '[name=bool]' );
     boolInput.value = 'false';
-    monitor.syncModel(boolInput, model);
+    monitor.syncModel( boolInput, model );
 
-});
+} );
 
-QUnit.test("custom search filter", function (assert) {
+QUnit.test( 'custom search filter', function ( assert ) {
 
     var done = assert.async();
 
-    var event = new CustomEvent('change', {
+    var event = new CustomEvent( 'change', {
         'view': window,
         'bubbles': true,
         'cancelable': true
-    });
+    } );
 
     var options = gp.shallowCopy( configOptions );
     options.fixedHeaders = true;
@@ -918,21 +971,21 @@ QUnit.test("custom search filter", function (assert) {
 
     searchInput.value = productNumber;
 
-    assert.equal(config.SearchFunction, fns.searchFilter);
+    assert.equal( config.SearchFunction, fns.searchFilter );
 
     // listen for the change event
-    config.node.addEventListener('change', function (evt) {
-        assert.equal(config.data.Data.length, 1, 'Should filter a single record');
-        assert.equal(config.data.Data[0].ProductNumber, productNumber, 'Should filter a single record');
+    config.node.addEventListener( 'change', function ( evt ) {
+        assert.equal( config.data.Data.length, 1, 'Should filter a single record' );
+        assert.equal( config.data.Data[0].ProductNumber, productNumber, 'Should filter a single record' );
         done();
-    });
+    } );
 
     // trigger a change event on the input
-    searchInput.dispatchEvent(event);
+    searchInput.dispatchEvent( event );
 
-});
+} );
 
-QUnit.test("beforeEdit and afterEdit events", function (assert) {
+QUnit.test( 'beforeEdit and afterEdit events', function ( assert ) {
 
     var done1 = assert.async();
     var done2 = assert.async();
@@ -941,132 +994,132 @@ QUnit.test("beforeEdit and afterEdit events", function (assert) {
     options.fixedHeaders = true;
     options.sorting = true;
 
-    var node = getTableConfig(options).node;
+    var node = getTableConfig( options ).node;
 
-    node.addEventListener('beforeEdit', function (evt) {
-        assert.ok(evt != null);
-        assert.ok(evt.detail != null);
-        assert.ok(evt.detail.model != null);
+    node.addEventListener( 'beforeEdit', function ( evt ) {
+        assert.ok( evt != null );
+        assert.ok( evt.detail != null );
+        assert.ok( evt.detail.model != null );
         done1();
-    });
+    } );
 
-    node.addEventListener('afterEdit', function (evt) {
-        assert.ok(evt != null);
-        assert.ok(evt.detail != null);
-        assert.ok(evt.detail.model != null);
+    node.addEventListener( 'afterEdit', function ( evt ) {
+        assert.ok( evt != null );
+        assert.ok( evt.detail != null );
+        assert.ok( evt.detail.model != null );
         done2();
-    });
+    } );
 
     // trigger a click event on an edit button
-    var btn = node.querySelector('button[value=Edit]');
+    var btn = node.querySelector( 'button[value=Edit]' );
 
-    var event = new CustomEvent('click', {
+    var event = new CustomEvent( 'click', {
         'view': window,
         'bubbles': true,
         'cancelable': true
-    });
+    } );
 
-    btn.dispatchEvent(event);
+    btn.dispatchEvent( event );
 
-});
+} );
 
-QUnit.test("Intl.DateTimeFormat", function (assert) {
+QUnit.test( 'Intl.DateTimeFormat', function ( assert ) {
 
     // the polyfill fails half of these tests
     // https://github.com/andyearnshaw/Intl.js/issues
 
     // use local time so our test will work regardless of time zone
-    var date = new Date(2015, 11, 6, 13, 5, 6);
+    var date = new Date( 2015, 11, 6, 13, 5, 6 );
 
     var formatter = new gp.Formatter();
 
-    var formatted = formatter.format(date, 'M/d/yyyy');
-    assert.equal(formatted, '12/6/2015');
+    var formatted = formatter.format( date, 'M/d/yyyy' );
+    assert.equal( formatted, '12/6/2015' );
 
-    formatted = formatter.format(date, 'MMMM/dd/yy');
-    assert.ok(formatted == 'December 06, 15'
-        || formatted == '06-December-15'); // IE11
+    formatted = formatter.format( date, 'MMMM/dd/yy' );
+    assert.ok( formatted == 'December 06, 15'
+        || formatted == '06-December-15' ); // IE11
 
-    formatted = formatter.format(date, 'MMM/d/yy');
-    assert.ok(formatted == 'Dec 6, 15'
-        || formatted == '06-Dec-15'); // IE11
+    formatted = formatter.format( date, 'MMM/d/yy' );
+    assert.ok( formatted == 'Dec 6, 15'
+        || formatted == '06-Dec-15' ); // IE11
 
-    formatted = formatter.format(date, 'h m s');
-    assert.equal(formatted, '1:05:06 PM');
+    formatted = formatter.format( date, 'h m s' );
+    assert.equal( formatted, '1:05:06 PM' );
 
-    formatted = formatter.format(date, 'HH mm');
-    assert.equal(formatted, '13:05');
+    formatted = formatter.format( date, 'HH mm' );
+    assert.equal( formatted, '13:05' );
 
-    formatted = formatter.format(date, 'www');
-    assert.equal(formatted, 'Sunday');
+    formatted = formatter.format( date, 'www' );
+    assert.equal( formatted, 'Sunday' );
 
-    formatted = formatter.format(date, 'ww');
-    assert.equal(formatted, 'Sun');
+    formatted = formatter.format( date, 'ww' );
+    assert.equal( formatted, 'Sun' );
 
-    formatted = formatter.format(date, 'w');
-    assert.ok(formatted == 'Su'
-        || formatted == 'S'); // IE11
+    formatted = formatter.format( date, 'w' );
+    assert.ok( formatted == 'Su'
+        || formatted == 'S' ); // IE11
 
-    formatted = formatter.format(date, 'tt');
+    formatted = formatter.format( date, 'tt' );
     assert.ok( formatted.indexOf( 'Central Standard Time' ) != -1
         || formatted == '12/6/2015', // IE
         formatted );
 
-    formatted = formatter.format(date, 't');
-    assert.ok(formatted.indexOf('CST') != -1
+    formatted = formatter.format( date, 't' );
+    assert.ok( formatted.indexOf( 'CST' ) != -1
         || formatted == '12/6/2015', // IE
         formatted );
 
     // era is not supported in IE
-    formatted = formatter.format(date, 'ee');
-    assert.ok(formatted.length > 0);
+    formatted = formatter.format( date, 'ee' );
+    assert.ok( formatted.length > 0 );
 
-    formatted = formatter.format(date);
-    assert.equal(formatted, '12/6/2015');
+    formatted = formatter.format( date );
+    assert.equal( formatted, '12/6/2015' );
 
-});
+} );
 
-QUnit.test("Intl.NumberFormat", function (assert) {
+QUnit.test( 'Intl.NumberFormat', function ( assert ) {
 
     var formatter = new gp.Formatter();
 
     var space = /\s+/g;
 
-    var formatted = formatter.format(5, 'P').replace(space, '');
-    assert.equal(formatted, '500%');
+    var formatted = formatter.format( 5, 'P' ).replace( space, '' );
+    assert.equal( formatted, '500%' );
 
-    formatted = formatter.format(.05, 'P').replace(space, '');
-    assert.equal(formatted, '5%');
+    formatted = formatter.format( .05, 'P' ).replace( space, '' );
+    assert.equal( formatted, '5%' );
 
-    formatted = formatter.format(.05, 'P0').replace(space, '');
-    assert.equal(formatted, '5%');
+    formatted = formatter.format( .05, 'P0' ).replace( space, '' );
+    assert.equal( formatted, '5%' );
 
-    formatted = formatter.format(.05, 'P2').replace(space, '');
-    assert.equal(formatted, '5.00%');
+    formatted = formatter.format( .05, 'P2' ).replace( space, '' );
+    assert.equal( formatted, '5.00%' );
 
-    formatted = formatter.format(.05, 'N2').replace(space, '');
-    assert.equal(formatted, '0.05');
+    formatted = formatter.format( .05, 'N2' ).replace( space, '' );
+    assert.equal( formatted, '0.05' );
 
-    formatted = formatter.format(1234.56, 'N1').replace(space, '');
-    assert.equal(formatted, '1,234.6');
+    formatted = formatter.format( 1234.56, 'N1' ).replace( space, '' );
+    assert.equal( formatted, '1,234.6' );
 
-    formatted = formatter.format(1234.56, 'N').replace(space, '');
-    assert.equal(formatted, '1,234.56');
+    formatted = formatter.format( 1234.56, 'N' ).replace( space, '' );
+    assert.equal( formatted, '1,234.56' );
 
-    formatted = formatter.format(1234.56, 'N0').replace(space, '');
-    assert.equal(formatted, '1,235');
+    formatted = formatter.format( 1234.56, 'N0' ).replace( space, '' );
+    assert.equal( formatted, '1,235' );
 
-    formatted = formatter.format(1234.56, 'C').replace(space, '');
-    assert.equal(formatted, '$1,234.56');
+    formatted = formatter.format( 1234.56, 'C' ).replace( space, '' );
+    assert.equal( formatted, '$1,234.56' );
 
-    formatted = formatter.format(1234.56, 'C0').replace(space, '');
-    assert.equal(formatted, '$1,235');
+    formatted = formatter.format( 1234.56, 'C0' ).replace( space, '' );
+    assert.equal( formatted, '$1,235' );
 
-    formatted = formatter.format(1234.56, 'C2').replace(space, '');
-    assert.equal(formatted, '$1,234.56');
+    formatted = formatter.format( 1234.56, 'C2' ).replace( space, '' );
+    assert.equal( formatted, '$1,234.56' );
 
-    formatted = formatter.format(1234.56);
-    assert.equal(formatted, '1,234.56');
+    formatted = formatter.format( 1234.56 );
+    assert.equal( formatted, '1,234.56' );
 
     //formatter.locale = 'de-AT';
     //formatter.currencyCode = 'EUR';
@@ -1080,45 +1133,45 @@ QUnit.test("Intl.NumberFormat", function (assert) {
     //formatted = formatter.format(1234.56, 'C0').replace(space, '');
     //assert.equal(formatted, eur + '1.235');
 
-});
+} );
 
-QUnit.test("gp.prependChild", function (assert) {
+QUnit.test( 'gp.prependChild', function ( assert ) {
 
     var child = '<span class="glyphicon glyphicon-ok"></span>';
 
-    gp.prependChild(div[0], child);
+    gp.prependChild( div[0], child );
 
-    var span = div[0].querySelector('span');
+    var span = div[0].querySelector( 'span' );
 
-    assert.equal(span, div[0].firstChild);
+    assert.equal( span, div[0].firstChild );
 
     div.empty();
 
-    child = document.createElement('span');
+    child = document.createElement( 'span' );
 
-    gp.prependChild('#div1', child);
+    gp.prependChild( '#div1', child );
 
-    span = div[0].querySelector('span');
+    span = div[0].querySelector( 'span' );
 
-    assert.equal(span, div[0].firstChild);
+    assert.equal( span, div[0].firstChild );
 
     var node = getTableConfig().node;
 
-    var tbody = node.querySelector('tbody');
+    var tbody = node.querySelector( 'tbody' );
 
     child = '<tr data-index="-1"><td class="body-cell"></td></table>';
 
-    var tr = gp.prependChild(tbody, child);
+    var tr = gp.prependChild( tbody, child );
 
-    assert.equal(tr.tagName.toLowerCase(), 'tr', 'prependChild should be able to prepend table rows');
+    assert.equal( tr.tagName.toLowerCase(), 'tr', 'prependChild should be able to prepend table rows' );
 
-    var tr2 = tbody.querySelector('tr:first-child');
+    var tr2 = tbody.querySelector( 'tr:first-child' );
 
-    assert.equal(tr, tr2, 'should be the first child in the table');
+    assert.equal( tr, tr2, 'should be the first child in the table' );
 
-});
+} );
 
-QUnit.test("readonly fields", function (assert) {
+QUnit.test( 'readonly fields', function ( assert ) {
 
     var done = assert.async();
 
@@ -1126,71 +1179,71 @@ QUnit.test("readonly fields", function (assert) {
     options.fixedHeaders = true;
     options.sorting = true;
 
-    var config = getTableConfig(options);
+    var config = getTableConfig( options );
 
     var node = config.node;
 
-    var readonlyColumns = config.Columns.filter(function(col){
+    var readonlyColumns = config.Columns.filter( function ( col ) {
         return col.Readonly;
-    });
+    } );
 
-    assert.ok(readonlyColumns != null && readonlyColumns.length, 'should find a readonly column');
+    assert.ok( readonlyColumns != null && readonlyColumns.length, 'should find a readonly column' );
 
     // use this index to locate the table cell
-    var index = config.Columns.indexOf(readonlyColumns[0]);
+    var index = config.Columns.indexOf( readonlyColumns[0] );
 
-    node.addEventListener('afterEdit', function (evt) {
-        var input = evt.target.querySelector('td:nth-child(' + (index + 1).toString() + ') input');
-        assert.equal(input, null, 'there should not be an input');
+    node.addEventListener( 'afterEdit', function ( evt ) {
+        var input = evt.target.querySelector( 'td:nth-child(' + ( index + 1 ).toString() + ') input' );
+        assert.equal( input, null, 'there should not be an input' );
         done();
-    });
+    } );
 
     // trigger a click event on an edit button
-    var btn = node.querySelector('button[value=Edit]');
+    var btn = node.querySelector( 'button[value=Edit]' );
 
-    var event = new CustomEvent('click', {
+    var event = new CustomEvent( 'click', {
         'view': window,
         'bubbles': true,
         'cancelable': true
-    });
+    } );
 
-    btn.dispatchEvent(event);
+    btn.dispatchEvent( event );
 
-});
+} );
 
-QUnit.test("controller.render", function (assert) {
+QUnit.test( 'controller.render', function ( assert ) {
 
-    function tests(node) {
-        var search = node.querySelector('.table-toolbar input[name=Search]');
+    function tests( node ) {
+        var search = node.querySelector( '.table-toolbar input[name=Search]' );
 
-        if (config.Search) {
-            assert.ok(search != null, 'there should be a search box');
+        if ( config.Search ) {
+            assert.ok( search != null, 'there should be a search box' );
         }
         else {
-            assert.ok(search == null, 'there should be no search box');
+            assert.ok( search == null, 'there should be no search box' );
         }
 
-        var pager = node.querySelector('.table-pager input');
+        var pager = node.querySelector( '.table-pager input' );
 
-        if (config.Pager) {
-            assert.ok(pager != null, 'there should be a pager with some inputs in it');
-        }
-        else {
-            assert.ok(pager == null, 'there should be no pager');
-        }
-
-        var addButton = node.querySelector('.table-toolbar button[value=Create]');
-
-        if (config.Create) {
-            assert.ok(addButton != null, 'there should be a button for adding new rows');
+        if ( config.Pager ) {
+            assert.ok( pager != null, 'there should be a pager with some inputs in it' );
         }
         else {
-            assert.ok(addButton == null, 'there should not be a button for adding new rows');
+            assert.ok( pager == null, 'there should be no pager' );
         }
 
-        var columnWidthStyle = node.querySelector('style.column-width-style');
+        var addButton = node.querySelector( '.table-toolbar button[value=Create]' );
 
-        assert.ok(columnWidthStyle != null, 'column width styles should always render');
+        if ( config.Create ) {
+            assert.ok( addButton != null, 'there should be a button for adding new rows' );
+        }
+        else {
+            assert.ok( addButton == null, 'there should not be a button for adding new rows' );
+        }
+
+        var columnWidthStyle = node.querySelector( 'style.column-width-style' );
+
+        assert.ok( columnWidthStyle != null, 'column width styles should always render' );
     }
 
     var options = gp.shallowCopy( configOptions );
@@ -1199,17 +1252,17 @@ QUnit.test("controller.render", function (assert) {
     options.responsive = true;
     options.sorting = true;
 
-    var config = getTableConfig(options);
+    var config = getTableConfig( options );
 
-    tests(config.node);
+    tests( config.node );
 
     config = getTableConfig();
 
-    tests(config.node);
+    tests( config.node );
 
-});
+} );
 
-QUnit.test("gp.ObjectProxy", function (assert) {
+QUnit.test( 'gp.ObjectProxy', function ( assert ) {
 
     var row = data.products[0];
 
@@ -1217,24 +1270,24 @@ QUnit.test("gp.ObjectProxy", function (assert) {
 
     var i;
 
-    var propertyChangedCallback = function (obj, prop, oldValue, newValue) {
+    var propertyChangedCallback = function ( obj, prop, oldValue, newValue ) {
         propertyChanged = true;
-        assert.strictEqual(newValue, i, 'propertyChanged: oldValue = ' + oldValue + '  newValue = ' + newValue);
+        assert.strictEqual( newValue, i, 'propertyChanged: oldValue = ' + oldValue + '  newValue = ' + newValue );
     };
 
-    var proxy = new gp.ObjectProxy(row, propertyChangedCallback);
+    var proxy = new gp.ObjectProxy( row, propertyChangedCallback );
 
-    var props = Object.getOwnPropertyNames(row);
+    var props = Object.getOwnPropertyNames( row );
 
-    props.forEach(function (prop) {
-        assert.equal(row[prop], proxy[prop], 'object and its proxy should have identical properties');
+    props.forEach( function ( prop ) {
+        assert.equal( row[prop], proxy[prop], 'object and its proxy should have identical properties' );
         proxy[prop] = i = !row[prop];
-        assert.notStrictEqual(row[prop], proxy[prop], 'changing proxy should not effect original object');
-    });
+        assert.notStrictEqual( row[prop], proxy[prop], 'changing proxy should not effect original object' );
+    } );
 
-    assert.equal(propertyChanged, true, 'propertyChangedCallback should be called');
+    assert.equal( propertyChanged, true, 'propertyChangedCallback should be called' );
 
-});
+} );
 
 QUnit.test( 'coverage report', function ( assert ) {
 
@@ -1255,7 +1308,7 @@ QUnit.test( 'coverage report', function ( assert ) {
                         gapEnd = i;
                     }
                 }
-                // are we in a gap?
+                    // are we in a gap?
                 else if ( gapStart ) {
                     gaps.push( { start: gapStart, end: gapEnd } );
                     // reset
@@ -1268,7 +1321,7 @@ QUnit.test( 'coverage report', function ( assert ) {
 
             out.push( '<ul>' );
 
-            gaps.forEach(function(gap){
+            gaps.forEach( function ( gap ) {
                 out.push( '<li>' );
                 out.push( gap.start );
                 if ( gap.end ) {
@@ -1276,7 +1329,7 @@ QUnit.test( 'coverage report', function ( assert ) {
                     out.push( gap.end );
                 }
                 out.push( '</li>' );
-            });
+            } );
 
             out.push( '</ul>' );
 

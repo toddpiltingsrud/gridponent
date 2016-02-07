@@ -158,6 +158,10 @@ gp.ClientPager.prototype = {
     }
 };
 
+/***************\
+  FunctionPager
+\***************/
+
 gp.FunctionPager = function ( config ) {
     this.config = config;
 };
@@ -165,7 +169,9 @@ gp.FunctionPager = function ( config ) {
 gp.FunctionPager.prototype = {
     read: function ( model, callback, error ) {
         try {
-            this.config.Read( model, callback );
+            var result = this.config.Read( model, callback );
+
+            if ( result != undefined ) callback( result );
         }
         catch (ex) {
             if (typeof error === 'function') {
