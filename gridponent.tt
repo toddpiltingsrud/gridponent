@@ -9,8 +9,8 @@
 <#
 var path = "";
 var stripLogging = false;
-var coverage = false;
-var useMocks = false;
+var coverage = true;
+var useMocks = true;
 
 if (coverage)
 {

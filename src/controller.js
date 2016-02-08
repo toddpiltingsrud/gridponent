@@ -31,11 +31,11 @@ gp.Controller.prototype = {
             //        self.page( self.config.data.Page );
             //        break;
             //    default:
-            //        self.update();
+            //        self.read();
             //        break;
             //}
 
-            self.update();
+            self.read();
             // reset the radio inputs
             var radios = node.querySelectorAll( 'thead input[type=radio], .table-pager input[type=radio]' );
             for (var i = 0; i < radios.length; i++) {
@@ -84,7 +84,7 @@ gp.Controller.prototype = {
                     self.cancelEdit(row, tr);
                     break;
                 case 'Delete':
-                    self.deleteRow( row, tr );
+                    self.deleteRow( row );
                     break;
                 default:
                     // check the api for an extension
@@ -167,18 +167,28 @@ gp.Controller.prototype = {
         this.config.data.Search = searchTerm;
         var searchBox = this.config.node.querySelector( 'div.table-toolbar input[name=Search' );
         searchBox.value = searchTerm;
-        this.update();
+        this.read();
     },
 
     sort: function(field, desc) {
         this.config.data.OrderBy = field;
         this.config.data.Desc = ( desc == true );
-        this.update();
+        this.read();
     },
 
-    page: function(pageNumber, callback) {
-        this.config.data.Page = pageNumber;
-        this.update(callback);
+    read: function ( requestModel, callback ) {
+        var self = this;
+        if ( requestModel ) {
+            gp.shallowCopy( requestModel, this.config.data );
+        }
+        gp.raiseCustomEvent( this.config.node, gp.events.beforeRead, { model: this.config.data } );
+        gp.info( 'read.data:', this.config.data );
+        this.model.read( this.config.data, function ( model ) {
+            gp.shallowCopy( model, self.config.data );
+            self.refresh( self.config );
+            gp.raiseCustomEvent( this.config.node, gp.events.afterRead, { model: this.config.data } );
+            gp.tryCallback( callback, self.config.node, self.config.data );
+        } );
     },
 
     createRow: function (callback) {
@@ -189,6 +199,8 @@ gp.Controller.prototype = {
                 gp.tryCallback( callback, self.config.node );
                 return;
             }
+
+            gp.raiseCustomEvent( self.config.node, gp.events.beforeCreate );
 
             this.model.create(function (row) {
                 // create a row in create mode
@@ -219,6 +231,11 @@ gp.Controller.prototype = {
                 tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
 
                 gp.info( 'createRow.tr:', tr );
+
+                gp.raiseCustomEvent( self.config.node, gp.events.afterCreate, {
+                    row: row,
+                    tr: tr
+                } );
 
                 gp.tryCallback( callback, self.config.node, row );
             } );
@@ -310,8 +327,8 @@ gp.Controller.prototype = {
                     delete self.config.Row;
                 }
 
-                gp.raiseCustomEvent( tr, 'afterUpdate', {
-                    model: updateModel.Row
+                gp.raiseCustomEvent( tr, gp.events.afterUpdate, {
+                    model: updateModel
                 } );
 
                 gp.tryCallback( callback, self.config.node, updateModel );
@@ -345,7 +362,7 @@ gp.Controller.prototype = {
         }
     },
 
-    deleteRow: function (row, tr, callback) {
+    deleteRow: function (row, callback, skipConfirm) {
         try {
             if ( !gp.hasValue( this.config.Destroy ) ) {
                 gp.tryCallback( callback, this.config.node );
@@ -354,26 +371,26 @@ gp.Controller.prototype = {
 
             var self = this,
                 url = this.config.Destroy,
-                confirmed = confirm( 'Are you sure you want to delete this item?' );
+                confirmed = skipConfirm || confirm( 'Are you sure you want to delete this item?' );
 
             if ( !confirmed ) {
                 gp.tryCallback( callback, this.config.node );
                 return;
             }
 
-            gp.raiseCustomEvent(tr, 'beforeDelete', {
-                model: row
+            gp.raiseCustomEvent(this.config.node, gp.events.beforeDestroy, {
+                row: row
             } );
 
-            this.model.destroy( function ( response ) {
+            this.model.destroy( row, function ( response ) {
                 // remove the row from the model
                 var index = self.config.data.Data.indexOf( row );
                 if ( index != -1 ) {
                     self.config.data.Data.splice( index, 1 );
                     self.refresh( self.config );
                 }
-                gp.raiseCustomEvent( tr, 'afterDelete', {
-                    model: row
+                gp.raiseCustomEvent( self.config.node, gp.events.afterDestroy, {
+                    row: row
                 } );
                 gp.tryCallback( callback, self.config.node, response );
             } );
@@ -407,15 +424,6 @@ gp.Controller.prototype = {
         gp.removeClass( tr, 'edit-mode' );
     },
 
-    update: function (callback) {
-        var self = this;
-        gp.info( 'update.data:', this.config.data );
-        this.model.read( this.config.data, function ( model ) {
-            gp.shallowCopy( model, self.config.data );
-            self.refresh( self.config );
-            gp.tryCallback( callback, self.config.node, self.config.data );
-        } );
-    },
 
     dispose: function () {
         gp.raiseCustomEvent( this.config.node, gp.events.beforeDispose );

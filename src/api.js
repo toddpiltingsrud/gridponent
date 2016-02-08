@@ -21,11 +21,9 @@ gp.api.prototype = {
         this.controller.sort( name, desc );
     },
 
-    page: function ( pageNbr, callback ) {
-        this.controller.page( pageNbr, callback );
+    read: function ( requestModel, callback ) {
+        this.controller.read( requestModel, callback );
     },
-
-    read: function ( arg ) { },
 
     create: function (callback) {
         this.controller.createRow(callback);
@@ -39,7 +37,9 @@ gp.api.prototype = {
         this.controller.updateRow( row, null, callback );
     },
 
-    destroy: function ( arg ) { },
+    destroy: function ( row, callback ) {
+        this.controller.deleteRow( row, callback, true );
+    },
 
     cancel: function ( arg ) { },
 

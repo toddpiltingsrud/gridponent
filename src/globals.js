@@ -38,14 +38,6 @@
         return config;
     };
 
-    gp.padLeft = function ( str, length, char ) {
-        var s = str.toString();
-        char = char || ' ';
-        while ( s.length < length )
-            s = char + s;
-        return s;
-    };
-
     var chars = [/&/g, /</g, />/g, /"/g, /'/g, /`/g];
 
     var escaped = ['&amp;', '&lt;', '&gt;', '&quot;', '&apos;', '&#96;'];
@@ -148,6 +140,8 @@
             pub: listener,
             priv: privateListener
         } );
+
+        return elem;
     };
 
     gp.off = function ( elem, event, listener ) {

@@ -343,7 +343,7 @@ QUnit.test( 'api.sort', function ( assert ) {
     assert.strictEqual( content1, content2, 'Sorting again should change it back' );
 } );
 
-QUnit.test( 'api.page', function ( assert ) {
+QUnit.test( 'api.read', function ( assert ) {
 
     var options = gp.shallowCopy( configOptions );
     options.paging = true;
@@ -352,12 +352,48 @@ QUnit.test( 'api.page', function ( assert ) {
 
     var done = assert.async();
 
-    config.node.api.page( 2, function ( model ) {
+    var requestModel = new gp.RequestModel();
+    requestModel.Top = 25;
+    requestModel.Page = 2;
+
+    config.node.api.read( requestModel, function ( model ) {
         assert.strictEqual( model.Page, 2, 'should be able to set the page' );
         done();
     } );
 } );
 
+QUnit.test( 'api.destroy', function ( assert ) {
+
+    var options = gp.shallowCopy( configOptions );
+
+    var config = getTableConfig( options );
+
+    var done1 = assert.async();
+
+    var row = config.data.Data[0];
+
+    config.node.api.destroy( row, function ( row ) {
+        var index = config.data.Data.indexOf( row );
+        assert.strictEqual( index, -1, 'destroy should remove the row' );
+        done1();
+    } );
+
+    // now try it with a null destroy setting
+    options = gp.shallowCopy( configOptions );
+    options.destroy = null;
+
+    config = getTableConfig( options );
+
+    var done2 = assert.async();
+
+    row = config.data.Data[1];
+
+    config.node.api.destroy( row, function () {
+        var index = config.data.Data.indexOf( row );
+        assert.ok( index > -1, 'destroy should do nothing' );
+        done2();
+    } );
+} );
 
 if ( document.registerElement ) {
 
@@ -380,7 +416,6 @@ if ( document.registerElement ) {
     } );
 
 }
-
 
 QUnit.test( 'ChangeMonitor.beforeSync', function ( assert ) {
     var config = getTableConfig();
@@ -494,6 +529,41 @@ QUnit.test( 'gp.coalesce', function ( assert ) {
     assert.equal( gp.coalesce( emptyArray ), emptyArray );
 } );
 
+QUnit.test( 'gp.error', function ( assert ) {
+
+    var errored = false;
+
+    try {
+        gp.error( 'this is an error' );
+    }
+    catch ( ex ) {
+        errored = true;
+    }
+    assert.strictEqual( errored, false, 'gp.error should not throw an exception' );
+
+} );
+
+QUnit.test( 'gp.on', function ( assert ) {
+
+    var listener = function ( evt ) {
+
+    };
+
+    var selector = 'div';
+
+    var elem = gp.on( selector, 'click', 'button', listener );
+
+    assert.ok( typeof elem == 'object', 'should turn a selector into a DOM object' );
+
+    assert.ok( elem['gp-listeners-click'] != null, 'a list of listeners should be attached to the element' );
+
+    selector = 'does-not-exist';
+
+    elem = gp.on( selector, 'click', 'button', listener );
+
+    assert.ok( elem == undefined, 'non-existent elem should return undefined' );
+} );
+
 QUnit.test( 'CustomEvent', function ( assert ) {
 
     var done = assert.async();
@@ -527,6 +597,14 @@ QUnit.test( 'gp.closest', function ( assert ) {
     var body = gp.closest( div[0], 'body' );
 
     assert.ok( body !== undefined );
+
+    var elem = gp.closest( 'div', 'body' );
+
+    assert.ok( typeof elem == 'object', 'should turn a selector into a DOM object' );
+
+    elem = gp.closest( 'does-not-exist', 'body' );
+
+    assert.ok( elem == undefined, 'non-existent elem should return undefined' );
 
 } );
 
@@ -1078,6 +1156,98 @@ QUnit.test( 'beforeEdit and afterEdit events', function ( assert ) {
 
 } );
 
+QUnit.test( 'edit and update', function ( assert ) {
+
+    var done1 = assert.async();
+    var done2 = assert.async();
+
+    var options = gp.shallowCopy( configOptions );
+    options.fixedHeaders = true;
+    options.sorting = true;
+
+    var clickEvent1 = new CustomEvent( 'click', {
+        'view': window,
+        'bubbles': true,
+        'cancelable': true
+    } );
+
+    var clickEvent2 = new CustomEvent( 'click', {
+        'view': window,
+        'bubbles': true,
+        'cancelable': true
+    } );
+
+    var node = getTableConfig( options ).node;
+
+    node.addEventListener( 'afterEdit', function ( evt ) {
+        assert.ok( evt != null );
+        assert.ok( evt.detail != null );
+        assert.ok( evt.detail.model != null );
+        done1();
+        var saveBtn = node.querySelector( 'button[value=Update]' );
+        saveBtn.dispatchEvent( clickEvent2 );
+    } );
+
+    node.addEventListener( 'afterUpdate', function ( evt ) {
+        assert.ok( evt != null );
+        assert.ok( evt.detail != null );
+        assert.ok( evt.detail.model != null );
+        done2();
+    } );
+
+    // trigger a click event on an edit button
+    var btn = node.querySelector( 'button[value=Edit]' );
+
+    btn.dispatchEvent( clickEvent1 );
+
+} );
+
+QUnit.test( 'edit and cancel', function ( assert ) {
+
+    var done1 = assert.async();
+    var done2 = assert.async();
+
+    var options = gp.shallowCopy( configOptions );
+    options.fixedHeaders = true;
+    options.sorting = true;
+
+    var clickEvent1 = new CustomEvent( 'click', {
+        'view': window,
+        'bubbles': true,
+        'cancelable': true
+    } );
+
+    var clickEvent2 = new CustomEvent( 'click', {
+        'view': window,
+        'bubbles': true,
+        'cancelable': true
+    } );
+
+    var node = getTableConfig( options ).node;
+
+    node.addEventListener( 'afterEdit', function ( evt ) {
+        assert.ok( evt != null );
+        assert.ok( evt.detail != null );
+        assert.ok( evt.detail.model != null );
+        done1();
+        var saveBtn = node.querySelector( 'button[value=Cancel]' );
+        saveBtn.dispatchEvent( clickEvent2 );
+    } );
+
+    node.addEventListener( 'cancelEdit', function ( evt ) {
+        assert.ok( evt != null );
+        assert.ok( evt.detail != null );
+        assert.ok( evt.detail.model != null );
+        done2();
+    } );
+
+    // trigger a click event on an edit button
+    var btn = node.querySelector( 'button[value=Edit]' );
+
+    btn.dispatchEvent( clickEvent1 );
+
+} );
+
 QUnit.test( 'Intl.DateTimeFormat', function ( assert ) {
 
     // the polyfill fails half of these tests
@@ -1090,6 +1260,9 @@ QUnit.test( 'Intl.DateTimeFormat', function ( assert ) {
 
     var formatted = formatter.format( date, 'M/d/yyyy' );
     assert.equal( formatted, '12/6/2015' );
+
+    formatted = formatter.format( new Date( 2015, 11, 7, 13, 5, 6 ), 'M/d/yyyy' );
+    assert.equal( formatted, '12/7/2015' );
 
     formatted = formatter.format( date, 'MMMM/dd/yy' );
     assert.ok( formatted == 'December 06, 15'
