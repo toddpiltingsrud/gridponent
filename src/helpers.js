@@ -10,33 +10,6 @@
         gp.helpers[name] = func;
     };
 
-    extend('template', function (name, arg) {
-        var template = gp.templates[name];
-        if (template) {
-            return template(this, arg);
-        }
-    });
-
-    extend('toolbarTemplate', function () {
-        var html = new gp.StringBuilder();
-
-        if (this.ToolbarTemplate) {
-            // it's either a selector or a function name
-            template = gp.getObjectAtPath(this.ToolbarTemplate);
-            if (typeof (template) === 'function') {
-                html.add(template(this));
-            }
-            else {
-                template = document.querySelector(this.ToolbarTemplate);
-                if (template) {
-                    html.add(template.innerHTML);
-                }
-            }
-        }
-
-        return html.toString();
-    });
-
     extend('thead', function () {
         var self = this;
         var html = new gp.StringBuilder();
@@ -50,10 +23,7 @@
             }
             else {
                 // only provide sorting where it is explicitly specified
-                if (col.Sort === true && gp.hasValue(col.Field)) {
-                    sort = gp.escapeHTML(col.Field);
-                }
-                else {
+                if (gp.hasValue(col.Sort)) {
                     sort = gp.escapeHTML(col.Sort);
                 }
             }
@@ -71,7 +41,7 @@
                     html.add(col.HeaderTemplate.call(self, col));
                 }
                 else {
-                    html.add(gp.processColumnTemplate.call(this, col.HeaderTemplate, col));
+                    html.add(gp.processHeaderTemplate.call(this, col.HeaderTemplate, col));
                 }
             }
             else if (gp.hasValue(sort)) {
@@ -104,24 +74,6 @@
         return html.toString();
     });
 
-    extend('rowIndex', function () {
-        return this.data.Data.indexOf(this.Row);
-    });
-
-    extend('bodyCell', function (col) {
-        var type = ( col.Type || '' ).toLowerCase();
-        gp.info( 'bodyCell: type:', type );
-        var html = new gp.StringBuilder();
-        html.add('<td class="body-cell ' + type + '"');
-        if (col.BodyStyle) {
-            html.add(' style="' + col.BodyStyle + '"');
-        }
-        html.add('>')
-            .add(gp.helpers['bodyCellContent'].call(this, col))
-            .add('</td>');
-        return html.toString();
-    });
-
     extend( 'bodyCellContent', function ( col ) {
         var self = this,
             template,
@@ -137,7 +89,7 @@
                 html.add(col.Template.call(this, this.Row, col));
             }
             else {
-                html.add(gp.processRowTemplate.call(this, col.Template, this.Row, col));
+                html.add(gp.processBodyTemplate.call(this, col.Template, this.Row, col));
             }
         }
         else if (col.Commands && col.Commands.length) {
@@ -188,26 +140,6 @@
         return html.toString();
     });
 
-
-    extend('editCell', function (col) {
-        if (col.Readonly) {
-            return gp.helpers.bodyCell.call(this, col);
-        }
-
-        var html = new gp.StringBuilder();
-        var type = col.Type;
-        if (col.Commands) type = 'commands-cell';
-
-        html.add('<td class="body-cell ' + type + '"');
-        if (col.BodyStyle) {
-            html.add(' style="' + col.BodyStyle + '"');
-        }
-        html.add('>')
-        .add(gp.helpers['editCellContent'].call(this, col))
-        .add('</td>');
-        return html.toString();
-    });
-
     extend('editCellContent', function (col) {
         var template, html = new gp.StringBuilder();
 
@@ -217,7 +149,7 @@
                 html.add(col.EditTemplate.call(this, this.Row, col));
             }
             else {
-                html.add(gp.processRowTemplate.call(this, col.EditTemplate, this.Row, col));
+                html.add(gp.processBodyTemplate.call(this, col.EditTemplate, this.Row, col));
             }
         }
         else if (col.Commands) {
@@ -269,7 +201,7 @@
                 html.add(col.FooterTemplate.call(this, col));
             }
             else {
-                html.add(gp.processColumnTemplate.call(this, col.FooterTemplate, col));
+                html.add(gp.processHeaderTemplate.call(this, col.FooterTemplate, col));
             }
         }
         return html.toString();

@@ -6,6 +6,8 @@ Create a list of supported config options for gp.getAttributes.
 
 Change config.data to config.PageModel
 
+Change template to body-template
+
 Always but the delete button last.
 
 Handle validation errors.

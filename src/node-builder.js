@@ -8,12 +8,8 @@ gp.NodeBuilder = function ( ) {
 
 gp.NodeBuilder.prototype = {
 
-    startElem: function ( tagName, value ) {
+    startElem: function ( tagName ) {
         var n = document.createElement( tagName );
-
-        if ( value != undefined ) {
-            n.innerHTML = value;
-        }
 
         if ( this.node ) {
             this.node.appendChild( n );

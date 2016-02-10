@@ -1,7 +1,7 @@
 ﻿/***************\
    ObjectProxy
 \***************/
-gp.ObjectProxy = function (obj, onPropertyChanged, syncChanges) {
+gp.ObjectProxy = function (obj, onPropertyChanged ) {
     var self = this;
     var dict = {};
 
@@ -17,10 +17,6 @@ gp.ObjectProxy = function (obj, onPropertyChanged, syncChanges) {
                 if (dict[prop] != value) {
                     var oldValue = dict[prop];
                     dict[prop] = value;
-                    if ( syncChanges ) {
-                        // write changes back to the original object
-                        obj[prop] = value;
-                    }
                     if ( typeof onPropertyChanged === 'function' ) {
                         onPropertyChanged(self, prop, oldValue, value);
                     }

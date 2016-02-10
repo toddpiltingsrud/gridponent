@@ -127,7 +127,7 @@ gp.Controller.prototype = {
                         else {
 
                             // it's a urlTemplate
-                            window.location = gp.processRowTemplate( config.Onrowselect, model );
+                            window.location = gp.processBodyTemplate( config.Onrowselect, model );
                         }
                     }
                 } );

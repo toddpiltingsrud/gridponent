@@ -32,6 +32,10 @@ fns.searchFilter = function ( row, search ) {
     return row.ProductNumber == search;
 };
 
+fns.getHeaderText = function ( col ) {
+    return col.toString();
+}; 
+
 var configOptions = {
     fixedHeaders: false,
     fixedFooters: false,
@@ -55,6 +59,7 @@ var getTableConfig = function ( options ) {
     div.append( '<script type="text/html" id="template3">Test Header<input type="checkbox"/></script>' );
     div.append( '<script type="text/html" id="template4"><button class="btn"><span class="glyphicon glyphicon-search"></span>{{SafetyStockLevel}}</button></script>' );
     div.append( '<script type="text/html" id="template5"><button class="btn" value="{{fns.getButtonText}}"><span class="glyphicon {{fns.getButtonIcon}}"></span>{{fns.getButtonText}}</button></script>' );
+    div.append( '<script type="text/html" id="template6"><button class="btn" value="">{{fns.getHeaderText}}</button></script>' );
 
     var out = [];
 
@@ -75,11 +80,11 @@ var getTableConfig = function ( options ) {
     out.push( '    <gp-column header="ID" sort="Name" template="fns.getName" edit-template="fns.dropdown"></gp-column>' );
     out.push( '    <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>' );
     out.push( '    <gp-column field="SafetyStockLevel" header="Safety Stock Level" template="#template4" footer-template="fns.average"></gp-column>' );
-    out.push( '    <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.average"></gp-column>' );
+    out.push( '    <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.average" format="C"></gp-column>' );
     out.push( '    <gp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, yyyy"></gp-column>' );
     out.push( '    <gp-column field="Markup" readonly></gp-column>' );
     out.push( '    <gp-column header-template="#template3"></gp-column>' );
-    out.push( '    <gp-column template="#template5"></gp-column>' );
+    out.push( '    <gp-column header-template="#template6" template="#template5" sort="Color" body-style="border:solid 1px #ccc;"></gp-column>' );
     out.push( '    <gp-column field="ProductNumber" header="Product #"></gp-column>' );
     out.push( '    <gp-column commands="Edit,Delete"></gp-column>' );
     if ( options.customCommand ) {
@@ -378,20 +383,44 @@ QUnit.test( 'api.destroy', function ( assert ) {
         done1();
     } );
 
+    // test it with a function
+    fns = fns || {};
+    fns.destroy = function ( row, callback ) {
+        var index = config.data.Data.indexOf( row );
+        config.data.Data.splice( index, 1 );
+        callback();
+    };
+
+    options = gp.shallowCopy( configOptions );
+    options.destroy = 'fns.destroy';
+
+    config = getTableConfig( options );
+
+    var done2 = assert.async();
+
+    row = config.data.Data[0];
+
+    config.node.api.destroy( row, function ( row ) {
+        var index = config.data.Data.indexOf( row );
+        assert.strictEqual( index, -1, 'destroy should remove the row' );
+        done2();
+    } );
+
+
     // now try it with a null destroy setting
     options = gp.shallowCopy( configOptions );
     options.destroy = null;
 
     config = getTableConfig( options );
 
-    var done2 = assert.async();
+    var done3 = assert.async();
 
     row = config.data.Data[1];
 
     config.node.api.destroy( row, function () {
         var index = config.data.Data.indexOf( row );
         assert.ok( index > -1, 'destroy should do nothing' );
-        done2();
+        done3();
     } );
 } );
 
@@ -726,6 +755,39 @@ QUnit.test( 'gp.ClientPager', function ( assert ) {
         assert.equal( response.Data[0].MakeFlag, true, 'descending sort should put true values at the top' );
     } );
 
+    // descending string sort 
+    model.OrderBy = 'Color';
+    model.Top = -1;
+
+    model.Desc = true;
+
+    pager.read( model, function ( response ) {
+        assert.ok( gp.hasValue( response.Data[0].Color ), 'descending string sort should put non-null values at the top ' );
+        assert.ok( response.Data[response.Data.length - 1].Color == null , 'descending string sort should put null values at the bottom ' );
+    } );
+
+    // ascending string sort
+    model.Desc = false;
+
+    pager.read( model, function ( response ) {
+        assert.ok( response.Data[0].Color == null, 'ascending string sort should put null values at the top ' );
+        assert.ok( response.Data[response.Data.length - 1].Color != null, 'ascending string sort should put non-null values at the bottom ' );
+    } );
+
+    // page range checks
+    model.Top = 25;
+    model.Page = 0;
+
+    pager.getSkip( model );
+
+    assert.equal( model.Page, 1, 'getSkip should correct values outside of the page range' );
+
+    model.Page = model.PageCount + 1;
+    pager.getSkip( model );
+
+    assert.equal( model.Page, model.PageCount, 'getSkip should correct values outside of the page range' );
+
+
 } );
 
 QUnit.test( 'gp.Model', function ( assert ) {
@@ -905,32 +967,30 @@ QUnit.test( 'gp.helpers.thead', function ( assert ) {
         assert.ok( headers[2].querySelector( 'label.table-sort > input[type=radio]' ) != null );
 
         assert.equal( headers[6].querySelector( 'label.table-sort' ).textContent, 'Markup' );
-
     }
 
+    // fixed headers, with sorting
     var options = gp.shallowCopy( configOptions );
-
     options.fixedHeaders = true;
     options.sorting = true;
 
-    // fixed headers, with sorting
     var node = getTableConfig( options ).node;
     var headers = node.querySelectorAll( 'div.table-header th.header-cell' );
 
     testHeaders( headers );
 
+    // no fixed headers, with sorting
     options = gp.shallowCopy( configOptions );
     options.sorting = true;
 
-    // no fixed headers, with sorting
     node = getTableConfig( options ).node;
-
     headers = node.querySelectorAll( 'div.table-body th.header-cell' );
-
     testHeaders( headers );
 
     // no fixed headers, no sorting
-    node = getTableConfig( configOptions ).node;
+    options = gp.shallowCopy( configOptions );
+    options.sorting = false;
+    node = getTableConfig( options ).node;
 
     headers = node.querySelectorAll( 'div.table-body th.header-cell' );
 
@@ -1365,37 +1425,27 @@ QUnit.test( 'Intl.NumberFormat', function ( assert ) {
 
 QUnit.test( 'gp.prependChild', function ( assert ) {
 
-    var child = '<span class="glyphicon glyphicon-ok"></span>';
+    $( '#div1' ).empty();
 
-    gp.prependChild( div[0], child );
+    var child = document.createElement( 'span' );
+
+    gp.prependChild( '#div1', child );
 
     var span = div[0].querySelector( 'span' );
 
     assert.equal( span, div[0].firstChild );
 
-    div.empty();
+} );
 
-    child = document.createElement( 'span' );
+QUnit.test( 'gp.createUID', function ( assert ) {
 
-    gp.prependChild( '#div1', child );
+    var id, ids = {};
 
-    span = div[0].querySelector( 'span' );
-
-    assert.equal( span, div[0].firstChild );
-
-    var node = getTableConfig().node;
-
-    var tbody = node.querySelector( 'tbody' );
-
-    child = '<tr data-index="-1"><td class="body-cell"></td></table>';
-
-    var tr = gp.prependChild( tbody, child );
-
-    assert.equal( tr.tagName.toLowerCase(), 'tr', 'prependChild should be able to prepend table rows' );
-
-    var tr2 = tbody.querySelector( 'tr:first-child' );
-
-    assert.equal( tr, tr2, 'should be the first child in the table' );
+    for ( var i = 0; i < 100; i++ ) {
+        id = gp.createUID();
+        assert.ok( !(id in ids) );
+        ids[id] = 1;
+    }
 
 } );
 

@@ -289,7 +289,7 @@ cov.cover(35);
 cov.cover(36);
     
                                 // it's a urlTemplate
-                                window.location = gp.processRowTemplate( config.Onrowselect, model );
+                                window.location = gp.processBodyTemplate( config.Onrowselect, model );
                             }
                         }
                     } );
@@ -842,7 +842,8 @@ cov.cover(97);
             indexer: /\[\d+\]/,
             iso8601: /^[012][0-9]{3}-[01][0-9]-[0123][0-9]/,
             quoted: /^['"].+['"]$/,
-            trueFalse: /true|false/i
+            trueFalse: /true|false/i,
+            braces: /{{.+?}}/g
         };
     
         // logging
@@ -1213,25 +1214,25 @@ cov.cover(149);
             return val;
         };
     
-        gp.processRowTemplate = function ( template, row, col ) {
+        gp.processBodyTemplate = function ( template, row, col ) {
 cov.cover(150);
-            var fn, val, match, tokens = template.match( /{{.+?}}/g );
-            if ( tokens ) {
+            var fn, val, match, braces = template.match( gp.rexp.braces );
+            if ( braces ) {
 cov.cover(151);
-                for ( var i = 0; i < tokens.length; i++ ) {
-                    match = tokens[i].slice( 2, -2 );
+                for ( var i = 0; i < braces.length; i++ ) {
+                    match = braces[i].slice( 2, -2 );
                     if ( match in row ) {
 cov.cover(152);
                         val = row[match];
                         if ( gp.hasValue( val ) === false ) val = '';
-                        template = template.replace( tokens[i], val );
+                        template = template.replace( braces[i], val );
                     }
                     else {
 cov.cover(153);
                         fn = gp.getObjectAtPath( match );
                         if ( typeof fn === 'function' ) {
 cov.cover(154);
-                            template = template.replace( tokens[i], fn.call( this, row, col ) );
+                            template = template.replace( braces[i], fn.call( this, row, col ) );
                         }
                     }
                 }
@@ -1239,17 +1240,17 @@ cov.cover(154);
             return template;
         };
     
-        gp.processColumnTemplate = function ( template, col ) {
+        gp.processHeaderTemplate = function ( template, col ) {
 cov.cover(155);
-            var fn, match, tokens = template.match( /{{.+?}}/g );
-            if ( tokens ) {
+            var fn, match, braces = template.match( gp.rexp.braces );
+            if ( braces ) {
 cov.cover(156);
-                for ( var i = 0; i < tokens.length; i++ ) {
-                    match = tokens[i].slice( 2, -2 );
+                for ( var i = 0; i < braces.length; i++ ) {
+                    match = braces[i].slice( 2, -2 );
                     fn = gp.getObjectAtPath( match );
                     if ( typeof fn === 'function' ) {
 cov.cover(157);
-                        template = template.replace( tokens[i], fn.call( this, col ) );
+                        template = template.replace( braces[i], fn.call( this, col ) );
                     }
                 }
             }
@@ -1279,54 +1280,35 @@ cov.cover(162);
             el.className = gp.trim(( ' ' + el.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
         };
     
-        gp.appendChild = function ( node, child ) {
+        gp.prependChild = function ( node, child ) {
 cov.cover(163);
             if ( typeof node === 'string' ) node = document.querySelector( node );
-            if ( typeof child === 'string' ) {
+            if ( !node.firstChild ) {
 cov.cover(164);
-                // using node.tagName to convert child to DOM node helps ensure that what we create is compatible with node
-                var div = document.createElement( node.tagName.toLowerCase() );
-                div.innerHTML = child;
-                child = div.firstChild;
-            }
-            node.appendChild( child );
-            return child;
-        };
-    
-        gp.prependChild = function ( node, child ) {
-cov.cover(165);
-            if ( typeof node === 'string' ) node = document.querySelector( node );
-            if ( typeof child === 'string' ) {
-cov.cover(166);
-                // using node.tagName to convert child to DOM node helps ensure that what we create is compatible with node
-                var div = document.createElement( node.tagName.toLowerCase() );
-                div.innerHTML = child;
-                child = div.firstChild;
-            }
-            var firstChild = node.firstChild;
-            if ( !firstChild ) {
-cov.cover(167);
                 node.appendChild( child );
             }
-            node.insertBefore( child, firstChild );
+            else {
+cov.cover(165);
+                node.insertBefore( child, node.firstChild );
+            }
             return child;
         };
     
         gp.getRowModel = function ( data, tr ) {
-cov.cover(168);
+cov.cover(166);
             var index = parseInt( tr.attributes['data-index'].value );
             return data[index];
         };
     
         gp.getTableRow = function ( data, row, node ) {
-cov.cover(169);
+cov.cover(167);
             var index = data.indexOf( row );
             if ( index == -1 ) return;
             return node.querySelector( 'tr[data-index="' + index + '"]' );
         };
     
         gp.raiseCustomEvent = function ( node, name, detail ) {
-cov.cover(170);
+cov.cover(168);
             var event = new CustomEvent( name, { bubbles: true, detail: detail, cancelable: true } );
             node.dispatchEvent( event );
             gp.info( 'raiseCustomEvent: name', name );
@@ -1345,7 +1327,7 @@ cov.cover(170);
         };
     
         gp.tryCallback = function ( callback, $this, args ) {
-cov.cover(171);
+cov.cover(169);
             if ( typeof callback !== 'function' ) return;
             // anytime there's the possibility of executing 
             // user-supplied code, wrap it with a try-catch block
@@ -1353,11 +1335,11 @@ cov.cover(171);
             // keep your sloppy JavaScript OUT of my area
             try {
                 if ( args == undefined ) {
-cov.cover(172);
+cov.cover(170);
                     callback.call( $this );
                 }
                 else {
-cov.cover(173);
+cov.cover(171);
                     args = Array.isArray( args ) ? args : [args];
                     callback.apply( $this, args );
                 }
@@ -1374,72 +1356,34 @@ cov.cover(173);
     \***************/
     
     (function () {
-cov.cover(174);
+cov.cover(172);
     
         gp.helpers = {};
     
         var extend = function (name, func) {
-cov.cover(175);
+cov.cover(173);
             gp.helpers[name] = func;
         };
     
-        extend('template', function (name, arg) {
-cov.cover(176);
-            var template = gp.templates[name];
-            if (template) {
-cov.cover(177);
-                return template(this, arg);
-            }
-        });
-    
-        extend('toolbarTemplate', function () {
-cov.cover(178);
-            var html = new gp.StringBuilder();
-    
-            if (this.ToolbarTemplate) {
-cov.cover(179);
-                // it's either a selector or a function name
-                template = gp.getObjectAtPath(this.ToolbarTemplate);
-                if (typeof (template) === 'function') {
-cov.cover(180);
-                    html.add(template(this));
-                }
-                else {
-cov.cover(181);
-                    template = document.querySelector(this.ToolbarTemplate);
-                    if (template) {
-cov.cover(182);
-                        html.add(template.innerHTML);
-                    }
-                }
-            }
-    
-            return html.toString();
-        });
-    
         extend('thead', function () {
-cov.cover(183);
+cov.cover(174);
             var self = this;
             var html = new gp.StringBuilder();
             var sort, type, template;
             html.add('<thead>');
             html.add('<tr>');
             this.Columns.forEach(function (col) {
-cov.cover(184);
+cov.cover(175);
                 if (self.Sorting) {
-cov.cover(185);
+cov.cover(176);
                     // if sort isn't specified, use the field
                     sort = gp.escapeHTML(gp.coalesce([col.Sort, col.Field]));
                 }
                 else {
-cov.cover(186);
+cov.cover(177);
                     // only provide sorting where it is explicitly specified
-                    if (col.Sort === true && gp.hasValue(col.Field)) {
-cov.cover(187);
-                        sort = gp.escapeHTML(col.Field);
-                    }
-                    else {
-cov.cover(188);
+                    if (gp.hasValue(col.Sort)) {
+cov.cover(178);
                         sort = gp.escapeHTML(col.Sort);
                     }
                 }
@@ -1451,27 +1395,27 @@ cov.cover(188);
     
                 // check for a template
                 if (col.HeaderTemplate) {
-cov.cover(189);
+cov.cover(179);
                     gp.verbose('helpers.thead: col.HeaderTemplate:');
                     gp.verbose(col.HeaderTemplate);
                     if (typeof (col.HeaderTemplate) === 'function') {
-cov.cover(190);
+cov.cover(180);
                         html.add(col.HeaderTemplate.call(self, col));
                     }
                     else {
-cov.cover(191);
-                        html.add(gp.processColumnTemplate.call(this, col.HeaderTemplate, col));
+cov.cover(181);
+                        html.add(gp.processHeaderTemplate.call(this, col.HeaderTemplate, col));
                     }
                 }
                 else if (gp.hasValue(sort)) {
-cov.cover(192);
+cov.cover(182);
                     html.add('<label class="table-sort">')
                     .add('<input type="radio" name="OrderBy" value="' + sort + '" />')
                     .add(gp.coalesce([col.Header, col.Field, sort]))
                     .add('</label>');
                 }
                 else {
-cov.cover(193);
+cov.cover(183);
                     html.add(gp.coalesce([col.Header, col.Field, '&nbsp;']));
                 }
                 html.add('</th>');
@@ -1482,11 +1426,11 @@ cov.cover(193);
         });
     
         extend('tableRows', function() {
-cov.cover(194);
+cov.cover(184);
             var self = this;
             var html = new gp.StringBuilder();
             this.data.Data.forEach(function (row, index) {
-cov.cover(195);
+cov.cover(185);
                 self.Row = row;
                 html.add('<tr data-index="')
                 .add(index)
@@ -1497,29 +1441,8 @@ cov.cover(195);
             return html.toString();
         });
     
-        extend('rowIndex', function () {
-cov.cover(196);
-            return this.data.Data.indexOf(this.Row);
-        });
-    
-        extend('bodyCell', function (col) {
-cov.cover(197);
-            var type = ( col.Type || '' ).toLowerCase();
-            gp.info( 'bodyCell: type:', type );
-            var html = new gp.StringBuilder();
-            html.add('<td class="body-cell ' + type + '"');
-            if (col.BodyStyle) {
-cov.cover(198);
-                html.add(' style="' + col.BodyStyle + '"');
-            }
-            html.add('>')
-                .add(gp.helpers['bodyCellContent'].call(this, col))
-                .add('</td>');
-            return html.toString();
-        });
-    
         extend( 'bodyCellContent', function ( col ) {
-cov.cover(199);
+cov.cover(186);
             var self = this,
                 template,
                 format,
@@ -1530,23 +1453,23 @@ cov.cover(199);
     
             // check for a template
             if (col.Template) {
-cov.cover(200);
+cov.cover(187);
                 if (typeof (col.Template) === 'function') {
-cov.cover(201);
+cov.cover(188);
                     html.add(col.Template.call(this, this.Row, col));
                 }
                 else {
-cov.cover(202);
-                    html.add(gp.processRowTemplate.call(this, col.Template, this.Row, col));
+cov.cover(189);
+                    html.add(gp.processBodyTemplate.call(this, col.Template, this.Row, col));
                 }
             }
             else if (col.Commands && col.Commands.length) {
-cov.cover(203);
+cov.cover(190);
                 html.add('<div class="btn-group" role="group">');
                 col.Commands.forEach(function (cmd, index) {
-cov.cover(204);
+cov.cover(191);
                     if (cmd == 'Edit' && gp.hasValue(self.Update )) {
-cov.cover(205);
+cov.cover(192);
                         html.add('<button type="button" class="btn btn-default btn-xs" value="')
                             .add(cmd)
                             .add('">')
@@ -1555,12 +1478,12 @@ cov.cover(205);
                             .add('</button>');
                     }
                     else if ( cmd == 'Delete' && gp.hasValue( self.Destroy ) ) {
-cov.cover(206);
+cov.cover(193);
                         // put the delete btn last
                         hasDeleteBtn = true;
                     }
                     else {
-cov.cover(207);
+cov.cover(194);
                         html.add( '<button type="button" class="btn btn-default btn-xs" value="' )
                             .add( cmd )
                             .add( '">' )
@@ -1572,7 +1495,7 @@ cov.cover(207);
     
                 // put the delete btn last
                 if ( hasDeleteBtn ) {
-cov.cover(208);
+cov.cover(195);
                     html.add( '<button type="button" class="btn btn-danger btn-xs" value="Delete">' )
                         .add( '<span class="glyphicon glyphicon-remove"></span>Delete' )
                         .add( '</button>' );
@@ -1581,64 +1504,41 @@ cov.cover(208);
                 html.add('</div>');
             }
             else if (gp.hasValue(val)) {
-cov.cover(209);
+cov.cover(196);
                 // show a checkmark for bools
                 if (type === 'boolean') {
-cov.cover(210);
+cov.cover(197);
                     if (val === true) {
-cov.cover(211);
+cov.cover(198);
                         html.add('<span class="glyphicon glyphicon-ok"></span>');
                     }
                 }
                 else {
-cov.cover(212);
+cov.cover(199);
                     html.add(val);
                 }
             }
             return html.toString();
         });
     
-    
-        extend('editCell', function (col) {
-cov.cover(213);
-            if (col.Readonly) {
-cov.cover(214);
-                return gp.helpers.bodyCell.call(this, col);
-            }
-    
-            var html = new gp.StringBuilder();
-            var type = col.Type;
-            if (col.Commands) type = 'commands-cell';
-    
-            html.add('<td class="body-cell ' + type + '"');
-            if (col.BodyStyle) {
-cov.cover(215);
-                html.add(' style="' + col.BodyStyle + '"');
-            }
-            html.add('>')
-            .add(gp.helpers['editCellContent'].call(this, col))
-            .add('</td>');
-            return html.toString();
-        });
-    
         extend('editCellContent', function (col) {
-cov.cover(216);
+cov.cover(200);
             var template, html = new gp.StringBuilder();
     
             // check for a template
             if (col.EditTemplate) {
-cov.cover(217);
+cov.cover(201);
                 if (typeof (col.EditTemplate) === 'function') {
-cov.cover(218);
+cov.cover(202);
                     html.add(col.EditTemplate.call(this, this.Row, col));
                 }
                 else {
-cov.cover(219);
-                    html.add(gp.processRowTemplate.call(this, col.EditTemplate, this.Row, col));
+cov.cover(203);
+                    html.add(gp.processBodyTemplate.call(this, col.EditTemplate, this.Row, col));
                 }
             }
             else if (col.Commands) {
-cov.cover(220);
+cov.cover(204);
                 html.add('<div class="btn-group" role="group">')
                     .add('<button type="button" class="btn btn-primary btn-xs" value="Update">')
                     .add('<span class="glyphicon glyphicon-save"></span>Save')
@@ -1649,7 +1549,7 @@ cov.cover(220);
                     .add('</div>');
             }
             else {
-cov.cover(221);
+cov.cover(205);
                 var val = this.Row[col.Field];
                 // render empty cell if this field doesn't exist in the data
                 if (val === undefined) return '';
@@ -1669,7 +1569,7 @@ cov.cover(221);
                     case 'boolean':
                         html.add('checkbox" value="true"');
                         if (val) {
-cov.cover(222);
+cov.cover(206);
                             html.add(' checked="checked"');
                         }
                         html.add(' />');
@@ -1683,24 +1583,24 @@ cov.cover(222);
         });
     
         extend('footerCell', function (col) {
-cov.cover(223);
+cov.cover(207);
             var html = new gp.StringBuilder();
             if (col.FooterTemplate) {
-cov.cover(224);
+cov.cover(208);
                 if (typeof (col.FooterTemplate) === 'function') {
-cov.cover(225);
+cov.cover(209);
                     html.add(col.FooterTemplate.call(this, col));
                 }
                 else {
-cov.cover(226);
-                    html.add(gp.processColumnTemplate.call(this, col.FooterTemplate, col));
+cov.cover(210);
+                    html.add(gp.processHeaderTemplate.call(this, col.FooterTemplate, col));
                 }
             }
             return html.toString();
         });
     
         extend('setPagerFlags', function () {
-cov.cover(227);
+cov.cover(211);
             this.data.IsFirstPage = this.data.Page === 1;
             this.data.IsLastPage = this.data.Page === this.data.PageCount;
             this.data.HasPages = this.data.PageCount > 1;
@@ -1709,18 +1609,18 @@ cov.cover(227);
         });
     
         extend('sortStyle', function () {
-cov.cover(228);
+cov.cover(212);
             var html = new gp.StringBuilder();
             if (gp.isNullOrEmpty(this.data.OrderBy) === false) {
-cov.cover(229);
+cov.cover(213);
                 html.add('#' + this.ID + ' thead th.header-cell.' + this.data.OrderBy + '> label:after')
                     .add('{ content: ');
                 if (this.data.Desc) {
-cov.cover(230);
+cov.cover(214);
                     html.add('"\\e114"; }');
                 }
                 else {
-cov.cover(231);
+cov.cover(215);
                     html.add('"\\e113"; }');
                 }
             }
@@ -1728,7 +1628,7 @@ cov.cover(231);
         });
     
         extend('columnWidthStyle', function () {
-cov.cover(232);
+cov.cover(216);
             var self = this,
                 html = new gp.StringBuilder(),
                 index = 0,
@@ -1736,11 +1636,11 @@ cov.cover(232);
     
             // even though the table might not exist yet, we still should render width styles because there might be fixed widths specified
             this.Columns.forEach(function (col) {
-cov.cover(233);
+cov.cover(217);
                 html.add('#' + self.ID + ' .table-header th.header-cell:nth-child(' + (index + 1) + '),')
                     .add('#' + self.ID + ' .table-footer td.footer-cell:nth-child(' + (index + 1) + ')');
                 if (col.Width) {
-cov.cover(234);
+cov.cover(218);
                     // fixed width should include the body
                     html.add(',')
                         .add('#' + self.ID + ' > .table-body > table > thead th:nth-child(' + (index + 1) + '),')
@@ -1750,7 +1650,7 @@ cov.cover(234);
                     if (isNaN(col.Width) == false) html.add('px');
                 }
                 else if (bodyCols.length && (self.FixedHeaders || self.FixedFooters)) {
-cov.cover(235);
+cov.cover(219);
                     // sync header and footer to body
                     width = bodyCols[index].offsetWidth;
                     html.add('{ width:')
@@ -1768,30 +1668,30 @@ cov.cover(235);
         });
     
         extend('containerClasses', function () {
-cov.cover(236);
+cov.cover(220);
             var html = new gp.StringBuilder();
             if (this.FixedHeaders) {
-cov.cover(237);
+cov.cover(221);
                 html.add(' fixed-headers');
             }
             if (this.FixedFooters) {
-cov.cover(238);
+cov.cover(222);
                 html.add(' fixed-footers');
             }
             if (this.Pager) {
-cov.cover(239);
+cov.cover(223);
                 html.add(' pager-' + this.Pager);
             }
             if (this.Responsive) {
-cov.cover(240);
+cov.cover(224);
                 html.add(' responsive');
             }
             if (this.Search) {
-cov.cover(241);
+cov.cover(225);
                 html.add(' search-' + this.Search);
             }
             if (this.Onrowselect) {
-cov.cover(242);
+cov.cover(226);
                 html.add(' selectable');
             }
             return html.toString();
@@ -1803,14 +1703,14 @@ cov.cover(242);
        Initializer
     \***************/
     gp.Initializer = function ( node ) {
-cov.cover(243);
+cov.cover(227);
         this.node = node;
     };
     
     gp.Initializer.prototype = {
     
         initialize: function (callback) {
-cov.cover(244);
+cov.cover(228);
             var self = this;
             this.config = this.getConfig(this.node);
             this.node.config = this.config;
@@ -1820,7 +1720,7 @@ cov.cover(244);
             this.node.api = new gp.api( controller );
     
             model.read( requestModel, function ( data ) {
-cov.cover(245);
+cov.cover(229);
                 self.config.data = data;
                 self.resolvePaging( self.config );
                 self.resolveTypes( self.config );
@@ -1837,7 +1737,7 @@ cov.cover(245);
         },
     
         getConfig: function (node) {
-cov.cover(246);
+cov.cover(230);
             var self = this;
             var obj, config = gp.getAttributes(node);
             config.Columns = [];
@@ -1853,10 +1753,10 @@ cov.cover(246);
             config.Footer = this.resolveFooter(config);
             var options = 'Onrowselect SearchFunction Read Create Update Destroy'.split(' ');
             options.forEach( function ( option ) {
-cov.cover(247);
+cov.cover(231);
     
                 if ( gp.hasValue(config[option]) ) {
-cov.cover(248);
+cov.cover(232);
                     // see if this config option points to an object
                     // otherwise it must be a URL
                     obj = gp.getObjectAtPath( config[option] );
@@ -1870,7 +1770,7 @@ cov.cover(248);
         },
     
         render: function ( config ) {
-cov.cover(249);
+cov.cover(233);
             var self = this;
             try {
                 var node = config.node;
@@ -1879,11 +1779,11 @@ cov.cover(249);
     
                 // sync column widths
                 if ( config.FixedHeaders || config.FixedFooters ) {
-cov.cover(250);
+cov.cover(234);
                     var nodes = node.querySelectorAll( '.table-body > table > tbody > tr:first-child > td' );
     
                     if ( gp.hasPositiveWidth( nodes ) ) {
-cov.cover(251);
+cov.cover(235);
                         // call syncColumnWidths twice because the first call causes things to shift around a bit
                         self.syncColumnWidths( config )
                         self.syncColumnWidths( config )
@@ -1898,7 +1798,7 @@ cov.cover(251);
                     //}
     
                     window.addEventListener( 'resize', function () {
-cov.cover(252);
+cov.cover(236);
                         self.syncColumnWidths( config );
                     } );
                 }
@@ -1909,13 +1809,13 @@ cov.cover(252);
         },
     
         syncColumnWidths: function (config) {
-cov.cover(253);
+cov.cover(237);
             var html = gp.helpers.columnWidthStyle.call( config );
             config.node.querySelector( 'style.column-width-style' ).innerHTML = html;
         },
     
         resolveFooter: function (config) {
-cov.cover(254);
+cov.cover(238);
             for (var i = 0; i < config.Columns.length; i++) {
                 if (config.Columns[i].FooterTemplate) return true;
             }
@@ -1923,36 +1823,36 @@ cov.cover(254);
         },
     
         resolveTemplates: function (column) {
-cov.cover(255);
+cov.cover(239);
             var props = 'HeaderTemplate Template EditTemplate FooterTemplate'.split(' ');
             props.forEach(function (prop) {
-cov.cover(256);
+cov.cover(240);
                 column[prop] = gp.resolveTemplate(column[prop]);
             });
         },
     
         resolveCommands: function (col) {
-cov.cover(257);
+cov.cover(241);
             if (col.Commands) {
-cov.cover(258);
+cov.cover(242);
                 col.Commands = col.Commands.split(',');
             }
         },
     
         resolvePaging: function ( config ) {
-cov.cover(259);
+cov.cover(243);
             // if we've got all the data, do paging/sorting/searching on the client
     
         },
     
         resolveTypes: function ( config ) {
-cov.cover(260);
+cov.cover(244);
             if ( !config || !config.data || !config.data.Data ) return;
             config.Columns.forEach( function ( col ) {
-cov.cover(261);
+cov.cover(245);
                 for ( var i = 0; i < config.data.Data.length; i++ ) {
                     if ( config.data.Data[i][col.Field] !== null ) {
-cov.cover(262);
+cov.cover(246);
                         col.Type = gp.getType( config.data.Data[i][col.Field] );
                         break;
                     }
@@ -1986,7 +1886,7 @@ cov.cover(262);
        mock-http
     \***************/
     (function (gp) {
-cov.cover(263);
+cov.cover(247);
         gp.Http = function () { };
     
         // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
@@ -1999,106 +1899,106 @@ cov.cover(263);
     
         gp.Http.prototype = {
             serialize: function (obj, props) {
-cov.cover(264);
+cov.cover(248);
                 // creates a query string from a simple object
                 var self = this;
                 props = props || Object.getOwnPropertyNames(obj);
                 var out = [];
                 props.forEach(function (prop) {
-cov.cover(265);
+cov.cover(249);
                     out.push(encodeURIComponent(prop) + '=' + encodeURIComponent(obj[prop]));
                 });
                 return out.join('&');
             },
             deserialize: function (queryString) {
-cov.cover(266);
+cov.cover(250);
                 var nameValue, split = queryString.split( '&' );
                 var obj = {};
                 if ( !queryString ) return obj;
                 split.forEach( function ( s ) {
-cov.cover(267);
+cov.cover(251);
                     nameValue = s.split( '=' );
                     var val = nameValue[1];
                     if ( !val ) {
-cov.cover(268);
+cov.cover(252);
                         obj[nameValue[0]] = null;
                     }
                     else if ( /true|false/i.test( val ) ) {
-cov.cover(269);
+cov.cover(253);
                         obj[nameValue[0]] = ( /true/i.test( val ) );
                     }
                     else if ( parseFloat( val ).toString() === val ) {
-cov.cover(270);
+cov.cover(254);
                         obj[nameValue[0]] = parseFloat( val );
                     }
                     else {
-cov.cover(271);
+cov.cover(255);
                         obj[nameValue[0]] = val;
                     }
                 } );
                 return obj;
             },
             get: function (url, callback, error) {
-cov.cover(272);
+cov.cover(256);
                 if (routes.read.test(url)) {
-cov.cover(273);
+cov.cover(257);
                     var index = url.substring(url.indexOf('?'));
                     if (index !== -1) {
-cov.cover(274);
+cov.cover(258);
                         var queryString = url.substring(index + 1);
                         var model = this.deserialize(queryString);
                         this.post(url.substring(0, index), model, callback, error);
                     }
                     else {
-cov.cover(275);
+cov.cover(259);
                         this.post(url, null, callback, error);
                     }
                 }
                 else if (routes.create.test(url)) {
-cov.cover(276);
+cov.cover(260);
                     var result = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
                     callback(result);
                 }
                 else {
-cov.cover(277);
+cov.cover(261);
                     throw 'Not found: ' + url;
                 }
             },
             post: function (url, model, callback, error) {
-cov.cover(278);
+cov.cover(262);
                 model = model || {};
                 if (routes.read.test(url)) {
-cov.cover(279);
+cov.cover(263);
                     getData(model, callback);
                 }
                 else if (routes.update.test(url)) {
-cov.cover(280);
+cov.cover(264);
                     callback(model);
                 }
                 else if (routes.destroy.test(url)) {
-cov.cover(281);
+cov.cover(265);
                     var index = data.products.indexOf(model);
                     callback(true);
                 }
                 else {
-cov.cover(282);
+cov.cover(266);
                     throw '404 Not found: ' + url;
                 }
             }
         };
     
         var getData = function (model, callback) {
-cov.cover(283);
+cov.cover(267);
             var count, d = data.products;
             if (!gp.isNullOrEmpty(model.Search)) {
-cov.cover(284);
+cov.cover(268);
                 var props = Object.getOwnPropertyNames(d[0]);
                 var search = model.Search.toLowerCase();
                 d = d.filter(function (row) {
-cov.cover(285);
+cov.cover(269);
                     for (var i = 0; i < props.length; i++) {
                         if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
-cov.cover(286);
+cov.cover(270);
                             return true;
                         }
                     }
@@ -2106,31 +2006,31 @@ cov.cover(286);
                 });
             }
             if (!gp.isNullOrEmpty(model.OrderBy)) {
-cov.cover(287);
+cov.cover(271);
                 if (model.Desc) {
-cov.cover(288);
+cov.cover(272);
                     d.sort(function (row1, row2) {
-cov.cover(289);
+cov.cover(273);
                         var a = row1[model.OrderBy];
                         var b = row2[model.OrderBy];
                         if (a === null) {
-cov.cover(290);
+cov.cover(274);
                             if (b != null) {
-cov.cover(291);
+cov.cover(275);
                                 return 1;
                             }
                         }
                         else if (b === null) {
-cov.cover(292);
+cov.cover(276);
                             // we already know a isn't null
                             return -1;
                         }
                         if (a > b) {
-cov.cover(293);
+cov.cover(277);
                             return -1;
                         }
                         if (a < b) {
-cov.cover(294);
+cov.cover(278);
                             return 1;
                         }
     
@@ -2138,29 +2038,29 @@ cov.cover(294);
                     });
                 }
                 else {
-cov.cover(295);
+cov.cover(279);
                     d.sort(function (row1, row2) {
-cov.cover(296);
+cov.cover(280);
                         var a = row1[model.OrderBy];
                         var b = row2[model.OrderBy];
                         if (a === null) {
-cov.cover(297);
+cov.cover(281);
                             if (b != null) {
-cov.cover(298);
+cov.cover(282);
                                 return -1;
                             }
                         }
                         else if (b === null) {
-cov.cover(299);
+cov.cover(283);
                             // we already know a isn't null
                             return 1;
                         }
                         if (a > b) {
-cov.cover(300);
+cov.cover(284);
                             return 1;
                         }
                         if (a < b) {
-cov.cover(301);
+cov.cover(285);
                             return -1;
                         }
     
@@ -2170,16 +2070,16 @@ cov.cover(301);
             }
             count = d.length;
             if (model.Top !== -1) {
-cov.cover(302);
+cov.cover(286);
                 model.Data = d.slice(model.Skip).slice(0, model.Top);
             }
             else {
-cov.cover(303);
+cov.cover(287);
                 model.Data = d;
             }
             model.ValidationErrors = [];
             setTimeout(function () {
-cov.cover(304);
+cov.cover(288);
                 callback(model);
             });
     
@@ -2191,7 +2091,7 @@ cov.cover(304);
          model
     \***************/
     gp.Model = function ( config ) {
-cov.cover(305);
+cov.cover(289);
         this.config = config;
         this.dal = null;
         var type = gp.getType( config.Read );
@@ -2220,42 +2120,42 @@ cov.cover(305);
     gp.Model.prototype = {
     
         read: function ( requestModel, callback ) {
-cov.cover(306);
+cov.cover(290);
             var self = this;
             gp.info( 'Model.read: requestModel:', requestModel );
     
             gp.info( 'Model.dal: :', this.dal );
     
             this.dal.read( requestModel, function (arg) {
-cov.cover(307);
+cov.cover(291);
                 gp.tryCallback( callback, self.config.node, arg );
             } );
         },
     
         create: function (callback) {
-cov.cover(308);
+cov.cover(292);
             var self = this,
                 row;
     
             if ( typeof this.config.Create === 'function' ) {
-cov.cover(309);
+cov.cover(293);
                 this.config.Create( function ( row ) {
-cov.cover(310);
+cov.cover(294);
                     if (self.config.data.Data && self.config.data.Data.push) {
-cov.cover(311);
+cov.cover(295);
                         self.config.data.Data.push(row);
                     }
                     gp.tryCallback( callback, self.config.node, row );
                 } );
             }
             else {
-cov.cover(312);
+cov.cover(296);
                 // ask the server for a new record
                 var http = new gp.Http();
                 http.get(this.config.Create, function (row) {
-cov.cover(313);
+cov.cover(297);
                     if (self.config.data.Data && self.config.data.Data.push) {
-cov.cover(314);
+cov.cover(298);
                         self.config.data.Data.push(row);
                     }
                     gp.tryCallback( callback, self.config.node, row );
@@ -2264,42 +2164,42 @@ cov.cover(314);
         },
     
         update: function (updateModel, callback) {
-cov.cover(315);
+cov.cover(299);
             var self = this;
             // config.Update can be a function or URL
             gp.raiseCustomEvent( this.config.node, gp.events.beforeUpdate );
             if ( typeof this.config.Update === 'function' ) {
-cov.cover(316);
+cov.cover(300);
                 this.config.Update( updateModel, function ( arg ) {
-cov.cover(317);
+cov.cover(301);
                     gp.tryCallback( callback, self.config.node, arg );
                 } );
             }
             else {
-cov.cover(318);
+cov.cover(302);
                 var http = new gp.Http();
                 http.post( this.config.Update, updateModel, function ( arg ) {
-cov.cover(319);
+cov.cover(303);
                     gp.tryCallback( callback, self.config.node, arg );
                 } );
             }
         },
     
         destroy: function (row, callback) {
-cov.cover(320);
+cov.cover(304);
             var self = this;
             if ( typeof this.config.Destroy === 'function' ) {
-cov.cover(321);
+cov.cover(305);
                 this.config.Destroy( row, function ( arg ) {
-cov.cover(322);
+cov.cover(306);
                     gp.tryCallback( callback, self.config.node, arg );
                 } );
             }
             else {
-cov.cover(323);
+cov.cover(307);
                 var http = new gp.Http();
                 http.post( this.config.Destroy, row, function ( arg ) {
-cov.cover(324);
+cov.cover(308);
                     gp.tryCallback( callback, self.config.node, arg );
                 } );
             }
@@ -2312,23 +2212,18 @@ cov.cover(324);
     \***************/
     
     gp.NodeBuilder = function ( ) {
-cov.cover(325);
+cov.cover(309);
         this.node = null;
     };
     
     gp.NodeBuilder.prototype = {
     
-        startElem: function ( tagName, value ) {
-cov.cover(326);
+        startElem: function ( tagName ) {
+cov.cover(310);
             var n = document.createElement( tagName );
     
-            if ( value != undefined ) {
-cov.cover(327);
-                n.innerHTML = value;
-            }
-    
             if ( this.node ) {
-cov.cover(328);
+cov.cover(311);
                 this.node.appendChild( n );
             }
     
@@ -2338,11 +2233,11 @@ cov.cover(328);
         },
     
         addClass: function ( name ) {
-cov.cover(329);
+cov.cover(312);
             var hasClass = ( ' ' + this.node.className + ' ' ).indexOf( ' ' + name + ' ' ) !== -1;
     
             if ( !hasClass ) {
-cov.cover(330);
+cov.cover(313);
                 this.node.className = ( this.node.className === '' ) ? name : this.node.className + ' ' + name;
             }
     
@@ -2350,26 +2245,26 @@ cov.cover(330);
         },
     
         html: function ( html ) {
-cov.cover(331);
+cov.cover(314);
             if (gp.hasClass(html) && html !== '') this.node.innerHTML = html;
             return this;
         },
     
         endElem: function () {
-cov.cover(332);
+cov.cover(315);
             if ( this.node.parentElement ) {
-cov.cover(333);
+cov.cover(316);
                 this.node = this.node.parentElement;
             }
             return this;
         },
     
         attr: function ( name, value ) {
-cov.cover(334);
+cov.cover(317);
             var attr = document.createAttribute( name );
     
             if ( value != undefined ) {
-cov.cover(335);
+cov.cover(318);
                 attr.value = value;
             }
     
@@ -2379,7 +2274,7 @@ cov.cover(335);
         },
     
         close: function () {
-cov.cover(336);
+cov.cover(319);
             while ( this.node.parentElement ) {
                 this.node = this.node.parentElement;
             }
@@ -2391,8 +2286,8 @@ cov.cover(336);
     /***************\
        ObjectProxy
     \***************/
-    gp.ObjectProxy = function (obj, onPropertyChanged, syncChanges) {
-cov.cover(337);
+    gp.ObjectProxy = function (obj, onPropertyChanged ) {
+cov.cover(320);
         var self = this;
         var dict = {};
     
@@ -2400,25 +2295,20 @@ cov.cover(337);
         var props = Object.getOwnPropertyNames( obj );
     
         props.forEach(function (prop) {
-cov.cover(338);
+cov.cover(321);
             Object.defineProperty(self, prop, {
                 get: function () {
-cov.cover(339);
+cov.cover(322);
                     return dict[prop];
                 },
                 set: function (value) {
-cov.cover(340);
+cov.cover(323);
                     if (dict[prop] != value) {
-cov.cover(341);
+cov.cover(324);
                         var oldValue = dict[prop];
                         dict[prop] = value;
-                        if ( syncChanges ) {
-cov.cover(342);
-                            // write changes back to the original object
-                            obj[prop] = value;
-                        }
                         if ( typeof onPropertyChanged === 'function' ) {
-cov.cover(343);
+cov.cover(325);
                             onPropertyChanged(self, prop, oldValue, value);
                         }
                     }
@@ -2432,14 +2322,14 @@ cov.cover(343);
     server-side pager
     \***************/
     gp.ServerPager = function (config) {
-cov.cover(344);
+cov.cover(326);
         this.config = config;
         this.url = config.Read;
     };
     
     gp.ServerPager.prototype = {
         read: function (model, callback, error) {
-cov.cover(345);
+cov.cover(327);
             var h = new gp.Http();
             h.post(this.url, model, callback, error);
         }
@@ -2450,26 +2340,26 @@ cov.cover(345);
     client-side pager
     \***************/
     gp.ClientPager = function (config) {
-cov.cover(346);
+cov.cover(328);
         var value, self = this;
         this.data = config.data.Data;
         this.columns = config.Columns.filter(function (c) {
-cov.cover(347);
+cov.cover(329);
             return c.Field !== undefined || c.Sort !== undefined;
         });
         if (typeof config.SearchFunction === 'function') {
-cov.cover(348);
+cov.cover(330);
             this.searchFilter = config.SearchFunction;
         }
         else {
-cov.cover(349);
+cov.cover(331);
             this.searchFilter = function (row, search) {
-cov.cover(350);
+cov.cover(332);
                 var s = search.toLowerCase();
                 for (var i = 0; i < self.columns.length; i++) {
                     value = gp.getFormattedValue( row, self.columns[i], false );
                     if (gp.hasValue(value) && value.toString().toLowerCase().indexOf(s) !== -1) {
-cov.cover(351);
+cov.cover(333);
                         return true;
                     }
                 }
@@ -2480,7 +2370,7 @@ cov.cover(351);
     
     gp.ClientPager.prototype = {
         read: function (model, callback, error) {
-cov.cover(352);
+cov.cover(334);
             try {
                 var self = this;
                 var skip = this.getSkip( model );
@@ -2490,9 +2380,9 @@ cov.cover(352);
                 var count;
                 // filter first
                 if (!gp.isNullOrEmpty(model.Search)) {
-cov.cover(353);
+cov.cover(335);
                     model.Data = model.Data.filter(function (row) {
-cov.cover(354);
+cov.cover(336);
                         return self.searchFilter(row, model.Search);
                     });
                 }
@@ -2502,14 +2392,14 @@ cov.cover(354);
     
                 // then sort
                 if (gp.isNullOrEmpty(model.OrderBy) === false) {
-cov.cover(355);
+cov.cover(337);
                     var col = this.getColumnByField( this.columns, model.OrderBy );
                     if (gp.hasValue(col)) {
-cov.cover(356);
+cov.cover(338);
                         var sortFunction = this.getSortFunction( col, model.Desc );
                         var fieldName = col.Field || col.Sort;
                         model.Data.sort( function ( row1, row2 ) {
-cov.cover(357);
+cov.cover(339);
                             return sortFunction( row1[fieldName], row2[fieldName] );
                         });
                     }
@@ -2517,7 +2407,7 @@ cov.cover(357);
     
                 // then page
                 if (model.Top !== -1) {
-cov.cover(358);
+cov.cover(340);
                     model.Data = model.Data.slice(skip).slice(0, model.Top);
                 }
             }
@@ -2527,99 +2417,101 @@ cov.cover(358);
             callback(model);
         },
         getSkip: function ( model ) {
-cov.cover(359);
+cov.cover(341);
             var data = model;
             if ( data.PageCount == 0 ) {
-cov.cover(360);
+cov.cover(342);
                 return 0;
             }
             if ( data.Page < 1 ) {
-cov.cover(361);
+cov.cover(343);
                 data.Page = 1;
             }
             else if ( data.Page > data.PageCount ) {
-cov.cover(362);
+cov.cover(344);
                 return data.Page = data.PageCount;
             }
             return ( data.Page - 1 ) * data.Top;
         },
         getColumnByField: function ( columns, field ) {
-cov.cover(363);
+cov.cover(345);
             var col = columns.filter(function (c) { return c.Field === field || c.Sort === field });
             return col.length ? col[0] : null;
         },
         getSortFunction: function (col, desc) {
-cov.cover(364);
+cov.cover(346);
             if ( /number|date|boolean/.test( col.Type ) ) {
-cov.cover(365);
+cov.cover(347);
                 if ( desc ) {
-cov.cover(366);
+cov.cover(348);
                     return this.diffSortDesc;
                 }
                 return this.diffSortAsc;
             }
             else {
-cov.cover(367);
+cov.cover(349);
                 if ( desc ) {
-cov.cover(368);
+cov.cover(350);
                     return this.stringSortDesc;
                 }
                 return this.stringSortAsc;
             }
         },
         diffSortDesc: function(a, b) {
-cov.cover(369);
+cov.cover(351);
             return b - a;
         },
         diffSortAsc: function(a, b) {
-cov.cover(370);
+cov.cover(352);
             return a - b;
         },
         stringSortDesc: function (a, b) {
-cov.cover(371);
+cov.cover(353);
             if (a === null) {
-cov.cover(372);
+cov.cover(354);
                 if (b != null) {
-cov.cover(373);
+cov.cover(355);
                     return 1;
                 }
+                return 0;
             }
             else if (b === null) {
-cov.cover(374);
+cov.cover(356);
                 // we already know a isn't null
                 return -1;
             }
             if (a.toLowerCase() > b.toLowerCase()) {
-cov.cover(375);
+cov.cover(357);
                 return -1;
             }
             if (a.toLowerCase() < b.toLowerCase()) {
-cov.cover(376);
+cov.cover(358);
                 return 1;
             }
     
             return 0;
         },
         stringSortAsc: function (a, b) {
-cov.cover(377);
+cov.cover(359);
             if (a === null) {
-cov.cover(378);
+cov.cover(360);
                 if (b != null) {
-cov.cover(379);
+cov.cover(361);
                     return -1;
                 }
+                return 0;
             }
             else if (b === null) {
-cov.cover(380);
+cov.cover(362);
                 // we already know a isn't null
                 return 1;
             }
             if (a.toLowerCase() > b.toLowerCase()) {
-cov.cover(381);
+cov.cover(363);
                 return 1;
             }
             if (a.toLowerCase() < b.toLowerCase()) {
-cov.cover(382);
+cov.cover(364);
                 return -1;
             }
     
@@ -2632,13 +2524,13 @@ cov.cover(382);
     \***************/
     
     gp.FunctionPager = function ( config ) {
-cov.cover(383);
+cov.cover(365);
         this.config = config;
     };
     
     gp.FunctionPager.prototype = {
         read: function ( model, callback, error ) {
-cov.cover(384);
+cov.cover(366);
             try {
                 var result = this.config.Read( model, callback );
     
@@ -2646,12 +2538,12 @@ cov.cover(384);
             }
             catch (ex) {
                 if (typeof error === 'function') {
-cov.cover(385);
-                    error( ex );
+cov.cover(367);
+                    gp.tryCallback( error, this, ex );
                 }
                 else {
-cov.cover(386);
-                    callback();
+cov.cover(368);
+                    gp.tryCallback( callback, this, this.config );
                 }
                 gp.error( ex );
             }
@@ -2670,15 +2562,15 @@ cov.cover(386);
      * Date: 2015-04-28T16:01Z
      */
     gp.ready = function (fn) {
-cov.cover(387);
+cov.cover(369);
     
         var isReady = false;
     
         var completed = function (event) {
-cov.cover(388);
+cov.cover(370);
             // readyState === "complete" is good enough for us to call the dom ready in oldIE
             if (document.addEventListener || event.type === "load" || document.readyState === "complete") {
-cov.cover(389);
+cov.cover(371);
                 isReady = true;
                 detach();
                 fn();
@@ -2686,27 +2578,27 @@ cov.cover(389);
         };
     
         var detach = function () {
-cov.cover(390);
+cov.cover(372);
             if (document.addEventListener) {
-cov.cover(391);
+cov.cover(373);
                 document.removeEventListener("DOMContentLoaded", completed, false);
                 window.removeEventListener("load", completed, false);
     
             } else {
-cov.cover(392);
+cov.cover(374);
                 document.detachEvent("onreadystatechange", completed);
                 window.detachEvent("onload", completed);
             }
         };
     
         if (document.readyState === "complete") {
-cov.cover(393);
+cov.cover(375);
             // Handle it asynchronously to allow scripts the opportunity to delay ready
             setTimeout(fn);
     
             // Standards-based browsers support DOMContentLoaded
         } else if (document.addEventListener) {
-cov.cover(394);
+cov.cover(376);
             // Use the handy event callback
             document.addEventListener("DOMContentLoaded", completed, false);
     
@@ -2715,7 +2607,7 @@ cov.cover(394);
     
             // If IE event model is used
         } else {
-cov.cover(395);
+cov.cover(377);
             // Ensure firing before onload, maybe late but safe also for iframes
             document.attachEvent("onreadystatechange", completed);
     
@@ -2731,11 +2623,11 @@ cov.cover(395);
             } catch (e) { }
     
             if (top && top.doScroll) {
-cov.cover(396);
+cov.cover(378);
                 (function doScrollCheck() {
-cov.cover(397);
+cov.cover(379);
                     if (!isReady) {
-cov.cover(398);
+cov.cover(380);
     
                         try {
                             // Use the trick by Diego Perini
@@ -2759,7 +2651,7 @@ cov.cover(398);
       RequestModel
     \***************/
     gp.RequestModel = function (data) {
-cov.cover(399);
+cov.cover(381);
         var self = this;
         // properites are capitalized here because that's the convention for server-side classes (C#)
         // we want the serialized version of the corresponding server-side class to look exactly like this prototype
@@ -2774,16 +2666,16 @@ cov.cover(399);
     
         Object.defineProperty(self, 'PageIndex', {
             get: function () {
-cov.cover(400);
+cov.cover(382);
                 return self.Page - 1;
             }
         });
     
         Object.defineProperty(self, 'PageCount', {
             get: function () {
-cov.cover(401);
+cov.cover(383);
                 if ( self.Top > 0 ) {
-cov.cover(402);
+cov.cover(384);
                     return Math.ceil( self.TotalRows / self.Top );
                 }
                 if ( self.TotalRows === 0 ) return 0;
@@ -2793,9 +2685,9 @@ cov.cover(402);
     
         Object.defineProperty(self, 'Skip', {
             get: function () {
-cov.cover(403);
+cov.cover(385);
                 if (self.Top !== -1) {
-cov.cover(404);
+cov.cover(386);
                     if (self.PageCount === 0) return 0;
                     if (self.Page < 1) self.Page = 1;
                     else if (self.Page > self.PageCount) return self.Page = self.PageCount;
@@ -2811,20 +2703,20 @@ cov.cover(404);
     \***************/
     
     gp.StringBuilder = function () {
-cov.cover(405);
+cov.cover(387);
         this.out = [];
     };
     
     gp.StringBuilder.prototype = {
     
         add: function ( str ) {
-cov.cover(406);
+cov.cover(388);
             this.out.push( str );
             return this;
         },
     
         toString: function ( ) {
-cov.cover(407);
+cov.cover(389);
             return this.out.join('');
         }
     
@@ -2834,7 +2726,7 @@ cov.cover(407);
        UpdateModel
     \***************/
     gp.UpdateModel = function ( row, validationErrors ) {
-cov.cover(408);
+cov.cover(390);
     
         this.Row = row;
         this.ValidationErrors = validationErrors;
@@ -2848,17 +2740,17 @@ cov.cover(408);
     
     // check for web component support
     if (document.registerElement) {
-cov.cover(409);
+cov.cover(391);
     
         gp.Gridponent = Object.create(HTMLElement.prototype);
     
         gp.Gridponent.createdCallback = function () {
-cov.cover(410);
+cov.cover(392);
             new gp.Initializer(this).initialize();
         };
     
         gp.Gridponent.detachedCallback = function () {
-cov.cover(411);
+cov.cover(393);
             gp.info( 'detachedCallback called' );
             this.api.dispose();
         };
@@ -2868,11 +2760,11 @@ cov.cover(411);
         });
     }
     else {
-cov.cover(412);
+cov.cover(394);
         // no web component support
         // provide a static function to initialize grid-ponent elements manually
         gp.initialize = function (root) {
-cov.cover(413);
+cov.cover(395);
             root = root || document;
             var node, nodes = root.querySelectorAll( 'grid-ponent' );
             for ( var i = 0; i < nodes.length; i++ ) {
@@ -2887,226 +2779,207 @@ cov.cover(413);
         templates
     \***************/
     gp.templates = gp.templates || {};
-    gp.templates['gridponent-body'] = function ( model, arg ) {
+    gp.templates['gridponent-body'] = function(model, arg) {
+cov.cover(396);
+        var out = [];
+        out.push('<table class="table" cellpadding="0" cellspacing="0">');
+                if (!model.FixedHeaders) {
+cov.cover(397);
+                        out.push(gp.helpers['thead'].call(model));
+                    }
+            out.push('<tbody>');
+                    out.push(gp.helpers['tableRows'].call(model));
+            out.push('</tbody>');
+                if (model.Footer && !model.FixedFooters) {
+cov.cover(398);
+                        out.push(gp.templates['gridponent-tfoot'](model));
+                    }
+            out.push('</table>');
+        return out.join('');
+    };
+    gp.templates['gridponent-cells'] = function(model, arg) {
+cov.cover(399);
+        var out = [];
+        model.Columns.forEach(function(col, index) {
+cov.cover(400);
+                out.push('    <td class="body-cell ');
+        out.push(col.Type);
+        out.push('" ');
+        if (col.BodyStyle) {
+cov.cover(401);
+        out.push(' style="');
+        out.push(col.BodyStyle);
+        out.push('"');
+        }
+        out.push('>');
+                    out.push(gp.helpers['bodyCellContent'].call(model, col));
+            out.push('</td>');
+        });
+                return out.join('');
+    };
+    gp.templates['gridponent-pager'] = function(model, arg) {
+cov.cover(402);
+        var out = [];
+        out.push(gp.helpers['setPagerFlags'].call(model));
+                if (model.data.HasPages) {
+cov.cover(403);
+                out.push('<div class="btn-group">');
+        out.push('        <label class="ms-page-index btn btn-default ');
+        if (model.data.IsFirstPage) {
+cov.cover(404);
+        out.push(' disabled ');
+        }
+        out.push('" title="First page">');
+        out.push('<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>');
+                        if (model.data.IsFirstPage == false) {
+cov.cover(405);
+            out.push('<input type="radio" name="Page" value="1" />');
+                        }
+            out.push('</label>');
+            out.push('        <label class="ms-page-index btn btn-default ');
+        if (model.data.IsFirstPage) {
+cov.cover(406);
+        out.push(' disabled ');
+        }
+        out.push('" title="Previous page">');
+        out.push('<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>');
+                        if (model.data.IsFirstPage == false) {
+cov.cover(407);
+            out.push('                <input type="radio" name="Page" value="');
+        out.push(model.data.PreviousPage);
+        out.push('" />');
+                        }
+            out.push('</label>');
+        out.push('</div>');
+        out.push('    <input type="number" name="Page" value="');
+        out.push(model.data.Page);
+        out.push('" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" /> of ');
+        out.push(model.data.PageCount);
+            out.push('<div class="btn-group">');
+        out.push('        <label class="ms-page-index btn btn-default ');
+        if (model.data.IsLastPage) {
+cov.cover(408);
+        out.push(' disabled ');
+        }
+        out.push('" title="Next page">');
+        out.push('<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>');
+                        if (model.data.IsLastPage == false) {
+cov.cover(409);
+            out.push('            <input type="radio" name="Page" value="');
+        out.push(model.data.NextPage);
+        out.push('" />');
+                        }
+            out.push('</label>');
+            out.push('        <label class="ms-page-index btn btn-default ');
+        if (model.data.IsLastPage) {
+cov.cover(410);
+        out.push(' disabled ');
+        }
+        out.push('" title="Last page">');
+        out.push('<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>');
+                        if (model.data.IsLastPage == false) {
+cov.cover(411);
+            out.push('            <input type="radio" name="Page" value="');
+        out.push(model.data.PageCount);
+        out.push('" />');
+                        }
+            out.push('</label>');
+        out.push('</div>');
+        }
+                return out.join('');
+    };
+    gp.templates['gridponent-tfoot'] = function(model, arg) {
+cov.cover(412);
+        var out = [];
+        out.push('<tfoot>');
+        out.push('<tr>');
+                    model.Columns.forEach(function(col, index) {
+cov.cover(413);
+            out.push('<td class="footer-cell">');
+                            out.push(gp.helpers['footerCell'].call(model, col));
+            out.push('</td>');
+                    });
+            out.push('</tr>');
+        out.push('</tfoot>');
+        return out.join('');
+    };
+    gp.templates['gridponent'] = function(model, arg) {
 cov.cover(414);
         var out = [];
-        out.push( '<table class="table" cellpadding="0" cellspacing="0">' );
-        if ( !model.FixedHeaders ) {
+        out.push('<div class="table-container');
+        out.push(gp.helpers['containerClasses'].call(model));
+        out.push('" id="');
+        out.push(model.ID);
+        out.push('">');
+                if (model.Search || model.Create) {
 cov.cover(415);
-            out.push( gp.helpers['thead'].call( model ) );
-        }
-        out.push( '<tbody>' );
-        out.push( gp.helpers['tableRows'].call( model ) );
-        out.push( '</tbody>' );
-        if ( model.Footer && !model.FixedFooters ) {
+            out.push('<div class="table-toolbar">');
+                        if (model.Search) {
 cov.cover(416);
-            out.push( gp.templates['gridponent-tfoot']( model ) );
-        }
-        out.push( '</table>' );
-        return out.join( '' );
-    };
-    gp.templates['gridponent-cells'] = function ( model, arg ) {
+            out.push('<div class="input-group gridponent-searchbox">');
+        out.push('<input type="text" name="Search" class="form-control" placeholder="Search...">');
+        out.push('<span class="input-group-btn">');
+        out.push('<button class="btn btn-default" type="button">');
+        out.push('<span class="glyphicon glyphicon-search"></span>');
+        out.push('</button>');
+        out.push('</span>');
+        out.push('</div>');
+                        }
+                            if (model.Create) {
 cov.cover(417);
-        var out = [];
-        model.Columns.forEach( function ( col, index ) {
+            out.push('<button class="btn btn-default" type="button" value="Create">');
+        out.push('<span class="glyphicon glyphicon-plus"></span>Add');
+        out.push('</button>');
+                        }
+            out.push('</div>');
+                }
+                    if (model.FixedHeaders) {
 cov.cover(418);
-            out.push( '    <td class="body-cell ' );
-            out.push( col.Type );
-            out.push( '" ' );
-            if ( col.BodyStyle ) {
+            out.push('<div class="table-header">');
+        out.push('<table class="table" cellpadding="0" cellspacing="0" style="margin-bottom:0">');
+                            out.push(gp.helpers['thead'].call(model));
+            out.push('</table>');
+        out.push('</div>');
+                }
+            out.push('        <div class="table-body ');
+        if (model.FixedHeaders) {
 cov.cover(419);
-                out.push( ' style="' );
-                out.push( col.BodyStyle );
-                out.push( '"' );
-            }
-            out.push( '>' );
-            out.push( gp.helpers['bodyCellContent'].call( model, col ) );
-            out.push( '</td>' );
-        } );
-        return out.join( '' );
-    };
-    gp.templates['gridponent-new-row'] = function ( model, arg ) {
+        out.push('table-scroll');
+        }
+        out.push('" style="');
+        out.push(model.Style);
+        out.push('">');
+                        out.push(gp.templates['gridponent-body'](model));
+            out.push('</div>');
+                if (model.FixedFooters) {
 cov.cover(420);
-        var out = [];
-        out.push( '<tr data-index="' );
-        out.push( gp.helpers['rowIndex'].call( model ) );
-        out.push( '" class="create-mode">' );
-        model.Columns.forEach( function ( col, index ) {
+            out.push('<div class="table-footer">');
+        out.push('<table class="table" cellpadding="0" cellspacing="0" style="margin-top:0">');
+                            out.push(gp.templates['gridponent-tfoot'](model));
+            out.push('</table>');
+        out.push('</div>');
+                }
+                    if (model.Pager) {
 cov.cover(421);
-            out.push( gp.helpers['editCell'].call( model, col ) );
-        } );
-        out.push( '</tr>' );
-        return out.join( '' );
-    };
-    gp.templates['gridponent-pager'] = function ( model, arg ) {
-cov.cover(422);
-        var out = [];
-        out.push( gp.helpers['setPagerFlags'].call( model ) );
-        if ( model.data.HasPages ) {
-cov.cover(423);
-            out.push( '<div class="btn-group">' );
-            out.push( '        <label class="ms-page-index btn btn-default ' );
-            if ( model.data.IsFirstPage ) {
-cov.cover(424);
-                out.push( ' disabled ' );
-            }
-            out.push( '" title="First page">' );
-            out.push( '<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>' );
-            if ( model.data.IsFirstPage == false ) {
-cov.cover(425);
-                out.push( '<input type="radio" name="Page" value="1" />' );
-            }
-            out.push( '</label>' );
-            out.push( '        <label class="ms-page-index btn btn-default ' );
-            if ( model.data.IsFirstPage ) {
-cov.cover(426);
-                out.push( ' disabled ' );
-            }
-            out.push( '" title="Previous page">' );
-            out.push( '<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>' );
-            if ( model.data.IsFirstPage == false ) {
-cov.cover(427);
-                out.push( '                <input type="radio" name="Page" value="' );
-                out.push( model.data.PreviousPage );
-                out.push( '" />' );
-            }
-            out.push( '</label>' );
-            out.push( '</div>' );
-            out.push( '    <input type="number" name="Page" value="' );
-            out.push( model.data.Page );
-            out.push( '" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" /> of ' );
-            out.push( model.data.PageCount );
-            out.push( '<div class="btn-group">' );
-            out.push( '        <label class="ms-page-index btn btn-default ' );
-            if ( model.data.IsLastPage ) {
-cov.cover(428);
-                out.push( ' disabled ' );
-            }
-            out.push( '" title="Next page">' );
-            out.push( '<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>' );
-            if ( model.data.IsLastPage == false ) {
-cov.cover(429);
-                out.push( '            <input type="radio" name="Page" value="' );
-                out.push( model.data.NextPage );
-                out.push( '" />' );
-            }
-            out.push( '</label>' );
-            out.push( '        <label class="ms-page-index btn btn-default ' );
-            if ( model.data.IsLastPage ) {
-cov.cover(430);
-                out.push( ' disabled ' );
-            }
-            out.push( '" title="Last page">' );
-            out.push( '<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>' );
-            if ( model.data.IsLastPage == false ) {
-cov.cover(431);
-                out.push( '            <input type="radio" name="Page" value="' );
-                out.push( model.data.PageCount );
-                out.push( '" />' );
-            }
-            out.push( '</label>' );
-            out.push( '</div>' );
-        }
-        return out.join( '' );
-    };
-    gp.templates['gridponent-tfoot'] = function ( model, arg ) {
-cov.cover(432);
-        var out = [];
-        out.push( '<tfoot>' );
-        out.push( '<tr>' );
-        model.Columns.forEach( function ( col, index ) {
-cov.cover(433);
-            out.push( '<td class="footer-cell">' );
-            out.push( gp.helpers['footerCell'].call( model, col ) );
-            out.push( '</td>' );
-        } );
-        out.push( '</tr>' );
-        out.push( '</tfoot>' );
-        return out.join( '' );
-    };
-    gp.templates['gridponent'] = function ( model, arg ) {
-cov.cover(434);
-        var out = [];
-        out.push( '<div class="table-container' );
-        out.push( gp.helpers['containerClasses'].call( model ) );
-        out.push( '" id="' );
-        out.push( model.ID );
-        out.push( '">' );
-        if ( model.Search || model.ToolbarTemplate || model.Create ) {
-cov.cover(435);
-            out.push( '<div class="table-toolbar">' );
-            if ( model.ToolbarTemplate ) {
-cov.cover(436);
-                out.push( gp.templates['toolbarTemplate']( model ) );
-            } else {
-cov.cover(437);
-                if ( model.Search ) {
-cov.cover(438);
-                    out.push( '<div class="input-group gridponent-searchbox">' );
-                    out.push( '<input type="text" name="Search" class="form-control" placeholder="Search...">' );
-                    out.push( '<span class="input-group-btn">' );
-                    out.push( '<button class="btn btn-default" type="button">' );
-                    out.push( '<span class="glyphicon glyphicon-search"></span>' );
-                    out.push( '</button>' );
-                    out.push( '</span>' );
-                    out.push( '</div>' );
+            out.push('<div class="table-pager">');
+                        out.push(gp.templates['gridponent-pager'](model));
+            out.push('</div>');
                 }
-                if ( model.Create ) {
-cov.cover(439);
-                    out.push( '<button class="btn btn-default" type="button" value="Create">' );
-                    out.push( '<span class="glyphicon glyphicon-plus"></span>Add' );
-                    out.push( '</button>' );
-                }
-            }
-            out.push( '</div>' );
-        }
-        if ( model.FixedHeaders ) {
-cov.cover(440);
-            out.push( '<div class="table-header">' );
-            out.push( '<table class="table" cellpadding="0" cellspacing="0" style="margin-bottom:0">' );
-            out.push( gp.helpers['thead'].call( model ) );
-            out.push( '</table>' );
-            out.push( '</div>' );
-        }
-        out.push( '        <div class="table-body ' );
-        if ( model.FixedHeaders ) {
-cov.cover(441);
-            out.push( 'table-scroll' );
-        }
-        out.push( '" style="' );
-        out.push( model.Style );
-        out.push( '">' );
-        out.push( gp.templates['gridponent-body']( model ) );
-        out.push( '</div>' );
-        if ( model.FixedFooters ) {
-cov.cover(442);
-            out.push( '<div class="table-footer">' );
-            out.push( '<table class="table" cellpadding="0" cellspacing="0" style="margin-top:0">' );
-            out.push( gp.templates['gridponent-tfoot']( model ) );
-            out.push( '</table>' );
-            out.push( '</div>' );
-        }
-        if ( model.Pager ) {
-cov.cover(443);
-            out.push( '<div class="table-pager">' );
-            out.push( gp.templates['gridponent-pager']( model ) );
-            out.push( '</div>' );
-        }
-        out.push( '<style type="text/css" class="sort-style">' );
-        out.push( gp.helpers['sortStyle'].call( model ) );
-        out.push( '</style>' );
-        out.push( '<style type="text/css" class="column-width-style">' );
-        out.push( gp.helpers['columnWidthStyle'].call( model ) );
-        out.push( '</style>' );
-        out.push( '<div class="progress-overlay">' );
-        out.push( '<div class="progress progress-container">' );
-        out.push( '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>' );
-        out.push( '</div>' );
-        out.push( '</div>' );
-        out.push( '</div>' );
-        return out.join( '' );
+            out.push('<style type="text/css" class="sort-style">');
+                    out.push(gp.helpers['sortStyle'].call(model));
+            out.push('</style>');
+        out.push('<style type="text/css" class="column-width-style">');
+                    out.push(gp.helpers['columnWidthStyle'].call(model));
+            out.push('</style>');
+        out.push('<div class="progress-overlay">');
+        out.push('<div class="progress progress-container">');
+        out.push('<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>');
+        out.push('</div>');
+        out.push('</div>');
+        out.push('</div>');
+        return out.join('');
     };
-cov.maxCoverage = 443;
+cov.maxCoverage = 421;
 
 
 })(gridponent);

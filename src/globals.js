@@ -8,7 +8,8 @@
         indexer: /\[\d+\]/,
         iso8601: /^[012][0-9]{3}-[01][0-9]-[0123][0-9]/,
         quoted: /^['"].+['"]$/,
-        trueFalse: /true|false/i
+        trueFalse: /true|false/i,
+        braces: /{{.+?}}/g
     };
 
     // logging
@@ -327,20 +328,20 @@
         return val;
     };
 
-    gp.processRowTemplate = function ( template, row, col ) {
-        var fn, val, match, tokens = template.match( /{{.+?}}/g );
-        if ( tokens ) {
-            for ( var i = 0; i < tokens.length; i++ ) {
-                match = tokens[i].slice( 2, -2 );
+    gp.processBodyTemplate = function ( template, row, col ) {
+        var fn, val, match, braces = template.match( gp.rexp.braces );
+        if ( braces ) {
+            for ( var i = 0; i < braces.length; i++ ) {
+                match = braces[i].slice( 2, -2 );
                 if ( match in row ) {
                     val = row[match];
                     if ( gp.hasValue( val ) === false ) val = '';
-                    template = template.replace( tokens[i], val );
+                    template = template.replace( braces[i], val );
                 }
                 else {
                     fn = gp.getObjectAtPath( match );
                     if ( typeof fn === 'function' ) {
-                        template = template.replace( tokens[i], fn.call( this, row, col ) );
+                        template = template.replace( braces[i], fn.call( this, row, col ) );
                     }
                 }
             }
@@ -348,14 +349,14 @@
         return template;
     };
 
-    gp.processColumnTemplate = function ( template, col ) {
-        var fn, match, tokens = template.match( /{{.+?}}/g );
-        if ( tokens ) {
-            for ( var i = 0; i < tokens.length; i++ ) {
-                match = tokens[i].slice( 2, -2 );
+    gp.processHeaderTemplate = function ( template, col ) {
+        var fn, match, braces = template.match( gp.rexp.braces );
+        if ( braces ) {
+            for ( var i = 0; i < braces.length; i++ ) {
+                match = braces[i].slice( 2, -2 );
                 fn = gp.getObjectAtPath( match );
                 if ( typeof fn === 'function' ) {
-                    template = template.replace( tokens[i], fn.call( this, col ) );
+                    template = template.replace( braces[i], fn.call( this, col ) );
                 }
             }
         }
@@ -380,31 +381,14 @@
         el.className = gp.trim(( ' ' + el.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
     };
 
-    gp.appendChild = function ( node, child ) {
-        if ( typeof node === 'string' ) node = document.querySelector( node );
-        if ( typeof child === 'string' ) {
-            // using node.tagName to convert child to DOM node helps ensure that what we create is compatible with node
-            var div = document.createElement( node.tagName.toLowerCase() );
-            div.innerHTML = child;
-            child = div.firstChild;
-        }
-        node.appendChild( child );
-        return child;
-    };
-
     gp.prependChild = function ( node, child ) {
         if ( typeof node === 'string' ) node = document.querySelector( node );
-        if ( typeof child === 'string' ) {
-            // using node.tagName to convert child to DOM node helps ensure that what we create is compatible with node
-            var div = document.createElement( node.tagName.toLowerCase() );
-            div.innerHTML = child;
-            child = div.firstChild;
-        }
-        var firstChild = node.firstChild;
-        if ( !firstChild ) {
+        if ( !node.firstChild ) {
             node.appendChild( child );
         }
-        node.insertBefore( child, firstChild );
+        else {
+            node.insertBefore( child, node.firstChild );
+        }
         return child;
     };
 

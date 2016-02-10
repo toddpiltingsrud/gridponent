@@ -123,6 +123,7 @@ gp.ClientPager.prototype = {
             if (b != null) {
                 return 1;
             }
+            return 0;
         }
         else if (b === null) {
             // we already know a isn't null
@@ -142,6 +143,7 @@ gp.ClientPager.prototype = {
             if (b != null) {
                 return -1;
             }
+            return 0;
         }
         else if (b === null) {
             // we already know a isn't null
@@ -175,10 +177,10 @@ gp.FunctionPager.prototype = {
         }
         catch (ex) {
             if (typeof error === 'function') {
-                error( ex );
+                gp.tryCallback( error, this, ex );
             }
             else {
-                callback();
+                gp.tryCallback( callback, this, this.config );
             }
             gp.error( ex );
         }
