@@ -1,14 +1,4 @@
-﻿// code coverage
-var cov = cov || {};
-cov.covered = [];
-cov.cover = function(index) {
-	cov.covered[index] = true;
-	if (cov.callout) {
-	    cov.callout(index);
-	}
-};
-
-// namespace
+﻿// namespace
 var gridponent = gridponent || {};
 
 (function(gp) { 
@@ -18,35 +8,29 @@ var gridponent = gridponent || {};
     \***************/
     
     gp.api = function ( controller ) {
-cov.cover(1);
         this.controller = controller;
     };
     
     gp.api.prototype = {
     
         getData: function ( index ) {
-cov.cover(2);
             if ( typeof index == 'number' ) return this.controller.config.data.Data[index];
             return this.controller.config.data.Data;
         },
     
         search: function ( searchTerm ) {
-cov.cover(3);
             this.controller.search( searchTerm );
         },
     
         sort: function ( name, desc ) {
-cov.cover(4);
             this.controller.sort( name, desc );
         },
     
         read: function ( requestModel, callback ) {
-cov.cover(5);
             this.controller.read( requestModel, callback );
         },
     
         create: function (callback) {
-cov.cover(6);
             this.controller.createRow(callback);
         },
     
@@ -55,19 +39,16 @@ cov.cover(6);
         // So the original row object reference has to be preserved.
         // this function is mainly for testing
         update: function ( row, callback ) {
-cov.cover(7);
             this.controller.updateRow( row, null, callback );
         },
     
         destroy: function ( row, callback ) {
-cov.cover(8);
             this.controller.deleteRow( row, callback, true );
         },
     
         cancel: function ( arg ) { },
     
         dispose: function () {
-cov.cover(9);
             this.controller.dispose();
         }
     
@@ -77,14 +58,12 @@ cov.cover(9);
      change monitor
     \***************/
     gp.ChangeMonitor = function (node, selector, model, afterSync) {
-cov.cover(10);
         var self = this;
         this.model = model;
         this.beforeSync = null;
         this.node = node;
         this.selector = selector;
         this.listener = function (evt) {
-cov.cover(11);
             self.syncModel.call(self, evt.target, self.model);
         };
         this.afterSync = afterSync;
@@ -92,18 +71,15 @@ cov.cover(11);
     
     gp.ChangeMonitor.prototype = {
         start: function () {
-cov.cover(12);
             var self = this;
             // add change event handler to node
             gp.on( this.node, 'change', this.selector, this.listener );
         },
         stop: function () {
-cov.cover(13);
             // clean up
             gp.off( this.node, 'change', this.listener );
         },
         syncModel: function (target, model) {
-cov.cover(14);
             // get name and value of target
             var name = target.name;
             var value = target.value;
@@ -113,11 +89,9 @@ cov.cover(14);
                 if ( !( name in model ) ) return;
     
                 if ( typeof ( this.beforeSync ) === 'function' ) {
-cov.cover(15);
                     handled = this.beforeSync( name, value, this.model );
                 }
                 if ( !handled ) {
-cov.cover(16);
                     type = gp.getType( model[name] );
                     switch ( type ) {
                         case 'number':
@@ -131,7 +105,6 @@ cov.cover(16);
                     }
                 }
                 if ( typeof this.afterSync === 'function' ) {
-cov.cover(17);
                     this.afterSync( target, model );
                 }
     
@@ -145,13 +118,11 @@ cov.cover(17);
        controller
     \***************/
     gp.Controller = function (config, model, requestModel) {
-cov.cover(18);
         var self = this;
         this.config = config;
         this.model = model;
         this.requestModel = requestModel;
         if (config.Pager) {
-cov.cover(19);
             this.requestModel.Top = 25;
         }
         this.attachReadEvents();
@@ -161,11 +132,9 @@ cov.cover(19);
     gp.Controller.prototype = {
     
         monitorToolbars: function (node) {
-cov.cover(20);
             var self = this;
             // monitor changes to search, sort, and paging
             this.monitor = new gp.ChangeMonitor( node, '.table-toolbar [name=Search], thead input, .table-pager input', this.config.data, function ( evt ) {
-cov.cover(21);
                 //var name = evt.target.name;
                 //switch ( name ) {
                 //    case 'Search':
@@ -190,17 +159,12 @@ cov.cover(21);
                 }
             } );
             this.monitor.beforeSync = function ( name, value, model ) {
-cov.cover(22);
-                gp.info( 'beforeSync called' );
                 // the OrderBy property requires special handling
                 if (name === 'OrderBy') {
-cov.cover(23);
                     if (model[name] === value) {
-cov.cover(24);
                         model.Desc = !model.Desc;
                     }
                     else {
-cov.cover(25);
                         model[name] = value;
                         model.Desc = false;
                     }
@@ -213,13 +177,10 @@ cov.cover(25);
         },
     
         addCommandHandlers: function (node) {
-cov.cover(26);
             var command, tr, row, self = this;
             // listen for command button clicks
             gp.on(node, 'click', 'button[value]', function (evt) {
-cov.cover(27);
                 // 'this' is the element that was clicked
-                gp.info('addCommandHandlers:this:', this);
                 command = this.attributes['value'].value;
                 tr = gp.closest(this, 'tr[data-index]', node);
                 row = tr ? gp.getRowModel(self.config.data.Data, tr) : null;
@@ -242,12 +203,9 @@ cov.cover(27);
                     default:
                         // check the api for an extension
                         if ( command in node.api ) {
-cov.cover(28);
                             node.api[command]( row, tr );
                         }
                         else {
-cov.cover(29);
-                            gp.log( 'Unrecognized command: ' + command );
                         }
                         break;
                 }
@@ -255,18 +213,14 @@ cov.cover(29);
         },
     
         handleRowSelect: function ( config ) {
-cov.cover(30);
             var trs, i = 0, model, type, url, rowSelector = 'div.table-body > table > tbody > tr';
             if ( gp.hasValue( config.Onrowselect ) ) {
-cov.cover(31);
                 type = typeof config.Onrowselect;
                 if ( type === 'string' && config.Onrowselect.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
                 // it's got to be either a function or a URL template
                 if ( /function|urlTemplate/.test( type ) ) {
-cov.cover(32);
                     // add click handler
                     gp.on( config.node, 'click', rowSelector + ':not(.edit-mode)', function ( evt ) {
-cov.cover(33);
                         // remove previously selected class
                         trs = config.node.querySelectorAll( rowSelector + '.selected' );
                         for ( i = 0; i < trs.length; i++ ) {
@@ -280,13 +234,10 @@ cov.cover(33);
                         // ensure row selection doesn't interfere with button clicks in the row
                         // by making sure the evt target is a cell
                         if ( gp.in( evt.target, rowSelector + ' > td.body-cell', config.node ) ) {
-cov.cover(34);
                             if ( type === 'function' ) {
-cov.cover(35);
                                 config.Onrowselect.call( this, model );
                             }
                             else {
-cov.cover(36);
     
                                 // it's a urlTemplate
                                 window.location = gp.processBodyTemplate( config.Onrowselect, model );
@@ -298,42 +249,33 @@ cov.cover(36);
         },
     
         attachReadEvents: function () {
-cov.cover(37);
             gp.on( this.config.node, gp.events.beforeRead, this.addBusy );
             gp.on( this.config.node, gp.events.afterRead, this.removeBusy );
         },
     
         removeReadEvents: function () {
-cov.cover(38);
             gp.off( this.config.node, gp.events.beforeRead, this.addBusy );
             gp.off( this.config.node, gp.events.afterRead, this.removeBusy );
         },
     
         addBusy: function(evt) {
-cov.cover(39);
             var tblContainer = evt.target.querySelector( 'div.table-container' );
             if ( tblContainer ) {
-cov.cover(40);
                 gp.addClass( tblContainer, 'busy' );
             }
         },
     
         removeBusy: function ( evt ) {
-cov.cover(41);
             var tblContainer = evt.target.querySelector( 'div.table-container' );
             tblContainer = tblContainer || document.querySelector( 'div.table-container.busy' );
             if ( tblContainer ) {
-cov.cover(42);
                 gp.removeClass( tblContainer, 'busy' );
             }
             else {
-cov.cover(43);
-                gp.warn( 'could not remove busy class' );
             }
         },
     
         search: function(searchTerm) {
-cov.cover(44);
             this.config.data.Search = searchTerm;
             var searchBox = this.config.node.querySelector( 'div.table-toolbar input[name=Search' );
             searchBox.value = searchTerm;
@@ -341,23 +283,18 @@ cov.cover(44);
         },
     
         sort: function(field, desc) {
-cov.cover(45);
             this.config.data.OrderBy = field;
             this.config.data.Desc = ( desc == true );
             this.read();
         },
     
         read: function ( requestModel, callback ) {
-cov.cover(46);
             var self = this;
             if ( requestModel ) {
-cov.cover(47);
                 gp.shallowCopy( requestModel, this.config.data );
             }
             gp.raiseCustomEvent( this.config.node, gp.events.beforeRead, { model: this.config.data } );
-            gp.info( 'read.data:', this.config.data );
             this.model.read( this.config.data, function ( model ) {
-cov.cover(48);
                 gp.shallowCopy( model, self.config.data );
                 self.refresh( self.config );
                 gp.raiseCustomEvent( this.config.node, gp.events.afterRead, { model: this.config.data } );
@@ -366,12 +303,10 @@ cov.cover(48);
         },
     
         createRow: function (callback) {
-cov.cover(49);
             try {
                 var self = this;
     
                 if ( !gp.hasValue( this.config.Create ) ) {
-cov.cover(50);
                     gp.tryCallback( callback, self.config.node );
                     return;
                 }
@@ -379,15 +314,12 @@ cov.cover(50);
                 gp.raiseCustomEvent( self.config.node, gp.events.beforeCreate );
     
                 this.model.create(function (row) {
-cov.cover(51);
                     // create a row in create mode
                     self.config.Row = row;
     
-                    gp.info( 'createRow.Columns:', self.config.Columns );
     
                     var tbody = self.config.node.querySelector( 'div.table-body > table > tbody' );
                     var rowIndex = self.config.data.Data.indexOf( row );
-                    gp.info( 'createRow.rowIndex:', rowIndex );
                     var editCellContent = gp.helpers['editCellContent'];
                     var builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', rowIndex ).addClass('create-mode');
     
@@ -395,20 +327,17 @@ cov.cover(51);
                     // IE9 can't set innerHTML of tr, so iterate through each cell
                     // besides, that way we can just skip readonly cells
                     self.config.Columns.forEach( function ( col ) {
-cov.cover(52);
                         var html = col.ReadOnly ? '' : editCellContent.call( self.config, col );
                         builder.startElem( 'td' ).addClass( 'body-cell' ).html(html).endElem();
                     } );
     
                     var tr = builder.close();
     
-                    gp.info( 'createRow.tr:', tr );
     
                     gp.prependChild( tbody, tr );
     
                     tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
     
-                    gp.info( 'createRow.tr:', tr );
     
                     gp.raiseCustomEvent( self.config.node, gp.events.afterCreate, {
                         row: row,
@@ -426,7 +355,6 @@ cov.cover(52);
         },
     
         editRow: function (row, tr) {
-cov.cover(53);
             try {
                 gp.raiseCustomEvent(tr, 'beforeEdit', {
                     model: row
@@ -434,7 +362,6 @@ cov.cover(53);
     
                 this.config.Row = new gp.ObjectProxy(row);
     
-                gp.info('editRow.tr:', tr);
     
                 // put the row in edit mode
                 // IE9 can't set innerHTML of tr, so iterate through each cell
@@ -444,7 +371,6 @@ cov.cover(53);
                 for (var i = 0; i < cells.length; i++) {
                     col = this.config.Columns[i];
                     if (!col.Readonly) {
-cov.cover(54);
                         cells[i].innerHTML = editCellContent.call(this.config, col);
                     }
                 }
@@ -460,7 +386,6 @@ cov.cover(54);
         },
     
         updateRow: function (row, tr, callback) {
-cov.cover(55);
             // save the row and return it to read mode
     
             try {
@@ -471,7 +396,6 @@ cov.cover(55);
     
                 // if there is no Update configuration setting, we're done here
                 if ( !gp.hasValue( this.config.Update ) ) {
-cov.cover(56);
                     gp.tryCallback( callback, self.config.node );
                     return;
                 }
@@ -480,15 +404,11 @@ cov.cover(56);
                     model: updateModel
                 });
     
-                gp.info( 'updateRow.row:', row );
     
                 this.model.update( updateModel, function ( updateModel ) {
-cov.cover(57);
     
-                    gp.info( 'updateRow.updateModel:', updateModel );
     
                     if ( updateModel.ValidationErrors && updateModel.ValidationErrors.length ) {
-cov.cover(58);
                         // TODO: handle validation errors
     
     
@@ -497,7 +417,6 @@ cov.cover(58);
     
                     }
                     else {
-cov.cover(59);
                         // copy the returned row back to the internal data array
                         gp.shallowCopy( updateModel.Row, row );
                         // refresh the UI
@@ -505,7 +424,6 @@ cov.cover(59);
                         // dispose of the ChangeMonitor
                         monitor = tr['gp-change-monitor'];
                         if ( monitor ) {
-cov.cover(60);
                             monitor.stop();
                             monitor = null;
                         }
@@ -526,17 +444,14 @@ cov.cover(60);
         },
     
         cancelEdit: function (row, tr) {
-cov.cover(61);
             try {
                 if (gp.hasClass(tr, 'create-mode')) {
-cov.cover(62);
                     // remove row and tr
                     tr.remove();
                     var index = this.config.data.Data.indexOf(row);
                     this.config.data.Data.splice(index, 1);
                 }
                 else {
-cov.cover(63);
                     // replace the ObjectProxy with the original row
                     this.config.Row = row;
                     this.restoreCells(this.config, row, tr);
@@ -552,10 +467,8 @@ cov.cover(63);
         },
     
         deleteRow: function (row, callback, skipConfirm) {
-cov.cover(64);
             try {
                 if ( !gp.hasValue( this.config.Destroy ) ) {
-cov.cover(65);
                     gp.tryCallback( callback, this.config.node );
                     return;
                 }
@@ -565,7 +478,6 @@ cov.cover(65);
                     confirmed = skipConfirm || confirm( 'Are you sure you want to delete this item?' );
     
                 if ( !confirmed ) {
-cov.cover(66);
                     gp.tryCallback( callback, this.config.node );
                     return;
                 }
@@ -575,11 +487,9 @@ cov.cover(66);
                 } );
     
                 this.model.destroy( row, function ( response ) {
-cov.cover(67);
                     // remove the row from the model
                     var index = self.config.data.Data.indexOf( row );
                     if ( index != -1 ) {
-cov.cover(68);
                         self.config.data.Data.splice( index, 1 );
                         self.refresh( self.config );
                     }
@@ -595,7 +505,6 @@ cov.cover(68);
         },
     
         refresh: function ( config ) {
-cov.cover(69);
             var rowsTemplate = gp.templates['gridponent-body'];
             var pagerTemplate = gp.templates['gridponent-pager'];
             var html = rowsTemplate( config );
@@ -608,7 +517,6 @@ cov.cover(69);
         },
     
         restoreCells: function ( config, row, tr ) {
-cov.cover(70);
             var col,
                 i = 0;
             helper = gp.helpers['bodyCellContent'],
@@ -622,7 +530,6 @@ cov.cover(70);
     
     
         dispose: function () {
-cov.cover(71);
             gp.raiseCustomEvent( this.config.node, gp.events.beforeDispose );
             this.removeReadEvents();
             this.monitor.stop();
@@ -633,10 +540,8 @@ cov.cover(71);
       CustomEvent
     \***************/
     (function () {
-cov.cover(72);
     
         function CustomEvent(event, params) {
-cov.cover(73);
             params = params || { bubbles: false, cancelable: false, detail: undefined };
             var evt = document.createEvent('CustomEvent');
             evt.initCustomEvent(event, params.bubbles, params.cancelable, params.detail);
@@ -657,7 +562,6 @@ cov.cover(73);
     // It allows the use of common format strings for dates and numbers.
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl
     (function () {
-cov.cover(74);
     
         // IE inserts unicode left-to-right-mark characters into the formatted string, 
         // causing the length property to return invalid results, even though the strings look the same.
@@ -673,16 +577,13 @@ cov.cover(74);
         gp.defaultCurrencyCode = 'USD';
     
         gp.Formatter = function (locale, currencyCode) {
-cov.cover(75);
             this.locale = locale || gp.defaultLocale;
             this.currencyCode = currencyCode || gp.defaultCurrencyCode;
             this.supported = (window.Intl !== undefined);
-            if (!this.supported) gp.log('Intl internationalization not supported');
         };
     
         gp.Formatter.prototype = {
             format: function (val, format) {
-cov.cover(76);
                 var key, dtf, nf, type, options;
                 if (!this.supported || !gp.hasValue(val)) return val;
     
@@ -690,13 +591,10 @@ cov.cover(76);
                 key = (format || '') + '|' + this.locale + '|' + this.currencyCode;
     
                 if (type === 'date') {
-cov.cover(77);
                     if (key in dateTimeFormatCache) {
-cov.cover(78);
                         dtf = dateTimeFormatCache[key];
                     }
                     else {
-cov.cover(79);
                         options = getDateTimeFormatOptions(format);
     
                         dtf = new Intl.DateTimeFormat(this.locale, options)
@@ -706,16 +604,13 @@ cov.cover(79);
                     return dtf.format(val).replace(ltr, '');
                 }
                 if (type === 'dateString') {
-cov.cover(80);
                     var parts = val.match(/\d+/g);
                     var dt = new Date(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5]);
     
                     if (key in dateTimeFormatCache) {
-cov.cover(81);
                         dtf = dateTimeFormatCache[key];
                     }
                     else {
-cov.cover(82);
                         options = getDateTimeFormatOptions(format);
     
                         dtf = new Intl.DateTimeFormat(this.locale, options)
@@ -725,13 +620,10 @@ cov.cover(82);
                     return dtf.format(dt).replace(ltr, '');
                 }
                 if (type === 'number') {
-cov.cover(83);
                     if (key in numberFormatCache) {
-cov.cover(84);
                         nf = numberFormatCache[key];
                     }
                     else {
-cov.cover(85);
                         options = getNumberFormatOptions(format, this.currencyCode);
                         nf = new Intl.NumberFormat(this.locale, options);
                         numberFormatCache[key] = nf;
@@ -771,19 +663,14 @@ cov.cover(85);
         ];
     
         function getDateTimeFormatOptions(format) {
-cov.cover(86);
             var options = {};
     
             if (gp.hasValue(format)) {
-cov.cover(87);
     
                 dateTimeTokens.forEach(function (token) {
-cov.cover(88);
                     if (!(token[1] in options) && format.match(token[0])) {
-cov.cover(89);
                         options[token[1]] = token[2];
                         if ( token.length === 4 ) {
-cov.cover(90);
                             // set hour12 to true|false
                             options.hour12 = (token[3] === 'hour12');
                         }
@@ -802,26 +689,20 @@ cov.cover(90);
         ];
     
         function getNumberFormatOptions(format, currencyCode) {
-cov.cover(91);
             var options = {};
     
             if (gp.hasValue(format)) {
-cov.cover(92);
     
                 numberTokens.forEach(function (token) {
-cov.cover(93);
                     if (!(token[1] in options) && format.match(token[0])) {
-cov.cover(94);
                         options[token[1]] = token[2];
                         if (token[2] === 'currency') {
-cov.cover(95);
                             options.currency = currencyCode;
                         }
                     }
                 });
                 var digits = format.match(/\d+/);
                 if (digits) {
-cov.cover(96);
                     options.minimumFractionDigits = options.maximumFractionDigits = parseInt(digits);
                 }
             }
@@ -835,7 +716,6 @@ cov.cover(96);
          globals
     \***************/
     ( function ( gp ) {
-cov.cover(97);
     
         gp.rexp = {
             splitPath: /[^\[\]\.\s]+|\[\d+\]/g,
@@ -850,9 +730,7 @@ cov.cover(97);
         gp.logging = 'info';
         gp.log = window.console ? window.console.log.bind( window.console ) : function () { };
         gp.error = function ( e ) {
-cov.cover(98);
             if ( console && console.error ) {
-cov.cover(99);
                 console.error( e );
             }
         };
@@ -861,8 +739,6 @@ cov.cover(99);
         gp.warn = /verbose|info|warn/.test( gp.logging ) ? gp.log : function () { };
     
         gp.getAttributes = function ( node ) {
-cov.cover(100);
-            gp.verbose( 'getConfig: node:', node );
             var config = {}, name, attr, attrs = node.attributes;
             config.node = node;
             for ( var i = attrs.length - 1; i >= 0; i-- ) {
@@ -872,7 +748,6 @@ cov.cover(100);
                 config[name] = gp.rexp.trueFalse.test( attr.value ) || attr.value === '' ?
                     ( attr.value === "true" || attr.value === '' ) : attr.value;
             }
-            gp.verbose( 'getConfig: config:', config );
             return config;
         };
     
@@ -881,9 +756,7 @@ cov.cover(100);
         var escaped = ['&amp;', '&lt;', '&gt;', '&quot;', '&apos;', '&#96;'];
     
         gp.escapeHTML = function ( obj ) {
-cov.cover(101);
             if ( typeof obj !== 'string' ) {
-cov.cover(102);
                 return obj;
             }
             for ( var i = 0; i < chars.length; i++ ) {
@@ -893,26 +766,21 @@ cov.cover(102);
         };
     
         gp.camelize = function ( str ) {
-cov.cover(103);
             return str.replace( /(?:^|[-_])(\w)/g, function ( _, c ) {
-cov.cover(104);
                 return c ? c.toUpperCase() : '';
             } );
         };
     
         gp.shallowCopy = function ( from, to ) {
-cov.cover(105);
             to = to || {};
             var props = Object.getOwnPropertyNames( from );
             props.forEach( function ( prop ) {
-cov.cover(106);
                 to[prop] = from[prop];
             } );
             return to;
         };
     
         gp.getLocalISOString = function ( date ) {
-cov.cover(107);
             if ( typeof date === 'string' ) return date;
             var offset = date.getTimezoneOffset();
             var adjustedDate = new Date( date.valueOf() - ( offset * 60000 ) );
@@ -920,21 +788,16 @@ cov.cover(107);
         };
     
         gp.getType = function ( a ) {
-cov.cover(108);
             if ( a === null || a === undefined ) {
-cov.cover(109);
                 return a;
             }
             if ( a instanceof Date ) {
-cov.cover(110);
                 return 'date';
             }
             if ( typeof ( a ) === 'string' && gp.rexp.iso8601.test( a ) ) {
-cov.cover(111);
                 return 'dateString';
             }
             if ( Array.isArray( a ) ) {
-cov.cover(112);
                 return 'array';
             }
             // 'number','string','boolean','function','object'
@@ -942,20 +805,16 @@ cov.cover(112);
         };
     
         gp.on = function ( elem, event, targetSelector, listener ) {
-cov.cover(113);
             // if elem is a selector, convert it to an element
             if ( typeof ( elem ) === 'string' ) {
-cov.cover(114);
                 elem = document.querySelector( elem );
             }
     
             if ( !gp.hasValue( elem ) ) {
-cov.cover(115);
                 return;
             }
     
             if ( typeof targetSelector === 'function' ) {
-cov.cover(116);
                 elem.addEventListener( event, targetSelector, false );
                 return;
             }
@@ -963,7 +822,6 @@ cov.cover(116);
             // this allows us to attach an event handler to the document
             // and handle events that match a selector
             var privateListener = function ( evt ) {
-cov.cover(117);
     
                 var e = evt.target;
     
@@ -975,7 +833,6 @@ cov.cover(117);
                 while ( e ) {
                     for ( var j = 0; j < potentials.length; j++ ) {
                         if ( e == potentials[j] ) {
-cov.cover(118);
                             // set 'this' to the matching element
                             listener.call( e, evt );
                             return;
@@ -1001,14 +858,11 @@ cov.cover(118);
         };
     
         gp.off = function ( elem, event, listener ) {
-cov.cover(119);
             // check for a matching listener store on the element
             var listeners = elem['gp-listeners-' + event];
             if ( listeners ) {
-cov.cover(120);
                 for ( var i = 0; i < listeners.length; i++ ) {
                     if ( listeners[i].pub === listener ) {
-cov.cover(121);
     
                         // remove the event handler
                         elem.removeEventListener( event, listeners[i].priv );
@@ -1020,25 +874,19 @@ cov.cover(121);
                 }
             }
             else {
-cov.cover(122);
                 elem.removeEventListener( event, listener );
             }
         };
     
         gp.closest = function ( elem, selector, parentNode ) {
-cov.cover(123);
             var e, potentials, j;
             parentNode = parentNode || document;
             // if elem is a selector, convert it to an element
             if ( typeof ( elem ) === 'string' ) {
-cov.cover(124);
                 elem = document.querySelector( elem );
             }
-            gp.info( 'closest: elem:' );
-            gp.info( elem );
     
             if ( elem ) {
-cov.cover(125);
                 // start with elem's immediate parent
                 e = elem.parentElement;
     
@@ -1047,9 +895,6 @@ cov.cover(125);
                 while ( e ) {
                     for ( j = 0; j < potentials.length; j++ ) {
                         if ( e == potentials[j] ) {
-cov.cover(126);
-                            gp.info( 'closest: e:' );
-                            gp.info( e );
                             return e;
                         }
                     }
@@ -1059,16 +904,13 @@ cov.cover(126);
         };
     
         gp.in = function ( elem, selector, parent ) {
-cov.cover(127);
             parent = parent || document;
             // if elem is a selector, convert it to an element
             if ( typeof ( elem ) === 'string' ) {
-cov.cover(128);
                 elem = parent.querySelector( elem );
             }
             // if selector is a string, convert it to a node list
             if ( typeof ( selector ) === 'string' ) {
-cov.cover(129);
                 selector = parent.querySelectorAll( selector );
             }
             for ( var i = 0; i < selector.length; i++ ) {
@@ -1078,22 +920,18 @@ cov.cover(129);
         };
     
         gp.hasValue = function ( val ) {
-cov.cover(130);
             return val !== undefined && val !== null;
         };
     
         gp.isNullOrEmpty = function ( val ) {
-cov.cover(131);
             return gp.hasValue( val ) === false || val.length === undefined || val.length === 0;
         };
     
         gp.coalesce = function ( array ) {
-cov.cover(132);
             if ( gp.isNullOrEmpty( array ) ) return array;
     
             for ( var i = 0; i < array.length; i++ ) {
                 if ( gp.hasValue( array[i] ) ) {
-cov.cover(133);
                     return array[i];
                 }
             }
@@ -1102,7 +940,6 @@ cov.cover(133);
         };
     
         gp.getObjectAtPath = function ( path, root ) {
-cov.cover(134);
             if ( !path ) return;
     
             path = Array.isArray( path ) ? path : path.match( gp.rexp.splitPath );
@@ -1117,12 +954,10 @@ cov.cover(134);
                 // is this segment an array index?
                 segment = path[i];
                 if ( gp.rexp.indexer.test( segment ) ) {
-cov.cover(135);
                     // convert to int
                     segment = parseInt( /\d+/.exec( segment ) );
                 }
                 else if ( gp.rexp.quoted.test( segment ) ) {
-cov.cover(136);
                     segment = segment.slice( 1, -1 );
                 }
     
@@ -1139,11 +974,8 @@ cov.cover(136);
         var callbind = FP.bind
            ? FP.bind.bind( FP.call )
            : ( function ( call ) {
-cov.cover(137);
                return function ( func ) {
-cov.cover(138);
                    return function () {
-cov.cover(139);
                        return call.apply( func, arguments );
                    };
                };
@@ -1155,14 +987,12 @@ cov.cover(139);
         var numberToString = callbind( zero.toString );
     
         gp.createUID = function () {
-cov.cover(140);
             // id's can't begin with a number
             var key = 'gp' + slice( numberToString( Math.random(), 36 ), 2 );
             return key in uids ? createUID() : uids[key] = key;
         };
     
         gp.hasPositiveWidth = function ( nodes ) {
-cov.cover(141);
             if ( gp.isNullOrEmpty( nodes ) ) return false;
             for ( var i = 0; i < nodes.length; i++ ) {
                 if ( nodes[i].offsetWidth > 0 ) return true;
@@ -1172,18 +1002,14 @@ cov.cover(141);
     
     
         gp.resolveTemplate = function ( template ) {
-cov.cover(142);
             // it's either a selector or a function
             var t = gp.getObjectAtPath( template );
             if ( typeof ( t ) === 'function' ) {
-cov.cover(143);
                 return t;
             }
             else {
-cov.cover(144);
                 t = document.querySelector( template );
                 if ( t ) {
-cov.cover(145);
                     return t.innerHTML;
                 }
             }
@@ -1193,45 +1019,36 @@ cov.cover(145);
         gp.formatter = new gp.Formatter();
     
         gp.getFormattedValue = function ( row, col, escapeHTML ) {
-cov.cover(146);
             var type = ( col.Type || '' ).toLowerCase();
             var val = row[col.Field];
     
             if ( /date|datestring/.test( type ) ) {
-cov.cover(147);
                 // apply default formatting to dates
                 //return gp.formatDate(val, col.Format || 'M/d/yyyy');
                 return gp.formatter.format( val, col.Format );
             }
             if ( type === 'number' && col.Format ) {
-cov.cover(148);
                 return gp.formatter.format( val, col.Format );
             }
             if ( type === 'string' && escapeHTML ) {
-cov.cover(149);
                 return gp.escapeHTML( val );
             }
             return val;
         };
     
         gp.processBodyTemplate = function ( template, row, col ) {
-cov.cover(150);
             var fn, val, match, braces = template.match( gp.rexp.braces );
             if ( braces ) {
-cov.cover(151);
                 for ( var i = 0; i < braces.length; i++ ) {
                     match = braces[i].slice( 2, -2 );
                     if ( match in row ) {
-cov.cover(152);
                         val = row[match];
                         if ( gp.hasValue( val ) === false ) val = '';
                         template = template.replace( braces[i], val );
                     }
                     else {
-cov.cover(153);
                         fn = gp.getObjectAtPath( match );
                         if ( typeof fn === 'function' ) {
-cov.cover(154);
                             template = template.replace( braces[i], fn.call( this, row, col ) );
                         }
                     }
@@ -1241,15 +1058,12 @@ cov.cover(154);
         };
     
         gp.processHeaderTemplate = function ( template, col ) {
-cov.cover(155);
             var fn, match, braces = template.match( gp.rexp.braces );
             if ( braces ) {
-cov.cover(156);
                 for ( var i = 0; i < braces.length; i++ ) {
                     match = braces[i].slice( 2, -2 );
                     fn = gp.getObjectAtPath( match );
                     if ( typeof fn === 'function' ) {
-cov.cover(157);
                         template = template.replace( braces[i], fn.call( this, col ) );
                     }
                 }
@@ -1258,60 +1072,48 @@ cov.cover(157);
         };
     
         gp.trim = function ( str ) {
-cov.cover(158);
             return str.trim ? str.trim() : str.replace( /^\s+|\s+$/g, '' );
         };
     
         gp.hasClass = function ( el, cn ) {
-cov.cover(159);
             return ( ' ' + el.className + ' ' ).indexOf( ' ' + cn + ' ' ) !== -1;
         };
     
         gp.addClass = function ( el, cn ) {
-cov.cover(160);
             if ( !gp.hasClass( el, cn ) ) {
-cov.cover(161);
                 el.className = ( el.className === '' ) ? cn : el.className + ' ' + cn;
             }
         };
     
         gp.removeClass = function ( el, cn ) {
-cov.cover(162);
             el.className = gp.trim(( ' ' + el.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
         };
     
         gp.prependChild = function ( node, child ) {
-cov.cover(163);
             if ( typeof node === 'string' ) node = document.querySelector( node );
             if ( !node.firstChild ) {
-cov.cover(164);
                 node.appendChild( child );
             }
             else {
-cov.cover(165);
                 node.insertBefore( child, node.firstChild );
             }
             return child;
         };
     
         gp.getRowModel = function ( data, tr ) {
-cov.cover(166);
             var index = parseInt( tr.attributes['data-index'].value );
             return data[index];
         };
     
         gp.getTableRow = function ( data, row, node ) {
-cov.cover(167);
             var index = data.indexOf( row );
             if ( index == -1 ) return;
             return node.querySelector( 'tr[data-index="' + index + '"]' );
         };
     
         gp.raiseCustomEvent = function ( node, name, detail ) {
-cov.cover(168);
             var event = new CustomEvent( name, { bubbles: true, detail: detail, cancelable: true } );
             node.dispatchEvent( event );
-            gp.info( 'raiseCustomEvent: name', name );
         };
     
         gp.events = {
@@ -1327,7 +1129,6 @@ cov.cover(168);
         };
     
         gp.tryCallback = function ( callback, $this, args ) {
-cov.cover(169);
             if ( typeof callback !== 'function' ) return;
             // anytime there's the possibility of executing 
             // user-supplied code, wrap it with a try-catch block
@@ -1335,11 +1136,9 @@ cov.cover(169);
             // keep your sloppy JavaScript OUT of my area
             try {
                 if ( args == undefined ) {
-cov.cover(170);
                     callback.call( $this );
                 }
                 else {
-cov.cover(171);
                     args = Array.isArray( args ) ? args : [args];
                     callback.apply( $this, args );
                 }
@@ -1356,66 +1155,50 @@ cov.cover(171);
     \***************/
     
     (function () {
-cov.cover(172);
     
         gp.helpers = {};
     
         var extend = function (name, func) {
-cov.cover(173);
             gp.helpers[name] = func;
         };
     
         extend('thead', function () {
-cov.cover(174);
             var self = this;
             var html = new gp.StringBuilder();
             var sort, type, template;
             html.add('<thead>');
             html.add('<tr>');
             this.Columns.forEach(function (col) {
-cov.cover(175);
                 if (self.Sorting) {
-cov.cover(176);
                     // if sort isn't specified, use the field
                     sort = gp.escapeHTML(gp.coalesce([col.Sort, col.Field]));
                 }
                 else {
-cov.cover(177);
                     // only provide sorting where it is explicitly specified
                     if (gp.hasValue(col.Sort)) {
-cov.cover(178);
                         sort = gp.escapeHTML(col.Sort);
                     }
                 }
                 type = gp.coalesce([col.Type, '']).toLowerCase();
                 html.add('<th class="header-cell ' + type + ' ' + sort + '">');
     
-                gp.verbose('helpers.thead: col:');
-                gp.verbose(col);
     
                 // check for a template
                 if (col.HeaderTemplate) {
-cov.cover(179);
-                    gp.verbose('helpers.thead: col.HeaderTemplate:');
-                    gp.verbose(col.HeaderTemplate);
                     if (typeof (col.HeaderTemplate) === 'function') {
-cov.cover(180);
                         html.add(col.HeaderTemplate.call(self, col));
                     }
                     else {
-cov.cover(181);
                         html.add(gp.processHeaderTemplate.call(this, col.HeaderTemplate, col));
                     }
                 }
                 else if (gp.hasValue(sort)) {
-cov.cover(182);
                     html.add('<label class="table-sort">')
                     .add('<input type="radio" name="OrderBy" value="' + sort + '" />')
                     .add(gp.coalesce([col.Header, col.Field, sort]))
                     .add('</label>');
                 }
                 else {
-cov.cover(183);
                     html.add(gp.coalesce([col.Header, col.Field, '&nbsp;']));
                 }
                 html.add('</th>');
@@ -1426,11 +1209,9 @@ cov.cover(183);
         });
     
         extend('tableRows', function() {
-cov.cover(184);
             var self = this;
             var html = new gp.StringBuilder();
             this.data.Data.forEach(function (row, index) {
-cov.cover(185);
                 self.Row = row;
                 html.add('<tr data-index="')
                 .add(index)
@@ -1442,7 +1223,6 @@ cov.cover(185);
         });
     
         extend( 'bodyCellContent', function ( col ) {
-cov.cover(186);
             var self = this,
                 template,
                 format,
@@ -1453,23 +1233,17 @@ cov.cover(186);
     
             // check for a template
             if (col.Template) {
-cov.cover(187);
                 if (typeof (col.Template) === 'function') {
-cov.cover(188);
                     html.add(col.Template.call(this, this.Row, col));
                 }
                 else {
-cov.cover(189);
                     html.add(gp.processBodyTemplate.call(this, col.Template, this.Row, col));
                 }
             }
             else if (col.Commands && col.Commands.length) {
-cov.cover(190);
                 html.add('<div class="btn-group" role="group">');
                 col.Commands.forEach(function (cmd, index) {
-cov.cover(191);
                     if (cmd == 'Edit' && gp.hasValue(self.Update )) {
-cov.cover(192);
                         html.add('<button type="button" class="btn btn-default btn-xs" value="')
                             .add(cmd)
                             .add('">')
@@ -1478,12 +1252,10 @@ cov.cover(192);
                             .add('</button>');
                     }
                     else if ( cmd == 'Delete' && gp.hasValue( self.Destroy ) ) {
-cov.cover(193);
                         // put the delete btn last
                         hasDeleteBtn = true;
                     }
                     else {
-cov.cover(194);
                         html.add( '<button type="button" class="btn btn-default btn-xs" value="' )
                             .add( cmd )
                             .add( '">' )
@@ -1495,7 +1267,6 @@ cov.cover(194);
     
                 // put the delete btn last
                 if ( hasDeleteBtn ) {
-cov.cover(195);
                     html.add( '<button type="button" class="btn btn-danger btn-xs" value="Delete">' )
                         .add( '<span class="glyphicon glyphicon-remove"></span>Delete' )
                         .add( '</button>' );
@@ -1504,17 +1275,13 @@ cov.cover(195);
                 html.add('</div>');
             }
             else if (gp.hasValue(val)) {
-cov.cover(196);
                 // show a checkmark for bools
                 if (type === 'boolean') {
-cov.cover(197);
                     if (val === true) {
-cov.cover(198);
                         html.add('<span class="glyphicon glyphicon-ok"></span>');
                     }
                 }
                 else {
-cov.cover(199);
                     html.add(val);
                 }
             }
@@ -1522,23 +1289,18 @@ cov.cover(199);
         });
     
         extend('editCellContent', function (col) {
-cov.cover(200);
             var template, html = new gp.StringBuilder();
     
             // check for a template
             if (col.EditTemplate) {
-cov.cover(201);
                 if (typeof (col.EditTemplate) === 'function') {
-cov.cover(202);
                     html.add(col.EditTemplate.call(this, this.Row, col));
                 }
                 else {
-cov.cover(203);
                     html.add(gp.processBodyTemplate.call(this, col.EditTemplate, this.Row, col));
                 }
             }
             else if (col.Commands) {
-cov.cover(204);
                 html.add('<div class="btn-group" role="group">')
                     .add('<button type="button" class="btn btn-primary btn-xs" value="Update">')
                     .add('<span class="glyphicon glyphicon-save"></span>Save')
@@ -1549,7 +1311,6 @@ cov.cover(204);
                     .add('</div>');
             }
             else {
-cov.cover(205);
                 var val = this.Row[col.Field];
                 // render empty cell if this field doesn't exist in the data
                 if (val === undefined) return '';
@@ -1569,7 +1330,6 @@ cov.cover(205);
                     case 'boolean':
                         html.add('checkbox" value="true"');
                         if (val) {
-cov.cover(206);
                             html.add(' checked="checked"');
                         }
                         html.add(' />');
@@ -1583,16 +1343,12 @@ cov.cover(206);
         });
     
         extend('footerCell', function (col) {
-cov.cover(207);
             var html = new gp.StringBuilder();
             if (col.FooterTemplate) {
-cov.cover(208);
                 if (typeof (col.FooterTemplate) === 'function') {
-cov.cover(209);
                     html.add(col.FooterTemplate.call(this, col));
                 }
                 else {
-cov.cover(210);
                     html.add(gp.processHeaderTemplate.call(this, col.FooterTemplate, col));
                 }
             }
@@ -1600,7 +1356,6 @@ cov.cover(210);
         });
     
         extend('setPagerFlags', function () {
-cov.cover(211);
             this.data.IsFirstPage = this.data.Page === 1;
             this.data.IsLastPage = this.data.Page === this.data.PageCount;
             this.data.HasPages = this.data.PageCount > 1;
@@ -1609,18 +1364,14 @@ cov.cover(211);
         });
     
         extend('sortStyle', function () {
-cov.cover(212);
             var html = new gp.StringBuilder();
             if (gp.isNullOrEmpty(this.data.OrderBy) === false) {
-cov.cover(213);
                 html.add('#' + this.ID + ' thead th.header-cell.' + this.data.OrderBy + '> label:after')
                     .add('{ content: ');
                 if (this.data.Desc) {
-cov.cover(214);
                     html.add('"\\e114"; }');
                 }
                 else {
-cov.cover(215);
                     html.add('"\\e113"; }');
                 }
             }
@@ -1628,7 +1379,6 @@ cov.cover(215);
         });
     
         extend('columnWidthStyle', function () {
-cov.cover(216);
             var self = this,
                 html = new gp.StringBuilder(),
                 index = 0,
@@ -1636,11 +1386,9 @@ cov.cover(216);
     
             // even though the table might not exist yet, we still should render width styles because there might be fixed widths specified
             this.Columns.forEach(function (col) {
-cov.cover(217);
                 html.add('#' + self.ID + ' .table-header th.header-cell:nth-child(' + (index + 1) + '),')
                     .add('#' + self.ID + ' .table-footer td.footer-cell:nth-child(' + (index + 1) + ')');
                 if (col.Width) {
-cov.cover(218);
                     // fixed width should include the body
                     html.add(',')
                         .add('#' + self.ID + ' > .table-body > table > thead th:nth-child(' + (index + 1) + '),')
@@ -1650,7 +1398,6 @@ cov.cover(218);
                     if (isNaN(col.Width) == false) html.add('px');
                 }
                 else if (bodyCols.length && (self.FixedHeaders || self.FixedFooters)) {
-cov.cover(219);
                     // sync header and footer to body
                     width = bodyCols[index].offsetWidth;
                     html.add('{ width:')
@@ -1661,37 +1408,28 @@ cov.cover(219);
                 index++;
             });
     
-            gp.verbose('columnWidthStyle: html:');
-            gp.verbose(html.toString());
     
             return html.toString();
         });
     
         extend('containerClasses', function () {
-cov.cover(220);
             var html = new gp.StringBuilder();
             if (this.FixedHeaders) {
-cov.cover(221);
                 html.add(' fixed-headers');
             }
             if (this.FixedFooters) {
-cov.cover(222);
                 html.add(' fixed-footers');
             }
             if (this.Pager) {
-cov.cover(223);
                 html.add(' pager-' + this.Pager);
             }
             if (this.Responsive) {
-cov.cover(224);
                 html.add(' responsive');
             }
             if (this.Search) {
-cov.cover(225);
                 html.add(' search-' + this.Search);
             }
             if (this.Onrowselect) {
-cov.cover(226);
                 html.add(' selectable');
             }
             return html.toString();
@@ -1700,17 +1438,60 @@ cov.cover(226);
     })();
 
     /***************\
+         http        
+    \***************/
+    gp.Http = function () { };
+    
+    gp.Http.prototype = {
+        serialize: function (obj, props) {
+            // creates a query string from a simple object
+            var self = this;
+            props = props || Object.getOwnPropertyNames(obj);
+            var out = [];
+            props.forEach( function ( prop ) {
+                if ( obj[prop] == null ) {
+                    out.push( encodeURIComponent( prop ) + '=' );
+                }
+                else {
+                    out.push( encodeURIComponent( prop ) + '=' + encodeURIComponent( obj[prop] ) );
+                }
+            });
+            return out.join('&');
+        },
+        createXhr: function (type, url, callback, error) {
+            var xhr = new XMLHttpRequest();
+            xhr.open(type.toUpperCase(), url, true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.onload = function () {
+                callback(JSON.parse(xhr.responseText), xhr);
+            }
+            xhr.onerror = error;
+            return xhr;
+        },
+        get: function (url, callback, error) {
+            var xhr = this.createXhr('GET', url, callback, error);
+            xhr.send();
+        },
+        post: function ( url, data, callback, error ) {
+            // don't post back the data or the types
+            var props = Object.getOwnPropertyNames( data ).filter( function ( p ) { return /Data|Types/i.test(p) == false; } );
+            var s = this.serialize(data, props);
+            var xhr = this.createXhr('POST', url, callback, error);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.send(s);
+        }
+    };
+
+    /***************\
        Initializer
     \***************/
     gp.Initializer = function ( node ) {
-cov.cover(227);
         this.node = node;
     };
     
     gp.Initializer.prototype = {
     
         initialize: function (callback) {
-cov.cover(228);
             var self = this;
             this.config = this.getConfig(this.node);
             this.node.config = this.config;
@@ -1720,7 +1501,6 @@ cov.cover(228);
             this.node.api = new gp.api( controller );
     
             model.read( requestModel, function ( data ) {
-cov.cover(229);
                 self.config.data = data;
                 self.resolvePaging( self.config );
                 self.resolveTypes( self.config );
@@ -1737,7 +1517,6 @@ cov.cover(229);
         },
     
         getConfig: function (node) {
-cov.cover(230);
             var self = this;
             var obj, config = gp.getAttributes(node);
             config.Columns = [];
@@ -1753,10 +1532,8 @@ cov.cover(230);
             config.Footer = this.resolveFooter(config);
             var options = 'Onrowselect SearchFunction Read Create Update Destroy'.split(' ');
             options.forEach( function ( option ) {
-cov.cover(231);
     
                 if ( gp.hasValue(config[option]) ) {
-cov.cover(232);
                     // see if this config option points to an object
                     // otherwise it must be a URL
                     obj = gp.getObjectAtPath( config[option] );
@@ -1765,12 +1542,10 @@ cov.cover(232);
                 }
     
             } );
-            gp.info('getConfig.config:', config);
             return config;
         },
     
         render: function ( config ) {
-cov.cover(233);
             var self = this;
             try {
                 var node = config.node;
@@ -1779,11 +1554,9 @@ cov.cover(233);
     
                 // sync column widths
                 if ( config.FixedHeaders || config.FixedFooters ) {
-cov.cover(234);
                     var nodes = node.querySelectorAll( '.table-body > table > tbody > tr:first-child > td' );
     
                     if ( gp.hasPositiveWidth( nodes ) ) {
-cov.cover(235);
                         // call syncColumnWidths twice because the first call causes things to shift around a bit
                         self.syncColumnWidths( config )
                         self.syncColumnWidths( config )
@@ -1798,7 +1571,6 @@ cov.cover(235);
                     //}
     
                     window.addEventListener( 'resize', function () {
-cov.cover(236);
                         self.syncColumnWidths( config );
                     } );
                 }
@@ -1809,13 +1581,11 @@ cov.cover(236);
         },
     
         syncColumnWidths: function (config) {
-cov.cover(237);
             var html = gp.helpers.columnWidthStyle.call( config );
             config.node.querySelector( 'style.column-width-style' ).innerHTML = html;
         },
     
         resolveFooter: function (config) {
-cov.cover(238);
             for (var i = 0; i < config.Columns.length; i++) {
                 if (config.Columns[i].FooterTemplate) return true;
             }
@@ -1823,36 +1593,28 @@ cov.cover(238);
         },
     
         resolveTemplates: function (column) {
-cov.cover(239);
             var props = 'HeaderTemplate Template EditTemplate FooterTemplate'.split(' ');
             props.forEach(function (prop) {
-cov.cover(240);
                 column[prop] = gp.resolveTemplate(column[prop]);
             });
         },
     
         resolveCommands: function (col) {
-cov.cover(241);
             if (col.Commands) {
-cov.cover(242);
                 col.Commands = col.Commands.split(',');
             }
         },
     
         resolvePaging: function ( config ) {
-cov.cover(243);
             // if we've got all the data, do paging/sorting/searching on the client
     
         },
     
         resolveTypes: function ( config ) {
-cov.cover(244);
             if ( !config || !config.data || !config.data.Data ) return;
             config.Columns.forEach( function ( col ) {
-cov.cover(245);
                 for ( var i = 0; i < config.data.Data.length; i++ ) {
                     if ( config.data.Data[i][col.Field] !== null ) {
-cov.cover(246);
                         col.Type = gp.getType( config.data.Data[i][col.Field] );
                         break;
                     }
@@ -1869,7 +1631,6 @@ cov.cover(246);
         //        var diff = (headerWidth - bodyWidth);
         //        if (diff !== 0) {
         //            var paddingRight = diff;
-        //            gp.log('diff:' + diff + ', paddingRight:' + paddingRight);
         //            if (header) {
         //                header.style.paddingRight = paddingRight.toString() + 'px';
         //            }
@@ -1883,219 +1644,12 @@ cov.cover(246);
     };
 
     /***************\
-       mock-http
-    \***************/
-    (function (gp) {
-cov.cover(247);
-        gp.Http = function () { };
-    
-        // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
-        var routes = {
-            read: /Read/,
-            update: /Update/,
-            create: /Create/,
-            destroy: /Destroy/
-        };
-    
-        gp.Http.prototype = {
-            serialize: function (obj, props) {
-cov.cover(248);
-                // creates a query string from a simple object
-                var self = this;
-                props = props || Object.getOwnPropertyNames(obj);
-                var out = [];
-                props.forEach(function (prop) {
-cov.cover(249);
-                    out.push(encodeURIComponent(prop) + '=' + encodeURIComponent(obj[prop]));
-                });
-                return out.join('&');
-            },
-            deserialize: function (queryString) {
-cov.cover(250);
-                var nameValue, split = queryString.split( '&' );
-                var obj = {};
-                if ( !queryString ) return obj;
-                split.forEach( function ( s ) {
-cov.cover(251);
-                    nameValue = s.split( '=' );
-                    var val = nameValue[1];
-                    if ( !val ) {
-cov.cover(252);
-                        obj[nameValue[0]] = null;
-                    }
-                    else if ( /true|false/i.test( val ) ) {
-cov.cover(253);
-                        obj[nameValue[0]] = ( /true/i.test( val ) );
-                    }
-                    else if ( parseFloat( val ).toString() === val ) {
-cov.cover(254);
-                        obj[nameValue[0]] = parseFloat( val );
-                    }
-                    else {
-cov.cover(255);
-                        obj[nameValue[0]] = val;
-                    }
-                } );
-                return obj;
-            },
-            get: function (url, callback, error) {
-cov.cover(256);
-                if (routes.read.test(url)) {
-cov.cover(257);
-                    var index = url.substring(url.indexOf('?'));
-                    if (index !== -1) {
-cov.cover(258);
-                        var queryString = url.substring(index + 1);
-                        var model = this.deserialize(queryString);
-                        this.post(url.substring(0, index), model, callback, error);
-                    }
-                    else {
-cov.cover(259);
-                        this.post(url, null, callback, error);
-                    }
-                }
-                else if (routes.create.test(url)) {
-cov.cover(260);
-                    var result = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
-                    callback(result);
-                }
-                else {
-cov.cover(261);
-                    throw 'Not found: ' + url;
-                }
-            },
-            post: function (url, model, callback, error) {
-cov.cover(262);
-                model = model || {};
-                if (routes.read.test(url)) {
-cov.cover(263);
-                    getData(model, callback);
-                }
-                else if (routes.update.test(url)) {
-cov.cover(264);
-                    callback(model);
-                }
-                else if (routes.destroy.test(url)) {
-cov.cover(265);
-                    var index = data.products.indexOf(model);
-                    callback(true);
-                }
-                else {
-cov.cover(266);
-                    throw '404 Not found: ' + url;
-                }
-            }
-        };
-    
-        var getData = function (model, callback) {
-cov.cover(267);
-            var count, d = data.products;
-            if (!gp.isNullOrEmpty(model.Search)) {
-cov.cover(268);
-                var props = Object.getOwnPropertyNames(d[0]);
-                var search = model.Search.toLowerCase();
-                d = d.filter(function (row) {
-cov.cover(269);
-                    for (var i = 0; i < props.length; i++) {
-                        if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
-cov.cover(270);
-                            return true;
-                        }
-                    }
-                    return false;
-                });
-            }
-            if (!gp.isNullOrEmpty(model.OrderBy)) {
-cov.cover(271);
-                if (model.Desc) {
-cov.cover(272);
-                    d.sort(function (row1, row2) {
-cov.cover(273);
-                        var a = row1[model.OrderBy];
-                        var b = row2[model.OrderBy];
-                        if (a === null) {
-cov.cover(274);
-                            if (b != null) {
-cov.cover(275);
-                                return 1;
-                            }
-                        }
-                        else if (b === null) {
-cov.cover(276);
-                            // we already know a isn't null
-                            return -1;
-                        }
-                        if (a > b) {
-cov.cover(277);
-                            return -1;
-                        }
-                        if (a < b) {
-cov.cover(278);
-                            return 1;
-                        }
-    
-                        return 0;
-                    });
-                }
-                else {
-cov.cover(279);
-                    d.sort(function (row1, row2) {
-cov.cover(280);
-                        var a = row1[model.OrderBy];
-                        var b = row2[model.OrderBy];
-                        if (a === null) {
-cov.cover(281);
-                            if (b != null) {
-cov.cover(282);
-                                return -1;
-                            }
-                        }
-                        else if (b === null) {
-cov.cover(283);
-                            // we already know a isn't null
-                            return 1;
-                        }
-                        if (a > b) {
-cov.cover(284);
-                            return 1;
-                        }
-                        if (a < b) {
-cov.cover(285);
-                            return -1;
-                        }
-    
-                        return 0;
-                    });
-                }
-            }
-            count = d.length;
-            if (model.Top !== -1) {
-cov.cover(286);
-                model.Data = d.slice(model.Skip).slice(0, model.Top);
-            }
-            else {
-cov.cover(287);
-                model.Data = d;
-            }
-            model.ValidationErrors = [];
-            setTimeout(function () {
-cov.cover(288);
-                callback(model);
-            });
-    
-        };
-    
-    })(gridponent);
-
-    /***************\
          model
     \***************/
     gp.Model = function ( config ) {
-cov.cover(289);
         this.config = config;
         this.dal = null;
         var type = gp.getType( config.Read );
-        gp.info( 'Model: type:', type );
         switch ( type ) {
             case 'string':
                 this.dal = new gp.ServerPager( config );
@@ -2120,42 +1674,31 @@ cov.cover(289);
     gp.Model.prototype = {
     
         read: function ( requestModel, callback ) {
-cov.cover(290);
             var self = this;
-            gp.info( 'Model.read: requestModel:', requestModel );
     
-            gp.info( 'Model.dal: :', this.dal );
     
             this.dal.read( requestModel, function (arg) {
-cov.cover(291);
                 gp.tryCallback( callback, self.config.node, arg );
             } );
         },
     
         create: function (callback) {
-cov.cover(292);
             var self = this,
                 row;
     
             if ( typeof this.config.Create === 'function' ) {
-cov.cover(293);
                 this.config.Create( function ( row ) {
-cov.cover(294);
                     if (self.config.data.Data && self.config.data.Data.push) {
-cov.cover(295);
                         self.config.data.Data.push(row);
                     }
                     gp.tryCallback( callback, self.config.node, row );
                 } );
             }
             else {
-cov.cover(296);
                 // ask the server for a new record
                 var http = new gp.Http();
                 http.get(this.config.Create, function (row) {
-cov.cover(297);
                     if (self.config.data.Data && self.config.data.Data.push) {
-cov.cover(298);
                         self.config.data.Data.push(row);
                     }
                     gp.tryCallback( callback, self.config.node, row );
@@ -2164,42 +1707,32 @@ cov.cover(298);
         },
     
         update: function (updateModel, callback) {
-cov.cover(299);
             var self = this;
             // config.Update can be a function or URL
             gp.raiseCustomEvent( this.config.node, gp.events.beforeUpdate );
             if ( typeof this.config.Update === 'function' ) {
-cov.cover(300);
                 this.config.Update( updateModel, function ( arg ) {
-cov.cover(301);
                     gp.tryCallback( callback, self.config.node, arg );
                 } );
             }
             else {
-cov.cover(302);
                 var http = new gp.Http();
                 http.post( this.config.Update, updateModel, function ( arg ) {
-cov.cover(303);
                     gp.tryCallback( callback, self.config.node, arg );
                 } );
             }
         },
     
         destroy: function (row, callback) {
-cov.cover(304);
             var self = this;
             if ( typeof this.config.Destroy === 'function' ) {
-cov.cover(305);
                 this.config.Destroy( row, function ( arg ) {
-cov.cover(306);
                     gp.tryCallback( callback, self.config.node, arg );
                 } );
             }
             else {
-cov.cover(307);
                 var http = new gp.Http();
                 http.post( this.config.Destroy, row, function ( arg ) {
-cov.cover(308);
                     gp.tryCallback( callback, self.config.node, arg );
                 } );
             }
@@ -2212,18 +1745,15 @@ cov.cover(308);
     \***************/
     
     gp.NodeBuilder = function ( ) {
-cov.cover(309);
         this.node = null;
     };
     
     gp.NodeBuilder.prototype = {
     
         startElem: function ( tagName ) {
-cov.cover(310);
             var n = document.createElement( tagName );
     
             if ( this.node ) {
-cov.cover(311);
                 this.node.appendChild( n );
             }
     
@@ -2233,11 +1763,9 @@ cov.cover(311);
         },
     
         addClass: function ( name ) {
-cov.cover(312);
             var hasClass = ( ' ' + this.node.className + ' ' ).indexOf( ' ' + name + ' ' ) !== -1;
     
             if ( !hasClass ) {
-cov.cover(313);
                 this.node.className = ( this.node.className === '' ) ? name : this.node.className + ' ' + name;
             }
     
@@ -2245,26 +1773,21 @@ cov.cover(313);
         },
     
         html: function ( html ) {
-cov.cover(314);
             if (gp.hasClass(html) && html !== '') this.node.innerHTML = html;
             return this;
         },
     
         endElem: function () {
-cov.cover(315);
             if ( this.node.parentElement ) {
-cov.cover(316);
                 this.node = this.node.parentElement;
             }
             return this;
         },
     
         attr: function ( name, value ) {
-cov.cover(317);
             var attr = document.createAttribute( name );
     
             if ( value != undefined ) {
-cov.cover(318);
                 attr.value = value;
             }
     
@@ -2274,7 +1797,6 @@ cov.cover(318);
         },
     
         close: function () {
-cov.cover(319);
             while ( this.node.parentElement ) {
                 this.node = this.node.parentElement;
             }
@@ -2287,7 +1809,6 @@ cov.cover(319);
        ObjectProxy
     \***************/
     gp.ObjectProxy = function (obj, onPropertyChanged ) {
-cov.cover(320);
         var self = this;
         var dict = {};
     
@@ -2295,20 +1816,15 @@ cov.cover(320);
         var props = Object.getOwnPropertyNames( obj );
     
         props.forEach(function (prop) {
-cov.cover(321);
             Object.defineProperty(self, prop, {
                 get: function () {
-cov.cover(322);
                     return dict[prop];
                 },
                 set: function (value) {
-cov.cover(323);
                     if (dict[prop] != value) {
-cov.cover(324);
                         var oldValue = dict[prop];
                         dict[prop] = value;
                         if ( typeof onPropertyChanged === 'function' ) {
-cov.cover(325);
                             onPropertyChanged(self, prop, oldValue, value);
                         }
                     }
@@ -2322,14 +1838,12 @@ cov.cover(325);
     server-side pager
     \***************/
     gp.ServerPager = function (config) {
-cov.cover(326);
         this.config = config;
         this.url = config.Read;
     };
     
     gp.ServerPager.prototype = {
         read: function (model, callback, error) {
-cov.cover(327);
             var h = new gp.Http();
             h.post(this.url, model, callback, error);
         }
@@ -2340,26 +1854,20 @@ cov.cover(327);
     client-side pager
     \***************/
     gp.ClientPager = function (config) {
-cov.cover(328);
         var value, self = this;
         this.data = config.data.Data;
         this.columns = config.Columns.filter(function (c) {
-cov.cover(329);
             return c.Field !== undefined || c.Sort !== undefined;
         });
         if (typeof config.SearchFunction === 'function') {
-cov.cover(330);
             this.searchFilter = config.SearchFunction;
         }
         else {
-cov.cover(331);
             this.searchFilter = function (row, search) {
-cov.cover(332);
                 var s = search.toLowerCase();
                 for (var i = 0; i < self.columns.length; i++) {
                     value = gp.getFormattedValue( row, self.columns[i], false );
                     if (gp.hasValue(value) && value.toString().toLowerCase().indexOf(s) !== -1) {
-cov.cover(333);
                         return true;
                     }
                 }
@@ -2370,7 +1878,6 @@ cov.cover(333);
     
     gp.ClientPager.prototype = {
         read: function (model, callback, error) {
-cov.cover(334);
             try {
                 var self = this;
                 var skip = this.getSkip( model );
@@ -2380,9 +1887,7 @@ cov.cover(334);
                 var count;
                 // filter first
                 if (!gp.isNullOrEmpty(model.Search)) {
-cov.cover(335);
                     model.Data = model.Data.filter(function (row) {
-cov.cover(336);
                         return self.searchFilter(row, model.Search);
                     });
                 }
@@ -2392,14 +1897,11 @@ cov.cover(336);
     
                 // then sort
                 if (gp.isNullOrEmpty(model.OrderBy) === false) {
-cov.cover(337);
                     var col = this.getColumnByField( this.columns, model.OrderBy );
                     if (gp.hasValue(col)) {
-cov.cover(338);
                         var sortFunction = this.getSortFunction( col, model.Desc );
                         var fieldName = col.Field || col.Sort;
                         model.Data.sort( function ( row1, row2 ) {
-cov.cover(339);
                             return sortFunction( row1[fieldName], row2[fieldName] );
                         });
                     }
@@ -2407,7 +1909,6 @@ cov.cover(339);
     
                 // then page
                 if (model.Top !== -1) {
-cov.cover(340);
                     model.Data = model.Data.slice(skip).slice(0, model.Top);
                 }
             }
@@ -2417,101 +1918,77 @@ cov.cover(340);
             callback(model);
         },
         getSkip: function ( model ) {
-cov.cover(341);
             var data = model;
             if ( data.PageCount == 0 ) {
-cov.cover(342);
                 return 0;
             }
             if ( data.Page < 1 ) {
-cov.cover(343);
                 data.Page = 1;
             }
             else if ( data.Page > data.PageCount ) {
-cov.cover(344);
                 return data.Page = data.PageCount;
             }
             return ( data.Page - 1 ) * data.Top;
         },
         getColumnByField: function ( columns, field ) {
-cov.cover(345);
             var col = columns.filter(function (c) { return c.Field === field || c.Sort === field });
             return col.length ? col[0] : null;
         },
         getSortFunction: function (col, desc) {
-cov.cover(346);
             if ( /number|date|boolean/.test( col.Type ) ) {
-cov.cover(347);
                 if ( desc ) {
-cov.cover(348);
                     return this.diffSortDesc;
                 }
                 return this.diffSortAsc;
             }
             else {
-cov.cover(349);
                 if ( desc ) {
-cov.cover(350);
                     return this.stringSortDesc;
                 }
                 return this.stringSortAsc;
             }
         },
         diffSortDesc: function(a, b) {
-cov.cover(351);
             return b - a;
         },
         diffSortAsc: function(a, b) {
-cov.cover(352);
             return a - b;
         },
         stringSortDesc: function (a, b) {
-cov.cover(353);
             if (a === null) {
-cov.cover(354);
                 if (b != null) {
-cov.cover(355);
                     return 1;
                 }
                 return 0;
             }
             else if (b === null) {
-cov.cover(356);
                 // we already know a isn't null
                 return -1;
             }
             if (a.toLowerCase() > b.toLowerCase()) {
-cov.cover(357);
                 return -1;
             }
             if (a.toLowerCase() < b.toLowerCase()) {
-cov.cover(358);
                 return 1;
             }
     
             return 0;
         },
         stringSortAsc: function (a, b) {
-cov.cover(359);
             if (a === null) {
-cov.cover(360);
                 if (b != null) {
-cov.cover(361);
                     return -1;
                 }
                 return 0;
             }
             else if (b === null) {
-cov.cover(362);
                 // we already know a isn't null
                 return 1;
             }
             if (a.toLowerCase() > b.toLowerCase()) {
-cov.cover(363);
                 return 1;
             }
             if (a.toLowerCase() < b.toLowerCase()) {
-cov.cover(364);
                 return -1;
             }
     
@@ -2524,13 +2001,11 @@ cov.cover(364);
     \***************/
     
     gp.FunctionPager = function ( config ) {
-cov.cover(365);
         this.config = config;
     };
     
     gp.FunctionPager.prototype = {
         read: function ( model, callback, error ) {
-cov.cover(366);
             try {
                 var result = this.config.Read( model, callback );
     
@@ -2538,11 +2013,9 @@ cov.cover(366);
             }
             catch (ex) {
                 if (typeof error === 'function') {
-cov.cover(367);
                     gp.tryCallback( error, this, ex );
                 }
                 else {
-cov.cover(368);
                     gp.tryCallback( callback, this, this.config );
                 }
                 gp.error( ex );
@@ -2562,15 +2035,12 @@ cov.cover(368);
      * Date: 2015-04-28T16:01Z
      */
     gp.ready = function (fn) {
-cov.cover(369);
     
         var isReady = false;
     
         var completed = function (event) {
-cov.cover(370);
             // readyState === "complete" is good enough for us to call the dom ready in oldIE
             if (document.addEventListener || event.type === "load" || document.readyState === "complete") {
-cov.cover(371);
                 isReady = true;
                 detach();
                 fn();
@@ -2578,27 +2048,22 @@ cov.cover(371);
         };
     
         var detach = function () {
-cov.cover(372);
             if (document.addEventListener) {
-cov.cover(373);
                 document.removeEventListener("DOMContentLoaded", completed, false);
                 window.removeEventListener("load", completed, false);
     
             } else {
-cov.cover(374);
                 document.detachEvent("onreadystatechange", completed);
                 window.detachEvent("onload", completed);
             }
         };
     
         if (document.readyState === "complete") {
-cov.cover(375);
             // Handle it asynchronously to allow scripts the opportunity to delay ready
             setTimeout(fn);
     
             // Standards-based browsers support DOMContentLoaded
         } else if (document.addEventListener) {
-cov.cover(376);
             // Use the handy event callback
             document.addEventListener("DOMContentLoaded", completed, false);
     
@@ -2607,7 +2072,6 @@ cov.cover(376);
     
             // If IE event model is used
         } else {
-cov.cover(377);
             // Ensure firing before onload, maybe late but safe also for iframes
             document.attachEvent("onreadystatechange", completed);
     
@@ -2623,11 +2087,8 @@ cov.cover(377);
             } catch (e) { }
     
             if (top && top.doScroll) {
-cov.cover(378);
                 (function doScrollCheck() {
-cov.cover(379);
                     if (!isReady) {
-cov.cover(380);
     
                         try {
                             // Use the trick by Diego Perini
@@ -2651,7 +2112,6 @@ cov.cover(380);
       RequestModel
     \***************/
     gp.RequestModel = function (data) {
-cov.cover(381);
         var self = this;
         // properites are capitalized here because that's the convention for server-side classes (C#)
         // we want the serialized version of the corresponding server-side class to look exactly like this prototype
@@ -2666,16 +2126,13 @@ cov.cover(381);
     
         Object.defineProperty(self, 'PageIndex', {
             get: function () {
-cov.cover(382);
                 return self.Page - 1;
             }
         });
     
         Object.defineProperty(self, 'PageCount', {
             get: function () {
-cov.cover(383);
                 if ( self.Top > 0 ) {
-cov.cover(384);
                     return Math.ceil( self.TotalRows / self.Top );
                 }
                 if ( self.TotalRows === 0 ) return 0;
@@ -2685,9 +2142,7 @@ cov.cover(384);
     
         Object.defineProperty(self, 'Skip', {
             get: function () {
-cov.cover(385);
                 if (self.Top !== -1) {
-cov.cover(386);
                     if (self.PageCount === 0) return 0;
                     if (self.Page < 1) self.Page = 1;
                     else if (self.Page > self.PageCount) return self.Page = self.PageCount;
@@ -2703,20 +2158,17 @@ cov.cover(386);
     \***************/
     
     gp.StringBuilder = function () {
-cov.cover(387);
         this.out = [];
     };
     
     gp.StringBuilder.prototype = {
     
         add: function ( str ) {
-cov.cover(388);
             this.out.push( str );
             return this;
         },
     
         toString: function ( ) {
-cov.cover(389);
             return this.out.join('');
         }
     
@@ -2726,7 +2178,6 @@ cov.cover(389);
        UpdateModel
     \***************/
     gp.UpdateModel = function ( row, validationErrors ) {
-cov.cover(390);
     
         this.Row = row;
         this.ValidationErrors = validationErrors;
@@ -2740,18 +2191,14 @@ cov.cover(390);
     
     // check for web component support
     if (document.registerElement) {
-cov.cover(391);
     
         gp.Gridponent = Object.create(HTMLElement.prototype);
     
         gp.Gridponent.createdCallback = function () {
-cov.cover(392);
             new gp.Initializer(this).initialize();
         };
     
         gp.Gridponent.detachedCallback = function () {
-cov.cover(393);
-            gp.info( 'detachedCallback called' );
             this.api.dispose();
         };
     
@@ -2760,11 +2207,9 @@ cov.cover(393);
         });
     }
     else {
-cov.cover(394);
         // no web component support
         // provide a static function to initialize grid-ponent elements manually
         gp.initialize = function (root) {
-cov.cover(395);
             root = root || document;
             var node, nodes = root.querySelectorAll( 'grid-ponent' );
             for ( var i = 0; i < nodes.length; i++ ) {
@@ -2780,33 +2225,27 @@ cov.cover(395);
     \***************/
     gp.templates = gp.templates || {};
     gp.templates['gridponent-body'] = function(model, arg) {
-cov.cover(396);
         var out = [];
         out.push('<table class="table" cellpadding="0" cellspacing="0">');
                 if (!model.FixedHeaders) {
-cov.cover(397);
                         out.push(gp.helpers['thead'].call(model));
                     }
             out.push('<tbody>');
                     out.push(gp.helpers['tableRows'].call(model));
             out.push('</tbody>');
                 if (model.Footer && !model.FixedFooters) {
-cov.cover(398);
                         out.push(gp.templates['gridponent-tfoot'](model));
                     }
             out.push('</table>');
         return out.join('');
     };
     gp.templates['gridponent-cells'] = function(model, arg) {
-cov.cover(399);
         var out = [];
         model.Columns.forEach(function(col, index) {
-cov.cover(400);
                 out.push('    <td class="body-cell ');
         out.push(col.Type);
         out.push('" ');
         if (col.BodyStyle) {
-cov.cover(401);
         out.push(' style="');
         out.push(col.BodyStyle);
         out.push('"');
@@ -2818,33 +2257,27 @@ cov.cover(401);
                 return out.join('');
     };
     gp.templates['gridponent-pager'] = function(model, arg) {
-cov.cover(402);
         var out = [];
         out.push(gp.helpers['setPagerFlags'].call(model));
                 if (model.data.HasPages) {
-cov.cover(403);
                 out.push('<div class="btn-group">');
         out.push('        <label class="ms-page-index btn btn-default ');
         if (model.data.IsFirstPage) {
-cov.cover(404);
         out.push(' disabled ');
         }
         out.push('" title="First page">');
         out.push('<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>');
                         if (model.data.IsFirstPage == false) {
-cov.cover(405);
             out.push('<input type="radio" name="Page" value="1" />');
                         }
             out.push('</label>');
             out.push('        <label class="ms-page-index btn btn-default ');
         if (model.data.IsFirstPage) {
-cov.cover(406);
         out.push(' disabled ');
         }
         out.push('" title="Previous page">');
         out.push('<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>');
                         if (model.data.IsFirstPage == false) {
-cov.cover(407);
             out.push('                <input type="radio" name="Page" value="');
         out.push(model.data.PreviousPage);
         out.push('" />');
@@ -2858,13 +2291,11 @@ cov.cover(407);
             out.push('<div class="btn-group">');
         out.push('        <label class="ms-page-index btn btn-default ');
         if (model.data.IsLastPage) {
-cov.cover(408);
         out.push(' disabled ');
         }
         out.push('" title="Next page">');
         out.push('<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>');
                         if (model.data.IsLastPage == false) {
-cov.cover(409);
             out.push('            <input type="radio" name="Page" value="');
         out.push(model.data.NextPage);
         out.push('" />');
@@ -2872,13 +2303,11 @@ cov.cover(409);
             out.push('</label>');
             out.push('        <label class="ms-page-index btn btn-default ');
         if (model.data.IsLastPage) {
-cov.cover(410);
         out.push(' disabled ');
         }
         out.push('" title="Last page">');
         out.push('<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>');
                         if (model.data.IsLastPage == false) {
-cov.cover(411);
             out.push('            <input type="radio" name="Page" value="');
         out.push(model.data.PageCount);
         out.push('" />');
@@ -2889,12 +2318,10 @@ cov.cover(411);
                 return out.join('');
     };
     gp.templates['gridponent-tfoot'] = function(model, arg) {
-cov.cover(412);
         var out = [];
         out.push('<tfoot>');
         out.push('<tr>');
                     model.Columns.forEach(function(col, index) {
-cov.cover(413);
             out.push('<td class="footer-cell">');
                             out.push(gp.helpers['footerCell'].call(model, col));
             out.push('</td>');
@@ -2904,7 +2331,6 @@ cov.cover(413);
         return out.join('');
     };
     gp.templates['gridponent'] = function(model, arg) {
-cov.cover(414);
         var out = [];
         out.push('<div class="table-container');
         out.push(gp.helpers['containerClasses'].call(model));
@@ -2912,10 +2338,8 @@ cov.cover(414);
         out.push(model.ID);
         out.push('">');
                 if (model.Search || model.Create) {
-cov.cover(415);
             out.push('<div class="table-toolbar">');
                         if (model.Search) {
-cov.cover(416);
             out.push('<div class="input-group gridponent-searchbox">');
         out.push('<input type="text" name="Search" class="form-control" placeholder="Search...">');
         out.push('<span class="input-group-btn">');
@@ -2926,7 +2350,6 @@ cov.cover(416);
         out.push('</div>');
                         }
                             if (model.Create) {
-cov.cover(417);
             out.push('<button class="btn btn-default" type="button" value="Create">');
         out.push('<span class="glyphicon glyphicon-plus"></span>Add');
         out.push('</button>');
@@ -2934,7 +2357,6 @@ cov.cover(417);
             out.push('</div>');
                 }
                     if (model.FixedHeaders) {
-cov.cover(418);
             out.push('<div class="table-header">');
         out.push('<table class="table" cellpadding="0" cellspacing="0" style="margin-bottom:0">');
                             out.push(gp.helpers['thead'].call(model));
@@ -2943,7 +2365,6 @@ cov.cover(418);
                 }
             out.push('        <div class="table-body ');
         if (model.FixedHeaders) {
-cov.cover(419);
         out.push('table-scroll');
         }
         out.push('" style="');
@@ -2952,7 +2373,6 @@ cov.cover(419);
                         out.push(gp.templates['gridponent-body'](model));
             out.push('</div>');
                 if (model.FixedFooters) {
-cov.cover(420);
             out.push('<div class="table-footer">');
         out.push('<table class="table" cellpadding="0" cellspacing="0" style="margin-top:0">');
                             out.push(gp.templates['gridponent-tfoot'](model));
@@ -2960,7 +2380,6 @@ cov.cover(420);
         out.push('</div>');
                 }
                     if (model.Pager) {
-cov.cover(421);
             out.push('<div class="table-pager">');
                         out.push(gp.templates['gridponent-pager'](model));
             out.push('</div>');
@@ -2979,7 +2398,6 @@ cov.cover(421);
         out.push('</div>');
         return out.join('');
     };
-cov.maxCoverage = 421;
 
 
 })(gridponent);

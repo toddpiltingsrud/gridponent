@@ -8,9 +8,9 @@
 <#@ output extension=".js" #>
 <#
 var path = "";
-var stripLogging = false;
-var coverage = true;
-var useMocks = true;
+var stripLogging = true;
+var coverage = false;
+var useMocks = false;
 
 if (coverage)
 {

@@ -8,8 +8,6 @@ Change config.data to config.PageModel
 
 Change template to body-template
 
-Always but the delete button last.
-
 Handle validation errors.
 
 Create a filter API:
@@ -59,15 +57,7 @@ Allow the http module to be configured to use JSON or application/x-www-form-url
 
 Add support for two-way binding using proxies.
 
-Add API for CRUD operations.
-
-Add API for search, paging, sorting, etc.
-
-Add support for URL access of sorting, paging, searching, etc.
-
 Add page size config option (default to 25).
-
-Provide an easy way to get at the data via JavaScript.
 
 Might need to re-sync column widths anytime the main table content changes (e.g. deleting or adding rows, paging, sorting).
 
@@ -76,11 +66,6 @@ ChangeMonitor.afterSync should be passed a list of changes.
 Standardize property capitalization.
 
 Rework classes to make it easy to target specific sections of the grid.
-
-Create an HtmlWriter class. It would expose an API for building nodes, not just concatenating strings. 
-Advantages: 
-- No need to convert strings into nodes using the innerHTML hack. 
-- Arbitrary properties could be attached to nodes during render. Useful for binding table rows to data rows.
 
 Build a jQuery version.
 
