@@ -89,8 +89,6 @@
     <None Include="compilerconfig.json.defaults">
       <DependentUpon>compilerconfig.json</DependentUpon>
     </None>
-    <None Include="build.travis.yml" />
-    <None Include="coverage.coveralls.yml" />
     <None Include="README.md" />
     <None Include="spec\fonts\glyphicons-halflings-regular.eot" />
     <None Include="spec\fonts\glyphicons-halflings-regular.ttf" />
