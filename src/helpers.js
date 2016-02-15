@@ -11,6 +11,7 @@ gp.helpers = {
         html.add( '<thead>' );
         html.add( '<tr>' );
         this.Columns.forEach( function ( col ) {
+            sort = '';
             if ( self.Sorting ) {
                 // if sort isn't specified, use the field
                 sort = gp.escapeHTML( gp.coalesce( [col.Sort, col.Field] ) );
@@ -22,10 +23,8 @@ gp.helpers = {
                 }
             }
             type = gp.coalesce( [col.Type, ''] ).toLowerCase();
-            html.add( '<th class="header-cell ' + type + ' ' + sort + '">' );
 
-            gp.verbose( 'helpers.thead: col:' );
-            gp.verbose( col );
+            html.add( '<th class="header-cell ' + type + '" data-sort="' + sort + '">' );
 
             // check for a template
             if ( col.HeaderTemplate ) {
@@ -38,7 +37,7 @@ gp.helpers = {
                     html.add( gp.processHeaderTemplate.call( this, col.HeaderTemplate, col ) );
                 }
             }
-            else if ( gp.hasValue( sort ) ) {
+            else if ( sort != '' ) {
                 html.add( '<label class="table-sort">' )
                 .add( '<input type="radio" name="OrderBy" value="' + sort + '" />' )
                 .add( gp.coalesce( [col.Header, col.Field, sort] ) )
@@ -224,7 +223,7 @@ gp.helpers = {
     'sortStyle': function () {
         var html = new gp.StringBuilder();
         if ( gp.isNullOrEmpty( this.pageModel.OrderBy ) === false ) {
-            html.add( '#' + this.ID + ' thead th.header-cell.' + this.pageModel.OrderBy + '> label:after' )
+            html.add( '#' + this.ID + ' thead th.header-cell[data-sort="' + gp.escapeHTML(this.pageModel.OrderBy) + '"] > label:after' )
                 .add( '{ content: ' );
             if ( this.pageModel.Desc ) {
                 html.add( '"\\e114"; }' );

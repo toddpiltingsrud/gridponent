@@ -6,6 +6,8 @@ Create a list of supported config options for gp.getAttributes.
 
 Use a CommonJS module library (e.g. webpack).
 
+Use escapeHTML anytime we are concatenating strings.
+
 Create a filter API:
 
 node.api.filter({

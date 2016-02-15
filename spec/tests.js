@@ -286,7 +286,7 @@ QUnit.test( 'api.update', function ( assert ) {
 
     var config = getTableConfig( options );
 
-    $( '#table .box' ).empty().append( config.node );
+    //$( '#table .box' ).empty().append( config.node );
 
     var done1 = assert.async();
 
@@ -343,9 +343,29 @@ QUnit.test( 'api.search', function ( assert ) {
 } );
 
 QUnit.test( 'api.sort', function ( assert ) {
-    var config = getTableConfig();
+
+    var options = gp.shallowCopy( configOptions );
+
+    options.sorting = false;
+
+    var config = getTableConfig(options);
 
     $( '#table .box' ).append( config.node );
+
+    // since sorting is false, we should have only a couple columns where sorting is enabled
+    // iterate through the columns to find an explicit sort configuration
+    config.Columns.forEach( function ( col, index ) {
+
+        var sortAttribute = $( config.node ).find( 'thead th[data-sort]:nth-child(' + (index + 1) + ')' ).attr('data-sort');
+
+        if ( col.Sort ) {
+            assert.strictEqual( sortAttribute, col.Sort, 'there should be a sort header' );
+        }
+        else {
+            assert.strictEqual( sortAttribute, '', 'there should NOT be a sort header' );
+        }
+
+    } );
 
 
     // trigger an initial sort to make sure this column is sorted 

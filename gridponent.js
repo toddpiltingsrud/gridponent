@@ -159,7 +159,6 @@ var gridponent = gridponent || {};
                 }
             } );
             this.monitor.beforeSync = function ( name, value, model ) {
-                gp.info( 'beforeSync called' );
                 // the OrderBy property requires special handling
                 if (name === 'OrderBy') {
                     if (model[name] === value) {
@@ -182,7 +181,6 @@ var gridponent = gridponent || {};
             // listen for command button clicks
             gp.on(node, 'click', 'button[value]', function (evt) {
                 // 'this' is the element that was clicked
-                gp.info('addCommandHandlers:this:', this);
                 command = this.attributes['value'].value;
                 tr = gp.closest(this, 'tr[data-index]', node);
                 row = tr ? gp.getRowModel(self.config.pageModel.Data, tr) : null;
@@ -208,7 +206,6 @@ var gridponent = gridponent || {};
                             node.api[command]( row, tr );
                         }
                         else {
-                            gp.log( 'Unrecognized command: ' + command );
                         }
                         break;
                 }
@@ -275,7 +272,6 @@ var gridponent = gridponent || {};
                 gp.removeClass( tblContainer, 'busy' );
             }
             else {
-                gp.warn( 'could not remove busy class' );
             }
         },
     
@@ -298,7 +294,6 @@ var gridponent = gridponent || {};
                 gp.shallowCopy( requestModel, this.config.pageModel );
             }
             gp.raiseCustomEvent( this.config.node, gp.events.beforeRead, { model: this.config.pageModel } );
-            gp.info( 'read.pageModel:', this.config.pageModel );
             this.model.read( this.config.pageModel, function ( model ) {
                 gp.shallowCopy( model, self.config.pageModel );
                 self.refresh( self.config );
@@ -322,11 +317,9 @@ var gridponent = gridponent || {};
                     // create a row in create mode
                     self.config.Row = row;
     
-                    gp.info( 'createRow.Columns:', self.config.Columns );
     
                     var tbody = self.config.node.querySelector( 'div.table-body > table > tbody' );
                     var rowIndex = self.config.pageModel.Data.indexOf( row );
-                    gp.info( 'createRow.rowIndex:', rowIndex );
                     var editCellContent = gp.helpers['editCellContent'];
                     var builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', rowIndex ).addClass('create-mode');
     
@@ -340,13 +333,11 @@ var gridponent = gridponent || {};
     
                     var tr = builder.close();
     
-                    gp.info( 'createRow.tr:', tr );
     
                     gp.prependChild( tbody, tr );
     
                     tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
     
-                    gp.info( 'createRow.tr:', tr );
     
                     gp.raiseCustomEvent( self.config.node, gp.events.afterCreate, {
                         row: row,
@@ -371,7 +362,6 @@ var gridponent = gridponent || {};
     
                 this.config.Row = new gp.ObjectProxy(row);
     
-                gp.info('editRow.tr:', tr);
     
                 // put the row in edit mode
                 // IE9 can't set innerHTML of tr, so iterate through each cell
@@ -414,11 +404,9 @@ var gridponent = gridponent || {};
                     model: updateModel
                 });
     
-                gp.info( 'updateRow.row:', row );
     
                 this.model.update( updateModel, function ( updateModel ) {
     
-                    gp.info( 'updateRow.updateModel:', updateModel );
     
                     if ( updateModel.ValidationErrors && updateModel.ValidationErrors.length ) {
                         if ( typeof self.config.Validate === 'function' ) {
@@ -592,7 +580,6 @@ var gridponent = gridponent || {};
             this.locale = locale || gp.defaultLocale;
             this.currencyCode = currencyCode || gp.defaultCurrencyCode;
             this.supported = (window.Intl !== undefined);
-            if (!this.supported) gp.log('Intl internationalization not supported');
         };
     
         gp.Formatter.prototype = {
@@ -752,7 +739,6 @@ var gridponent = gridponent || {};
         gp.warn = /verbose|info|warn/.test( gp.logging ) ? gp.log : function () { };
     
         gp.getAttributes = function ( node ) {
-            gp.verbose( 'getConfig: node:', node );
             var config = {}, name, attr, attrs = node.attributes;
             config.node = node;
             for ( var i = attrs.length - 1; i >= 0; i-- ) {
@@ -762,7 +748,6 @@ var gridponent = gridponent || {};
                 config[name] = gp.rexp.trueFalse.test( attr.value ) || attr.value === '' ?
                     ( attr.value === "true" || attr.value === '' ) : attr.value;
             }
-            gp.verbose( 'getConfig: config:', config );
             return config;
         };
     
@@ -900,8 +885,6 @@ var gridponent = gridponent || {};
             if ( typeof ( elem ) === 'string' ) {
                 elem = document.querySelector( elem );
             }
-            gp.info( 'closest: elem:' );
-            gp.info( elem );
     
             if ( elem ) {
                 // start with elem's immediate parent
@@ -912,8 +895,6 @@ var gridponent = gridponent || {};
                 while ( e ) {
                     for ( j = 0; j < potentials.length; j++ ) {
                         if ( e == potentials[j] ) {
-                            gp.info( 'closest: e:' );
-                            gp.info( e );
                             return e;
                         }
                     }
@@ -1133,7 +1114,6 @@ var gridponent = gridponent || {};
         gp.raiseCustomEvent = function ( node, name, detail ) {
             var event = new CustomEvent( name, { bubbles: true, detail: detail, cancelable: true } );
             node.dispatchEvent( event );
-            gp.info( 'raiseCustomEvent: name', name );
         };
     
         gp.events = {
@@ -1183,6 +1163,7 @@ var gridponent = gridponent || {};
             html.add( '<thead>' );
             html.add( '<tr>' );
             this.Columns.forEach( function ( col ) {
+                sort = '';
                 if ( self.Sorting ) {
                     // if sort isn't specified, use the field
                     sort = gp.escapeHTML( gp.coalesce( [col.Sort, col.Field] ) );
@@ -1194,15 +1175,11 @@ var gridponent = gridponent || {};
                     }
                 }
                 type = gp.coalesce( [col.Type, ''] ).toLowerCase();
-                html.add( '<th class="header-cell ' + type + ' ' + sort + '">' );
     
-                gp.verbose( 'helpers.thead: col:' );
-                gp.verbose( col );
+                html.add( '<th class="header-cell ' + type + '" data-sort="' + sort + '">' );
     
                 // check for a template
                 if ( col.HeaderTemplate ) {
-                    gp.verbose( 'helpers.thead: col.HeaderTemplate:' );
-                    gp.verbose( col.HeaderTemplate );
                     if ( typeof ( col.HeaderTemplate ) === 'function' ) {
                         html.add( col.HeaderTemplate.call( self, col ) );
                     }
@@ -1210,7 +1187,7 @@ var gridponent = gridponent || {};
                         html.add( gp.processHeaderTemplate.call( this, col.HeaderTemplate, col ) );
                     }
                 }
-                else if ( gp.hasValue( sort ) ) {
+                else if ( sort != '' ) {
                     html.add( '<label class="table-sort">' )
                     .add( '<input type="radio" name="OrderBy" value="' + sort + '" />' )
                     .add( gp.coalesce( [col.Header, col.Field, sort] ) )
@@ -1396,7 +1373,7 @@ var gridponent = gridponent || {};
         'sortStyle': function () {
             var html = new gp.StringBuilder();
             if ( gp.isNullOrEmpty( this.pageModel.OrderBy ) === false ) {
-                html.add( '#' + this.ID + ' thead th.header-cell.' + this.pageModel.OrderBy + '> label:after' )
+                html.add( '#' + this.ID + ' thead th.header-cell[data-sort="' + gp.escapeHTML(this.pageModel.OrderBy) + '"] > label:after' )
                     .add( '{ content: ' );
                 if ( this.pageModel.Desc ) {
                     html.add( '"\\e114"; }' );
@@ -1438,8 +1415,6 @@ var gridponent = gridponent || {};
                 index++;
             } );
     
-            gp.verbose( 'columnWidthStyle: html:' );
-            gp.verbose( html.toString() );
     
             return html.toString();
         },
@@ -1530,7 +1505,6 @@ var gridponent = gridponent || {};
                 }
     
             } );
-            gp.info('getConfig.config:', config);
             return config;
         },
     
@@ -1620,7 +1594,6 @@ var gridponent = gridponent || {};
         //        var diff = (headerWidth - bodyWidth);
         //        if (diff !== 0) {
         //            var paddingRight = diff;
-        //            gp.log('diff:' + diff + ', paddingRight:' + paddingRight);
         //            if (header) {
         //                header.style.paddingRight = paddingRight.toString() + 'px';
         //            }
@@ -1803,7 +1776,6 @@ var gridponent = gridponent || {};
         this.config = config;
         this.dal = null;
         var type = gp.getType( config.Read );
-        gp.info( 'Model: type:', type );
         switch ( type ) {
             case 'string':
                 this.dal = new gp.ServerPager( config );
@@ -1829,9 +1801,7 @@ var gridponent = gridponent || {};
     
         read: function ( requestModel, callback ) {
             var self = this;
-            gp.info( 'Model.read: requestModel:', requestModel );
     
-            gp.info( 'Model.dal: :', this.dal );
     
             this.dal.read( requestModel, function (arg) {
                 gp.tryCallback( callback, self.config.node, arg );
@@ -2355,7 +2325,6 @@ var gridponent = gridponent || {};
         };
     
         gp.Gridponent.detachedCallback = function () {
-            gp.info( 'detachedCallback called' );
             this.api.dispose();
         };
     
