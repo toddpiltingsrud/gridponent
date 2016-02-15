@@ -2,8 +2,8 @@
    NodeBuilder
 \***************/
 
-gp.NodeBuilder = function ( ) {
-    this.node = null;
+gp.NodeBuilder = function ( parent ) {
+    this.node = parent || null;
 };
 
 gp.NodeBuilder.prototype = {
@@ -46,7 +46,7 @@ gp.NodeBuilder.prototype = {
         var attr = document.createAttribute( name );
 
         if ( value != undefined ) {
-            attr.value = value;
+            attr.value = gp.escapeHTML( value );
         }
 
         this.node.setAttributeNode( attr );

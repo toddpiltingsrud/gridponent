@@ -17,7 +17,7 @@ gp.Initializer.prototype = {
         this.node.api = new gp.api( controller );
 
         model.read( requestModel, function ( data ) {
-            self.config.data = data;
+            self.config.pageModel = data;
             self.resolvePaging( self.config );
             self.resolveTypes( self.config );
             self.render( self.config );
@@ -36,7 +36,7 @@ gp.Initializer.prototype = {
         var self = this;
         var obj, config = gp.getAttributes(node);
         config.Columns = [];
-        config.data = {};
+        config.pageModel = {};
         config.ID = gp.createUID();
         for (var i = 0; i < node.children.length; i++) {
             var col = node.children[i];
@@ -46,7 +46,7 @@ gp.Initializer.prototype = {
             this.resolveTemplates(colConfig);
         }
         config.Footer = this.resolveFooter(config);
-        var options = 'Onrowselect SearchFunction Read Create Update Destroy'.split(' ');
+        var options = 'Onrowselect SearchFunction Read Create Update Destroy Validate'.split(' ');
         options.forEach( function ( option ) {
 
             if ( gp.hasValue(config[option]) ) {
@@ -128,11 +128,11 @@ gp.Initializer.prototype = {
     },
 
     resolveTypes: function ( config ) {
-        if ( !config || !config.data || !config.data.Data ) return;
+        if ( !config || !config.pageModel || !config.pageModel.Data ) return;
         config.Columns.forEach( function ( col ) {
-            for ( var i = 0; i < config.data.Data.length; i++ ) {
-                if ( config.data.Data[i][col.Field] !== null ) {
-                    col.Type = gp.getType( config.data.Data[i][col.Field] );
+            for ( var i = 0; i < config.pageModel.Data.length; i++ ) {
+                if ( config.pageModel.Data[i][col.Field] !== null ) {
+                    col.Type = gp.getType( config.pageModel.Data[i][col.Field] );
                     break;
                 }
             }

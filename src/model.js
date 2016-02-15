@@ -15,11 +15,11 @@ gp.Model = function ( config ) {
             break;
         case 'object':
             // Read is a RequestModel
-            this.config.data = config.Read;
+            this.config.pageModel = config.Read;
             this.dal = new gp.ClientPager( this.config );
             break;
         case 'array':
-            this.config.data.Data = this.config.Read;
+            this.config.pageModel.Data = this.config.Read;
             this.dal = new gp.ClientPager( this.config );
             break;
         default:
@@ -46,8 +46,8 @@ gp.Model.prototype = {
 
         if ( typeof this.config.Create === 'function' ) {
             this.config.Create( function ( row ) {
-                if (self.config.data.Data && self.config.data.Data.push) {
-                    self.config.data.Data.push(row);
+                if (self.config.pageModel.Data && self.config.pageModel.Data.push) {
+                    self.config.pageModel.Data.push(row);
                 }
                 gp.tryCallback( callback, self.config.node, row );
             } );
@@ -56,8 +56,8 @@ gp.Model.prototype = {
             // ask the server for a new record
             var http = new gp.Http();
             http.get(this.config.Create, function (row) {
-                if (self.config.data.Data && self.config.data.Data.push) {
-                    self.config.data.Data.push(row);
+                if (self.config.pageModel.Data && self.config.pageModel.Data.push) {
+                    self.config.pageModel.Data.push(row);
                 }
                 gp.tryCallback( callback, self.config.node, row );
             } );

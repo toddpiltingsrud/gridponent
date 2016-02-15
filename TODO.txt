@@ -4,12 +4,6 @@ That way it could be intercepted by event handlers.
 
 Create a list of supported config options for gp.getAttributes.
 
-Change config.data to config.PageModel
-
-Change template to body-template
-
-Handle validation errors.
-
 Create a filter API:
 
 node.api.filter({

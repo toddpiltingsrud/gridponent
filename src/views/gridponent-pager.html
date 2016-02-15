@@ -1,33 +1,33 @@
 ﻿{{helper setPagerFlags}}
-{{#if model.data.HasPages}}
+{{#if model.pageModel.HasPages}}
     <div class="btn-group">
-        <label class="ms-page-index btn btn-default {{#if model.data.IsFirstPage}} disabled {{/if}}" title="First page">
+        <label class="ms-page-index btn btn-default {{#if model.pageModel.IsFirstPage}} disabled {{/if}}" title="First page">
             <span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>
-            {{#if model.data.IsFirstPage == false}}
+            {{#if model.pageModel.IsFirstPage == false}}
                 <input type="radio" name="Page" value="1" />
             {{/if}}
         </label>
 
-        <label class="ms-page-index btn btn-default {{#if model.data.IsFirstPage}} disabled {{/if}}" title="Previous page">
+        <label class="ms-page-index btn btn-default {{#if model.pageModel.IsFirstPage}} disabled {{/if}}" title="Previous page">
             <span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>
-            {{#if model.data.IsFirstPage == false}}
-                <input type="radio" name="Page" value="{{model.data.PreviousPage}}" />
+            {{#if model.pageModel.IsFirstPage == false}}
+                <input type="radio" name="Page" value="{{model.pageModel.PreviousPage}}" />
             {{/if}}
         </label>
     </div>
-    <input type="number" name="Page" value="{{model.data.Page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" /> of {{model.data.PageCount}}
+    <input type="number" name="Page" value="{{model.pageModel.Page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" /> of {{model.pageModel.PageCount}}
     <div class="btn-group">
-        <label class="ms-page-index btn btn-default {{#if model.data.IsLastPage}} disabled {{/if}}" title="Next page">
+        <label class="ms-page-index btn btn-default {{#if model.pageModel.IsLastPage}} disabled {{/if}}" title="Next page">
             <span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>
-            {{#if model.data.IsLastPage == false}}
-            <input type="radio" name="Page" value="{{model.data.NextPage}}" />
+            {{#if model.pageModel.IsLastPage == false}}
+            <input type="radio" name="Page" value="{{model.pageModel.NextPage}}" />
             {{/if}}
         </label>
 
-        <label class="ms-page-index btn btn-default {{#if model.data.IsLastPage}} disabled {{/if}}" title="Last page">
+        <label class="ms-page-index btn btn-default {{#if model.pageModel.IsLastPage}} disabled {{/if}}" title="Last page">
             <span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>
-            {{#if model.data.IsLastPage == false}}
-            <input type="radio" name="Page" value="{{model.data.PageCount}}" />
+            {{#if model.pageModel.IsLastPage == false}}
+            <input type="radio" name="Page" value="{{model.pageModel.PageCount}}" />
             {{/if}}
         </label>
     </div>

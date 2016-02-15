@@ -19,7 +19,7 @@ client-side pager
 \***************/
 gp.ClientPager = function (config) {
     var value, self = this;
-    this.data = config.data.Data;
+    this.data = config.pageModel.Data;
     this.columns = config.Columns.filter(function (c) {
         return c.Field !== undefined || c.Sort !== undefined;
     });

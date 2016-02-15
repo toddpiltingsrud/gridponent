@@ -74,17 +74,18 @@ var getTableConfig = function ( options ) {
     if ( options.create ) out.push( '       create="' + options.create + '"' );
     if ( options.update ) out.push( '       update="' + options.update + '"' );
     if ( options.destroy ) out.push( '      destroy="' + options.destroy + '"' );
+    if ( options.validate ) out.push( '     validate="' + options.validate + '"' );
     out.push( '             pager="top-right"' );
     out.push( '             search="top-left">' );
-    out.push( '    <gp-column header-template="fns.checkbox" template="fns.checkbox" footer-template="fns.checkbox"></gp-column>' );
-    out.push( '    <gp-column header="ID" sort="Name" template="fns.getName" edit-template="fns.dropdown"></gp-column>' );
+    out.push( '    <gp-column header-template="fns.checkbox" body-template="fns.checkbox" footer-template="fns.checkbox"></gp-column>' );
+    out.push( '    <gp-column header="ID" sort="Name" body-template="fns.getName" edit-template="fns.dropdown"></gp-column>' );
     out.push( '    <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>' );
-    out.push( '    <gp-column field="SafetyStockLevel" header="Safety Stock Level" template="#template4" footer-template="fns.average"></gp-column>' );
+    out.push( '    <gp-column field="SafetyStockLevel" header="Safety Stock Level" body-template="#template4" footer-template="fns.average"></gp-column>' );
     out.push( '    <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.average" format="C"></gp-column>' );
     out.push( '    <gp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, yyyy"></gp-column>' );
     out.push( '    <gp-column field="Markup" readonly></gp-column>' );
     out.push( '    <gp-column header-template="#template3"></gp-column>' );
-    out.push( '    <gp-column header-template="#template6" template="#template5" sort="Color" body-style="border:solid 1px #ccc;"></gp-column>' );
+    out.push( '    <gp-column header-template="#template6" body-template="#template5" sort="Color" body-style="border:solid 1px #ccc;"></gp-column>' );
     out.push( '    <gp-column field="ProductNumber" header="Product #"></gp-column>' );
     out.push( '    <gp-column commands="Edit,Delete"></gp-column>' );
     if ( options.customCommand ) {
@@ -174,7 +175,7 @@ var productsTable = function () {
     out.push( '                create="/Products/Create"' );
     out.push( '                update="/Products/Update"' );
     out.push( '                destroy="/Products/Destroy">' );
-    out.push( '    <gp-column header="Product" field="ProductID" template="fns.getName" edit-template="fns.dropdown"></gp-column>' );
+    out.push( '    <gp-column header="Product" field="ProductID" body-template="fns.getName" edit-template="fns.dropdown"></gp-column>' );
     out.push( '    <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>' );
     out.push( '    <gp-column field="SafetyStockLevel" header="Safety Stock Level" footer-template="fns.average"></gp-column>' );
     out.push( '    <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.average" format="C"></gp-column>' );
@@ -209,7 +210,7 @@ QUnit.test( 'api.create 1', function ( assert ) {
         var cellCount2 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
         assert.ok( gp.hasValue( row ), 'api should return a row' );
         assert.strictEqual( cellCount1, cellCount2, 'should create the same number of cells' );
-        $( '#table .box' ).empty();
+        //$( '#table .box' ).empty();
         config.node.api.dispose();
         done();
     } );
@@ -260,11 +261,32 @@ QUnit.test( 'api.update', function ( assert ) {
         callback( updateModel );
     };
 
+    showValidationErrors = function ( tr, updateModel ) {
+        // find the input
+        updateModel.ValidationErrors.forEach( function ( v ) {
+            var input = tr.querySelector( '[name="' + v.Key + '"]' );
+            if ( input ) {
+                // extract the error message
+                var msg = v.Value.Errors.map( function ( e ) { return e.ErrorMessage; } ).join( '<br/>' );
+                gp.info( 'validation.msg', msg );
+                gp.addClass( input, 'input-validation-error' );
+                $( input ).tooltip( {
+                    html: true,
+                    placement: 'top',
+                    title: msg
+                } );
+            }
+        } );
+    };
+
     var options = gp.shallowCopy( configOptions );
 
     options.update = 'updateFn';
+    options.validate = 'showValidationErrors';
 
     var config = getTableConfig( options );
+
+    $( '#table .box' ).empty().append( config.node );
 
     var done1 = assert.async();
 
@@ -375,10 +397,10 @@ QUnit.test( 'api.destroy', function ( assert ) {
 
     var done1 = assert.async();
 
-    var row = config.data.Data[0];
+    var row = config.pageModel.Data[0];
 
     config.node.api.destroy( row, function ( row ) {
-        var index = config.data.Data.indexOf( row );
+        var index = config.pageModel.Data.indexOf( row );
         assert.strictEqual( index, -1, 'destroy should remove the row' );
         done1();
     } );
@@ -386,8 +408,8 @@ QUnit.test( 'api.destroy', function ( assert ) {
     // test it with a function
     fns = fns || {};
     fns.destroy = function ( row, callback ) {
-        var index = config.data.Data.indexOf( row );
-        config.data.Data.splice( index, 1 );
+        var index = config.pageModel.Data.indexOf( row );
+        config.pageModel.Data.splice( index, 1 );
         callback();
     };
 
@@ -398,10 +420,10 @@ QUnit.test( 'api.destroy', function ( assert ) {
 
     var done2 = assert.async();
 
-    row = config.data.Data[0];
+    row = config.pageModel.Data[0];
 
     config.node.api.destroy( row, function ( row ) {
-        var index = config.data.Data.indexOf( row );
+        var index = config.pageModel.Data.indexOf( row );
         assert.strictEqual( index, -1, 'destroy should remove the row' );
         done2();
     } );
@@ -415,10 +437,10 @@ QUnit.test( 'api.destroy', function ( assert ) {
 
     var done3 = assert.async();
 
-    row = config.data.Data[1];
+    row = config.pageModel.Data[1];
 
     config.node.api.destroy( row, function () {
-        var index = config.data.Data.indexOf( row );
+        var index = config.pageModel.Data.indexOf( row );
         assert.ok( index > -1, 'destroy should do nothing' );
         done3();
     } );
@@ -449,7 +471,7 @@ if ( document.registerElement ) {
 QUnit.test( 'ChangeMonitor.beforeSync', function ( assert ) {
     var config = getTableConfig();
 
-    $( '#table .box' ).empty().append( config.node );
+    //$( '#table .box' ).empty().append( config.node );
 
     // set one of the radio buttons a couple of times
     var sortInput = config.node.querySelector( 'input[name=OrderBy]' );
@@ -458,7 +480,7 @@ QUnit.test( 'ChangeMonitor.beforeSync', function ( assert ) {
 
     gp.raiseCustomEvent( sortInput, 'change' );
 
-    assert.equal( config.data.Desc, false );
+    assert.equal( config.pageModel.Desc, false );
 
     // Need a fresh reference to the input or the second change event won't do anything.
     // That's probably because the header gets recreated. If so, is that necessary?
@@ -468,7 +490,7 @@ QUnit.test( 'ChangeMonitor.beforeSync', function ( assert ) {
 
     gp.raiseCustomEvent( sortInput, 'change' );
 
-    assert.equal( config.data.Desc, true );
+    assert.equal( config.pageModel.Desc, true );
 
 } );
 
@@ -945,7 +967,7 @@ QUnit.test( 'gp.Table.getConfig', function ( assert ) {
 
     assert.strictEqual( config.Read, model.read, 'Read can be a function' );
 
-    assert.strictEqual( config.data.Data.length, data.products.length );
+    assert.strictEqual( config.pageModel.Data.length, data.products.length );
 
     options = gp.shallowCopy( configOptions );
 
@@ -1168,8 +1190,8 @@ QUnit.test( 'custom search filter', function ( assert ) {
 
     // listen for the change event
     config.node.addEventListener( 'change', function ( evt ) {
-        assert.equal( config.data.Data.length, 1, 'Should filter a single record' );
-        assert.equal( config.data.Data[0].ProductNumber, productNumber, 'Should filter a single record' );
+        assert.equal( config.pageModel.Data.length, 1, 'Should filter a single record' );
+        assert.equal( config.pageModel.Data[0].ProductNumber, productNumber, 'Should filter a single record' );
         done();
     } );
 

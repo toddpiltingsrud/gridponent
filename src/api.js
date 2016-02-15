@@ -9,8 +9,8 @@ gp.api = function ( controller ) {
 gp.api.prototype = {
 
     getData: function ( index ) {
-        if ( typeof index == 'number' ) return this.controller.config.data.Data[index];
-        return this.controller.config.data.Data;
+        if ( typeof index == 'number' ) return this.controller.config.pageModel.Data[index];
+        return this.controller.config.pageModel.Data;
     },
 
     search: function ( searchTerm ) {

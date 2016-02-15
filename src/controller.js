@@ -18,17 +18,17 @@ gp.Controller.prototype = {
     monitorToolbars: function (node) {
         var self = this;
         // monitor changes to search, sort, and paging
-        this.monitor = new gp.ChangeMonitor( node, '.table-toolbar [name=Search], thead input, .table-pager input', this.config.data, function ( evt ) {
+        this.monitor = new gp.ChangeMonitor( node, '.table-toolbar [name=Search], thead input, .table-pager input', this.config.pageModel, function ( evt ) {
             //var name = evt.target.name;
             //switch ( name ) {
             //    case 'Search':
-            //        self.search(self.config.data.Search);
+            //        self.search(self.config.pageModel.Search);
             //        break;
             //    case 'OrderBy':
-            //        self.sort( self.config.data.OrderBy, self.config.data.Desc );
+            //        self.sort( self.config.pageModel.OrderBy, self.config.pageModel.Desc );
             //        break;
             //    case 'Page':
-            //        self.page( self.config.data.Page );
+            //        self.page( self.config.pageModel.Page );
             //        break;
             //    default:
             //        self.read();
@@ -69,7 +69,7 @@ gp.Controller.prototype = {
             gp.info('addCommandHandlers:this:', this);
             command = this.attributes['value'].value;
             tr = gp.closest(this, 'tr[data-index]', node);
-            row = tr ? gp.getRowModel(self.config.data.Data, tr) : null;
+            row = tr ? gp.getRowModel(self.config.pageModel.Data, tr) : null;
             switch (command) {
                 case 'Create':
                     self.createRow();
@@ -116,7 +116,7 @@ gp.Controller.prototype = {
                     // add selected class
                     gp.addClass( this, 'selected' );
                     // get the model for this row
-                    model = gp.getRowModel( config.data.Data, this );
+                    model = gp.getRowModel( config.pageModel.Data, this );
 
                     // ensure row selection doesn't interfere with button clicks in the row
                     // by making sure the evt target is a cell
@@ -164,30 +164,30 @@ gp.Controller.prototype = {
     },
 
     search: function(searchTerm) {
-        this.config.data.Search = searchTerm;
+        this.config.pageModel.Search = searchTerm;
         var searchBox = this.config.node.querySelector( 'div.table-toolbar input[name=Search' );
         searchBox.value = searchTerm;
         this.read();
     },
 
     sort: function(field, desc) {
-        this.config.data.OrderBy = field;
-        this.config.data.Desc = ( desc == true );
+        this.config.pageModel.OrderBy = field;
+        this.config.pageModel.Desc = ( desc == true );
         this.read();
     },
 
     read: function ( requestModel, callback ) {
         var self = this;
         if ( requestModel ) {
-            gp.shallowCopy( requestModel, this.config.data );
+            gp.shallowCopy( requestModel, this.config.pageModel );
         }
-        gp.raiseCustomEvent( this.config.node, gp.events.beforeRead, { model: this.config.data } );
-        gp.info( 'read.data:', this.config.data );
-        this.model.read( this.config.data, function ( model ) {
-            gp.shallowCopy( model, self.config.data );
+        gp.raiseCustomEvent( this.config.node, gp.events.beforeRead, { model: this.config.pageModel } );
+        gp.info( 'read.pageModel:', this.config.pageModel );
+        this.model.read( this.config.pageModel, function ( model ) {
+            gp.shallowCopy( model, self.config.pageModel );
             self.refresh( self.config );
-            gp.raiseCustomEvent( this.config.node, gp.events.afterRead, { model: this.config.data } );
-            gp.tryCallback( callback, self.config.node, self.config.data );
+            gp.raiseCustomEvent( this.config.node, gp.events.afterRead, { model: this.config.pageModel } );
+            gp.tryCallback( callback, self.config.node, self.config.pageModel );
         } );
     },
 
@@ -209,7 +209,7 @@ gp.Controller.prototype = {
                 gp.info( 'createRow.Columns:', self.config.Columns );
 
                 var tbody = self.config.node.querySelector( 'div.table-body > table > tbody' );
-                var rowIndex = self.config.data.Data.indexOf( row );
+                var rowIndex = self.config.pageModel.Data.indexOf( row );
                 gp.info( 'createRow.rowIndex:', rowIndex );
                 var editCellContent = gp.helpers['editCellContent'];
                 var builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', rowIndex ).addClass('create-mode');
@@ -286,7 +286,7 @@ gp.Controller.prototype = {
             var monitor,
                 self = this,
                 updateModel = new gp.UpdateModel( row ),
-                tr = tr || gp.getTableRow(this.config.data.Data, row, this.config.node);
+                tr = tr || gp.getTableRow(this.config.pageModel.Data, row, this.config.node);
 
             // if there is no Update configuration setting, we're done here
             if ( !gp.hasValue( this.config.Update ) ) {
@@ -305,12 +305,12 @@ gp.Controller.prototype = {
                 gp.info( 'updateRow.updateModel:', updateModel );
 
                 if ( updateModel.ValidationErrors && updateModel.ValidationErrors.length ) {
-                    // TODO: handle validation errors
-
-
-
-
-
+                    if ( typeof self.config.Validate === 'function' ) {
+                        self.config.Validate.call( this, tr, updateModel );
+                    }
+                    else {
+                        gp.helpers['validation'].call( this, tr, updateModel.ValidationErrors );
+                    }
                 }
                 else {
                     // copy the returned row back to the internal data array
@@ -344,8 +344,8 @@ gp.Controller.prototype = {
             if (gp.hasClass(tr, 'create-mode')) {
                 // remove row and tr
                 tr.remove();
-                var index = this.config.data.Data.indexOf(row);
-                this.config.data.Data.splice(index, 1);
+                var index = this.config.pageModel.Data.indexOf(row);
+                this.config.pageModel.Data.splice(index, 1);
             }
             else {
                 // replace the ObjectProxy with the original row
@@ -384,9 +384,9 @@ gp.Controller.prototype = {
 
             this.model.destroy( row, function ( response ) {
                 // remove the row from the model
-                var index = self.config.data.Data.indexOf( row );
+                var index = self.config.pageModel.Data.indexOf( row );
                 if ( index != -1 ) {
-                    self.config.data.Data.splice( index, 1 );
+                    self.config.pageModel.Data.splice( index, 1 );
                     self.refresh( self.config );
                 }
                 gp.raiseCustomEvent( self.config.node, gp.events.afterDestroy, {
