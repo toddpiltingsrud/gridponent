@@ -110,7 +110,7 @@ gp.Initializer.prototype = {
     },
 
     resolveTemplates: function (column) {
-        var props = 'HeaderTemplate Template EditTemplate FooterTemplate'.split(' ');
+        var props = 'HeaderTemplate BodyTemplate EditTemplate FooterTemplate'.split(' ');
         props.forEach(function (prop) {
             column[prop] = gp.resolveTemplate(column[prop]);
         });

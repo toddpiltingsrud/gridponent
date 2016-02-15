@@ -18,12 +18,12 @@ var gridponent = gridponent || {};
             return this.controller.config.pageModel.Data;
         },
     
-        search: function ( searchTerm ) {
-            this.controller.search( searchTerm );
+        search: function ( searchTerm, callback ) {
+            this.controller.search( searchTerm, callback );
         },
     
-        sort: function ( name, desc ) {
-            this.controller.sort( name, desc );
+        sort: function ( name, desc, callback ) {
+            this.controller.sort( name, desc, callback );
         },
     
         read: function ( requestModel, callback ) {
@@ -279,17 +279,17 @@ var gridponent = gridponent || {};
             }
         },
     
-        search: function(searchTerm) {
+        search: function(searchTerm, callback) {
             this.config.pageModel.Search = searchTerm;
             var searchBox = this.config.node.querySelector( 'div.table-toolbar input[name=Search' );
             searchBox.value = searchTerm;
-            this.read();
+            this.read(null, callback);
         },
     
-        sort: function(field, desc) {
+        sort: function(field, desc, callback) {
             this.config.pageModel.OrderBy = field;
             this.config.pageModel.Desc = ( desc == true );
-            this.read();
+            this.read(null, callback);
         },
     
         read: function ( requestModel, callback ) {
@@ -1250,12 +1250,12 @@ var gridponent = gridponent || {};
                 html = new gp.StringBuilder();
     
             // check for a template
-            if ( col.Template ) {
-                if ( typeof ( col.Template ) === 'function' ) {
-                    html.add( col.Template.call( this, this.Row, col ) );
+            if ( col.BodyTemplate ) {
+                if ( typeof ( col.BodyTemplate ) === 'function' ) {
+                    html.add( col.BodyTemplate.call( this, this.Row, col ) );
                 }
                 else {
-                    html.add( gp.processBodyTemplate.call( this, col.Template, this.Row, col ) );
+                    html.add( gp.processBodyTemplate.call( this, col.BodyTemplate, this.Row, col ) );
                 }
             }
             else if ( col.Commands && col.Commands.length ) {
@@ -1582,7 +1582,7 @@ var gridponent = gridponent || {};
         },
     
         resolveTemplates: function (column) {
-            var props = 'HeaderTemplate Template EditTemplate FooterTemplate'.split(' ');
+            var props = 'HeaderTemplate BodyTemplate EditTemplate FooterTemplate'.split(' ');
             props.forEach(function (prop) {
                 column[prop] = gp.resolveTemplate(column[prop]);
             });

@@ -345,7 +345,7 @@ QUnit.test( 'api.search', function ( assert ) {
 QUnit.test( 'api.sort', function ( assert ) {
     var config = getTableConfig();
 
-    //$( '#table .box' ).append( config.node );
+    $( '#table .box' ).append( config.node );
 
 
     // trigger an initial sort to make sure this column is sorted 

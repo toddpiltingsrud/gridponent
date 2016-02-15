@@ -163,17 +163,17 @@ gp.Controller.prototype = {
         }
     },
 
-    search: function(searchTerm) {
+    search: function(searchTerm, callback) {
         this.config.pageModel.Search = searchTerm;
         var searchBox = this.config.node.querySelector( 'div.table-toolbar input[name=Search' );
         searchBox.value = searchTerm;
-        this.read();
+        this.read(null, callback);
     },
 
-    sort: function(field, desc) {
+    sort: function(field, desc, callback) {
         this.config.pageModel.OrderBy = field;
         this.config.pageModel.Desc = ( desc == true );
-        this.read();
+        this.read(null, callback);
     },
 
     read: function ( requestModel, callback ) {

@@ -4,6 +4,8 @@ That way it could be intercepted by event handlers.
 
 Create a list of supported config options for gp.getAttributes.
 
+Use a CommonJS module library (e.g. webpack).
+
 Create a filter API:
 
 node.api.filter({

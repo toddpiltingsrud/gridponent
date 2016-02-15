@@ -13,12 +13,12 @@ gp.api.prototype = {
         return this.controller.config.pageModel.Data;
     },
 
-    search: function ( searchTerm ) {
-        this.controller.search( searchTerm );
+    search: function ( searchTerm, callback ) {
+        this.controller.search( searchTerm, callback );
     },
 
-    sort: function ( name, desc ) {
-        this.controller.sort( name, desc );
+    sort: function ( name, desc, callback ) {
+        this.controller.sort( name, desc, callback );
     },
 
     read: function ( requestModel, callback ) {

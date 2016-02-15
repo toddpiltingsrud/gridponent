@@ -78,12 +78,12 @@ gp.helpers = {
             html = new gp.StringBuilder();
 
         // check for a template
-        if ( col.Template ) {
-            if ( typeof ( col.Template ) === 'function' ) {
-                html.add( col.Template.call( this, this.Row, col ) );
+        if ( col.BodyTemplate ) {
+            if ( typeof ( col.BodyTemplate ) === 'function' ) {
+                html.add( col.BodyTemplate.call( this, this.Row, col ) );
             }
             else {
-                html.add( gp.processBodyTemplate.call( this, col.Template, this.Row, col ) );
+                html.add( gp.processBodyTemplate.call( this, col.BodyTemplate, this.Row, col ) );
             }
         }
         else if ( col.Commands && col.Commands.length ) {
