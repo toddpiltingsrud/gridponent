@@ -34,10 +34,14 @@ gp.api.prototype = {
     // So the original row object reference has to be preserved.
     // this function is mainly for testing
     update: function ( row, callback ) {
-        this.controller.updateRow( row, null, callback );
+        var tr = gp.getTableRow( this.controller.config.pageModel.Data, row, this.controller.config.node );
+
+        tr['gp-update-model'] = new gp.UpdateModel( row );
+
+        this.controller.updateRow( row, tr, callback );
     },
 
-    destroy: function ( row, callback ) {
+    'delete': function ( row, callback ) {
         this.controller.deleteRow( row, callback, true );
     },
 

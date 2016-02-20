@@ -67,22 +67,23 @@ gp.helpers = {
         return html.toString();
     },
 
-    'bodyCellContent': function ( col ) {
+    'bodyCellContent': function ( col, row ) {
         var self = this,
             template,
             format,
             hasDeleteBtn = false,
-            val = gp.getFormattedValue( this.Row, col, true ),
+            row = row || this.Row,
+            val = gp.getFormattedValue( row, col, true ),
             type = ( col.Type || '' ).toLowerCase(),
             html = new gp.StringBuilder();
 
         // check for a template
         if ( col.BodyTemplate ) {
             if ( typeof ( col.BodyTemplate ) === 'function' ) {
-                html.add( col.BodyTemplate.call( this, this.Row, col ) );
+                html.add( col.BodyTemplate.call( this, row, col ) );
             }
             else {
-                html.add( gp.processBodyTemplate.call( this, col.BodyTemplate, this.Row, col ) );
+                html.add( gp.processBodyTemplate.call( this, col.BodyTemplate, row, col ) );
             }
         }
         else if ( col.Commands && col.Commands.length ) {
@@ -96,9 +97,10 @@ gp.helpers = {
                         .add( cmd )
                         .add( '</button>' );
                 }
-                else if ( cmd == 'Delete' && gp.hasValue( self.Destroy ) ) {
-                    // put the delete btn last
-                    hasDeleteBtn = true;
+                else if ( cmd == 'Delete' && gp.hasValue( self.Delete ) ) {
+                    html.add( '<button type="button" class="btn btn-danger btn-xs" value="Delete">' )
+                        .add( '<span class="glyphicon glyphicon-remove"></span>Delete' )
+                        .add( '</button>' );
                 }
                 else {
                     html.add( '<button type="button" class="btn btn-default btn-xs" value="' )
@@ -109,13 +111,6 @@ gp.helpers = {
                         .add( '</button>' );
                 }
             } );
-
-            // put the delete btn last
-            if ( hasDeleteBtn ) {
-                html.add( '<button type="button" class="btn btn-danger btn-xs" value="Delete">' )
-                    .add( '<span class="glyphicon glyphicon-remove"></span>Delete' )
-                    .add( '</button>' );
-            }
 
             html.add( '</div>' );
         }
@@ -133,16 +128,16 @@ gp.helpers = {
         return html.toString();
     },
 
-    'editCellContent': function ( col ) {
+    'editCellContent': function ( col, row ) {
         var template, html = new gp.StringBuilder();
 
         // check for a template
         if ( col.EditTemplate ) {
             if ( typeof ( col.EditTemplate ) === 'function' ) {
-                html.add( col.EditTemplate.call( this, this.Row, col ) );
+                html.add( col.EditTemplate.call( this, row, col ) );
             }
             else {
-                html.add( gp.processBodyTemplate.call( this, col.EditTemplate, this.Row, col ) );
+                html.add( gp.processBodyTemplate.call( this, col.EditTemplate, row, col ) );
             }
         }
         else if ( col.Commands ) {
@@ -156,7 +151,7 @@ gp.helpers = {
                 .add( '</div>' );
         }
         else {
-            var val = this.Row[col.Field];
+            var val = row[col.Field];
             // render empty cell if this field doesn't exist in the data
             if ( val === undefined ) return '';
             // render null as empty string

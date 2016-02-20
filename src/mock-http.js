@@ -9,7 +9,7 @@
         read: /Read/,
         update: /Update/,
         create: /Create/,
-        destroy: /Destroy/
+        'delete': /Delete/
     };
 
     gp.Http.prototype = {
@@ -73,13 +73,17 @@
             else if (routes.update.test(url)) {
                 callback(model);
             }
-            else if (routes.destroy.test(url)) {
-                var index = data.products.indexOf(model);
-                callback(true);
-            }
             else {
                 throw '404 Not found: ' + url;
             }
+        },
+        'delete': function ( url, model, callback, error ) {
+            model = model || {};
+            var index = data.products.indexOf( model );
+            callback( {
+                Success: true,
+                Message: ''
+            } );
         }
     };
 

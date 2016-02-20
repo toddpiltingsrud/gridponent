@@ -84,7 +84,7 @@ gp.Controller.prototype = {
                     self.cancelEdit(row, tr);
                     break;
                 case 'Delete':
-                    self.deleteRow( row );
+                    self.deleteRow( row, tr );
                     break;
                 default:
                     // check the api for an extension
@@ -193,7 +193,12 @@ gp.Controller.prototype = {
 
     createRow: function (callback) {
         try {
-            var self = this;
+            var self = this,
+                updateModel,
+                tbody,
+                rowIndex,
+                editCellContent,
+                builder;
 
             if ( !gp.hasValue( this.config.Create ) ) {
                 gp.tryCallback( callback, self.config.node );
@@ -202,39 +207,39 @@ gp.Controller.prototype = {
 
             gp.raiseCustomEvent( self.config.node, gp.events.beforeCreate );
 
+            // ask the data layer for a new row
             this.model.create(function (row) {
-                // create a row in create mode
-                self.config.Row = row;
 
-                gp.info( 'createRow.Columns:', self.config.Columns );
+                // add the new row to the internal data array
+                self.config.pageModel.Data.push( row );
 
-                var tbody = self.config.node.querySelector( 'div.table-body > table > tbody' );
-                var rowIndex = self.config.pageModel.Data.indexOf( row );
-                gp.info( 'createRow.rowIndex:', rowIndex );
-                var editCellContent = gp.helpers['editCellContent'];
-                var builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', rowIndex ).addClass('create-mode');
+                // wrap the new row in an UpdateModel
+                updateModel = new gp.UpdateModel( row );
 
-                // put the row in edit mode
-                // IE9 can't set innerHTML of tr, so iterate through each cell
-                // besides, that way we can just skip readonly cells
+                tbody = self.config.node.querySelector( 'div.table-body > table > tbody' );
+                rowIndex = self.config.pageModel.Data.indexOf( row );
+                editCellContent = gp.helpers['editCellContent'];
+
+                // use a NodeBuilder to create a tr[data-index=rowIndex].create-mode
+                builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', rowIndex ).addClass('create-mode');
+
+                // add td.body-cell elements to the tr
                 self.config.Columns.forEach( function ( col ) {
-                    var html = col.ReadOnly ? '' : editCellContent.call( self.config, col );
+                    var html = col.ReadOnly ? '' : editCellContent.call( self.config, col, row );
                     builder.startElem( 'td' ).addClass( 'body-cell' ).html(html).endElem();
                 } );
 
                 var tr = builder.close();
 
-                gp.info( 'createRow.tr:', tr );
-
                 gp.prependChild( tbody, tr );
 
-                tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
+                tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', row ).start();
 
-                gp.info( 'createRow.tr:', tr );
+                tr['gp-update-model'] = updateModel;
 
                 gp.raiseCustomEvent( self.config.node, gp.events.afterCreate, {
-                    row: row,
-                    tr: tr
+                    model: updateModel,
+                    tableRow: tr
                 } );
 
                 gp.tryCallback( callback, self.config.node, row );
@@ -249,30 +254,32 @@ gp.Controller.prototype = {
 
     editRow: function (row, tr) {
         try {
-            gp.raiseCustomEvent(tr, 'beforeEdit', {
-                model: row
-            });
+            var updateModel = tr['gp-update-model'] = new gp.UpdateModel( row );
 
-            this.config.Row = new gp.ObjectProxy(row);
-
-            gp.info('editRow.tr:', tr);
+            gp.raiseCustomEvent( tr, gp.events.beforeEditMode, {
+                model: updateModel,
+                tableRow: tr
+            } );
 
             // put the row in edit mode
             // IE9 can't set innerHTML of tr, so iterate through each cell
             // besides, that way we can just skip readonly cells
             var editCellContent = gp.helpers['editCellContent'];
-            var col, cells = tr.querySelectorAll('td.body-cell');
-            for (var i = 0; i < cells.length; i++) {
+            var col, cells = tr.querySelectorAll( 'td.body-cell' );
+            for ( var i = 0; i < cells.length; i++ ) {
                 col = this.config.Columns[i];
-                if (!col.Readonly) {
-                    cells[i].innerHTML = editCellContent.call(this.config, col);
+                if ( !col.Readonly ) {
+                    cells[i].innerHTML = editCellContent.call( this.config, col, row );
                 }
             }
-            gp.addClass(tr, 'edit-mode');
-            tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', this.config.Row, function () { });
-            gp.raiseCustomEvent(tr, 'afterEdit', {
-                model: this.config.Row
-            });
+            gp.addClass( tr, 'edit-mode' );
+            tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', updateModel.Row ).start();
+            gp.raiseCustomEvent( tr, gp.events.afterEditMode, {
+                model: updateModel,
+                tableRow: tr
+            } );
+
+            return this.config.updateModel;
         }
         catch (ex) {
             gp.error( ex );
@@ -285,11 +292,10 @@ gp.Controller.prototype = {
         try {
             var monitor,
                 self = this,
-                updateModel = new gp.UpdateModel( row ),
-                tr = tr || gp.getTableRow(this.config.pageModel.Data, row, this.config.node);
+                updateModel = tr['gp-update-model'];
 
-            // if there is no Update configuration setting, we're done here
-            if ( !gp.hasValue( this.config.Update ) ) {
+            // if there is no Update configuration setting or model, we're done here
+            if ( !gp.hasValue( this.config.Update ) || !updateModel) {
                 gp.tryCallback( callback, self.config.node );
                 return;
             }
@@ -298,23 +304,20 @@ gp.Controller.prototype = {
                 model: updateModel
             });
 
-            gp.info( 'updateRow.row:', row );
+            // call the data layer
+            this.model.update( updateModel, function ( returnedUpdateModel ) {
 
-            this.model.update( updateModel, function ( updateModel ) {
-
-                gp.info( 'updateRow.updateModel:', updateModel );
-
-                if ( updateModel.ValidationErrors && updateModel.ValidationErrors.length ) {
+                if ( returnedUpdateModel.ValidationErrors && returnedUpdateModel.ValidationErrors.length ) {
                     if ( typeof self.config.Validate === 'function' ) {
-                        self.config.Validate.call( this, tr, updateModel );
+                        self.config.Validate.call( this, tr, returnedUpdateModel );
                     }
                     else {
-                        gp.helpers['validation'].call( this, tr, updateModel.ValidationErrors );
+                        gp.helpers['validation'].call( this, tr, returnedUpdateModel.ValidationErrors );
                     }
                 }
                 else {
                     // copy the returned row back to the internal data array
-                    gp.shallowCopy( updateModel.Row, row );
+                    gp.shallowCopy( returnedUpdateModel.Row, row );
                     // refresh the UI
                     self.restoreCells( self.config, row, tr );
                     // dispose of the ChangeMonitor
@@ -323,8 +326,8 @@ gp.Controller.prototype = {
                         monitor.stop();
                         monitor = null;
                     }
-                    // dispose of the ObjectProxy
-                    delete self.config.Row;
+                    // dispose of the updateModel
+                    delete tr['gp-update-model'];
                 }
 
                 gp.raiseCustomEvent( tr, gp.events.afterUpdate, {
@@ -332,6 +335,58 @@ gp.Controller.prototype = {
                 } );
 
                 gp.tryCallback( callback, self.config.node, updateModel );
+            } );
+        }
+        catch (ex) {
+            gp.error( ex );
+        }
+    },
+
+    // we don't require a tr parameter because it may not be in the grid
+    deleteRow: function (row, callback, skipConfirm) {
+        try {
+            if ( !gp.hasValue( this.config.Delete ) ) {
+                gp.tryCallback( callback, this.config.node );
+                return;
+            }
+
+            var self = this,
+                url = this.config.Delete,
+                confirmed = skipConfirm || confirm( 'Are you sure you want to delete this item?' ),
+                message,
+                tr = gp.getTableRow(this.config.pageModel.Data, row, this.config.node);
+
+            if ( !confirmed ) {
+                gp.tryCallback( callback, this.config.node );
+                return;
+            }
+
+            gp.raiseCustomEvent(this.config.node, gp.events.beforeDelete, {
+                row: row
+            } );
+
+            this.model.delete( row, function ( response ) {
+
+                if ( response.Success ) {
+                    // remove the row from the model
+                    var index = self.config.pageModel.Data.indexOf( row );
+                    if ( index != -1 ) {
+                        self.config.pageModel.Data.splice( index, 1 );
+                        // if the row is currently being displayed, refresh the grid
+                        if ( tr ) {
+                            self.refresh( self.config );
+                        }
+                    }
+                }
+                else {
+                    message = response.Message || 'The row could not be deleted.';
+                    alert( message );
+                }
+
+                gp.raiseCustomEvent( self.config.node, gp.events.afterDelete, {
+                    row: row
+                } );
+                gp.tryCallback( callback, self.config.node, response );
             } );
         }
         catch (ex) {
@@ -362,44 +417,6 @@ gp.Controller.prototype = {
         }
     },
 
-    deleteRow: function (row, callback, skipConfirm) {
-        try {
-            if ( !gp.hasValue( this.config.Destroy ) ) {
-                gp.tryCallback( callback, this.config.node );
-                return;
-            }
-
-            var self = this,
-                url = this.config.Destroy,
-                confirmed = skipConfirm || confirm( 'Are you sure you want to delete this item?' );
-
-            if ( !confirmed ) {
-                gp.tryCallback( callback, this.config.node );
-                return;
-            }
-
-            gp.raiseCustomEvent(this.config.node, gp.events.beforeDestroy, {
-                row: row
-            } );
-
-            this.model.destroy( row, function ( response ) {
-                // remove the row from the model
-                var index = self.config.pageModel.Data.indexOf( row );
-                if ( index != -1 ) {
-                    self.config.pageModel.Data.splice( index, 1 );
-                    self.refresh( self.config );
-                }
-                gp.raiseCustomEvent( self.config.node, gp.events.afterDestroy, {
-                    row: row
-                } );
-                gp.tryCallback( callback, self.config.node, response );
-            } );
-        }
-        catch (ex) {
-            gp.error( ex );
-        }
-    },
-
     refresh: function ( config ) {
         var rowsTemplate = gp.templates['gridponent-body'];
         var pagerTemplate = gp.templates['gridponent-pager'];
@@ -419,11 +436,10 @@ gp.Controller.prototype = {
         cells = tr.querySelectorAll( 'td.body-cell' );
         for ( ; i < cells.length; i++ ) {
             col = config.Columns[i];
-            cells[i].innerHTML = helper.call( this.config, col );
+            cells[i].innerHTML = helper.call( this.config, col, row );
         }
         gp.removeClass( tr, 'edit-mode' );
     },
-
 
     dispose: function () {
         gp.raiseCustomEvent( this.config.node, gp.events.beforeDispose );

@@ -15,19 +15,21 @@ gp.ChangeMonitor = function (node, selector, model, afterSync) {
 
 gp.ChangeMonitor.prototype = {
     start: function () {
-        var self = this;
         // add change event handler to node
         gp.on( this.node, 'change', this.selector, this.listener );
+        return this;
     },
     stop: function () {
         // clean up
         gp.off( this.node, 'change', this.listener );
+        return this;
     },
     syncModel: function (target, model) {
         // get name and value of target
-        var name = target.name;
-        var value = target.value;
-        var handled = false;
+        var name = target.name,
+            value = target.value,
+            handled = false,
+            type;
 
         try {
             if ( !( name in model ) ) return;

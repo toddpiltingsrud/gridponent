@@ -413,11 +413,13 @@
         beforeRead: 'beforeRead',
         beforeCreate: 'beforeCreate',
         beforeUpdate: 'beforeUpdate',
-        beforeDestroy: 'beforeDestroy',
+        beforeDelete: 'beforeDelete',
+        beforeEditMode: 'beforeEditMode',
         afterRead: 'afterRead',
         afterCreate: 'afterCreate',
         afterUpdate: 'afterUpdate',
-        afterDestroy: 'afterDestroy',
+        afterDelete: 'afterDelete',
+        afterEditMode: 'afterEditMode',
         beforeDispose: 'beforeDispose'
     };
 

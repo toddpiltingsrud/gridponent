@@ -39,10 +39,14 @@ var gridponent = gridponent || {};
         // So the original row object reference has to be preserved.
         // this function is mainly for testing
         update: function ( row, callback ) {
-            this.controller.updateRow( row, null, callback );
+            var tr = gp.getTableRow( this.controller.config.pageModel.Data, row, this.controller.config.node );
+    
+            tr['gp-update-model'] = new gp.UpdateModel( row );
+    
+            this.controller.updateRow( row, tr, callback );
         },
     
-        destroy: function ( row, callback ) {
+        'delete': function ( row, callback ) {
             this.controller.deleteRow( row, callback, true );
         },
     
@@ -71,19 +75,21 @@ var gridponent = gridponent || {};
     
     gp.ChangeMonitor.prototype = {
         start: function () {
-            var self = this;
             // add change event handler to node
             gp.on( this.node, 'change', this.selector, this.listener );
+            return this;
         },
         stop: function () {
             // clean up
             gp.off( this.node, 'change', this.listener );
+            return this;
         },
         syncModel: function (target, model) {
             // get name and value of target
-            var name = target.name;
-            var value = target.value;
-            var handled = false;
+            var name = target.name,
+                value = target.value,
+                handled = false,
+                type;
     
             try {
                 if ( !( name in model ) ) return;
@@ -198,7 +204,7 @@ var gridponent = gridponent || {};
                         self.cancelEdit(row, tr);
                         break;
                     case 'Delete':
-                        self.deleteRow( row );
+                        self.deleteRow( row, tr );
                         break;
                     default:
                         // check the api for an extension
@@ -304,7 +310,12 @@ var gridponent = gridponent || {};
     
         createRow: function (callback) {
             try {
-                var self = this;
+                var self = this,
+                    updateModel,
+                    tbody,
+                    rowIndex,
+                    editCellContent,
+                    builder;
     
                 if ( !gp.hasValue( this.config.Create ) ) {
                     gp.tryCallback( callback, self.config.node );
@@ -313,35 +324,39 @@ var gridponent = gridponent || {};
     
                 gp.raiseCustomEvent( self.config.node, gp.events.beforeCreate );
     
+                // ask the data layer for a new row
                 this.model.create(function (row) {
-                    // create a row in create mode
-                    self.config.Row = row;
     
+                    // add the new row to the internal data array
+                    self.config.pageModel.Data.push( row );
     
-                    var tbody = self.config.node.querySelector( 'div.table-body > table > tbody' );
-                    var rowIndex = self.config.pageModel.Data.indexOf( row );
-                    var editCellContent = gp.helpers['editCellContent'];
-                    var builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', rowIndex ).addClass('create-mode');
+                    // wrap the new row in an UpdateModel
+                    updateModel = new gp.UpdateModel( row );
     
-                    // put the row in edit mode
-                    // IE9 can't set innerHTML of tr, so iterate through each cell
-                    // besides, that way we can just skip readonly cells
+                    tbody = self.config.node.querySelector( 'div.table-body > table > tbody' );
+                    rowIndex = self.config.pageModel.Data.indexOf( row );
+                    editCellContent = gp.helpers['editCellContent'];
+    
+                    // use a NodeBuilder to create a tr[data-index=rowIndex].create-mode
+                    builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', rowIndex ).addClass('create-mode');
+    
+                    // add td.body-cell elements to the tr
                     self.config.Columns.forEach( function ( col ) {
-                        var html = col.ReadOnly ? '' : editCellContent.call( self.config, col );
+                        var html = col.ReadOnly ? '' : editCellContent.call( self.config, col, row );
                         builder.startElem( 'td' ).addClass( 'body-cell' ).html(html).endElem();
                     } );
     
                     var tr = builder.close();
     
-    
                     gp.prependChild( tbody, tr );
     
-                    tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', row, function () { });
+                    tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', row ).start();
     
+                    tr['gp-update-model'] = updateModel;
     
                     gp.raiseCustomEvent( self.config.node, gp.events.afterCreate, {
-                        row: row,
-                        tr: tr
+                        model: updateModel,
+                        tableRow: tr
                     } );
     
                     gp.tryCallback( callback, self.config.node, row );
@@ -356,29 +371,32 @@ var gridponent = gridponent || {};
     
         editRow: function (row, tr) {
             try {
-                gp.raiseCustomEvent(tr, 'beforeEdit', {
-                    model: row
-                });
+                var updateModel = tr['gp-update-model'] = new gp.UpdateModel( row );
     
-                this.config.Row = new gp.ObjectProxy(row);
-    
+                gp.raiseCustomEvent( tr, gp.events.beforeEditMode, {
+                    model: updateModel,
+                    tableRow: tr
+                } );
     
                 // put the row in edit mode
                 // IE9 can't set innerHTML of tr, so iterate through each cell
                 // besides, that way we can just skip readonly cells
                 var editCellContent = gp.helpers['editCellContent'];
-                var col, cells = tr.querySelectorAll('td.body-cell');
-                for (var i = 0; i < cells.length; i++) {
+                var col, cells = tr.querySelectorAll( 'td.body-cell' );
+                for ( var i = 0; i < cells.length; i++ ) {
                     col = this.config.Columns[i];
-                    if (!col.Readonly) {
-                        cells[i].innerHTML = editCellContent.call(this.config, col);
+                    if ( !col.Readonly ) {
+                        cells[i].innerHTML = editCellContent.call( this.config, col, row );
                     }
                 }
-                gp.addClass(tr, 'edit-mode');
-                tr['gp-change-monitor'] = new gp.ChangeMonitor(tr, '[name]', this.config.Row, function () { });
-                gp.raiseCustomEvent(tr, 'afterEdit', {
-                    model: this.config.Row
-                });
+                gp.addClass( tr, 'edit-mode' );
+                tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', updateModel.Row ).start();
+                gp.raiseCustomEvent( tr, gp.events.afterEditMode, {
+                    model: updateModel,
+                    tableRow: tr
+                } );
+    
+                return this.config.updateModel;
             }
             catch (ex) {
                 gp.error( ex );
@@ -391,11 +409,10 @@ var gridponent = gridponent || {};
             try {
                 var monitor,
                     self = this,
-                    updateModel = new gp.UpdateModel( row ),
-                    tr = tr || gp.getTableRow(this.config.pageModel.Data, row, this.config.node);
+                    updateModel = tr['gp-update-model'];
     
-                // if there is no Update configuration setting, we're done here
-                if ( !gp.hasValue( this.config.Update ) ) {
+                // if there is no Update configuration setting or model, we're done here
+                if ( !gp.hasValue( this.config.Update ) || !updateModel) {
                     gp.tryCallback( callback, self.config.node );
                     return;
                 }
@@ -404,21 +421,20 @@ var gridponent = gridponent || {};
                     model: updateModel
                 });
     
+                // call the data layer
+                this.model.update( updateModel, function ( returnedUpdateModel ) {
     
-                this.model.update( updateModel, function ( updateModel ) {
-    
-    
-                    if ( updateModel.ValidationErrors && updateModel.ValidationErrors.length ) {
+                    if ( returnedUpdateModel.ValidationErrors && returnedUpdateModel.ValidationErrors.length ) {
                         if ( typeof self.config.Validate === 'function' ) {
-                            self.config.Validate.call( this, tr, updateModel );
+                            self.config.Validate.call( this, tr, returnedUpdateModel );
                         }
                         else {
-                            gp.helpers['validation'].call( this, tr, updateModel.ValidationErrors );
+                            gp.helpers['validation'].call( this, tr, returnedUpdateModel.ValidationErrors );
                         }
                     }
                     else {
                         // copy the returned row back to the internal data array
-                        gp.shallowCopy( updateModel.Row, row );
+                        gp.shallowCopy( returnedUpdateModel.Row, row );
                         // refresh the UI
                         self.restoreCells( self.config, row, tr );
                         // dispose of the ChangeMonitor
@@ -427,8 +443,8 @@ var gridponent = gridponent || {};
                             monitor.stop();
                             monitor = null;
                         }
-                        // dispose of the ObjectProxy
-                        delete self.config.Row;
+                        // dispose of the updateModel
+                        delete tr['gp-update-model'];
                     }
     
                     gp.raiseCustomEvent( tr, gp.events.afterUpdate, {
@@ -436,6 +452,58 @@ var gridponent = gridponent || {};
                     } );
     
                     gp.tryCallback( callback, self.config.node, updateModel );
+                } );
+            }
+            catch (ex) {
+                gp.error( ex );
+            }
+        },
+    
+        // we don't require a tr parameter because it may not be in the grid
+        deleteRow: function (row, callback, skipConfirm) {
+            try {
+                if ( !gp.hasValue( this.config.Delete ) ) {
+                    gp.tryCallback( callback, this.config.node );
+                    return;
+                }
+    
+                var self = this,
+                    url = this.config.Delete,
+                    confirmed = skipConfirm || confirm( 'Are you sure you want to delete this item?' ),
+                    message,
+                    tr = gp.getTableRow(this.config.pageModel.Data, row, this.config.node);
+    
+                if ( !confirmed ) {
+                    gp.tryCallback( callback, this.config.node );
+                    return;
+                }
+    
+                gp.raiseCustomEvent(this.config.node, gp.events.beforeDelete, {
+                    row: row
+                } );
+    
+                this.model.delete( row, function ( response ) {
+    
+                    if ( response.Success ) {
+                        // remove the row from the model
+                        var index = self.config.pageModel.Data.indexOf( row );
+                        if ( index != -1 ) {
+                            self.config.pageModel.Data.splice( index, 1 );
+                            // if the row is currently being displayed, refresh the grid
+                            if ( tr ) {
+                                self.refresh( self.config );
+                            }
+                        }
+                    }
+                    else {
+                        message = response.Message || 'The row could not be deleted.';
+                        alert( message );
+                    }
+    
+                    gp.raiseCustomEvent( self.config.node, gp.events.afterDelete, {
+                        row: row
+                    } );
+                    gp.tryCallback( callback, self.config.node, response );
                 } );
             }
             catch (ex) {
@@ -466,44 +534,6 @@ var gridponent = gridponent || {};
             }
         },
     
-        deleteRow: function (row, callback, skipConfirm) {
-            try {
-                if ( !gp.hasValue( this.config.Destroy ) ) {
-                    gp.tryCallback( callback, this.config.node );
-                    return;
-                }
-    
-                var self = this,
-                    url = this.config.Destroy,
-                    confirmed = skipConfirm || confirm( 'Are you sure you want to delete this item?' );
-    
-                if ( !confirmed ) {
-                    gp.tryCallback( callback, this.config.node );
-                    return;
-                }
-    
-                gp.raiseCustomEvent(this.config.node, gp.events.beforeDestroy, {
-                    row: row
-                } );
-    
-                this.model.destroy( row, function ( response ) {
-                    // remove the row from the model
-                    var index = self.config.pageModel.Data.indexOf( row );
-                    if ( index != -1 ) {
-                        self.config.pageModel.Data.splice( index, 1 );
-                        self.refresh( self.config );
-                    }
-                    gp.raiseCustomEvent( self.config.node, gp.events.afterDestroy, {
-                        row: row
-                    } );
-                    gp.tryCallback( callback, self.config.node, response );
-                } );
-            }
-            catch (ex) {
-                gp.error( ex );
-            }
-        },
-    
         refresh: function ( config ) {
             var rowsTemplate = gp.templates['gridponent-body'];
             var pagerTemplate = gp.templates['gridponent-pager'];
@@ -523,11 +553,10 @@ var gridponent = gridponent || {};
             cells = tr.querySelectorAll( 'td.body-cell' );
             for ( ; i < cells.length; i++ ) {
                 col = config.Columns[i];
-                cells[i].innerHTML = helper.call( this.config, col );
+                cells[i].innerHTML = helper.call( this.config, col, row );
             }
             gp.removeClass( tr, 'edit-mode' );
         },
-    
     
         dispose: function () {
             gp.raiseCustomEvent( this.config.node, gp.events.beforeDispose );
@@ -1120,11 +1149,13 @@ var gridponent = gridponent || {};
             beforeRead: 'beforeRead',
             beforeCreate: 'beforeCreate',
             beforeUpdate: 'beforeUpdate',
-            beforeDestroy: 'beforeDestroy',
+            beforeDelete: 'beforeDelete',
+            beforeEditMode: 'beforeEditMode',
             afterRead: 'afterRead',
             afterCreate: 'afterCreate',
             afterUpdate: 'afterUpdate',
-            afterDestroy: 'afterDestroy',
+            afterDelete: 'afterDelete',
+            afterEditMode: 'afterEditMode',
             beforeDispose: 'beforeDispose'
         };
     
@@ -1217,22 +1248,23 @@ var gridponent = gridponent || {};
             return html.toString();
         },
     
-        'bodyCellContent': function ( col ) {
+        'bodyCellContent': function ( col, row ) {
             var self = this,
                 template,
                 format,
                 hasDeleteBtn = false,
-                val = gp.getFormattedValue( this.Row, col, true ),
+                row = row || this.Row,
+                val = gp.getFormattedValue( row, col, true ),
                 type = ( col.Type || '' ).toLowerCase(),
                 html = new gp.StringBuilder();
     
             // check for a template
             if ( col.BodyTemplate ) {
                 if ( typeof ( col.BodyTemplate ) === 'function' ) {
-                    html.add( col.BodyTemplate.call( this, this.Row, col ) );
+                    html.add( col.BodyTemplate.call( this, row, col ) );
                 }
                 else {
-                    html.add( gp.processBodyTemplate.call( this, col.BodyTemplate, this.Row, col ) );
+                    html.add( gp.processBodyTemplate.call( this, col.BodyTemplate, row, col ) );
                 }
             }
             else if ( col.Commands && col.Commands.length ) {
@@ -1246,9 +1278,10 @@ var gridponent = gridponent || {};
                             .add( cmd )
                             .add( '</button>' );
                     }
-                    else if ( cmd == 'Delete' && gp.hasValue( self.Destroy ) ) {
-                        // put the delete btn last
-                        hasDeleteBtn = true;
+                    else if ( cmd == 'Delete' && gp.hasValue( self.Delete ) ) {
+                        html.add( '<button type="button" class="btn btn-danger btn-xs" value="Delete">' )
+                            .add( '<span class="glyphicon glyphicon-remove"></span>Delete' )
+                            .add( '</button>' );
                     }
                     else {
                         html.add( '<button type="button" class="btn btn-default btn-xs" value="' )
@@ -1259,13 +1292,6 @@ var gridponent = gridponent || {};
                             .add( '</button>' );
                     }
                 } );
-    
-                // put the delete btn last
-                if ( hasDeleteBtn ) {
-                    html.add( '<button type="button" class="btn btn-danger btn-xs" value="Delete">' )
-                        .add( '<span class="glyphicon glyphicon-remove"></span>Delete' )
-                        .add( '</button>' );
-                }
     
                 html.add( '</div>' );
             }
@@ -1283,16 +1309,16 @@ var gridponent = gridponent || {};
             return html.toString();
         },
     
-        'editCellContent': function ( col ) {
+        'editCellContent': function ( col, row ) {
             var template, html = new gp.StringBuilder();
     
             // check for a template
             if ( col.EditTemplate ) {
                 if ( typeof ( col.EditTemplate ) === 'function' ) {
-                    html.add( col.EditTemplate.call( this, this.Row, col ) );
+                    html.add( col.EditTemplate.call( this, row, col ) );
                 }
                 else {
-                    html.add( gp.processBodyTemplate.call( this, col.EditTemplate, this.Row, col ) );
+                    html.add( gp.processBodyTemplate.call( this, col.EditTemplate, row, col ) );
                 }
             }
             else if ( col.Commands ) {
@@ -1306,7 +1332,7 @@ var gridponent = gridponent || {};
                     .add( '</div>' );
             }
             else {
-                var val = this.Row[col.Field];
+                var val = row[col.Field];
                 // render empty cell if this field doesn't exist in the data
                 if ( val === undefined ) return '';
                 // render null as empty string
@@ -1481,19 +1507,21 @@ var gridponent = gridponent || {};
     
         getConfig: function (node) {
             var self = this;
-            var obj, config = gp.getAttributes(node);
+            var obj, config = gp.getAttributes( node );
+            var gpColumns = config.node.querySelectorAll( 'gp-column' );
             config.Columns = [];
             config.pageModel = {};
             config.ID = gp.createUID();
-            for (var i = 0; i < node.children.length; i++) {
-                var col = node.children[i];
+    
+            for ( var i = 0; i < gpColumns.length; i++ ) {
+                var col = gpColumns[i];
                 var colConfig = gp.getAttributes(col);
                 config.Columns.push(colConfig);
                 this.resolveCommands(colConfig);
                 this.resolveTemplates(colConfig);
             }
             config.Footer = this.resolveFooter(config);
-            var options = 'Onrowselect SearchFunction Read Create Update Destroy Validate'.split(' ');
+            var options = 'Onrowselect SearchFunction Read Create Update Delete Validate'.split(' ');
             options.forEach( function ( option ) {
     
                 if ( gp.hasValue(config[option]) ) {
@@ -1617,7 +1645,7 @@ var gridponent = gridponent || {};
             read: /Read/,
             update: /Update/,
             create: /Create/,
-            destroy: /Destroy/
+            'delete': /Delete/
         };
     
         gp.Http.prototype = {
@@ -1681,15 +1709,21 @@ var gridponent = gridponent || {};
                 else if (routes.update.test(url)) {
                     callback(model);
                 }
-                else if (routes.destroy.test(url)) {
-                    var index = data.products.indexOf(model);
-                    callback(true);
+                else if (routes.delete.test(url)) {
                 }
                 else {
                     throw '404 Not found: ' + url;
                 }
+            },
+            'delete': function ( url, model, callback, error ) {
+                model = model || {};
+                var index = data.products.indexOf( model );
+                callback( {
+                    Success: true,
+                    Message: ''
+                } );
             }
-        };
+    };
     
         var getData = function (model, callback) {
             var count, d = data.products;
@@ -1804,7 +1838,7 @@ var gridponent = gridponent || {};
     
     
             this.dal.read( requestModel, function (arg) {
-                gp.tryCallback( callback, self.config.node, arg );
+                gp.tryCallback( callback, self, arg );
             } );
         },
     
@@ -1812,22 +1846,18 @@ var gridponent = gridponent || {};
             var self = this,
                 row;
     
+            // Create config option can be a function or a URL
             if ( typeof this.config.Create === 'function' ) {
+                // call the function
                 this.config.Create( function ( row ) {
-                    if (self.config.pageModel.Data && self.config.pageModel.Data.push) {
-                        self.config.pageModel.Data.push(row);
-                    }
-                    gp.tryCallback( callback, self.config.node, row );
+                    gp.tryCallback( callback, self, row );
                 } );
             }
             else {
-                // ask the server for a new record
+                // call the URL
                 var http = new gp.Http();
                 http.get(this.config.Create, function (row) {
-                    if (self.config.pageModel.Data && self.config.pageModel.Data.push) {
-                        self.config.pageModel.Data.push(row);
-                    }
-                    gp.tryCallback( callback, self.config.node, row );
+                    gp.tryCallback( callback, self, row );
                 } );
             }
         },
@@ -1838,28 +1868,28 @@ var gridponent = gridponent || {};
             gp.raiseCustomEvent( this.config.node, gp.events.beforeUpdate );
             if ( typeof this.config.Update === 'function' ) {
                 this.config.Update( updateModel, function ( arg ) {
-                    gp.tryCallback( callback, self.config.node, arg );
+                    gp.tryCallback( callback, self, arg );
                 } );
             }
             else {
                 var http = new gp.Http();
                 http.post( this.config.Update, updateModel, function ( arg ) {
-                    gp.tryCallback( callback, self.config.node, arg );
+                    gp.tryCallback( callback, self, arg );
                 } );
             }
         },
     
-        destroy: function (row, callback) {
+        'delete': function (row, callback) {
             var self = this;
-            if ( typeof this.config.Destroy === 'function' ) {
-                this.config.Destroy( row, function ( arg ) {
-                    gp.tryCallback( callback, self.config.node, arg );
+            if ( typeof this.config.Delete === 'function' ) {
+                this.config.Delete( row, function ( arg ) {
+                    gp.tryCallback( callback, self, arg );
                 } );
             }
             else {
                 var http = new gp.Http();
-                http.post( this.config.Destroy, row, function ( arg ) {
-                    gp.tryCallback( callback, self.config.node, arg );
+                http.delete( this.config.Delete, row, function ( arg ) {
+                    gp.tryCallback( callback, self, arg );
                 } );
             }
         }
@@ -1969,9 +1999,16 @@ var gridponent = gridponent || {};
     };
     
     gp.ServerPager.prototype = {
-        read: function (model, callback, error) {
+        read: function ( model, callback, error ) {
+            var copy = gp.shallowCopy( model );
+            // delete anything we don't want to send to the server
+            var props = Object.getOwnPropertyNames( copy ).forEach(function(prop){
+                if ( /^(Page|Top|OrderBy|Desc|Search)$/i.test( prop ) == false ) {
+                    delete copy[prop];
+                }
+            });
             var h = new gp.Http();
-            h.post(this.url, model, callback, error);
+            h.post(this.url, copy, callback, error);
         }
     };
     

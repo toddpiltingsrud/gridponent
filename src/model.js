@@ -36,7 +36,7 @@ gp.Model.prototype = {
         gp.info( 'Model.dal: :', this.dal );
 
         this.dal.read( requestModel, function (arg) {
-            gp.tryCallback( callback, self.config.node, arg );
+            gp.tryCallback( callback, self, arg );
         } );
     },
 
@@ -44,22 +44,18 @@ gp.Model.prototype = {
         var self = this,
             row;
 
+        // Create config option can be a function or a URL
         if ( typeof this.config.Create === 'function' ) {
+            // call the function
             this.config.Create( function ( row ) {
-                if (self.config.pageModel.Data && self.config.pageModel.Data.push) {
-                    self.config.pageModel.Data.push(row);
-                }
-                gp.tryCallback( callback, self.config.node, row );
+                gp.tryCallback( callback, self, row );
             } );
         }
         else {
-            // ask the server for a new record
+            // call the URL
             var http = new gp.Http();
             http.get(this.config.Create, function (row) {
-                if (self.config.pageModel.Data && self.config.pageModel.Data.push) {
-                    self.config.pageModel.Data.push(row);
-                }
-                gp.tryCallback( callback, self.config.node, row );
+                gp.tryCallback( callback, self, row );
             } );
         }
     },
@@ -70,28 +66,28 @@ gp.Model.prototype = {
         gp.raiseCustomEvent( this.config.node, gp.events.beforeUpdate );
         if ( typeof this.config.Update === 'function' ) {
             this.config.Update( updateModel, function ( arg ) {
-                gp.tryCallback( callback, self.config.node, arg );
+                gp.tryCallback( callback, self, arg );
             } );
         }
         else {
             var http = new gp.Http();
             http.post( this.config.Update, updateModel, function ( arg ) {
-                gp.tryCallback( callback, self.config.node, arg );
+                gp.tryCallback( callback, self, arg );
             } );
         }
     },
 
-    destroy: function (row, callback) {
+    'delete': function (row, callback) {
         var self = this;
-        if ( typeof this.config.Destroy === 'function' ) {
-            this.config.Destroy( row, function ( arg ) {
-                gp.tryCallback( callback, self.config.node, arg );
+        if ( typeof this.config.Delete === 'function' ) {
+            this.config.Delete( row, function ( arg ) {
+                gp.tryCallback( callback, self, arg );
             } );
         }
         else {
             var http = new gp.Http();
-            http.post( this.config.Destroy, row, function ( arg ) {
-                gp.tryCallback( callback, self.config.node, arg );
+            http.delete( this.config.Delete, row, function ( arg ) {
+                gp.tryCallback( callback, self, arg );
             } );
         }
     }

@@ -4,6 +4,14 @@ $( function () {
     div = $( '<div id="div1" style="display:none"></div>' ).appendTo( 'body' );
 } );
 
+function ChangeEvent() {
+    return new CustomEvent( 'change', {
+        'view': window,
+        'bubbles': true,
+        'cancelable': true
+    } );
+}
+
 var gridponent = gridponent || {};
 
 var gp = gridponent;
@@ -44,7 +52,7 @@ var configOptions = {
     read: null,
     create: '/Products/Create',
     update: '/Products/Update',
-    destroy: '/Products/Destroy',
+    'delete': '/Products/Delete',
     searchFilter: null,
     customCommand: null,
     orRowSelect: null
@@ -73,7 +81,7 @@ var getTableConfig = function ( options ) {
     if ( options.read ) out.push( '         read="' + options.read + '"' );
     if ( options.create ) out.push( '       create="' + options.create + '"' );
     if ( options.update ) out.push( '       update="' + options.update + '"' );
-    if ( options.destroy ) out.push( '      destroy="' + options.destroy + '"' );
+    if ( options.delete ) out.push( '      delete="' + options.delete + '"' );
     if ( options.validate ) out.push( '     validate="' + options.validate + '"' );
     out.push( '             pager="top-right"' );
     out.push( '             search="top-left">' );
@@ -174,7 +182,7 @@ var productsTable = function () {
     out.push( '                read="data.products"' );
     out.push( '                create="/Products/Create"' );
     out.push( '                update="/Products/Update"' );
-    out.push( '                destroy="/Products/Destroy">' );
+    out.push( '                delete="/Products/Delete">' );
     out.push( '    <gp-column header="Product" field="ProductID" body-template="fns.getName" edit-template="fns.dropdown"></gp-column>' );
     out.push( '    <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>' );
     out.push( '    <gp-column field="SafetyStockLevel" header="Safety Stock Level" footer-template="fns.average"></gp-column>' );
@@ -409,7 +417,7 @@ QUnit.test( 'api.read', function ( assert ) {
     } );
 } );
 
-QUnit.test( 'api.destroy', function ( assert ) {
+QUnit.test( 'api.delete', function ( assert ) {
 
     var options = gp.shallowCopy( configOptions );
 
@@ -419,22 +427,25 @@ QUnit.test( 'api.destroy', function ( assert ) {
 
     var row = config.pageModel.Data[0];
 
-    config.node.api.destroy( row, function ( row ) {
+    config.node.api.delete( row, function ( row ) {
         var index = config.pageModel.Data.indexOf( row );
-        assert.strictEqual( index, -1, 'destroy should remove the row' );
+        assert.strictEqual( index, -1, 'delete should remove the row' );
         done1();
     } );
 
     // test it with a function
     fns = fns || {};
-    fns.destroy = function ( row, callback ) {
+    fns.delete = function ( row, callback ) {
         var index = config.pageModel.Data.indexOf( row );
         config.pageModel.Data.splice( index, 1 );
-        callback();
+        callback( {
+            Success: true,
+            Message: null
+        } );
     };
 
     options = gp.shallowCopy( configOptions );
-    options.destroy = 'fns.destroy';
+    options.delete = 'fns.delete';
 
     config = getTableConfig( options );
 
@@ -442,16 +453,16 @@ QUnit.test( 'api.destroy', function ( assert ) {
 
     row = config.pageModel.Data[0];
 
-    config.node.api.destroy( row, function ( row ) {
+    config.node.api.delete( row, function ( row ) {
         var index = config.pageModel.Data.indexOf( row );
-        assert.strictEqual( index, -1, 'destroy should remove the row' );
+        assert.strictEqual( index, -1, 'delete should remove the row' );
         done2();
     } );
 
 
-    // now try it with a null destroy setting
+    // now try it with a null delete setting
     options = gp.shallowCopy( configOptions );
-    options.destroy = null;
+    options.delete = null;
 
     config = getTableConfig( options );
 
@@ -459,9 +470,9 @@ QUnit.test( 'api.destroy', function ( assert ) {
 
     row = config.pageModel.Data[1];
 
-    config.node.api.destroy( row, function () {
+    config.node.api.delete( row, function (response) {
         var index = config.pageModel.Data.indexOf( row );
-        assert.ok( index > -1, 'destroy should do nothing' );
+        assert.ok( index > -1, 'delete should do nothing' );
         done3();
     } );
 } );
@@ -932,13 +943,13 @@ QUnit.test( 'gp.Model', function ( assert ) {
     } );
 
 
-    // destroy
+    // 'delete'
     var done4 = assert.async();
     request = data.products[0];
     model = new gp.Model( config );
 
-    model.destroy( request, function ( response ) {
-        assert.equal( response, true, 'destroy should return true if the record was found and deleted' );
+    model.delete( request, function ( response ) {
+        assert.equal( response.Success, true, 'delete should return true if the record was found and deleted' );
         done4();
     } );
 
@@ -1220,7 +1231,7 @@ QUnit.test( 'custom search filter', function ( assert ) {
 
 } );
 
-QUnit.test( 'beforeEdit and afterEdit events', function ( assert ) {
+QUnit.test( 'beforeEditMode and afterEditMode events', function ( assert ) {
 
     var done1 = assert.async();
     var done2 = assert.async();
@@ -1231,14 +1242,14 @@ QUnit.test( 'beforeEdit and afterEdit events', function ( assert ) {
 
     var node = getTableConfig( options ).node;
 
-    node.addEventListener( 'beforeEdit', function ( evt ) {
+    node.addEventListener( gp.events.beforeEditMode, function ( evt ) {
         assert.ok( evt != null );
         assert.ok( evt.detail != null );
         assert.ok( evt.detail.model != null );
         done1();
     } );
 
-    node.addEventListener( 'afterEdit', function ( evt ) {
+    node.addEventListener( gp.events.afterEditMode, function ( evt ) {
         assert.ok( evt != null );
         assert.ok( evt.detail != null );
         assert.ok( evt.detail.model != null );
@@ -1279,12 +1290,33 @@ QUnit.test( 'edit and update', function ( assert ) {
         'cancelable': true
     } );
 
+    var changeEvent = new CustomEvent( 'change', {
+        'view': window,
+        'bubbles': true,
+        'cancelable': true
+    } );
+
     var node = getTableConfig( options ).node;
 
-    node.addEventListener( 'afterEdit', function ( evt ) {
+    // find the SafetyStockLevel column
+    var colIndex = -1;
+    var col = node.config.Columns.filter( function ( col, index ) {
+        if ( col.Field == "StandardCost" ) {
+            colIndex = index;
+            return true;
+        }
+        return false;
+    } )[0];
+
+    node.addEventListener( gp.events.afterEditMode, function ( evt ) {
         assert.ok( evt != null );
         assert.ok( evt.detail != null );
         assert.ok( evt.detail.model != null );
+        assert.ok( evt.detail.tableRow != null );
+        // change some of the values
+        var input = evt.target.querySelector( '[name=StandardCost]' )
+        input.value = '5';
+        input.dispatchEvent( ChangeEvent() );
         done1();
         var saveBtn = node.querySelector( 'button[value=Update]' );
         saveBtn.dispatchEvent( clickEvent2 );
@@ -1294,6 +1326,15 @@ QUnit.test( 'edit and update', function ( assert ) {
         assert.ok( evt != null );
         assert.ok( evt.detail != null );
         assert.ok( evt.detail.model != null );
+        assert.strictEqual( evt.detail.model.Row.StandardCost, 5, 'change monitor should update the model' );
+
+        // make sure the grid is updated with the correct value
+        var updatedCellValue = evt.target.querySelector( 'td:nth-child(' + ( colIndex + 1 ) + ')' ).innerHTML;
+
+        var expectedValue = gp.getFormattedValue( evt.detail.model.Row, col, true );
+
+        assert.equal( updatedCellValue, expectedValue, 'grid should be updated with the correct value' );
+
         done2();
     } );
 
@@ -1327,7 +1368,7 @@ QUnit.test( 'edit and cancel', function ( assert ) {
 
     var node = getTableConfig( options ).node;
 
-    node.addEventListener( 'afterEdit', function ( evt ) {
+    node.addEventListener( gp.events.afterEditMode, function ( evt ) {
         assert.ok( evt != null );
         assert.ok( evt.detail != null );
         assert.ok( evt.detail.model != null );
@@ -1512,7 +1553,7 @@ QUnit.test( 'readonly fields', function ( assert ) {
     // use this index to locate the table cell
     var index = config.Columns.indexOf( readonlyColumns[0] );
 
-    node.addEventListener( 'afterEdit', function ( evt ) {
+    node.addEventListener( gp.events.afterEditMode, function ( evt ) {
         var input = evt.target.querySelector( 'td:nth-child(' + ( index + 1 ).toString() + ') input' );
         assert.equal( input, null, 'there should not be an input' );
         done();

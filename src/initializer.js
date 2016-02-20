@@ -34,19 +34,21 @@ gp.Initializer.prototype = {
 
     getConfig: function (node) {
         var self = this;
-        var obj, config = gp.getAttributes(node);
+        var obj, config = gp.getAttributes( node );
+        var gpColumns = config.node.querySelectorAll( 'gp-column' );
         config.Columns = [];
         config.pageModel = {};
         config.ID = gp.createUID();
-        for (var i = 0; i < node.children.length; i++) {
-            var col = node.children[i];
+
+        for ( var i = 0; i < gpColumns.length; i++ ) {
+            var col = gpColumns[i];
             var colConfig = gp.getAttributes(col);
             config.Columns.push(colConfig);
             this.resolveCommands(colConfig);
             this.resolveTemplates(colConfig);
         }
         config.Footer = this.resolveFooter(config);
-        var options = 'Onrowselect SearchFunction Read Create Update Destroy Validate'.split(' ');
+        var options = 'Onrowselect SearchFunction Read Create Update Delete Validate'.split(' ');
         options.forEach( function ( option ) {
 
             if ( gp.hasValue(config[option]) ) {

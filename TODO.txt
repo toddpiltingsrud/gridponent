@@ -2,7 +2,18 @@
 Instead of setting window.location, create a hidden anchor tag inside the component and click it.
 That way it could be intercepted by event handlers.
 
+It's best to replace MVC's default JSON serializer with Json.NET:
+http://labs.bjfocus.co.uk/2014/06/using-json-net-as-default-json-serializer-in-mvc/
+
+Eliminate the helpers dependencies on config.
+
 Create a list of supported config options for gp.getAttributes.
+
+In IE, nothing is rendered until after the call to the web service comes back.
+Yet another reason why we should render part of the table, then use setTimeout to make the call after everything else id done.
+
+I wish this thing did a better job of interpreting what the dev wants based on the chosen configuration.
+A little less hand holding would be nice.
 
 Use a CommonJS module library (e.g. webpack).
 

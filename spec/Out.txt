@@ -10,7 +10,7 @@ out.push('                onrowselect="/test?productid={{ProductID}}&color={{Col
 out.push('                read="data.products"');
 out.push('                create="/Products/Create"');
 out.push('                update="/Products/Update"');
-out.push('                destroy="/Products/Destroy">');
+out.push('                delete="/Products/Delete">');
 out.push('    <gp-column header="Product" field="ProductID" template="fns.getName" edit-template="fns.dropdown"></gp-column>');
 out.push('    <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>');
 out.push('    <gp-column field="SafetyStockLevel" header="Safety Stock Level" footer-template="fns.average"></gp-column>');

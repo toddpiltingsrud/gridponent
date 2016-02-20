@@ -7,9 +7,16 @@ gp.ServerPager = function (config) {
 };
 
 gp.ServerPager.prototype = {
-    read: function (model, callback, error) {
+    read: function ( model, callback, error ) {
+        var copy = gp.shallowCopy( model );
+        // delete anything we don't want to send to the server
+        var props = Object.getOwnPropertyNames( copy ).forEach(function(prop){
+            if ( /^(Page|Top|OrderBy|Desc|Search)$/i.test( prop ) == false ) {
+                delete copy[prop];
+            }
+        });
         var h = new gp.Http();
-        h.post(this.url, model, callback, error);
+        h.post(this.url, copy, callback, error);
     }
 };
 
