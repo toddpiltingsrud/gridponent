@@ -13,6 +13,10 @@ gp.api.prototype = {
         return this.controller.config.pageModel.Data;
     },
 
+    addRow: function ( row ) {
+        this.controller.config.pageModel.Data.push( row );
+    },
+
     search: function ( searchTerm, callback ) {
         this.controller.search( searchTerm, callback );
     },
@@ -22,6 +26,7 @@ gp.api.prototype = {
     },
 
     read: function ( requestModel, callback ) {
+        requestModel = requestModel || this.controller.config.pageModel;
         this.controller.read( requestModel, callback );
     },
 

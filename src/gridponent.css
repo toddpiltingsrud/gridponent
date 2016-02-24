@@ -195,6 +195,10 @@ label.table-sort:after {
 td.commands-cell {
   white-space: nowrap;
 }
+.body-cell,
+.table-header th {
+  text-align: left;
+}
 .body-cell.date,
 .table-header th.date,
 .body-cell.boolean,

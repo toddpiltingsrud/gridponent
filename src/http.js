@@ -4,7 +4,16 @@
 gp.Http = function () { };
 
 gp.Http.prototype = {
-    createXhr: function (type, url, callback, error) {
+    serialize: function ( obj ) {
+        // creates a query string from a simple object
+        var props = Object.getOwnPropertyNames( obj );
+        var out = [];
+        props.forEach( function ( prop ) {
+            out.push( encodeURIComponent( prop ) + '=' + encodeURIComponent( obj[prop] ) );
+        } );
+        return out.join( '&' );
+    },
+    createXhr: function ( type, url, callback, error ) {
         var xhr = new XMLHttpRequest();
         xhr.open(type.toUpperCase(), url, true);
         xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
@@ -19,15 +28,16 @@ gp.Http.prototype = {
         xhr.send();
     },
     post: function ( url, data, callback, error ) {
-        var s = JSON.stringify( data );
-        var xhr = this.createXhr('POST', url, callback, error);
-        xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.send(s);
+        var s = this.serialize( data );
+        var xhr = this.createXhr( 'POST', url, callback, error );
+        xhr.setRequestHeader( 'Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8' );
+        xhr.send( s );
     },
     'delete': function ( url, data, callback, error ) {
-        var s = JSON.stringify( data );
+        var s = this.serialize( data );
         var xhr = this.createXhr( 'DELETE', url, callback, error );
-        xhr.setRequestHeader( 'Content-Type', 'application/json' );
+        xhr.setRequestHeader( 'Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8' );
         xhr.send( s );
     }
+
 };

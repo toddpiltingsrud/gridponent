@@ -8,7 +8,8 @@ if (document.registerElement) {
     gp.Gridponent = Object.create(HTMLElement.prototype);
 
     gp.Gridponent.createdCallback = function () {
-        new gp.Initializer(this).initialize();
+        var init = new gp.Initializer( this );
+        gp.ready( init.initialize.bind( init ) );
     };
 
     gp.Gridponent.detachedCallback = function () {

@@ -46,8 +46,8 @@ gp.Model.prototype = {
 
         // Create config option can be a function or a URL
         if ( typeof this.config.Create === 'function' ) {
-            // call the function
-            this.config.Create( function ( row ) {
+            // call the function, set the node as the context
+            this.config.Create.call( this.config.node.api, function ( row ) {
                 gp.tryCallback( callback, self, row );
             } );
         }
@@ -65,7 +65,7 @@ gp.Model.prototype = {
         // config.Update can be a function or URL
         gp.raiseCustomEvent( this.config.node, gp.events.beforeUpdate );
         if ( typeof this.config.Update === 'function' ) {
-            this.config.Update( updateModel, function ( arg ) {
+            this.config.Update.call( this.config.node.api, updateModel, function ( arg ) {
                 gp.tryCallback( callback, self, arg );
             } );
         }
@@ -80,7 +80,7 @@ gp.Model.prototype = {
     'delete': function (row, callback) {
         var self = this;
         if ( typeof this.config.Delete === 'function' ) {
-            this.config.Delete( row, function ( arg ) {
+            this.config.Delete.call( this.config.node.api, row, function ( arg ) {
                 gp.tryCallback( callback, self, arg );
             } );
         }
