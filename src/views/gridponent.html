@@ -1,6 +1,9 @@
-﻿<div class="table-container{{helper containerClasses}}" id="{{model.ID}}">
-    {{#if model.Search || model.Create}}
+﻿<div class="gp table-container{{helper containerClasses}}" id="{{model.ID}}">
+    {{#if model.Search || model.Create || model.ToolbarTemplate}}
         <div class="table-toolbar">
+            {{#if model.ToolbarTemplate}}
+                {{helper toolbarTemplate}}
+            {{/if}}
             {{#if model.Search}}
                 <div class="input-group gridponent-searchbox">
                     <input type="text" name="Search" class="form-control" placeholder="Search...">

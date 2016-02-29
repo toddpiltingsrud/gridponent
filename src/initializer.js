@@ -60,6 +60,11 @@ gp.Initializer.prototype = {
             }
 
         } );
+
+        if ( gp.hasValue( config.ToolbarTemplate ) ) {
+            config.ToolbarTemplate = gp.resolveTemplate( config.ToolbarTemplate );
+        }
+
         gp.info('getConfig.config:', config);
         return config;
     },

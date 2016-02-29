@@ -138,15 +138,25 @@ gp.Controller.prototype = {
     attachReadEvents: function () {
         gp.on( this.config.node, gp.events.beforeRead, this.addBusy );
         gp.on( this.config.node, gp.events.afterRead, this.removeBusy );
+        gp.on( this.config.node, gp.events.beforeUpdate, this.addBusy );
+        gp.on( this.config.node, gp.events.afterUpdate, this.removeBusy );
+        gp.on( this.config.node, gp.events.beforeDelete, this.addBusy );
+        gp.on( this.config.node, gp.events.afterDelete, this.removeBusy );
     },
 
     removeReadEvents: function () {
         gp.off( this.config.node, gp.events.beforeRead, this.addBusy );
         gp.off( this.config.node, gp.events.afterRead, this.removeBusy );
+        gp.off( this.config.node, gp.events.beforeUpdate, this.addBusy );
+        gp.off( this.config.node, gp.events.afterUpdate, this.removeBusy );
+        gp.off( this.config.node, gp.events.beforeDelete, this.addBusy );
+        gp.off( this.config.node, gp.events.afterDelete, this.removeBusy );
     },
 
-    addBusy: function(evt) {
-        var tblContainer = evt.target.querySelector( 'div.table-container' );
+    addBusy: function( evt ) {
+        var tblContainer = evt.target.querySelector( 'div.table-container' )
+            || gp.closest( evt.target, 'div.table-container' );
+
         if ( tblContainer ) {
             gp.addClass( tblContainer, 'busy' );
         }
@@ -154,7 +164,9 @@ gp.Controller.prototype = {
 
     removeBusy: function ( evt ) {
         var tblContainer = evt.target.querySelector( 'div.table-container' );
-        tblContainer = tblContainer || document.querySelector( 'div.table-container.busy' );
+        tblContainer = tblContainer || document.querySelector( 'div.table-container.busy' )
+            || gp.closest( evt.target, 'div.table-container' );
+
         if ( tblContainer ) {
             gp.removeClass( tblContainer, 'busy' );
         }
@@ -197,6 +209,7 @@ gp.Controller.prototype = {
                 updateModel,
                 tbody,
                 rowIndex,
+                bodyCellContent,
                 editCellContent,
                 builder;
 
@@ -218,6 +231,7 @@ gp.Controller.prototype = {
 
                 tbody = self.config.node.querySelector( 'div.table-body > table > tbody' );
                 rowIndex = self.config.pageModel.Data.indexOf( row );
+                bodyCellContent = gp.helpers['bodyCellContent'];
                 editCellContent = gp.helpers['editCellContent'];
 
                 // use a NodeBuilder to create a tr[data-index=rowIndex].create-mode
@@ -225,7 +239,9 @@ gp.Controller.prototype = {
 
                 // add td.body-cell elements to the tr
                 self.config.Columns.forEach( function ( col ) {
-                    var html = col.ReadOnly ? '' : editCellContent.call( self.config, col, row );
+                    var html = col.Readonly
+                        ? bodyCellContent.call( self.config, col, row )
+                        : editCellContent.call( self.config, col, row );
                     builder.startElem( 'td' ).addClass( 'body-cell' ).html(html).endElem();
                 } );
 
@@ -254,6 +270,8 @@ gp.Controller.prototype = {
 
     editRow: function (row, tr) {
         try {
+            // put the row in edit mode
+
             var updateModel = tr['gp-update-model'] = new gp.UpdateModel( row );
 
             gp.raiseCustomEvent( tr, gp.events.beforeEditMode, {
@@ -261,7 +279,6 @@ gp.Controller.prototype = {
                 tableRow: tr
             } );
 
-            // put the row in edit mode
             // IE9 can't set innerHTML of tr, so iterate through each cell
             // besides, that way we can just skip readonly cells
             var editCellContent = gp.helpers['editCellContent'];
@@ -305,29 +322,34 @@ gp.Controller.prototype = {
             });
 
             // call the data layer
-            this.model.update( updateModel, function ( returnedUpdateModel ) {
+            this.model.update( updateModel.Row, function ( returnedUpdateModel ) {
 
-                if ( returnedUpdateModel.ValidationErrors && returnedUpdateModel.ValidationErrors.length ) {
-                    if ( typeof self.config.Validate === 'function' ) {
-                        self.config.Validate.call( this, tr, returnedUpdateModel );
+                try {
+                    if ( returnedUpdateModel.ValidationErrors && returnedUpdateModel.ValidationErrors.length ) {
+                        if ( typeof self.config.Validate === 'function' ) {
+                            self.config.Validate.call( this, tr, returnedUpdateModel );
+                        }
+                        else {
+                            gp.helpers['validation'].call( this, tr, returnedUpdateModel.ValidationErrors );
+                        }
                     }
                     else {
-                        gp.helpers['validation'].call( this, tr, returnedUpdateModel.ValidationErrors );
+                        // copy the returned row back to the internal data array
+                        gp.shallowCopy( returnedUpdateModel.Row, row );
+                        // refresh the UI
+                        self.restoreCells( self.config, row, tr );
+                        // dispose of the ChangeMonitor
+                        monitor = tr['gp-change-monitor'];
+                        if ( monitor ) {
+                            monitor.stop();
+                            monitor = null;
+                        }
+                        // dispose of the updateModel
+                        delete tr['gp-update-model'];
                     }
                 }
-                else {
-                    // copy the returned row back to the internal data array
-                    gp.shallowCopy( returnedUpdateModel.Row, row );
-                    // refresh the UI
-                    self.restoreCells( self.config, row, tr );
-                    // dispose of the ChangeMonitor
-                    monitor = tr['gp-change-monitor'];
-                    if ( monitor ) {
-                        monitor.stop();
-                        monitor = null;
-                    }
-                    // dispose of the updateModel
-                    delete tr['gp-update-model'];
+                catch (err) {
+                    gp.error( err );
                 }
 
                 gp.raiseCustomEvent( tr, gp.events.afterUpdate, {
@@ -367,25 +389,31 @@ gp.Controller.prototype = {
 
             this.model.delete( row, function ( response ) {
 
-                if ( response.Success ) {
-                    // remove the row from the model
-                    var index = self.config.pageModel.Data.indexOf( row );
-                    if ( index != -1 ) {
-                        self.config.pageModel.Data.splice( index, 1 );
-                        // if the row is currently being displayed, refresh the grid
-                        if ( tr ) {
-                            self.refresh( self.config );
+                try {
+                    if ( response.Success ) {
+                        // remove the row from the model
+                        var index = self.config.pageModel.Data.indexOf( row );
+                        if ( index != -1 ) {
+                            self.config.pageModel.Data.splice( index, 1 );
+                            // if the row is currently being displayed, refresh the grid
+                            if ( tr ) {
+                                self.refresh( self.config );
+                            }
                         }
                     }
+                    else {
+                        message = response.Message || 'The row could not be deleted.';
+                        alert( message );
+                    }
                 }
-                else {
-                    message = response.Message || 'The row could not be deleted.';
-                    alert( message );
+                catch ( err ) {
+                    gp.error( err );
                 }
 
                 gp.raiseCustomEvent( self.config.node, gp.events.afterDelete, {
                     row: row
                 } );
+
                 gp.tryCallback( callback, self.config.node, response );
             } );
         }

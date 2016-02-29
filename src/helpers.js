@@ -4,6 +4,17 @@
 
 gp.helpers = {
 
+    'toolbarTemplate': function () {
+        var html = new gp.StringBuilder();
+        if ( typeof ( this.ToolbarTemplate ) === 'function' ) {
+            html.add( this.ToolbarTemplate.call( this ) );
+        }
+        else {
+            html.add( this.ToolbarTemplate );
+        }
+        return html.toString();
+    },
+
     'thead': function () {
         var self = this;
         var html = new gp.StringBuilder();

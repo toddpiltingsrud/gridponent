@@ -99,6 +99,9 @@
       <LastGenOutput>Out.txt</LastGenOutput>
     </None>
     <None Include="spec\validation-errors.json" />
+    <None Include="src\gridponent.css.map">
+      <DependentUpon>gridponent.css</DependentUpon>
+    </None>
     <None Include="src\gridponent.less" />
     <Content Include="src\views\gridponent-body.html" />
     <Content Include="src\views\templates.js">

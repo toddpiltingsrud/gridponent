@@ -15,8 +15,14 @@ gp.ChangeMonitor = function (node, selector, model, afterSync) {
 
 gp.ChangeMonitor.prototype = {
     start: function () {
+        var self = this;
         // add change event handler to node
         gp.on( this.node, 'change', this.selector, this.listener );
+        gp.on( this.node, 'keydown', this.selector, function ( evt ) {
+            if ( evt.keyCode == 13 ) {
+                self.listener( evt );
+            }
+        } );
         return this;
     },
     stop: function () {

@@ -110,14 +110,17 @@ gp.templates['gridponent-tfoot'] = function(model, arg) {
 };
 gp.templates['gridponent'] = function(model, arg) {
     var out = [];
-    out.push('<div class="table-container');
+    out.push('<div class="gp table-container');
     out.push(gp.helpers['containerClasses'].call(model));
     out.push('" id="');
     out.push(model.ID);
     out.push('">');
-            if (model.Search || model.Create) {
+            if (model.Search || model.Create || model.ToolbarTemplate) {
         out.push('<div class="table-toolbar">');
-                    if (model.Search) {
+                    if (model.ToolbarTemplate) {
+                            out.push(gp.helpers['toolbarTemplate'].call(model));
+                        }
+                        if (model.Search) {
         out.push('<div class="input-group gridponent-searchbox">');
     out.push('<input type="text" name="Search" class="form-control" placeholder="Search...">');
     out.push('<span class="input-group-btn">');
