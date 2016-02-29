@@ -8,7 +8,7 @@ gp.Model = function ( config ) {
     gp.info( 'Model: type:', type );
     switch ( type ) {
         case 'string':
-            this.dal = new gp.ServerPager( config );
+            this.dal = new gp.ServerPager( config.Read );
             break;
         case 'function':
             this.dal = new gp.FunctionPager( config );
@@ -29,66 +29,84 @@ gp.Model = function ( config ) {
 
 gp.Model.prototype = {
 
-    read: function ( requestModel, callback ) {
+    read: function ( requestModel, callback, error ) {
         var self = this;
         gp.info( 'Model.read: requestModel:', requestModel );
 
-        gp.info( 'Model.dal: :', this.dal );
+        gp.info( 'Model.dal:', this.dal );
 
-        this.dal.read( requestModel, function (arg) {
-            gp.tryCallback( callback, self, arg );
-        } );
+        this.dal.read(
+            requestModel,
+            function ( arg ) { gp.tryCallback( callback, self, arg ); },
+            function ( arg ) { gp.tryCallback( error, self, arg ); }
+        );
     },
 
-    create: function (callback) {
+    create: function (callback, error) {
         var self = this,
             row;
 
         // Create config option can be a function or a URL
         if ( typeof this.config.Create === 'function' ) {
-            // call the function, set the node as the context
-            this.config.Create.call( this.config.node.api, function ( row ) {
-                gp.tryCallback( callback, self, row );
-            } );
+            // call the function, set the API as the context
+            this.config.Create.call(
+                this.config.node.api,
+                function ( row ) { gp.tryCallback( callback, self, row ); },
+                function ( arg ) { gp.tryCallback( error, self, row ); }
+            );
         }
         else {
             // call the URL
             var http = new gp.Http();
-            http.get(this.config.Create, function (row) {
-                gp.tryCallback( callback, self, row );
-            } );
+            http.get(
+                this.config.Create,
+                function ( row ) { gp.tryCallback( callback, self, row ); },
+                function ( arg ) { gp.tryCallback( error, self, row ); }
+            );
         }
     },
 
-    update: function (updateModel, callback) {
+    update: function (row, callback, error) {
         var self = this;
         // config.Update can be a function or URL
         gp.raiseCustomEvent( this.config.node, gp.events.beforeUpdate );
         if ( typeof this.config.Update === 'function' ) {
-            this.config.Update.call( this.config.node.api, updateModel, function ( arg ) {
-                gp.tryCallback( callback, self, arg );
-            } );
+            this.config.Update.call(
+                this.config.node.api,
+                row,
+                function ( arg ) { gp.tryCallback( callback, self, arg ); },
+                function ( arg ) { gp.tryCallback( error, self, arg ); }
+            );
         }
         else {
             var http = new gp.Http();
-            http.post( this.config.Update, updateModel, function ( arg ) {
-                gp.tryCallback( callback, self, arg );
-            } );
+            http.post(
+                this.config.Update,
+                row,
+                function ( arg ) { gp.tryCallback( callback, self, arg ); },
+                function ( arg ) { gp.tryCallback( error, self, arg ); }
+            );
         }
     },
 
-    'delete': function (row, callback) {
+    'delete': function (row, callback, error) {
         var self = this;
         if ( typeof this.config.Delete === 'function' ) {
-            this.config.Delete.call( this.config.node.api, row, function ( arg ) {
-                gp.tryCallback( callback, self, arg );
-            } );
+            this.config.Delete.call(
+                this.config.node.api,
+                row,
+                function ( arg ) { gp.tryCallback( callback, self, arg ); },
+                function ( arg ) { gp.tryCallback( error, self, arg ); }
+            );
         }
         else {
             var http = new gp.Http();
-            http.delete( this.config.Delete, row, function ( arg ) {
-                gp.tryCallback( callback, self, arg );
-            } );
+            http.delete(
+                this.config.Delete,
+                row,
+                function ( arg ) { gp.tryCallback( callback, self, arg ); },
+                function ( arg ) { gp.tryCallback( error, self, arg ); }
+            );
         }
     }
 

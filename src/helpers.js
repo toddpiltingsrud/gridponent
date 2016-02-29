@@ -188,7 +188,7 @@ gp.helpers = {
                 default:
                     html.add( 'text" value="' + gp.escapeHTML( val ) + '" />' );
                     break;
-            };
+            }
         }
         return html.toString();
     },

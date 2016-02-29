@@ -1,4 +1,7 @@
-﻿Onrowselect should test for a JS object. If it doesn't find one assume it's a url.
+﻿Use Promises instead of callbacks for reads and writes.
+<script src="https://www.promisejs.org/polyfills/promise-7.0.4.min.js"></script>
+
+Onrowselect should test for a JS object. If it doesn't find one assume it's a url.
 Instead of setting window.location, create a hidden anchor tag inside the component and click it.
 That way it could be intercepted by event handlers.
 Detect ctrl key for onrowselect.
@@ -10,6 +13,11 @@ Eliminate the helpers' dependencies on config.
 
 Render the toolbar, headers and (if fixed-headers) the height of the table body. 
 Then use setTimeout to make the call after everything else is done.
+During use, the only portions we need to update are the table rows and the footer.
+We also have the situation where header and footer are rendered in different places depending on configuration.
+So perhaps gridponent.html should establish the layout.
+Then we inject the header, table rows, and footer into it later.
+
 
 Use a CommonJS module library (e.g. webpack).
 

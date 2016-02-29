@@ -1,9 +1,8 @@
 ﻿/***************\
 server-side pager
 \***************/
-gp.ServerPager = function (config) {
-    this.config = config;
-    this.url = config.Read;
+gp.ServerPager = function (url) {
+    this.url = url;
 };
 
 gp.ServerPager.prototype = {
@@ -178,9 +177,31 @@ gp.FunctionPager = function ( config ) {
 gp.FunctionPager.prototype = {
     read: function ( model, callback, error ) {
         try {
-            var result = this.config.Read( model, callback );
+            var type,
+                result = this.config.Read( model, callback );
 
-            if ( result != undefined ) callback( result );
+            // if the function returned a value instead of using the callback
+            // check its type
+            if ( result != undefined ) {
+                type = gp.getType(result);
+                switch (type) {
+                    case 'string':
+                        // assume it's a url, make an HTTP call
+                        new gp.ServerPager( result ).read( model, callback, error );
+                        break;
+                    case 'array':
+                        // assume it's a row, wrap it in a RequestModel
+                        callback( new gp.RequestModel( result ) );
+                        break;
+                    case 'object':
+                        // assume a RequestModel
+                        callback( result );
+                        break;
+                    default:
+                        gp.tryCallback( error, this, 'Read returned a value which could not be resolved.' );
+                        break;
+                }
+            }
         }
         catch (ex) {
             if (typeof error === 'function') {

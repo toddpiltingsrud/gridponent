@@ -886,8 +886,11 @@ QUnit.test( 'gp.Model', function ( assert ) {
 
 
     // test Read as function
+    // the Read function can use a callback
+    // or return a URL, array or RequestModel object
 
-    var done = assert.async();
+    // test function with callback
+    var done1 = assert.async();
 
     config.Read = function ( m, callback ) {
         assert.ok( true, 'calling read should execute this function' );
@@ -899,13 +902,76 @@ QUnit.test( 'gp.Model', function ( assert ) {
 
     model.read( request, function ( response ) {
         assert.ok( true, 'calling read should execute this function' );
-        done();
+        done1();
     } );
+
+
+
+    // test function with URL return value
+    done2 = assert.async();
+
+    config.Read = function ( m ) {
+        return '/Products/Read/5';
+    };
+
+    model = new gp.Model( config );
+
+    model.read( request, function ( response ) {
+        assert.ok( true, 'calling read should execute this function' );
+        done2();
+    } );
+
+    // test function with array return value
+    done3 = assert.async();
+
+    config.Read = function ( m ) {
+        return data.products;
+    };
+
+    model = new gp.Model( config );
+
+    model.read( request, function ( response ) {
+        assert.ok( true, 'calling read should execute this function' );
+        done3();
+    } );
+
+    // test function with object return value
+    done4 = assert.async();
+
+    config.Read = function ( m ) {
+        return new gp.RequestModel( data.products );
+    };
+
+    model = new gp.Model( config );
+
+    model.read( request, function ( response ) {
+        assert.ok( true, 'calling read should execute this function' );
+        done4();
+    } );
+
+    // test function with unsupported return value
+    done5 = assert.async();
+
+    config.Read = function ( m ) {
+        return false;
+    };
+
+    model = new gp.Model( config );
+
+    model.read( request, function ( response ) {
+        assert.ok( false, 'calling read should NOT execute this function' );
+        done5();
+    },
+    function ( response ) {
+        assert.ok( true, 'calling read should execute this function' );
+        done5();
+    } );
+
 
 
     // test Read as url
 
-    done = assert.async();
+    done6 = assert.async();
 
     config.Read = '/Products/Read';
 
@@ -917,40 +983,39 @@ QUnit.test( 'gp.Model', function ( assert ) {
 
     model.read( request, function ( response ) {
         assert.equal( response.Data.length, 1, 'should return a single record' );
-        done();
+        done6();
     } );
 
 
     // create
-    var done2 = assert.async();
+    var done7 = assert.async();
 
     model.create( function ( response ) {
         assert.ok( 'ProductID' in response, 'should return a new record' );
         assert.equal( response.ProductID, 0, 'should return a new record' );
-        done2();
+        done7();
     } );
 
 
     // update
-    var done3 = assert.async();
+    var done8 = assert.async();
     var row = data.products[0];
     row.Name = 'Test';
-    request = new gp.UpdateModel( row );
 
-    model.update( request, function ( updateModel ) {
+    model.update( row, function ( updateModel ) {
         assert.equal( updateModel.Row.Name, 'Test', 'should return the updated record' );
-        done3();
+        done8();
     } );
 
 
     // 'delete'
-    var done4 = assert.async();
+    var done9 = assert.async();
     request = data.products[0];
     model = new gp.Model( config );
 
     model.delete( request, function ( response ) {
         assert.equal( response.Success, true, 'delete should return true if the record was found and deleted' );
-        done4();
+        done9();
     } );
 
 } );

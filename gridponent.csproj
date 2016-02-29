@@ -57,6 +57,7 @@
     <Content Include="spec\OutSource.txt" />
     <Content Include="spec\styles\bootstrap-theme.css" />
     <Content Include="spec\styles\bootstrap-theme.min.css" />
+    <Content Include="src\x-promise-7.0.4.js" />
     <Content Include="src\update-model.js" />
     <Content Include="src\string-builder.js" />
     <Content Include="src\node-builder.js" />
@@ -103,13 +104,13 @@
       <DependentUpon>gridponent.css</DependentUpon>
     </None>
     <None Include="src\gridponent.less" />
-    <Content Include="src\views\gridponent-body.html" />
-    <Content Include="src\views\templates.js">
+    <Content Include="src\templates\gridponent-body.html" />
+    <Content Include="src\templates\templates.js">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>templates.tt</DependentUpon>
     </Content>
-    <Content Include="src\views\templates.tt">
+    <Content Include="src\templates\templates.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>templates.js</LastGenOutput>
     </Content>
@@ -123,10 +124,10 @@
   <ItemGroup>
     <Content Include="data\products.js" />
     <None Include="data\stops.json" />
-    <Content Include="src\views\gridponent-tfoot.html" />
-    <Content Include="src\views\gridponent-cells.html" />
-    <Content Include="src\views\gridponent-pager.html" />
-    <Content Include="src\views\gridponent.html" />
+    <Content Include="src\templates\gridponent-tfoot.html" />
+    <Content Include="src\templates\gridponent-cells.html" />
+    <Content Include="src\templates\gridponent-pager.html" />
+    <Content Include="src\templates\gridponent.html" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />

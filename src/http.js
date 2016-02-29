@@ -18,7 +18,12 @@ gp.Http.prototype = {
         xhr.open(type.toUpperCase(), url, true);
         xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
         xhr.onload = function () {
-            callback(JSON.parse(xhr.responseText), xhr);
+            if ( xhr.status == 200 ) {
+                callback( JSON.parse( xhr.responseText ), xhr );
+            }
+            else {
+                gp.tryCallback( error, xhr, xhr.responseText );
+            }
         }
         xhr.onerror = error;
         return xhr;

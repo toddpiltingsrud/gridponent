@@ -87,6 +87,9 @@
 .gp.fixed-headers .table-header {
   padding-right: 17px;
 }
+.gp.fixed-headers .table-header > table {
+  margin-bottom: 0;
+}
 .gp.fixed-headers .table-header > table,
 .gp.fixed-headers .table-body > table {
   table-layout: fixed;
@@ -104,6 +107,9 @@
 }
 .gp.fixed-footers .table-footer {
   padding-right: 17px;
+}
+.gp.fixed-footers .table-footer > table {
+  margin-top: 0;
 }
 .gp.fixed-footers .table-footer > table,
 .gp.fixed-footers .table-body > table {

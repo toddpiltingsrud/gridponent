@@ -139,23 +139,23 @@ gp.templates['gridponent'] = function(model, arg) {
             }
                 if (model.FixedHeaders) {
         out.push('<div class="table-header">');
-    out.push('<table class="table" cellpadding="0" cellspacing="0" style="margin-bottom:0">');
+    out.push('<table class="table" cellpadding="0" cellspacing="0">');
                         out.push(gp.helpers['thead'].call(model));
         out.push('</table>');
     out.push('</div>');
             }
-        out.push('        <div class="table-body ');
+        out.push('    <div class="table-body ');
     if (model.FixedHeaders) {
     out.push('table-scroll');
     }
     out.push('" style="');
     out.push(model.Style);
     out.push('">');
-                    out.push(gp.templates['gridponent-body'](model));
+                out.push(gp.templates['gridponent-body'](model));
         out.push('</div>');
             if (model.FixedFooters) {
         out.push('<div class="table-footer">');
-    out.push('<table class="table" cellpadding="0" cellspacing="0" style="margin-top:0">');
+    out.push('<table class="table" cellpadding="0" cellspacing="0">');
                         out.push(gp.templates['gridponent-tfoot'](model));
         out.push('</table>');
     out.push('</div>');

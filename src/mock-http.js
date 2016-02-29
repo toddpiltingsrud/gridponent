@@ -71,7 +71,7 @@
                 getData(model, callback);
             }
             else if (routes.update.test(url)) {
-                callback(model);
+                callback( new gp.UpdateModel(model) );
             }
             else {
                 throw '404 Not found: ' + url;

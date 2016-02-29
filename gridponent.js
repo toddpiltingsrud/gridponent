@@ -284,7 +284,9 @@ var gridponent = gridponent || {};
         },
     
         addBusy: function( evt ) {
-            var tblContainer = evt.target.querySelector( 'div.table-container' );
+            var tblContainer = evt.target.querySelector( 'div.table-container' )
+                || gp.closest( evt.target, 'div.table-container' );
+    
             if ( tblContainer ) {
                 gp.addClass( tblContainer, 'busy' );
             }
@@ -292,7 +294,9 @@ var gridponent = gridponent || {};
     
         removeBusy: function ( evt ) {
             var tblContainer = evt.target.querySelector( 'div.table-container' );
-            tblContainer = tblContainer || document.querySelector( 'div.table-container.busy' );
+            tblContainer = tblContainer || document.querySelector( 'div.table-container.busy' )
+                || gp.closest( evt.target, 'div.table-container' );
+    
             if ( tblContainer ) {
                 gp.removeClass( tblContainer, 'busy' );
             }
@@ -1404,7 +1408,7 @@ var gridponent = gridponent || {};
                     default:
                         html.add( 'text" value="' + gp.escapeHTML( val ) + '" />' );
                         break;
-                };
+                }
             }
             return html.toString();
         },
@@ -1537,7 +1541,12 @@ var gridponent = gridponent || {};
             xhr.open(type.toUpperCase(), url, true);
             xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
             xhr.onload = function () {
-                callback(JSON.parse(xhr.responseText), xhr);
+                if ( xhr.status == 200 ) {
+                    callback( JSON.parse( xhr.responseText ), xhr );
+                }
+                else {
+                    gp.tryCallback( error, xhr, xhr.responseText );
+                }
             }
             xhr.onerror = error;
             return xhr;
@@ -1738,7 +1747,7 @@ var gridponent = gridponent || {};
         var type = gp.getType( config.Read );
         switch ( type ) {
             case 'string':
-                this.dal = new gp.ServerPager( config );
+                this.dal = new gp.ServerPager( config.Read );
                 break;
             case 'function':
                 this.dal = new gp.FunctionPager( config );
@@ -1759,64 +1768,82 @@ var gridponent = gridponent || {};
     
     gp.Model.prototype = {
     
-        read: function ( requestModel, callback ) {
+        read: function ( requestModel, callback, error ) {
             var self = this;
     
     
-            this.dal.read( requestModel, function (arg) {
-                gp.tryCallback( callback, self, arg );
-            } );
+            this.dal.read(
+                requestModel,
+                function ( arg ) { gp.tryCallback( callback, self, arg ); },
+                function ( arg ) { gp.tryCallback( error, self, arg ); }
+            );
         },
     
-        create: function (callback) {
+        create: function (callback, error) {
             var self = this,
                 row;
     
             // Create config option can be a function or a URL
             if ( typeof this.config.Create === 'function' ) {
-                // call the function, set the node as the context
-                this.config.Create.call( this.config.node.api, function ( row ) {
-                    gp.tryCallback( callback, self, row );
-                } );
+                // call the function, set the API as the context
+                this.config.Create.call(
+                    this.config.node.api,
+                    function ( row ) { gp.tryCallback( callback, self, row ); },
+                    function ( arg ) { gp.tryCallback( error, self, row ); }
+                );
             }
             else {
                 // call the URL
                 var http = new gp.Http();
-                http.get(this.config.Create, function (row) {
-                    gp.tryCallback( callback, self, row );
-                } );
+                http.get(
+                    this.config.Create,
+                    function ( row ) { gp.tryCallback( callback, self, row ); },
+                    function ( arg ) { gp.tryCallback( error, self, row ); }
+                );
             }
         },
     
-        update: function (updateModel, callback) {
+        update: function (row, callback, error) {
             var self = this;
             // config.Update can be a function or URL
             gp.raiseCustomEvent( this.config.node, gp.events.beforeUpdate );
             if ( typeof this.config.Update === 'function' ) {
-                this.config.Update.call( this.config.node.api, updateModel, function ( arg ) {
-                    gp.tryCallback( callback, self, arg );
-                } );
+                this.config.Update.call(
+                    this.config.node.api,
+                    row,
+                    function ( arg ) { gp.tryCallback( callback, self, arg ); },
+                    function ( arg ) { gp.tryCallback( error, self, arg ); }
+                );
             }
             else {
                 var http = new gp.Http();
-                http.post( this.config.Update, updateModel, function ( arg ) {
-                    gp.tryCallback( callback, self, arg );
-                } );
+                http.post(
+                    this.config.Update,
+                    row,
+                    function ( arg ) { gp.tryCallback( callback, self, arg ); },
+                    function ( arg ) { gp.tryCallback( error, self, arg ); }
+                );
             }
         },
     
-        'delete': function (row, callback) {
+        'delete': function (row, callback, error) {
             var self = this;
             if ( typeof this.config.Delete === 'function' ) {
-                this.config.Delete.call( this.config.node.api, row, function ( arg ) {
-                    gp.tryCallback( callback, self, arg );
-                } );
+                this.config.Delete.call(
+                    this.config.node.api,
+                    row,
+                    function ( arg ) { gp.tryCallback( callback, self, arg ); },
+                    function ( arg ) { gp.tryCallback( error, self, arg ); }
+                );
             }
             else {
                 var http = new gp.Http();
-                http.delete( this.config.Delete, row, function ( arg ) {
-                    gp.tryCallback( callback, self, arg );
-                } );
+                http.delete(
+                    this.config.Delete,
+                    row,
+                    function ( arg ) { gp.tryCallback( callback, self, arg ); },
+                    function ( arg ) { gp.tryCallback( error, self, arg ); }
+                );
             }
         }
     
@@ -1919,9 +1946,8 @@ var gridponent = gridponent || {};
     /***************\
     server-side pager
     \***************/
-    gp.ServerPager = function (config) {
-        this.config = config;
-        this.url = config.Read;
+    gp.ServerPager = function (url) {
+        this.url = url;
     };
     
     gp.ServerPager.prototype = {
@@ -2096,9 +2122,31 @@ var gridponent = gridponent || {};
     gp.FunctionPager.prototype = {
         read: function ( model, callback, error ) {
             try {
-                var result = this.config.Read( model, callback );
+                var type,
+                    result = this.config.Read( model, callback );
     
-                if ( result != undefined ) callback( result );
+                // if the function returned a value instead of using the callback
+                // check its type
+                if ( result != undefined ) {
+                    type = gp.getType(result);
+                    switch (type) {
+                        case 'string':
+                            // assume it's a url, make an HTTP call
+                            new gp.ServerPager( result ).read( model, callback, error );
+                            break;
+                        case 'array':
+                            // assume it's a row, wrap it in a RequestModel
+                            callback( new gp.RequestModel( result ) );
+                            break;
+                        case 'object':
+                            // assume a RequestModel
+                            callback( result );
+                            break;
+                        default:
+                            gp.tryCallback( error, this, 'Read returned a value which could not be resolved.' );
+                            break;
+                    }
+                }
             }
             catch (ex) {
                 if (typeof error === 'function') {
@@ -2451,23 +2499,23 @@ var gridponent = gridponent || {};
                 }
                     if (model.FixedHeaders) {
             out.push('<div class="table-header">');
-        out.push('<table class="table" cellpadding="0" cellspacing="0" style="margin-bottom:0">');
+        out.push('<table class="table" cellpadding="0" cellspacing="0">');
                             out.push(gp.helpers['thead'].call(model));
             out.push('</table>');
         out.push('</div>');
                 }
-            out.push('        <div class="table-body ');
+            out.push('    <div class="table-body ');
         if (model.FixedHeaders) {
         out.push('table-scroll');
         }
         out.push('" style="');
         out.push(model.Style);
         out.push('">');
-                        out.push(gp.templates['gridponent-body'](model));
+                    out.push(gp.templates['gridponent-body'](model));
             out.push('</div>');
                 if (model.FixedFooters) {
             out.push('<div class="table-footer">');
-        out.push('<table class="table" cellpadding="0" cellspacing="0" style="margin-top:0">');
+        out.push('<table class="table" cellpadding="0" cellspacing="0">');
                             out.push(gp.templates['gridponent-tfoot'](model));
             out.push('</table>');
         out.push('</div>');
