@@ -249,25 +249,27 @@ gp.helpers = {
 
         // even though the table might not exist yet, we still should render width styles because there might be fixed widths specified
         this.Columns.forEach( function ( col ) {
-            html.add( '#' + self.ID + ' .table-header th.header-cell:nth-child(' + ( index + 1 ) + '),' )
-                .add( '#' + self.ID + ' .table-footer td.footer-cell:nth-child(' + ( index + 1 ) + ')' );
             if ( col.Width ) {
                 // fixed width should include the body
-                html.add( ',' )
+                html.add( '#' + self.ID + ' .table-header th.header-cell:nth-child(' + ( index + 1 ) + '),' )
+                    .add( '#' + self.ID + ' .table-footer td.footer-cell:nth-child(' + ( index + 1 ) + ')' )
+                    .add( ',' )
                     .add( '#' + self.ID + ' > .table-body > table > thead th:nth-child(' + ( index + 1 ) + '),' )
                     .add( '#' + self.ID + ' > .table-body > table > tbody td:nth-child(' + ( index + 1 ) + ')' )
                     .add( '{ width:' )
                     .add( col.Width );
                 if ( isNaN( col.Width ) == false ) html.add( 'px' );
+                html.add( ';}' );
             }
             else if ( bodyCols.length && ( self.FixedHeaders || self.FixedFooters ) ) {
                 // sync header and footer to body
                 width = bodyCols[index].offsetWidth;
-                html.add( '{ width:' )
+                html.add( '#' +self.ID + ' .table-header th.header-cell:nth-child(' +( index +1 ) + '),' )
+                    .add( '#' +self.ID + ' .table-footer td.footer-cell:nth-child(' +( index +1 ) + ')' )
+                    .add( '{ width:' )
                     .add( bodyCols[index].offsetWidth )
-                    .add( 'px' );
+                    .add( 'px;}' );
             }
-            html.add( ';}' );
             index++;
         } );
 

@@ -9,7 +9,6 @@ gp.Controller = function (config, model, requestModel) {
     if (config.Pager) {
         this.requestModel.Top = 25;
     }
-    this.attachReadEvents();
     this.monitor = null;
 };
 
@@ -18,7 +17,7 @@ gp.Controller.prototype = {
     monitorToolbars: function (node) {
         var self = this;
         // monitor changes to search, sort, and paging
-        this.monitor = new gp.ChangeMonitor( node, '.table-toolbar [name=Search], thead input, .table-pager input', this.config.pageModel, function ( evt ) {
+        this.monitor = new gp.ChangeMonitor( node, '.table-toolbar [name], thead input, .table-pager input', this.config.pageModel, function ( evt ) {
             //var name = evt.target.name;
             //switch ( name ) {
             //    case 'Search':
@@ -132,46 +131,6 @@ gp.Controller.prototype = {
                     }
                 } );
             }
-        }
-    },
-
-    attachReadEvents: function () {
-        gp.on( this.config.node, gp.events.beforeRead, this.addBusy );
-        gp.on( this.config.node, gp.events.afterRead, this.removeBusy );
-        gp.on( this.config.node, gp.events.beforeUpdate, this.addBusy );
-        gp.on( this.config.node, gp.events.afterUpdate, this.removeBusy );
-        gp.on( this.config.node, gp.events.beforeDelete, this.addBusy );
-        gp.on( this.config.node, gp.events.afterDelete, this.removeBusy );
-    },
-
-    removeReadEvents: function () {
-        gp.off( this.config.node, gp.events.beforeRead, this.addBusy );
-        gp.off( this.config.node, gp.events.afterRead, this.removeBusy );
-        gp.off( this.config.node, gp.events.beforeUpdate, this.addBusy );
-        gp.off( this.config.node, gp.events.afterUpdate, this.removeBusy );
-        gp.off( this.config.node, gp.events.beforeDelete, this.addBusy );
-        gp.off( this.config.node, gp.events.afterDelete, this.removeBusy );
-    },
-
-    addBusy: function( evt ) {
-        var tblContainer = evt.target.querySelector( 'div.table-container' )
-            || gp.closest( evt.target, 'div.table-container' );
-
-        if ( tblContainer ) {
-            gp.addClass( tblContainer, 'busy' );
-        }
-    },
-
-    removeBusy: function ( evt ) {
-        var tblContainer = evt.target.querySelector( 'div.table-container' );
-        tblContainer = tblContainer || document.querySelector( 'div.table-container.busy' )
-            || gp.closest( evt.target, 'div.table-container' );
-
-        if ( tblContainer ) {
-            gp.removeClass( tblContainer, 'busy' );
-        }
-        else {
-            gp.warn( 'could not remove busy class' );
         }
     },
 
@@ -446,15 +405,22 @@ gp.Controller.prototype = {
     },
 
     refresh: function ( config ) {
-        var rowsTemplate = gp.templates['gridponent-body'];
-        var pagerTemplate = gp.templates['gridponent-pager'];
-        var html = rowsTemplate( config );
-        config.node.querySelector( '.table-body' ).innerHTML = html;
-        html = pagerTemplate( config );
-        var pager = config.node.querySelector( '.table-pager' );
-        if ( pager ) pager.innerHTML = html;
-        html = gp.helpers['sortStyle'].call( config );
-        config.node.querySelector( 'style.sort-style' ).innerHTML = html;
+        // inject table rows, footer, pager and header style.
+        var node = config.node;
+
+        var tbody = node.querySelector( 'div.table-body > table > tbody' );
+        var footer = node.querySelector( 'tfoot' );
+        var pager = node.querySelector( 'div.table-pager' );
+        var sortStyle = node.querySelector( 'style.sort-style' );
+
+        tbody.innerHTML = gp.helpers.tableRows.call( config );
+        if ( footer ) {
+            footer.innerHTML = gp.templates['gridponent-tfoot']( config );
+        }
+        if ( pager ) {
+            pager.innerHTML = gp.templates['gridponent-pager']( config );
+        }
+        sortStyle.innerHTML = gp.helpers.sortStyle.call( config );
     },
 
     restoreCells: function ( config, row, tr ) {
@@ -467,6 +433,15 @@ gp.Controller.prototype = {
             cells[i].innerHTML = helper.call( this.config, col, row );
         }
         gp.removeClass( tr, 'edit-mode' );
+    },
+
+    removeReadEvents: function () {
+        gp.off( this.config.node, gp.events.beforeRead, gp.addBusy );
+        gp.off( this.config.node, gp.events.afterRead, gp.removeBusy );
+        gp.off( this.config.node, gp.events.beforeUpdate, gp.addBusy );
+        gp.off( this.config.node, gp.events.afterUpdate, gp.removeBusy );
+        gp.off( this.config.node, gp.events.beforeDelete, gp.addBusy );
+        gp.off( this.config.node, gp.events.afterDelete, gp.removeBusy );
     },
 
     dispose: function () {

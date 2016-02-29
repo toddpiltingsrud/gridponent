@@ -103,22 +103,22 @@ var gridponent = gridponent || {};
                 type;
     
             try {
-                if ( !( name in model ) ) return;
-    
-                if ( typeof ( this.beforeSync ) === 'function' ) {
-                    handled = this.beforeSync( name, value, this.model );
-                }
-                if ( !handled ) {
-                    type = gp.getType( model[name] );
-                    switch ( type ) {
-                        case 'number':
-                            model[name] = parseFloat( value );
-                            break;
-                        case 'boolean':
-                            model[name] = ( value.toLowerCase() == 'true' );
-                            break;
-                        default:
-                            model[name] = value;
+                if ( name in model ) {
+                    if ( typeof ( this.beforeSync ) === 'function' ) {
+                        handled = this.beforeSync( name, value, this.model );
+                    }
+                    if ( !handled ) {
+                        type = gp.getType( model[name] );
+                        switch ( type ) {
+                            case 'number':
+                                model[name] = parseFloat( value );
+                                break;
+                            case 'boolean':
+                                model[name] = ( value.toLowerCase() == 'true' );
+                                break;
+                            default:
+                                model[name] = value;
+                        }
                     }
                 }
                 if ( typeof this.afterSync === 'function' ) {
@@ -142,7 +142,6 @@ var gridponent = gridponent || {};
         if (config.Pager) {
             this.requestModel.Top = 25;
         }
-        this.attachReadEvents();
         this.monitor = null;
     };
     
@@ -151,7 +150,7 @@ var gridponent = gridponent || {};
         monitorToolbars: function (node) {
             var self = this;
             // monitor changes to search, sort, and paging
-            this.monitor = new gp.ChangeMonitor( node, '.table-toolbar [name=Search], thead input, .table-pager input', this.config.pageModel, function ( evt ) {
+            this.monitor = new gp.ChangeMonitor( node, '.table-toolbar [name], thead input, .table-pager input', this.config.pageModel, function ( evt ) {
                 //var name = evt.target.name;
                 //switch ( name ) {
                 //    case 'Search':
@@ -262,45 +261,6 @@ var gridponent = gridponent || {};
                         }
                     } );
                 }
-            }
-        },
-    
-        attachReadEvents: function () {
-            gp.on( this.config.node, gp.events.beforeRead, this.addBusy );
-            gp.on( this.config.node, gp.events.afterRead, this.removeBusy );
-            gp.on( this.config.node, gp.events.beforeUpdate, this.addBusy );
-            gp.on( this.config.node, gp.events.afterUpdate, this.removeBusy );
-            gp.on( this.config.node, gp.events.beforeDelete, this.addBusy );
-            gp.on( this.config.node, gp.events.afterDelete, this.removeBusy );
-        },
-    
-        removeReadEvents: function () {
-            gp.off( this.config.node, gp.events.beforeRead, this.addBusy );
-            gp.off( this.config.node, gp.events.afterRead, this.removeBusy );
-            gp.off( this.config.node, gp.events.beforeUpdate, this.addBusy );
-            gp.off( this.config.node, gp.events.afterUpdate, this.removeBusy );
-            gp.off( this.config.node, gp.events.beforeDelete, this.addBusy );
-            gp.off( this.config.node, gp.events.afterDelete, this.removeBusy );
-        },
-    
-        addBusy: function( evt ) {
-            var tblContainer = evt.target.querySelector( 'div.table-container' )
-                || gp.closest( evt.target, 'div.table-container' );
-    
-            if ( tblContainer ) {
-                gp.addClass( tblContainer, 'busy' );
-            }
-        },
-    
-        removeBusy: function ( evt ) {
-            var tblContainer = evt.target.querySelector( 'div.table-container' );
-            tblContainer = tblContainer || document.querySelector( 'div.table-container.busy' )
-                || gp.closest( evt.target, 'div.table-container' );
-    
-            if ( tblContainer ) {
-                gp.removeClass( tblContainer, 'busy' );
-            }
-            else {
             }
         },
     
@@ -589,17 +549,7 @@ var gridponent = gridponent || {};
             if ( pager ) {
                 pager.innerHTML = gp.templates['gridponent-pager']( config );
             }
-            sortStyle = gp.helpers.sortStyle.call( config );
-    
-            //var rowsTemplate = gp.templates['gridponent-body'];
-            //var pagerTemplate = gp.templates['gridponent-pager'];
-            //var html = rowsTemplate( config );
-            //config.node.querySelector( '.table-body' ).innerHTML = html;
-            //html = pagerTemplate( config );
-            //var pager = config.node.querySelector( '.table-pager' );
-            //if ( pager ) pager.innerHTML = html;
-            //html = gp.helpers['sortStyle'].call( config );
-            //config.node.querySelector( 'style.sort-style' ).innerHTML = html;
+            sortStyle.innerHTML = gp.helpers.sortStyle.call( config );
         },
     
         restoreCells: function ( config, row, tr ) {
@@ -612,6 +562,15 @@ var gridponent = gridponent || {};
                 cells[i].innerHTML = helper.call( this.config, col, row );
             }
             gp.removeClass( tr, 'edit-mode' );
+        },
+    
+        removeReadEvents: function () {
+            gp.off( this.config.node, gp.events.beforeRead, gp.addBusy );
+            gp.off( this.config.node, gp.events.afterRead, gp.removeBusy );
+            gp.off( this.config.node, gp.events.beforeUpdate, gp.addBusy );
+            gp.off( this.config.node, gp.events.afterUpdate, gp.removeBusy );
+            gp.off( this.config.node, gp.events.beforeDelete, gp.addBusy );
+            gp.off( this.config.node, gp.events.afterDelete, gp.removeBusy );
         },
     
         dispose: function () {
@@ -1215,6 +1174,28 @@ var gridponent = gridponent || {};
             beforeDispose: 'beforeDispose'
         };
     
+        gp.addBusy = function( evt ) {
+            var tblContainer = evt.target.querySelector( 'div.table-container' )
+                || gp.closest( evt.target, 'div.table-container' );
+    
+            if ( tblContainer ) {
+                gp.addClass( tblContainer, 'busy' );
+            }
+        };
+    
+        gp.removeBusy = function ( evt ) {
+            var tblContainer = evt.target.querySelector( 'div.table-container' );
+            tblContainer = tblContainer || document.querySelector( 'div.table-container.busy' )
+                || gp.closest( evt.target, 'div.table-container' );
+    
+            if ( tblContainer ) {
+                gp.removeClass( tblContainer, 'busy' );
+            }
+            else {
+            }
+        };
+    
+    
         gp.tryCallback = function ( callback, $this, args ) {
             if ( typeof callback !== 'function' ) return;
             // anytime there's the possibility of executing 
@@ -1486,25 +1467,27 @@ var gridponent = gridponent || {};
     
             // even though the table might not exist yet, we still should render width styles because there might be fixed widths specified
             this.Columns.forEach( function ( col ) {
-                html.add( '#' + self.ID + ' .table-header th.header-cell:nth-child(' + ( index + 1 ) + '),' )
-                    .add( '#' + self.ID + ' .table-footer td.footer-cell:nth-child(' + ( index + 1 ) + ')' );
                 if ( col.Width ) {
                     // fixed width should include the body
-                    html.add( ',' )
+                    html.add( '#' + self.ID + ' .table-header th.header-cell:nth-child(' + ( index + 1 ) + '),' )
+                        .add( '#' + self.ID + ' .table-footer td.footer-cell:nth-child(' + ( index + 1 ) + ')' )
+                        .add( ',' )
                         .add( '#' + self.ID + ' > .table-body > table > thead th:nth-child(' + ( index + 1 ) + '),' )
                         .add( '#' + self.ID + ' > .table-body > table > tbody td:nth-child(' + ( index + 1 ) + ')' )
                         .add( '{ width:' )
                         .add( col.Width );
                     if ( isNaN( col.Width ) == false ) html.add( 'px' );
+                    html.add( ';}' );
                 }
                 else if ( bodyCols.length && ( self.FixedHeaders || self.FixedFooters ) ) {
                     // sync header and footer to body
                     width = bodyCols[index].offsetWidth;
-                    html.add( '{ width:' )
+                    html.add( '#' +self.ID + ' .table-header th.header-cell:nth-child(' +( index +1 ) + '),' )
+                        .add( '#' +self.ID + ' .table-footer td.footer-cell:nth-child(' +( index +1 ) + ')' )
+                        .add( '{ width:' )
                         .add( bodyCols[index].offsetWidth )
-                        .add( 'px' );
+                        .add( 'px;}' );
                 }
-                html.add( ';}' );
                 index++;
             } );
     
@@ -1539,6 +1522,55 @@ var gridponent = gridponent || {};
     
 
     /***************\
+         http        
+    \***************/
+    gp.Http = function () { };
+    
+    gp.Http.prototype = {
+        serialize: function ( obj ) {
+            // creates a query string from a simple object
+            var props = Object.getOwnPropertyNames( obj );
+            var out = [];
+            props.forEach( function ( prop ) {
+                out.push( encodeURIComponent( prop ) + '=' + encodeURIComponent( obj[prop] ) );
+            } );
+            return out.join( '&' );
+        },
+        createXhr: function ( type, url, callback, error ) {
+            var xhr = new XMLHttpRequest();
+            xhr.open(type.toUpperCase(), url, true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.onload = function () {
+                if ( xhr.status == 200 ) {
+                    callback( JSON.parse( xhr.responseText ), xhr );
+                }
+                else {
+                    gp.tryCallback( error, xhr, xhr.responseText );
+                }
+            }
+            xhr.onerror = error;
+            return xhr;
+        },
+        get: function (url, callback, error) {
+            var xhr = this.createXhr('GET', url, callback, error);
+            xhr.send();
+        },
+        post: function ( url, data, callback, error ) {
+            var s = this.serialize( data );
+            var xhr = this.createXhr( 'POST', url, callback, error );
+            xhr.setRequestHeader( 'Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8' );
+            xhr.send( s );
+        },
+        'delete': function ( url, data, callback, error ) {
+            var s = this.serialize( data );
+            var xhr = this.createXhr( 'DELETE', url, callback, error );
+            xhr.setRequestHeader( 'Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8' );
+            xhr.send( s );
+        }
+    
+    };
+
+    /***************\
        Initializer
     \***************/
     gp.Initializer = function ( node ) {
@@ -1556,20 +1588,35 @@ var gridponent = gridponent || {};
             var controller = new gp.Controller( self.config, model, requestModel );
             this.node.api = new gp.api( controller );
             this.renderLayout( this.config );
+            this.attachReadEvents();
+            gp.raiseCustomEvent( this.config.node, gp.events.beforeRead, { model: this.config.pageModel } );
     
             model.read( requestModel, function ( data ) {
-                self.config.pageModel = data;
-                self.resolvePaging( self.config );
-                self.resolveTypes( self.config );
-                self.render( self.config );
-                controller.monitorToolbars( self.config.node );
-                controller.addCommandHandlers( self.config.node );
-                controller.handleRowSelect( self.config );
-    
-                if ( typeof callback === 'function' ) callback( self.config );
+                try {
+                    self.config.pageModel = data;
+                    self.resolvePaging( self.config );
+                    self.resolveTypes( self.config );
+                    self.render( self.config );
+                    controller.monitorToolbars( self.config.node );
+                    controller.addCommandHandlers( self.config.node );
+                    controller.handleRowSelect( self.config );
+                    if ( typeof callback === 'function' ) callback( self.config );
+                } catch ( e ) {
+                    gp.error( e );
+                }
+                gp.raiseCustomEvent( self.config.node, gp.events.afterRead, { model: self.config.pageModel } );
             } );
     
             return this.config;
+        },
+    
+        attachReadEvents: function () {
+            gp.on( this.config.node, gp.events.beforeRead, gp.addBusy );
+            gp.on( this.config.node, gp.events.afterRead, gp.removeBusy );
+            gp.on( this.config.node, gp.events.beforeUpdate, gp.addBusy );
+            gp.on( this.config.node, gp.events.afterUpdate, gp.removeBusy );
+            gp.on( this.config.node, gp.events.beforeDelete, gp.addBusy );
+            gp.on( this.config.node, gp.events.afterDelete, gp.removeBusy );
         },
     
         getConfig: function (node) {
@@ -1721,173 +1768,6 @@ var gridponent = gridponent || {};
         //}
     
     };
-
-    /***************\
-       mock-http
-    \***************/
-    (function (gp) {
-        gp.Http = function () { };
-    
-        // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
-        var routes = {
-            read: /Read/,
-            update: /Update/,
-            create: /Create/,
-            'delete': /Delete/
-        };
-    
-        gp.Http.prototype = {
-            serialize: function (obj, props) {
-                // creates a query string from a simple object
-                var self = this;
-                props = props || Object.getOwnPropertyNames(obj);
-                var out = [];
-                props.forEach(function (prop) {
-                    out.push(encodeURIComponent(prop) + '=' + encodeURIComponent(obj[prop]));
-                });
-                return out.join('&');
-            },
-            deserialize: function (queryString) {
-                var nameValue, split = queryString.split( '&' );
-                var obj = {};
-                if ( !queryString ) return obj;
-                split.forEach( function ( s ) {
-                    nameValue = s.split( '=' );
-                    var val = nameValue[1];
-                    if ( !val ) {
-                        obj[nameValue[0]] = null;
-                    }
-                    else if ( /true|false/i.test( val ) ) {
-                        obj[nameValue[0]] = ( /true/i.test( val ) );
-                    }
-                    else if ( parseFloat( val ).toString() === val ) {
-                        obj[nameValue[0]] = parseFloat( val );
-                    }
-                    else {
-                        obj[nameValue[0]] = val;
-                    }
-                } );
-                return obj;
-            },
-            get: function (url, callback, error) {
-                if (routes.read.test(url)) {
-                    var index = url.substring(url.indexOf('?'));
-                    if (index !== -1) {
-                        var queryString = url.substring(index + 1);
-                        var model = this.deserialize(queryString);
-                        this.post(url.substring(0, index), model, callback, error);
-                    }
-                    else {
-                        this.post(url, null, callback, error);
-                    }
-                }
-                else if (routes.create.test(url)) {
-                    var result = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
-                    callback(result);
-                }
-                else {
-                    throw 'Not found: ' + url;
-                }
-            },
-            post: function (url, model, callback, error) {
-                model = model || {};
-                if (routes.read.test(url)) {
-                    getData(model, callback);
-                }
-                else if (routes.update.test(url)) {
-                    callback( new gp.UpdateModel(model) );
-                }
-                else {
-                    throw '404 Not found: ' + url;
-                }
-            },
-            'delete': function ( url, model, callback, error ) {
-                model = model || {};
-                var index = data.products.indexOf( model );
-                callback( {
-                    Success: true,
-                    Message: ''
-                } );
-            }
-        };
-    
-        var getData = function (model, callback) {
-            var count, d = data.products;
-            if (!gp.isNullOrEmpty(model.Search)) {
-                var props = Object.getOwnPropertyNames(d[0]);
-                var search = model.Search.toLowerCase();
-                d = d.filter(function (row) {
-                    for (var i = 0; i < props.length; i++) {
-                        if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
-                            return true;
-                        }
-                    }
-                    return false;
-                });
-            }
-            if (!gp.isNullOrEmpty(model.OrderBy)) {
-                if (model.Desc) {
-                    d.sort(function (row1, row2) {
-                        var a = row1[model.OrderBy];
-                        var b = row2[model.OrderBy];
-                        if (a === null) {
-                            if (b != null) {
-                                return 1;
-                            }
-                        }
-                        else if (b === null) {
-                            // we already know a isn't null
-                            return -1;
-                        }
-                        if (a > b) {
-                            return -1;
-                        }
-                        if (a < b) {
-                            return 1;
-                        }
-    
-                        return 0;
-                    });
-                }
-                else {
-                    d.sort(function (row1, row2) {
-                        var a = row1[model.OrderBy];
-                        var b = row2[model.OrderBy];
-                        if (a === null) {
-                            if (b != null) {
-                                return -1;
-                            }
-                        }
-                        else if (b === null) {
-                            // we already know a isn't null
-                            return 1;
-                        }
-                        if (a > b) {
-                            return 1;
-                        }
-                        if (a < b) {
-                            return -1;
-                        }
-    
-                        return 0;
-                    });
-                }
-            }
-            count = d.length;
-            if (model.Top !== -1) {
-                model.Data = d.slice(model.Skip).slice(0, model.Top);
-            }
-            else {
-                model.Data = d;
-            }
-            model.ValidationErrors = [];
-            setTimeout(function () {
-                callback(model);
-            });
-    
-        };
-    
-    })(gridponent);
 
     /***************\
          model
@@ -2686,8 +2566,8 @@ var gridponent = gridponent || {};
         out.push('<style type="text/css" class="column-width-style">');
                     out.push(gp.helpers['columnWidthStyle'].call(model));
             out.push('</style>');
-        out.push('<div class="progress-overlay">');
-        out.push('<div class="progress progress-container">');
+        out.push('<div class="gp-progress-overlay">');
+        out.push('<div class="gp-progress gp-progress-container">');
         out.push('<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>');
         out.push('</div>');
         out.push('</div>');

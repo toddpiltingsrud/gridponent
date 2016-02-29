@@ -29,7 +29,15 @@
         </div>
     {{/if}}
     <div class="table-body {{#if model.FixedHeaders}}table-scroll{{/if}}" style="{{model.Style}}">
-        {{template "gridponent-body"}}
+        <table class="table" cellpadding="0" cellspacing="0">
+            {{#if !model.FixedHeaders}}
+                {{helper thead}}
+            {{/if}}
+            <tbody></tbody>
+            {{#if model.Footer && !model.FixedFooters}}
+                <tfoot></tfoot>
+            {{/if}}
+        </table>
     </div>
     {{#if model.FixedFooters}}
         <div class="table-footer">
@@ -39,9 +47,7 @@
         </div>
     {{/if}}
     {{#if model.Pager}}
-        <div class="table-pager">
-            {{template "gridponent-pager"}}
-        </div>
+        <div class="table-pager"></div>
     {{/if}}
     <style type="text/css" class="sort-style">
         {{helper sortStyle}}
@@ -49,8 +55,8 @@
     <style type="text/css" class="column-width-style">
         {{helper columnWidthStyle}}
     </style>
-    <div class="progress-overlay">
-        <div class="progress progress-container">
+    <div class="gp-progress-overlay">
+        <div class="gp-progress gp-progress-container">
             <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
         </div>
     </div>

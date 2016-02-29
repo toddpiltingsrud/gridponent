@@ -15,21 +15,36 @@ gp.Initializer.prototype = {
         var requestModel = new gp.RequestModel();
         var controller = new gp.Controller( self.config, model, requestModel );
         this.node.api = new gp.api( controller );
+        this.renderLayout( this.config );
+        this.attachReadEvents();
+        gp.raiseCustomEvent( this.config.node, gp.events.beforeRead, { model: this.config.pageModel } );
 
         model.read( requestModel, function ( data ) {
-            self.config.pageModel = data;
-            self.resolvePaging( self.config );
-            self.resolveTypes( self.config );
-            self.render( self.config );
-            controller.monitorToolbars( self.config.node );
-            controller.addCommandHandlers( self.config.node );
-            controller.handleRowSelect( self.config );
-
-            if ( typeof callback === 'function' ) callback( self.config );
+            try {
+                self.config.pageModel = data;
+                self.resolvePaging( self.config );
+                self.resolveTypes( self.config );
+                self.render( self.config );
+                controller.monitorToolbars( self.config.node );
+                controller.addCommandHandlers( self.config.node );
+                controller.handleRowSelect( self.config );
+                if ( typeof callback === 'function' ) callback( self.config );
+            } catch ( e ) {
+                gp.error( e );
+            }
+            gp.raiseCustomEvent( self.config.node, gp.events.afterRead, { model: self.config.pageModel } );
         } );
 
         return this.config;
+    },
 
+    attachReadEvents: function () {
+        gp.on( this.config.node, gp.events.beforeRead, gp.addBusy );
+        gp.on( this.config.node, gp.events.afterRead, gp.removeBusy );
+        gp.on( this.config.node, gp.events.beforeUpdate, gp.addBusy );
+        gp.on( this.config.node, gp.events.afterUpdate, gp.removeBusy );
+        gp.on( this.config.node, gp.events.beforeDelete, gp.addBusy );
+        gp.on( this.config.node, gp.events.afterDelete, gp.removeBusy );
     },
 
     getConfig: function (node) {
@@ -69,12 +84,36 @@ gp.Initializer.prototype = {
         return config;
     },
 
+    renderLayout: function ( config ) {
+        var self = this;
+        try {
+            config.node.innerHTML = gp.templates['gridponent']( config );
+        }
+        catch ( ex ) {
+            gp.error( ex );
+        }
+    },
+
     render: function ( config ) {
         var self = this;
         try {
             var node = config.node;
 
-            node.innerHTML = gp.templates['gridponent']( config );
+            // inject table rows, footer, pager and header style.
+
+            var tbody = node.querySelector( 'div.table-body > table > tbody' );
+            var footer = node.querySelector( 'tfoot' );
+            var pager = node.querySelector( 'div.table-pager' );
+            var sortStyle = node.querySelector( 'style.sort-style' );
+
+            tbody.innerHTML = gp.helpers.tableRows.call( config );
+            if ( footer ) {
+                footer.innerHTML = gp.templates['gridponent-tfoot']( config );
+            }
+            if ( pager ) {
+                pager.innerHTML = gp.templates['gridponent-pager']( config );
+            }
+            sortStyle = gp.helpers.sortStyle.call( config );
 
             // sync column widths
             if ( config.FixedHeaders || config.FixedFooters ) {
@@ -85,14 +124,6 @@ gp.Initializer.prototype = {
                     self.syncColumnWidths( config )
                     self.syncColumnWidths( config )
                 }
-                //else {
-                //    new gp.polar(function () {
-                //        return gp.hasPositiveWidth(nodes);
-                //    }, function () {
-                //        self.syncColumnWidths.call(config)
-                //        self.syncColumnWidths.call(config)
-                //    });
-                //}
 
                 window.addEventListener( 'resize', function () {
                     self.syncColumnWidths( config );

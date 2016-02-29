@@ -97,15 +97,13 @@ gp.templates['gridponent-pager'] = function(model, arg) {
 };
 gp.templates['gridponent-tfoot'] = function(model, arg) {
     var out = [];
-    out.push('<tfoot>');
     out.push('<tr>');
-                model.Columns.forEach(function(col, index) {
+            model.Columns.forEach(function(col, index) {
         out.push('<td class="footer-cell">');
-                        out.push(gp.helpers['footerCell'].call(model, col));
+                    out.push(gp.helpers['footerCell'].call(model, col));
         out.push('</td>');
-                });
+            });
         out.push('</tr>');
-    out.push('</tfoot>');
     return out.join('');
 };
 gp.templates['gridponent'] = function(model, arg) {
@@ -151,8 +149,16 @@ gp.templates['gridponent'] = function(model, arg) {
     out.push('" style="');
     out.push(model.Style);
     out.push('">');
-                out.push(gp.templates['gridponent-body'](model));
-        out.push('</div>');
+    out.push('<table class="table" cellpadding="0" cellspacing="0">');
+                    if (!model.FixedHeaders) {
+                            out.push(gp.helpers['thead'].call(model));
+                        }
+        out.push('<tbody></tbody>');
+                    if (model.Footer && !model.FixedFooters) {
+        out.push('<tfoot></tfoot>');
+                    }
+        out.push('</table>');
+    out.push('</div>');
             if (model.FixedFooters) {
         out.push('<div class="table-footer">');
     out.push('<table class="table" cellpadding="0" cellspacing="0">');
@@ -161,9 +167,7 @@ gp.templates['gridponent'] = function(model, arg) {
     out.push('</div>');
             }
                 if (model.Pager) {
-        out.push('<div class="table-pager">');
-                    out.push(gp.templates['gridponent-pager'](model));
-        out.push('</div>');
+        out.push('<div class="table-pager"></div>');
             }
         out.push('<style type="text/css" class="sort-style">');
                 out.push(gp.helpers['sortStyle'].call(model));
@@ -171,8 +175,8 @@ gp.templates['gridponent'] = function(model, arg) {
     out.push('<style type="text/css" class="column-width-style">');
                 out.push(gp.helpers['columnWidthStyle'].call(model));
         out.push('</style>');
-    out.push('<div class="progress-overlay">');
-    out.push('<div class="progress progress-container">');
+    out.push('<div class="gp-progress-overlay">');
+    out.push('<div class="gp-progress gp-progress-container">');
     out.push('<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>');
     out.push('</div>');
     out.push('</div>');

@@ -102,7 +102,7 @@
   white-space: nowrap;
 }
 .gp.fixed-headers .table-body {
-  max-height: 400px;
+  height: 400px;
   overflow-y: scroll;
 }
 .gp.fixed-footers .table-footer {
@@ -127,7 +127,7 @@
   max-height: 400px;
   overflow-y: scroll;
 }
-.gp.busy .progress-overlay {
+.gp.busy .gp-progress-overlay {
   z-index: 1;
   opacity: 1;
 }
@@ -137,7 +137,7 @@
 .gp .table-toolbar button[value=Create] {
   margin-left: 5px;
 }
-.gp .progress-overlay {
+.gp .gp-progress-overlay {
   z-index: -1;
   opacity: 0;
   width: 100%;
@@ -145,10 +145,9 @@
   position: absolute;
   top: 0;
   left: 0;
-  background-color: rgba(200, 200, 200, 0.47);
   transition: opacity linear 0.4s;
 }
-.gp .progress-overlay .progress-container {
+.gp .gp-progress-overlay .gp-progress-container {
   min-width: 150px;
   max-width: 403px;
   height: 75px;
@@ -163,7 +162,7 @@
   border-radius: 4px;
   box-shadow: 0 0 4px 4px #666;
 }
-.gp .progress-overlay .progress-bar {
+.gp .gp-progress-overlay .progress-bar {
   min-width: 150px;
   max-width: 403px;
   height: 100%;

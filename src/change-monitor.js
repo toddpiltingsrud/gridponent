@@ -38,22 +38,22 @@ gp.ChangeMonitor.prototype = {
             type;
 
         try {
-            if ( !( name in model ) ) return;
-
-            if ( typeof ( this.beforeSync ) === 'function' ) {
-                handled = this.beforeSync( name, value, this.model );
-            }
-            if ( !handled ) {
-                type = gp.getType( model[name] );
-                switch ( type ) {
-                    case 'number':
-                        model[name] = parseFloat( value );
-                        break;
-                    case 'boolean':
-                        model[name] = ( value.toLowerCase() == 'true' );
-                        break;
-                    default:
-                        model[name] = value;
+            if ( name in model ) {
+                if ( typeof ( this.beforeSync ) === 'function' ) {
+                    handled = this.beforeSync( name, value, this.model );
+                }
+                if ( !handled ) {
+                    type = gp.getType( model[name] );
+                    switch ( type ) {
+                        case 'number':
+                            model[name] = parseFloat( value );
+                            break;
+                        case 'boolean':
+                            model[name] = ( value.toLowerCase() == 'true' );
+                            break;
+                        default:
+                            model[name] = value;
+                    }
                 }
             }
             if ( typeof this.afterSync === 'function' ) {

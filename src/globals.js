@@ -423,6 +423,29 @@
         beforeDispose: 'beforeDispose'
     };
 
+    gp.addBusy = function( evt ) {
+        var tblContainer = evt.target.querySelector( 'div.table-container' )
+            || gp.closest( evt.target, 'div.table-container' );
+
+        if ( tblContainer ) {
+            gp.addClass( tblContainer, 'busy' );
+        }
+    };
+
+    gp.removeBusy = function ( evt ) {
+        var tblContainer = evt.target.querySelector( 'div.table-container' );
+        tblContainer = tblContainer || document.querySelector( 'div.table-container.busy' )
+            || gp.closest( evt.target, 'div.table-container' );
+
+        if ( tblContainer ) {
+            gp.removeClass( tblContainer, 'busy' );
+        }
+        else {
+            gp.warn( 'could not remove busy class' );
+        }
+    };
+
+
     gp.tryCallback = function ( callback, $this, args ) {
         if ( typeof callback !== 'function' ) return;
         // anytime there's the possibility of executing 

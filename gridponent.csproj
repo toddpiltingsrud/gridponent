@@ -41,7 +41,12 @@
     </Content>
     <Content Include="gridponent.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>gridponent.js</LastGenOutput>
+      <LastGenOutput>gridponent1.js</LastGenOutput>
+    </Content>
+    <Content Include="gridponent1.js">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>gridponent.tt</DependentUpon>
     </Content>
     <Content Include="spec\fonts\glyphicons-halflings-regular.svg" />
     <Content Include="spec\scripts\bootstrap-datepicker.min.js" />

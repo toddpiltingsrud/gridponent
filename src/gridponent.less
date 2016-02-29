@@ -131,7 +131,7 @@
         }
 
         .table-body {
-            max-height: 400px;
+            height: 400px;
             overflow-y: scroll;
         }
     }
@@ -166,7 +166,7 @@
     }
 
     &.busy {
-        .progress-overlay {
+        .gp-progress-overlay {
             z-index: 1;
             opacity: 1;
         }
@@ -180,7 +180,7 @@
         }
     }
 
-    .progress-overlay {
+    .gp-progress-overlay {
         z-index: -1;
         opacity: 0;
         width: 100%;
@@ -188,10 +188,9 @@
         position: absolute;
         top: 0;
         left: 0;
-        background-color: rgba(200, 200, 200, 0.47);
         transition: opacity linear 0.4s;
 
-        .progress-container {
+        .gp-progress-container {
             min-width: 150px;
             max-width: 403px;
             height: 75px;
