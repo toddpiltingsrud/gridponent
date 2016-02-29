@@ -101,12 +101,12 @@ gp.Initializer.prototype = {
 
             // inject table rows, footer, pager and header style.
 
-            var tbody = node.querySelector( 'div.table-body > table > tbody' );
+            var body = node.querySelector( 'div.table-body' );
             var footer = node.querySelector( 'tfoot' );
             var pager = node.querySelector( 'div.table-pager' );
             var sortStyle = node.querySelector( 'style.sort-style' );
 
-            tbody.innerHTML = gp.helpers.tableRows.call( config );
+            body.innerHTML = gp.templates['gridponent-body']( config );
             if ( footer ) {
                 footer.innerHTML = gp.templates['gridponent-tfoot']( config );
             }

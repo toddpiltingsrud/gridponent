@@ -153,10 +153,6 @@ gp.templates['gridponent'] = function(model, arg) {
                     if (!model.FixedHeaders) {
                             out.push(gp.helpers['thead'].call(model));
                         }
-        out.push('<tbody></tbody>');
-                    if (model.Footer && !model.FixedFooters) {
-        out.push('<tfoot></tfoot>');
-                    }
         out.push('</table>');
     out.push('</div>');
             if (model.FixedFooters) {

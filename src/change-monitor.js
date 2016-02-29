@@ -20,7 +20,8 @@ gp.ChangeMonitor.prototype = {
         gp.on( this.node, 'change', this.selector, this.listener );
         gp.on( this.node, 'keydown', this.selector, function ( evt ) {
             if ( evt.keyCode == 13 ) {
-                self.listener( evt );
+                evt.target.blur();
+                //self.listener( evt );
             }
         } );
         return this;
