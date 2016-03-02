@@ -17,6 +17,10 @@ gp.Initializer.prototype = {
         this.node.api = new gp.api( controller );
         this.renderLayout( this.config );
         this.attachReadEvents();
+
+        // provides a hook for extensions
+        gp.raiseCustomEvent( this.config.node, gp.events.init, this.config );
+
         gp.raiseCustomEvent( this.config.node, gp.events.beforeRead, { model: this.config.pageModel } );
 
         model.read( requestModel, function ( data ) {

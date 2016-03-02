@@ -115,6 +115,7 @@
 .gp.fixed-headers .table-body {
   height: 400px;
   overflow-y: scroll;
+  box-shadow: inset -6px 0 8px 4px #888888;
 }
 .gp.fixed-footers .table-footer {
   padding-right: 17px;
@@ -139,7 +140,7 @@
   overflow-y: scroll;
 }
 .gp.busy .gp-progress-overlay {
-  z-index: 1;
+  z-index: 5;
   opacity: 1;
 }
 .gp .table-toolbar {
@@ -171,7 +172,7 @@
   background-color: #404040;
   border: solid 2px #ccc;
   border-radius: 4px;
-  box-shadow: 0 0 4px 4px #666;
+  box-shadow: 0 0 12px 6px #888;
 }
 .gp .gp-progress-overlay .progress-bar {
   min-width: 150px;
@@ -232,6 +233,9 @@
 }
 .gp .table-body > table {
   width: 100%;
+}
+.gp .table-body > table > tbody > tr {
+  background: transparent;
 }
 .gp input.form-control {
   width: 100%;

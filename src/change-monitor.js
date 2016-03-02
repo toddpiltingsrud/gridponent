@@ -18,17 +18,19 @@ gp.ChangeMonitor.prototype = {
         var self = this;
         // add change event handler to node
         gp.on( this.node, 'change', this.selector, this.listener );
-        gp.on( this.node, 'keydown', this.selector, function ( evt ) {
-            if ( evt.keyCode == 13 ) {
-                evt.target.blur();
-                //self.listener( evt );
-            }
-        } );
+        gp.on( this.node, 'keydown', this.selector, this.handleEnterKey );
         return this;
+    },
+    handleEnterKey: function ( evt ) {
+        // trigger change event
+        if ( evt.keyCode == 13 ) {
+            evt.target.blur();
+        }
     },
     stop: function () {
         // clean up
         gp.off( this.node, 'change', this.listener );
+        gp.off( this.node, 'keydown', this.handleEnterKey );
         return this;
     },
     syncModel: function (target, model) {
@@ -57,6 +59,9 @@ gp.ChangeMonitor.prototype = {
                     }
                 }
             }
+
+            // always fire this because the toolbar may contain inputs from a template
+            // which are not represented in the page model (e.g. a custom filter)
             if ( typeof this.afterSync === 'function' ) {
                 this.afterSync( target, model );
             }

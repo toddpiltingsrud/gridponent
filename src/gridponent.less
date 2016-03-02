@@ -139,6 +139,7 @@
         .table-body {
             height: 400px;
             overflow-y: scroll;
+            box-shadow:inset -6px 0 8px 4px #888;
         }
     }
 
@@ -173,7 +174,7 @@
 
     &.busy {
         .gp-progress-overlay {
-            z-index: 1;
+            z-index: 5;
             opacity: 1;
         }
     }
@@ -209,7 +210,7 @@
             background-color: #404040;
             border: solid 2px #ccc;
             border-radius: 4px;
-            box-shadow: 0 0 4px 4px #666;
+            box-shadow: 0 0 12px 6px #888;
         }
 
         .progress-bar {
@@ -286,6 +287,10 @@
 
     .table-body > table {
         width: 100%;
+
+        > tbody > tr {
+            background:transparent;
+        }
     }
 
     input.form-control {

@@ -328,6 +328,15 @@
         return val;
     };
 
+    gp.supplant = function ( str, o ) {
+        return str.replace( /{{([^{{}}]*)}}/g,
+            function ( a, b ) {
+                var r = o[b];
+                return typeof r === 'string' || typeof r === 'number' ? r : a;
+            }
+        );
+    };
+
     gp.processBodyTemplate = function ( template, row, col ) {
         var fn, val, match, braces = template.match( gp.rexp.braces );
         if ( braces ) {
@@ -410,6 +419,7 @@
     };
 
     gp.events = {
+        init: 'gp-init',
         beforeRead: 'beforeRead',
         beforeCreate: 'beforeCreate',
         beforeUpdate: 'beforeUpdate',

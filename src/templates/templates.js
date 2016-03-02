@@ -97,13 +97,15 @@ gp.templates['gridponent-pager'] = function(model, arg) {
 };
 gp.templates['gridponent-tfoot'] = function(model, arg) {
     var out = [];
+    out.push('<tfoot>');
     out.push('<tr>');
-            model.Columns.forEach(function(col, index) {
+                model.Columns.forEach(function(col, index) {
         out.push('<td class="footer-cell">');
                     out.push(gp.helpers['footerCell'].call(model, col));
         out.push('</td>');
-            });
+                });
         out.push('</tr>');
+    out.push('</tfoot>');
     return out.join('');
 };
 gp.templates['gridponent'] = function(model, arg) {

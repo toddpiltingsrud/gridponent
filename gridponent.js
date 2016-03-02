@@ -83,16 +83,19 @@ var gridponent = gridponent || {};
             var self = this;
             // add change event handler to node
             gp.on( this.node, 'change', this.selector, this.listener );
-            gp.on( this.node, 'keydown', this.selector, function ( evt ) {
-                if ( evt.keyCode == 13 ) {
-                    self.listener( evt );
-                }
-            } );
+            gp.on( this.node, 'keydown', this.selector, this.handleEnterKey );
             return this;
+        },
+        handleEnterKey: function ( evt ) {
+            // trigger change event
+            if ( evt.keyCode == 13 ) {
+                evt.target.blur();
+            }
         },
         stop: function () {
             // clean up
             gp.off( this.node, 'change', this.listener );
+            gp.off( this.node, 'keydown', this.handleEnterKey );
             return this;
         },
         syncModel: function (target, model) {
@@ -103,24 +106,27 @@ var gridponent = gridponent || {};
                 type;
     
             try {
-                if ( !( name in model ) ) return;
-    
-                if ( typeof ( this.beforeSync ) === 'function' ) {
-                    handled = this.beforeSync( name, value, this.model );
-                }
-                if ( !handled ) {
-                    type = gp.getType( model[name] );
-                    switch ( type ) {
-                        case 'number':
-                            model[name] = parseFloat( value );
-                            break;
-                        case 'boolean':
-                            model[name] = ( value.toLowerCase() == 'true' );
-                            break;
-                        default:
-                            model[name] = value;
+                if ( name in model ) {
+                    if ( typeof ( this.beforeSync ) === 'function' ) {
+                        handled = this.beforeSync( name, value, this.model );
+                    }
+                    if ( !handled ) {
+                        type = gp.getType( model[name] );
+                        switch ( type ) {
+                            case 'number':
+                                model[name] = parseFloat( value );
+                                break;
+                            case 'boolean':
+                                model[name] = ( value.toLowerCase() == 'true' );
+                                break;
+                            default:
+                                model[name] = value;
+                        }
                     }
                 }
+    
+                // always fire this because the toolbar may contain inputs from a template
+                // which are not represented in the page model (e.g. a custom filter)
                 if ( typeof this.afterSync === 'function' ) {
                     this.afterSync( target, model );
                 }
@@ -142,7 +148,6 @@ var gridponent = gridponent || {};
         if (config.Pager) {
             this.requestModel.Top = 25;
         }
-        this.attachReadEvents();
         this.monitor = null;
     };
     
@@ -151,7 +156,7 @@ var gridponent = gridponent || {};
         monitorToolbars: function (node) {
             var self = this;
             // monitor changes to search, sort, and paging
-            this.monitor = new gp.ChangeMonitor( node, '.table-toolbar [name=Search], thead input, .table-pager input', this.config.pageModel, function ( evt ) {
+            this.monitor = new gp.ChangeMonitor( node, '.table-toolbar [name], thead input, .table-pager input', this.config.pageModel, function ( evt ) {
                 //var name = evt.target.name;
                 //switch ( name ) {
                 //    case 'Search':
@@ -262,45 +267,6 @@ var gridponent = gridponent || {};
                         }
                     } );
                 }
-            }
-        },
-    
-        attachReadEvents: function () {
-            gp.on( this.config.node, gp.events.beforeRead, this.addBusy );
-            gp.on( this.config.node, gp.events.afterRead, this.removeBusy );
-            gp.on( this.config.node, gp.events.beforeUpdate, this.addBusy );
-            gp.on( this.config.node, gp.events.afterUpdate, this.removeBusy );
-            gp.on( this.config.node, gp.events.beforeDelete, this.addBusy );
-            gp.on( this.config.node, gp.events.afterDelete, this.removeBusy );
-        },
-    
-        removeReadEvents: function () {
-            gp.off( this.config.node, gp.events.beforeRead, this.addBusy );
-            gp.off( this.config.node, gp.events.afterRead, this.removeBusy );
-            gp.off( this.config.node, gp.events.beforeUpdate, this.addBusy );
-            gp.off( this.config.node, gp.events.afterUpdate, this.removeBusy );
-            gp.off( this.config.node, gp.events.beforeDelete, this.addBusy );
-            gp.off( this.config.node, gp.events.afterDelete, this.removeBusy );
-        },
-    
-        addBusy: function( evt ) {
-            var tblContainer = evt.target.querySelector( 'div.table-container' )
-                || gp.closest( evt.target, 'div.table-container' );
-    
-            if ( tblContainer ) {
-                gp.addClass( tblContainer, 'busy' );
-            }
-        },
-    
-        removeBusy: function ( evt ) {
-            var tblContainer = evt.target.querySelector( 'div.table-container' );
-            tblContainer = tblContainer || document.querySelector( 'div.table-container.busy' )
-                || gp.closest( evt.target, 'div.table-container' );
-    
-            if ( tblContainer ) {
-                gp.removeClass( tblContainer, 'busy' );
-            }
-            else {
             }
         },
     
@@ -577,29 +543,19 @@ var gridponent = gridponent || {};
             // inject table rows, footer, pager and header style.
             var node = config.node;
     
-            var tbody = node.querySelector( 'div.table-body > table > tbody' );
+            var body = node.querySelector( 'div.table-body' );
             var footer = node.querySelector( 'tfoot' );
             var pager = node.querySelector( 'div.table-pager' );
             var sortStyle = node.querySelector( 'style.sort-style' );
     
-            tbody.innerHTML = gp.helpers.tableRows.call( config );
+            body.innerHTML = gp.templates['gridponent-body']( config );
             if ( footer ) {
                 footer.innerHTML = gp.templates['gridponent-tfoot']( config );
             }
             if ( pager ) {
                 pager.innerHTML = gp.templates['gridponent-pager']( config );
             }
-            sortStyle = gp.helpers.sortStyle.call( config );
-    
-            //var rowsTemplate = gp.templates['gridponent-body'];
-            //var pagerTemplate = gp.templates['gridponent-pager'];
-            //var html = rowsTemplate( config );
-            //config.node.querySelector( '.table-body' ).innerHTML = html;
-            //html = pagerTemplate( config );
-            //var pager = config.node.querySelector( '.table-pager' );
-            //if ( pager ) pager.innerHTML = html;
-            //html = gp.helpers['sortStyle'].call( config );
-            //config.node.querySelector( 'style.sort-style' ).innerHTML = html;
+            sortStyle.innerHTML = gp.helpers.sortStyle.call( config );
         },
     
         restoreCells: function ( config, row, tr ) {
@@ -612,6 +568,15 @@ var gridponent = gridponent || {};
                 cells[i].innerHTML = helper.call( this.config, col, row );
             }
             gp.removeClass( tr, 'edit-mode' );
+        },
+    
+        removeReadEvents: function () {
+            gp.off( this.config.node, gp.events.beforeRead, gp.addBusy );
+            gp.off( this.config.node, gp.events.afterRead, gp.removeBusy );
+            gp.off( this.config.node, gp.events.beforeUpdate, gp.addBusy );
+            gp.off( this.config.node, gp.events.afterUpdate, gp.removeBusy );
+            gp.off( this.config.node, gp.events.beforeDelete, gp.addBusy );
+            gp.off( this.config.node, gp.events.afterDelete, gp.removeBusy );
         },
     
         dispose: function () {
@@ -1121,6 +1086,15 @@ var gridponent = gridponent || {};
             return val;
         };
     
+        gp.supplant = function ( str, o ) {
+            return str.replace( /{{([^{{}}]*)}}/g,
+                function ( a, b ) {
+                    var r = o[b];
+                    return typeof r === 'string' || typeof r === 'number' ? r : a;
+                }
+            );
+        };
+    
         gp.processBodyTemplate = function ( template, row, col ) {
             var fn, val, match, braces = template.match( gp.rexp.braces );
             if ( braces ) {
@@ -1202,6 +1176,7 @@ var gridponent = gridponent || {};
         };
     
         gp.events = {
+            init: 'gp-init',
             beforeRead: 'beforeRead',
             beforeCreate: 'beforeCreate',
             beforeUpdate: 'beforeUpdate',
@@ -1214,6 +1189,28 @@ var gridponent = gridponent || {};
             afterEditMode: 'afterEditMode',
             beforeDispose: 'beforeDispose'
         };
+    
+        gp.addBusy = function( evt ) {
+            var tblContainer = evt.target.querySelector( 'div.table-container' )
+                || gp.closest( evt.target, 'div.table-container' );
+    
+            if ( tblContainer ) {
+                gp.addClass( tblContainer, 'busy' );
+            }
+        };
+    
+        gp.removeBusy = function ( evt ) {
+            var tblContainer = evt.target.querySelector( 'div.table-container' );
+            tblContainer = tblContainer || document.querySelector( 'div.table-container.busy' )
+                || gp.closest( evt.target, 'div.table-container' );
+    
+            if ( tblContainer ) {
+                gp.removeClass( tblContainer, 'busy' );
+            }
+            else {
+            }
+        };
+    
     
         gp.tryCallback = function ( callback, $this, args ) {
             if ( typeof callback !== 'function' ) return;
@@ -1486,25 +1483,27 @@ var gridponent = gridponent || {};
     
             // even though the table might not exist yet, we still should render width styles because there might be fixed widths specified
             this.Columns.forEach( function ( col ) {
-                html.add( '#' + self.ID + ' .table-header th.header-cell:nth-child(' + ( index + 1 ) + '),' )
-                    .add( '#' + self.ID + ' .table-footer td.footer-cell:nth-child(' + ( index + 1 ) + ')' );
                 if ( col.Width ) {
                     // fixed width should include the body
-                    html.add( ',' )
+                    html.add( '#' + self.ID + ' .table-header th.header-cell:nth-child(' + ( index + 1 ) + '),' )
+                        .add( '#' + self.ID + ' .table-footer td.footer-cell:nth-child(' + ( index + 1 ) + ')' )
+                        .add( ',' )
                         .add( '#' + self.ID + ' > .table-body > table > thead th:nth-child(' + ( index + 1 ) + '),' )
                         .add( '#' + self.ID + ' > .table-body > table > tbody td:nth-child(' + ( index + 1 ) + ')' )
                         .add( '{ width:' )
                         .add( col.Width );
                     if ( isNaN( col.Width ) == false ) html.add( 'px' );
+                    html.add( ';}' );
                 }
                 else if ( bodyCols.length && ( self.FixedHeaders || self.FixedFooters ) ) {
                     // sync header and footer to body
                     width = bodyCols[index].offsetWidth;
-                    html.add( '{ width:' )
+                    html.add( '#' +self.ID + ' .table-header th.header-cell:nth-child(' +( index +1 ) + '),' )
+                        .add( '#' +self.ID + ' .table-footer td.footer-cell:nth-child(' +( index +1 ) + ')' )
+                        .add( '{ width:' )
                         .add( bodyCols[index].offsetWidth )
-                        .add( 'px' );
+                        .add( 'px;}' );
                 }
-                html.add( ';}' );
                 index++;
             } );
     
@@ -1556,20 +1555,39 @@ var gridponent = gridponent || {};
             var controller = new gp.Controller( self.config, model, requestModel );
             this.node.api = new gp.api( controller );
             this.renderLayout( this.config );
+            this.attachReadEvents();
+    
+            // provides a hook for extensions
+            gp.raiseCustomEvent( this.config.node, gp.events.init, this.config );
+    
+            gp.raiseCustomEvent( this.config.node, gp.events.beforeRead, { model: this.config.pageModel } );
     
             model.read( requestModel, function ( data ) {
-                self.config.pageModel = data;
-                self.resolvePaging( self.config );
-                self.resolveTypes( self.config );
-                self.render( self.config );
-                controller.monitorToolbars( self.config.node );
-                controller.addCommandHandlers( self.config.node );
-                controller.handleRowSelect( self.config );
-    
-                if ( typeof callback === 'function' ) callback( self.config );
+                try {
+                    self.config.pageModel = data;
+                    self.resolvePaging( self.config );
+                    self.resolveTypes( self.config );
+                    self.render( self.config );
+                    controller.monitorToolbars( self.config.node );
+                    controller.addCommandHandlers( self.config.node );
+                    controller.handleRowSelect( self.config );
+                    if ( typeof callback === 'function' ) callback( self.config );
+                } catch ( e ) {
+                    gp.error( e );
+                }
+                gp.raiseCustomEvent( self.config.node, gp.events.afterRead, { model: self.config.pageModel } );
             } );
     
             return this.config;
+        },
+    
+        attachReadEvents: function () {
+            gp.on( this.config.node, gp.events.beforeRead, gp.addBusy );
+            gp.on( this.config.node, gp.events.afterRead, gp.removeBusy );
+            gp.on( this.config.node, gp.events.beforeUpdate, gp.addBusy );
+            gp.on( this.config.node, gp.events.afterUpdate, gp.removeBusy );
+            gp.on( this.config.node, gp.events.beforeDelete, gp.addBusy );
+            gp.on( this.config.node, gp.events.afterDelete, gp.removeBusy );
         },
     
         getConfig: function (node) {
@@ -1625,12 +1643,12 @@ var gridponent = gridponent || {};
     
                 // inject table rows, footer, pager and header style.
     
-                var tbody = node.querySelector( 'div.table-body > table > tbody' );
+                var body = node.querySelector( 'div.table-body' );
                 var footer = node.querySelector( 'tfoot' );
                 var pager = node.querySelector( 'div.table-pager' );
                 var sortStyle = node.querySelector( 'style.sort-style' );
     
-                tbody.innerHTML = gp.helpers.tableRows.call( config );
+                body.innerHTML = gp.templates['gridponent-body']( config );
                 if ( footer ) {
                     footer.innerHTML = gp.templates['gridponent-tfoot']( config );
                 }
@@ -2608,13 +2626,15 @@ var gridponent = gridponent || {};
     };
     gp.templates['gridponent-tfoot'] = function(model, arg) {
         var out = [];
+        out.push('<tfoot>');
         out.push('<tr>');
-                model.Columns.forEach(function(col, index) {
+                    model.Columns.forEach(function(col, index) {
             out.push('<td class="footer-cell">');
                         out.push(gp.helpers['footerCell'].call(model, col));
             out.push('</td>');
-                });
+                    });
             out.push('</tr>');
+        out.push('</tfoot>');
         return out.join('');
     };
     gp.templates['gridponent'] = function(model, arg) {
@@ -2664,10 +2684,6 @@ var gridponent = gridponent || {};
                         if (!model.FixedHeaders) {
                                 out.push(gp.helpers['thead'].call(model));
                             }
-            out.push('<tbody></tbody>');
-                        if (model.Footer && !model.FixedFooters) {
-            out.push('<tfoot></tfoot>');
-                        }
             out.push('</table>');
         out.push('</div>');
                 if (model.FixedFooters) {
@@ -2686,8 +2702,8 @@ var gridponent = gridponent || {};
         out.push('<style type="text/css" class="column-width-style">');
                     out.push(gp.helpers['columnWidthStyle'].call(model));
             out.push('</style>');
-        out.push('<div class="progress-overlay">');
-        out.push('<div class="progress progress-container">');
+        out.push('<div class="gp-progress-overlay">');
+        out.push('<div class="gp-progress gp-progress-container">');
         out.push('<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>');
         out.push('</div>');
         out.push('</div>');

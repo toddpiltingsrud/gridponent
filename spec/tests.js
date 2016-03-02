@@ -1221,6 +1221,7 @@ QUnit.test( 'gp.ChangeMonitor', function ( assert ) {
     var done1 = assert.async();
     var done2 = assert.async();
     var done3 = assert.async();
+    var done4 = assert.async();
 
     var monitor = new gp.ChangeMonitor( div[0], '[name]', model, function ( target, m ) {
         assert.equal( model.number, 2 );
@@ -1231,21 +1232,25 @@ QUnit.test( 'gp.ChangeMonitor', function ( assert ) {
     numberInput.value = '2';
     monitor.syncModel( numberInput, model );
 
+    monitor.afterSync = function ( target, m ) {
+        assert.ok( true, 'ChangeMonitor should call afterSync for values not present in the model.' );
+        done2();
+    };
 
     var textInput = div[0].querySelector( '[name=notInModel]' );
     textInput.value = 'more text';
     monitor.syncModel( textInput, model );
-    assert.equal( 'notInModel' in model, false, 'ChangeMonitor should ignore values that are not present in the model.' );
+    assert.equal( 'notInModel' in model, false, 'ChangeMonitor should raise call afterSync for values not present in the model.' );
 
 
     monitor.beforeSync = function ( name, value, model ) {
         assert.equal( model.bool, true, 'beforeSync should return values before changing them' );
-        done2();
+        done3();
     };
 
     monitor.afterSync = function ( target, m ) {
         assert.equal( model.bool, false, 'afterSync should return values after changing them' );
-        done3();
+        done4();
     };
 
     var boolInput = div[0].querySelector( '[name=bool]' );

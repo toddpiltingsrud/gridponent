@@ -34,21 +34,18 @@
     <RootNamespace>tp_table</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="extensions\SignalR.js" />
     <Content Include="gridponent.js">
-      <DependentUpon>gridponent.tt</DependentUpon>
-      <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>gridponent.tt</DependentUpon>
     </Content>
     <Content Include="gridponent.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>gridponent1.js</LastGenOutput>
-    </Content>
-    <Content Include="gridponent1.js">
-      <DependentUpon>gridponent.tt</DependentUpon>
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
+      <LastGenOutput>gridponent.js</LastGenOutput>
     </Content>
     <Content Include="spec\fonts\glyphicons-halflings-regular.svg" />
+    <Content Include="spec\scratchpad.html" />
     <Content Include="spec\scripts\bootstrap-datepicker.min.js" />
     <Content Include="spec\scripts\bootstrap.min.js" />
     <Content Include="spec\scripts\jquery-2.1.4.min.js" />

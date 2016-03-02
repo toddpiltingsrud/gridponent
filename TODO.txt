@@ -2,7 +2,8 @@
 <script src="https://www.promisejs.org/polyfills/promise-7.0.4.min.js"></script>
 
 Build sockets into the grid so it can auto-refresh.
-Build it as an extension module.
+Build it as an extension module. 
+The hub is going to need a way to identify users so it knows 
 
 Onrowselect should test for a JS object. If it doesn't find one assume it's a url.
 Instead of setting window.location, create a hidden anchor tag inside the component and click it.
