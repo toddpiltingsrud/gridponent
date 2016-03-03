@@ -32,6 +32,7 @@ gp.Initializer.prototype = {
                 controller.monitorToolbars( self.config.node );
                 controller.addCommandHandlers( self.config.node );
                 controller.handleRowSelect( self.config );
+                controller.handleRefreshEvent( self.config );
                 if ( typeof callback === 'function' ) callback( self.config );
             } catch ( e ) {
                 gp.error( e );

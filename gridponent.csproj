@@ -34,7 +34,6 @@
     <RootNamespace>tp_table</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="extensions\SignalR.js" />
     <Content Include="gridponent.js">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

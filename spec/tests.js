@@ -58,7 +58,7 @@ var configOptions = {
     orRowSelect: null
 };
 
-var getTableConfig = function ( options ) {
+var getTableConfig = function ( options, callback ) {
     options = options || configOptions;
     options.read = options.read || 'data.products';
 
@@ -81,8 +81,9 @@ var getTableConfig = function ( options ) {
     if ( options.read ) out.push( '         read="' + options.read + '"' );
     if ( options.create ) out.push( '       create="' + options.create + '"' );
     if ( options.update ) out.push( '       update="' + options.update + '"' );
-    if ( options.delete ) out.push( '      delete="' + options.delete + '"' );
-    if ( options.validate ) out.push( '     validate="' + options.validate + '"' );
+    if ( options.delete ) out.push( '       delete="' + options.delete + '"' );
+    if ( options.refreshEvent ) out.push( ' refresh-event="' + options.refreshEvent + '"' );
+    if ( options.validate ) out.push( '     validate="' + options.validate + '7"' );
     out.push( '             pager="top-right"' );
     out.push( '             search="top-left">' );
     out.push( '    <gp-column header-template="fns.checkbox" body-template="fns.checkbox" footer-template="fns.checkbox"></gp-column>' );
@@ -105,10 +106,15 @@ var getTableConfig = function ( options ) {
     // otherwise trigger initialization manually
     var $node = $( out.join( '' ) );
 
+    if ( callback ) {
+        $node.one( gp.events.init, function ( evt, config ) {
+            callback( evt.originalEvent.detail );
+        } );
+    }
+
     var config = $node[0].config;
 
-
-    if ( !config ) {
+    if ( !config && !callback ) {
         config = new gp.Initializer( $node[0] ).initialize();
         console.log( config );
     }
@@ -205,6 +211,37 @@ var productsTable = function () {
 
     return config;
 };
+
+QUnit.test( 'refresh-event', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configOptions );
+    options.refreshEvent = 'data-changed';
+
+    getTableConfig( options, function (config) {
+
+        var reads = 0;
+
+        var refreshEvent = new CustomEvent( options.refreshEvent, { detail: 'test', bubbles: true } );
+
+        $( config.node ).on( gp.events.afterRead, function () {
+            reads++;
+
+            // trigger the refresh event after the grid fully initializes
+            if ( reads == 1 ) {
+                document.dispatchEvent( refreshEvent );
+            }
+            else {
+                assert.ok( true, 'triggering the refresh event should cause the grid to read' );
+                done1();
+            }
+
+        } )
+
+    } );
+
+} );
 
 QUnit.test( 'api.create 1', function ( assert ) {
     var config = getTableConfig();

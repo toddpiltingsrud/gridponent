@@ -1,10 +1,6 @@
 ﻿Use Promises instead of callbacks for reads and writes.
 <script src="https://www.promisejs.org/polyfills/promise-7.0.4.min.js"></script>
 
-Build sockets into the grid so it can auto-refresh.
-Build it as an extension module. 
-The hub is going to need a way to identify users so it knows 
-
 Onrowselect should test for a JS object. If it doesn't find one assume it's a url.
 Instead of setting window.location, create a hidden anchor tag inside the component and click it.
 That way it could be intercepted by event handlers.
@@ -14,14 +10,6 @@ It's best to replace MVC's default JSON serializer with Json.NET:
 http://labs.bjfocus.co.uk/2014/06/using-json-net-as-default-json-serializer-in-mvc/
 
 Eliminate the helpers' dependencies on config.
-
-Render the toolbar, headers and (if fixed-headers) the height of the table body. 
-Then use setTimeout to make the call after everything else is done.
-During use, the only portions we need to update are the table rows, footer, pager and header style.
-We also have the situation where header and footer are rendered in different places depending on configuration.
-So perhaps gridponent.html should establish the layout.
-Then we inject the header, table rows, footer and header style into it later.
-
 
 Use a CommonJS module library (e.g. webpack).
 
@@ -63,8 +51,6 @@ Ensure we are handling date values correctly.
 Allow the http module to be configured to use JSON or application/x-www-form-urlencoded.
 
 Add page size config option (default to 25).
-
-ChangeMonitor.afterSync should be passed a list of changes.
 
 Standardize property capitalization.
 

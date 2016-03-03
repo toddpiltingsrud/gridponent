@@ -18,22 +18,6 @@ gp.Controller.prototype = {
         var self = this;
         // monitor changes to search, sort, and paging
         this.monitor = new gp.ChangeMonitor( node, '.table-toolbar [name], thead input, .table-pager input', this.config.pageModel, function ( evt ) {
-            //var name = evt.target.name;
-            //switch ( name ) {
-            //    case 'Search':
-            //        self.search(self.config.pageModel.Search);
-            //        break;
-            //    case 'OrderBy':
-            //        self.sort( self.config.pageModel.OrderBy, self.config.pageModel.Desc );
-            //        break;
-            //    case 'Page':
-            //        self.page( self.config.pageModel.Page );
-            //        break;
-            //    default:
-            //        self.read();
-            //        break;
-            //}
-
             self.read();
             // reset the radio inputs
             var radios = node.querySelectorAll( 'thead input[type=radio], .table-pager input[type=radio]' );
@@ -131,6 +115,12 @@ gp.Controller.prototype = {
                     }
                 } );
             }
+        }
+    },
+
+    handleRefreshEvent: function ( config ) {
+        if ( config.RefreshEvent ) {
+            gp.on( document, config.RefreshEvent, this.read.bind(this) );
         }
     },
 
