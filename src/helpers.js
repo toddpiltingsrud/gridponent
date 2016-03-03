@@ -209,10 +209,10 @@ gp.helpers = {
         var html = new gp.StringBuilder();
         if ( col.FooterTemplate ) {
             if ( typeof ( col.FooterTemplate ) === 'function' ) {
-                html.add( col.FooterTemplate.call( this, col ) );
+                html.add( col.FooterTemplate.call( this, col, this.pageModel.Data ) );
             }
             else {
-                html.add( gp.processHeaderTemplate.call( this, col.FooterTemplate, col ) );
+                html.add( gp.processFooterTemplate.call( this, col.FooterTemplate, col, this.pageModel.Data ) );
             }
         }
         return html.toString();

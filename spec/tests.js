@@ -212,6 +212,28 @@ var productsTable = function () {
     return config;
 };
 
+QUnit.test( 'supplant', function ( assert ) {
+
+    var supplant = function ( str, o ) {
+        var types = /string|number|boolean/;
+        return str.replace( /{{([^{}]*)}}/g,
+            function ( a, b ) {
+                var r = o[b], t = typeof r;
+                return types.test(t) ? r : r == null ? '' : a;
+            }
+        );
+    };
+
+    var template = 'http://products/{{ProductID}}?MakeFlag={{MakeFlag}}&Color={{Color}}';
+
+    var row = { "ProductID": 1, "Name": "Adjustable Race", "ProductNumber": "AR-5381", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": null, "SafetyStockLevel": 1000, "ReorderPoint": 750, "StandardCost": 0.0000, "ListPrice": 0.0000, "Size": null, "SizeUnitMeasureCode": null, "WeightUnitMeasureCode": null, "Weight": null, "DaysToManufacture": 0, "ProductLine": null, "Class": null, "Style": null, "ProductSubcategoryID": null, "ProductModelID": null, "SellStartDate": "2002-06-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "694215b7-08f7-4c0d-acb1-d734ba44c0c8", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": "<p>Product's name: \"Adjustable Race\"</p>" };
+
+    var url = supplant( template, row );
+
+    assert.equal( url, 'http://products/1?MakeFlag=false&Color=' );
+
+} );
+
 QUnit.test( 'refresh-event', function ( assert ) {
 
     var done1 = assert.async();
@@ -1235,6 +1257,13 @@ QUnit.test( 'gp.helpers.footerCell', function ( assert ) {
     cell = node.querySelector( '.table-footer tr:first-child td.footer-cell:nth-child(4)' );
 
     assert.equal( isNaN( parseFloat( cell.textContent ) ), false );
+
+    // test a string template with a function reference
+    var template = '<b>{{fns.average}}</b>';
+
+    var result = gp.processFooterTemplate( template, node.config.Columns[0], data.products );
+
+    assert.equal(result, '<b>10</b>')
 
 } );
 

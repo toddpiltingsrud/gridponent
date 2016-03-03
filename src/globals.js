@@ -328,48 +328,46 @@
         return val;
     };
 
-    gp.supplant = function ( str, o ) {
-        return str.replace( /{{([^{{}}]*)}}/g,
+    gp.supplant = function ( str, o, args ) {
+        var self = this, types = /string|number|boolean/;
+        return str.replace( /{{([^{}]*)}}/g,
             function ( a, b ) {
-                var r = o[b];
-                return typeof r === 'string' || typeof r === 'number' ? r : a;
+                var r = o[b], t = typeof r;
+                if ( types.test( t ) ) return r;
+                r = gp.getObjectAtPath( b );
+                return typeof r === 'function' ? r.apply(self, args) : '';
             }
         );
     };
 
     gp.processBodyTemplate = function ( template, row, col ) {
-        var fn, val, match, braces = template.match( gp.rexp.braces );
-        if ( braces ) {
-            for ( var i = 0; i < braces.length; i++ ) {
-                match = braces[i].slice( 2, -2 );
-                if ( match in row ) {
-                    val = row[match];
-                    if ( gp.hasValue( val ) === false ) val = '';
-                    template = template.replace( braces[i], val );
-                }
-                else {
-                    fn = gp.getObjectAtPath( match );
-                    if ( typeof fn === 'function' ) {
-                        template = template.replace( braces[i], fn.call( this, row, col ) );
-                    }
-                }
-            }
-        }
-        return template;
+        return gp.supplant( template, row, [row, col] );
+        //var fn, val, match, braces = template.match( gp.rexp.braces );
+        //if ( braces ) {
+        //    for ( var i = 0; i < braces.length; i++ ) {
+        //        match = braces[i].slice( 2, -2 );
+        //        if ( match in row ) {
+        //            val = row[match];
+        //            if ( gp.hasValue( val ) === false ) val = '';
+        //            template = template.replace( braces[i], val );
+        //        }
+        //        else {
+        //            fn = gp.getObjectAtPath( match );
+        //            if ( typeof fn === 'function' ) {
+        //                template = template.replace( braces[i], fn.call( this, row, col ) );
+        //            }
+        //        }
+        //    }
+        //}
+        //return template;
     };
 
     gp.processHeaderTemplate = function ( template, col ) {
-        var fn, match, braces = template.match( gp.rexp.braces );
-        if ( braces ) {
-            for ( var i = 0; i < braces.length; i++ ) {
-                match = braces[i].slice( 2, -2 );
-                fn = gp.getObjectAtPath( match );
-                if ( typeof fn === 'function' ) {
-                    template = template.replace( braces[i], fn.call( this, col ) );
-                }
-            }
-        }
-        return template;
+        return gp.supplant(template, col, [col] )
+    };
+
+    gp.processFooterTemplate = function ( template, col, data ) {
+        return gp.supplant( template, col, [col, data] )
     };
 
     gp.trim = function ( str ) {
