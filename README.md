@@ -21,3 +21,5 @@ It has the following features:
 
 Support for IE9 is achieved by falling back to querying the DOM for grid-ponent elements and rendering them after the page loads.
 That means grid-ponent elements that are added dynamically after the page has loaded will not automatically be detected and rendered in IE9.
+
+See it in action here(http://worldcitizenapps.com/lojax/index.php).
