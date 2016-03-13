@@ -334,6 +334,10 @@ QUnit.test( 'api.create 2', function ( assert ) {
 
 QUnit.test( 'api.update', function ( assert ) {
 
+    var done1 = assert.async();
+    var done2 = assert.async();
+    var done3 = assert.async();
+
     // this would be called instead of posting the row to a URL
     updateFn = function ( updateModel, callback ) {
         // simulate some validation errors
@@ -363,7 +367,6 @@ QUnit.test( 'api.update', function ( assert ) {
 
     options.update = 'updateFn';
     options.validate = 'showValidationErrors';
-    var done1 = assert.async();
 
     getTableConfig( options, function ( config ) {
 
@@ -374,18 +377,24 @@ QUnit.test( 'api.update', function ( assert ) {
             row.Name = 'test';
 
             config.node.api.update( row, function ( updateModel ) {
-                console.log( updateModel );
                 assert.strictEqual( updateModel.Row.Name, 'test', 'update should support functions' );
                 config.node.api.dispose();
                 done1();
             } );
 
-            // now try it with a URL
-            options.update = '/Products/Update';
+        } );
 
-            config = getTableConfig( options );
+    } );
 
-            var done2 = assert.async();
+    // now try it with a URL
+    options.update = '/Products/Update';
+
+
+    getTableConfig( options, function ( config ) {
+
+        config.node.api.ready( function () {
+
+            var row = config.node.api.getData( 0 );
 
             config.node.api.update( row, function ( updateModel ) {
                 assert.strictEqual( updateModel.Row.Name, 'test', 'update should support functions that use a URL' );
@@ -393,12 +402,18 @@ QUnit.test( 'api.update', function ( assert ) {
                 done2();
             } );
 
-            // now try it with a null update setting
-            options.update = null;
+        } );
 
-            config = getTableConfig( options );
+    } );
 
-            var done3 = assert.async();
+    // now try it with a null update setting
+    options.update = null;
+
+    getTableConfig( options, function ( config ) {
+
+        config.node.api.ready( function () {
+
+            var row = config.node.api.getData( 0 );
 
             config.node.api.update( row, function ( updateModel ) {
                 assert.ok( updateModel == undefined, 'empty update setting should execute the callback with no arguments' );
@@ -409,6 +424,7 @@ QUnit.test( 'api.update', function ( assert ) {
         } );
 
     } );
+
 
 } );
 
@@ -654,33 +670,39 @@ QUnit.test( 'ChangeMonitor.beforeSync', function ( assert ) {
 
 QUnit.test( 'custom command', function ( assert ) {
 
+    var done1 = assert.async();
+
     var options = gp.shallowCopy( configOptions );
 
-    options.customCommand = 'Assert';
+    fns.Assert = function ( row, tr ) {
+        assert.ok( true, 'custom commands work' );
+        done1();
+    };
 
-    var done = assert.async();
+    options.customCommand = 'does not exist';
 
     getTableConfig( options, function ( config ) {
 
         config.node.api.ready( function () {
 
-            config.node.api.Assert = function ( row, tr ) {
-                assert.ok( true, 'custom commands work' );
-                done();
-            };
-
-            var btn = config.node.querySelector( 'button[value=Assert]' );
-
-            $( btn ).click();
-
-            options.customCommand = 'does not exist';
-
-            config = getTableConfig( options );
-
             var btn = config.node.querySelector( 'button[value="does not exist"]' );
 
             $( btn ).click();
 
+        } );
+
+    } );
+
+
+    options.customCommand = 'fns.Assert';
+
+    getTableConfig( options, function ( config ) {
+
+        config.node.api.ready( function () {
+
+            var btn = config.node.querySelector( 'button[value="fns.Assert"]' );
+
+            $( btn ).click();
         } );
 
     } );

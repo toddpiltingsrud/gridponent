@@ -264,9 +264,13 @@ var gridponent = gridponent || {};
                 default:
                     // check the api for an extension
                     if ( command in node.api ) {
-                        node.api[command]( row, tr );
+                        gp.applyFunc( node.api[command], node.api, [row, tr] );
                     }
                     else {
+                        var cmd = gp.getObjectAtPath( command );
+                        if ( typeof cmd === 'function' ) {
+                            gp.applyFunc( cmd, node.api, [row, tr] );
+                        }
                     }
                     break;
             }
