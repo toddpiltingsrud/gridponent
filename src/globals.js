@@ -68,6 +68,10 @@
         return to;
     };
 
+    gp.extend = function ( to, from ) {
+        return gp.shallowCopy( from, to );
+    };
+
     gp.getLocalISOString = function ( date ) {
         if ( typeof date === 'string' ) return date;
         var offset = date.getTimezoneOffset();
@@ -92,6 +96,41 @@
         return typeof ( a );
     };
 
+    var proxyListener = function ( elem, event, targetSelector, listener ) {
+
+        this.handler = function ( evt ) {
+
+            var e = evt.target;
+
+            // get all the elements that match targetSelector
+            var potentials = elem.querySelectorAll( targetSelector );
+
+            // find the first element that matches targetSelector
+            // usually this will be the first one
+            while ( e ) {
+                for ( var j = 0; j < potentials.length; j++ ) {
+                    if ( e == potentials[j] ) {
+                        // don't modify the listener's context to preserve the ability to use bind()
+                        // set selectedTarget to the matching element instead
+                        evt.selectedTarget = e;
+                        listener( evt );
+                        return;
+                    }
+                }
+                e = e.parentElement;
+            }
+        };
+
+        this.remove = function () {
+            elem.removeEventListener( event, this.handler );
+        };
+
+        // handle event
+        elem.addEventListener( event, this.handler, false );
+    };
+
+    // this allows us to attach an event handler to the document
+    // and handle events that match a selector
     gp.on = function ( elem, event, targetSelector, listener ) {
         // if elem is a selector, convert it to an element
         if ( typeof ( elem ) === 'string' ) {
@@ -107,39 +146,15 @@
             return;
         }
 
-        // this allows us to attach an event handler to the document
-        // and handle events that match a selector
-        var privateListener = function ( evt ) {
+        var proxy = new proxyListener( elem, event, targetSelector, listener );
 
-            var e = evt.target;
-
-            // get all the elements that match targetSelector
-            var potentials = elem.querySelectorAll( targetSelector );
-
-            // find the first element that matches targetSelector
-            // usually this will be the first one
-            while ( e ) {
-                for ( var j = 0; j < potentials.length; j++ ) {
-                    if ( e == potentials[j] ) {
-                        // set 'this' to the matching element
-                        listener.call( e, evt );
-                        return;
-                    }
-                }
-                e = e.parentElement;
-            }
-        };
-
-        // handle event
-        elem.addEventListener( event, privateListener, false );
-
-        // use an array to store listener and privateListener 
+        // use an array to store privateListener 
         // so we can remove the handler with gp.off
         var propName = 'gp-listeners-' + event;
         var listeners = elem[propName] || ( elem[propName] = [] );
         listeners.push( {
             pub: listener,
-            priv: privateListener
+            priv: proxy
         } );
 
         return elem;
@@ -153,7 +168,7 @@
                 if ( listeners[i].pub === listener ) {
 
                     // remove the event handler
-                    elem.removeEventListener( event, listeners[i].priv );
+                    listeners[i].priv.remove();
 
                     // remove it from the listener store
                     listeners.splice( i, 1 );
@@ -216,7 +231,9 @@
     };
 
     gp.isNullOrEmpty = function ( val ) {
-        return gp.hasValue( val ) === false || val.length === undefined || val.length === 0;
+        // if a string or array is passed, they'll be tested for both null and zero length
+        // if any other data type is passed (no length property), it'll only be tested for null
+        return gp.hasValue( val ) === false || ( val.length != undefined && val.length === 0 );
     };
 
     gp.coalesce = function ( array ) {
@@ -332,34 +349,17 @@
         var self = this, types = /string|number|boolean/;
         return str.replace( /{{([^{}]*)}}/g,
             function ( a, b ) {
-                var r = o[b], t = typeof r;
-                if ( types.test( t ) ) return r;
+                var r = o[b];
+                if ( types.test( typeof r ) ) return r;
+                // it's not in o, so check for a function
                 r = gp.getObjectAtPath( b );
-                return typeof r === 'function' ? r.apply(self, args) : '';
+                return typeof r === 'function' ? gp.applyFunc(r, self, args) : '';
             }
         );
     };
 
     gp.processBodyTemplate = function ( template, row, col ) {
         return gp.supplant( template, row, [row, col] );
-        //var fn, val, match, braces = template.match( gp.rexp.braces );
-        //if ( braces ) {
-        //    for ( var i = 0; i < braces.length; i++ ) {
-        //        match = braces[i].slice( 2, -2 );
-        //        if ( match in row ) {
-        //            val = row[match];
-        //            if ( gp.hasValue( val ) === false ) val = '';
-        //            template = template.replace( braces[i], val );
-        //        }
-        //        else {
-        //            fn = gp.getObjectAtPath( match );
-        //            if ( typeof fn === 'function' ) {
-        //                template = template.replace( braces[i], fn.call( this, row, col ) );
-        //            }
-        //        }
-        //    }
-        //}
-        //return template;
     };
 
     gp.processHeaderTemplate = function ( template, col ) {
@@ -371,6 +371,7 @@
     };
 
     gp.trim = function ( str ) {
+        if ( gp.isNullOrEmpty( str ) ) return str;
         return str.trim ? str.trim() : str.replace( /^\s+|\s+$/g, '' );
     };
 
@@ -417,7 +418,8 @@
     };
 
     gp.events = {
-        init: 'gp-init',
+        beforeInit: 'beforeInit',
+        afterInit: 'afterInit',
         beforeRead: 'beforeRead',
         beforeCreate: 'beforeCreate',
         beforeUpdate: 'beforeUpdate',
@@ -453,8 +455,7 @@
         }
     };
 
-
-    gp.tryCallback = function ( callback, $this, args ) {
+    gp.applyFunc = function ( callback, context, args, error ) {
         if ( typeof callback !== 'function' ) return;
         // anytime there's the possibility of executing 
         // user-supplied code, wrap it with a try-catch block
@@ -462,15 +463,25 @@
         // keep your sloppy JavaScript OUT of my area
         try {
             if ( args == undefined ) {
-                callback.call( $this );
+                return callback.call( context );
             }
             else {
                 args = Array.isArray( args ) ? args : [args];
-                callback.apply( $this, args );
+                return callback.apply( context, args );
             }
         }
-        catch ( ex ) {
-            gp.error( ex );
+        catch ( e ) {
+            error = error || gp.error;
+            gp.applyFunc( error, context, e );
+        }
+    };
+
+    gp.tryFunc = function(callback, arg) {
+        try {
+            callback( arg );
+        }
+        catch ( e ) {
+            gp.error( e );
         }
     };
 

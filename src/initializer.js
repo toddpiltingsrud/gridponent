@@ -18,26 +18,29 @@ gp.Initializer.prototype = {
         this.renderLayout( this.config );
         this.attachReadEvents();
 
-        // provides a hook for extensions
-        gp.raiseCustomEvent( this.config.node, gp.events.init, this.config );
+        // events should be raised AFTER the node is added to the DOM or they won't bubble
+        // this problem occurs when nodes are created and then added to the DOM programmatically 
+        // that means initialize has to return before it raises any events
+        setTimeout( function () {
+            // provides a hook for extensions
+            gp.raiseCustomEvent( self.config.node, gp.events.beforeInit, self.config );
 
-        gp.raiseCustomEvent( this.config.node, gp.events.beforeRead, { model: this.config.pageModel } );
+            gp.raiseCustomEvent( self.config.node, gp.events.beforeRead, { model: self.config.pageModel } );
 
-        model.read( requestModel, function ( data ) {
-            try {
-                self.config.pageModel = data;
-                self.resolvePaging( self.config );
-                self.resolveTypes( self.config );
-                self.render( self.config );
-                controller.monitorToolbars( self.config.node );
-                controller.addCommandHandlers( self.config.node );
-                controller.handleRowSelect( self.config );
-                controller.handleRefreshEvent( self.config );
-                if ( typeof callback === 'function' ) callback( self.config );
-            } catch ( e ) {
-                gp.error( e );
-            }
-            gp.raiseCustomEvent( self.config.node, gp.events.afterRead, { model: self.config.pageModel } );
+            model.read( requestModel, function ( data ) {
+                try {
+                    self.config.pageModel = data;
+                    self.resolvePaging( self.config );
+                    self.resolveTypes( self.config );
+                    self.render( self.config );
+                    controller.init();
+                    if ( typeof callback === 'function' ) callback( self.config );
+                } catch ( e ) {
+                    gp.error( e );
+                }
+                gp.raiseCustomEvent( self.config.node, gp.events.afterRead, { model: self.config.pageModel } );
+                gp.raiseCustomEvent( self.config.node, gp.events.afterInit, self.config );
+            } );
         } );
 
         return this.config;

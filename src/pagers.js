@@ -49,16 +49,18 @@ gp.ClientPager = function (config) {
 gp.ClientPager.prototype = {
     read: function (model, callback, error) {
         try {
-            var self = this;
-            var skip = this.getSkip( model );
+            var self = this,
+                search,
+                skip = this.getSkip( model );
 
-            model.Data = this.data;
+            // don't modify the original array
+            model.Data = this.data.slice(0, this.data.length);
 
-            var count;
             // filter first
-            if (!gp.isNullOrEmpty(model.Search)) {
+            if ( !gp.isNullOrEmpty( model.Search ) ) {
+                search = gp.trim( model.Search.toString() );
                 model.Data = model.Data.filter(function (row) {
-                    return self.searchFilter(row, model.Search);
+                    return self.searchFilter(row, search);
                 });
             }
 
@@ -198,17 +200,17 @@ gp.FunctionPager.prototype = {
                         callback( result );
                         break;
                     default:
-                        gp.tryCallback( error, this, 'Read returned a value which could not be resolved.' );
+                        gp.applyFunc( error, this, 'Read returned a value which could not be resolved.' );
                         break;
                 }
             }
         }
         catch (ex) {
             if (typeof error === 'function') {
-                gp.tryCallback( error, this, ex );
+                gp.applyFunc( error, this, ex );
             }
             else {
-                gp.tryCallback( callback, this, this.config );
+                gp.applyFunc( callback, this, this.config );
             }
             gp.error( ex );
         }

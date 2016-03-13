@@ -18,7 +18,7 @@ gp.ObjectProxy = function (obj, onPropertyChanged ) {
                     var oldValue = dict[prop];
                     dict[prop] = value;
                     if ( typeof onPropertyChanged === 'function' ) {
-                        onPropertyChanged(self, prop, oldValue, value);
+                        gp.applyFunc( onPropertyChanged, self, [self, prop, oldValue, value] );
                     }
                 }
             }

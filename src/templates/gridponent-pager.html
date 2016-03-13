@@ -15,7 +15,10 @@
             {{/if}}
         </label>
     </div>
-    <input type="number" name="Page" value="{{model.pageModel.Page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" /> of {{model.pageModel.PageCount}}
+    <input type="number" name="Page" value="{{model.pageModel.Page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />
+    <span class="page-count">
+        of {{model.pageModel.PageCount}}
+    </span>
     <div class="btn-group">
         <label class="ms-page-index btn btn-default {{#if model.pageModel.IsLastPage}} disabled {{/if}}" title="Next page">
             <span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>

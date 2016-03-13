@@ -1,6 +1,8 @@
 ﻿Use Promises instead of callbacks for reads and writes.
 <script src="https://www.promisejs.org/polyfills/promise-7.0.4.min.js"></script>
 
+Add a column class config option.
+
 Onrowselect should test for a JS object. If it doesn't find one assume it's a url.
 Instead of setting window.location, create a hidden anchor tag inside the component and click it.
 That way it could be intercepted by event handlers.
@@ -10,6 +12,8 @@ It's best to replace MVC's default JSON serializer with Json.NET:
 http://labs.bjfocus.co.uk/2014/06/using-json-net-as-default-json-serializer-in-mvc/
 
 Eliminate the helpers' dependencies on config.
+
+Move the globals into a private variable. Currently they are all on the main object.
 
 Use a CommonJS module library (e.g. webpack).
 

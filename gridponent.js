@@ -13,6 +13,10 @@ var gridponent = gridponent || {};
     
     gp.api.prototype = {
     
+        ready: function(callback) {
+            this.controller.ready( callback );
+        },
+    
         getData: function ( index ) {
             if ( typeof index == 'number' ) return this.controller.config.pageModel.Data[index];
             return this.controller.config.pageModel.Data;
@@ -101,26 +105,34 @@ var gridponent = gridponent || {};
         syncModel: function (target, model) {
             // get name and value of target
             var name = target.name,
-                value = target.value,
+                val = target.value,
                 handled = false,
                 type;
     
             try {
                 if ( name in model ) {
                     if ( typeof ( this.beforeSync ) === 'function' ) {
-                        handled = this.beforeSync( name, value, this.model );
+                        handled = this.beforeSync( name, val, this.model );
                     }
                     if ( !handled ) {
                         type = gp.getType( model[name] );
                         switch ( type ) {
                             case 'number':
-                                model[name] = parseFloat( value );
+                                model[name] = parseFloat( val );
                                 break;
                             case 'boolean':
-                                model[name] = ( value.toLowerCase() == 'true' );
+                                if ( target.type == 'checkbox' ) {
+                                    if ( val.toLowerCase() == 'true' ) val = target.checked;
+                                    else if ( val.toLowerCase() == 'false' ) val = !target.checked;
+                                    else val = target.checked ? val : null;
+                                    model[name] = val;
+                                }
+                                else {
+                                    model[name] = ( val.toLowerCase() == 'true' );
+                                }
                                 break;
                             default:
-                                model[name] = value;
+                                model[name] = val;
                         }
                     }
                 }
@@ -149,9 +161,46 @@ var gridponent = gridponent || {};
             this.requestModel.Top = 25;
         }
         this.monitor = null;
+        this.handlers = {
+            readHandler: self.read.bind( self ),
+            commandHandler: self.commandHandler.bind( self ),
+            rowSelectHandler: self.rowSelectHandler.bind( self )
+        };
+        this.done = false;
+        this.callbacks = [];
     };
     
     gp.Controller.prototype = {
+    
+        init: function () {
+            var self = this;
+            this.monitorToolbars( this.config.node );
+            this.addCommandHandlers( this.config.node );
+            this.addRowSelectHandler( this.config );
+            this.addRefreshEventHandler( this.config );
+            this.done = true;
+            this.callbacks.forEach( function ( callback ) {
+                gp.tryFunc( callback, self.config );
+            } );
+        },
+    
+        ready: function(callback) {
+            if ( this.done ) {
+                gp.tryFunc( callback, this.config );
+            }
+            else {
+                this.callbacks.push( callback );
+            }
+        },
+    
+        dispose: function () {
+            gp.raiseCustomEvent( this.config.node, gp.events.beforeDispose );
+            this.removeRefreshEventHandler( this.config );
+            this.removeReadHandlers();
+            this.removeRowSelectHandler();
+            this.removeCommandHandlers( this.config.node );
+            this.monitor.stop();
+        },
     
         monitorToolbars: function (node) {
             var self = this;
@@ -183,80 +232,100 @@ var gridponent = gridponent || {};
         },
     
         addCommandHandlers: function (node) {
-            var command, tr, row, self = this;
             // listen for command button clicks
-            gp.on(node, 'click', 'button[value]', function (evt) {
-                // 'this' is the element that was clicked
-                command = this.attributes['value'].value;
-                tr = gp.closest(this, 'tr[data-index]', node);
-                row = tr ? gp.getRowModel(self.config.pageModel.Data, tr) : null;
-                switch (command) {
-                    case 'Create':
-                        self.createRow();
-                        break;
-                    case 'Edit':
-                        self.editRow(row, tr);
-                        break;
-                    case 'Update':
-                        self.updateRow(row, tr);
-                        break;
-                    case 'Cancel':
-                        self.cancelEdit(row, tr);
-                        break;
-                    case 'Delete':
-                        self.deleteRow( row, tr );
-                        break;
-                    default:
-                        // check the api for an extension
-                        if ( command in node.api ) {
-                            node.api[command]( row, tr );
-                        }
-                        else {
-                        }
-                        break;
-                }
-            });
+            gp.on( node, 'click', 'button[value]', this.handlers.commandHandler );
         },
     
-        handleRowSelect: function ( config ) {
-            var trs, i = 0, model, type, url, rowSelector = 'div.table-body > table > tbody > tr';
+        removeCommandHandlers: function(node) {
+            gp.off( node, 'click', this.handlers.commandHandler );
+        },
+    
+        commandHandler: function(evt) {
+            var command, tr, row, node = this.config.node;
+            command = evt.selectedTarget.attributes['value'].value;
+            tr = gp.closest( evt.selectedTarget, 'tr[data-index]', node );
+            row = tr ? gp.getRowModel( this.config.pageModel.Data, tr ) : null;
+            switch ( command ) {
+                case 'Create':
+                    this.createRow();
+                    break;
+                case 'Edit':
+                    this.editRow( row, tr );
+                    break;
+                case 'Update':
+                    this.updateRow( row, tr );
+                    break;
+                case 'Cancel':
+                    this.cancelEdit( row, tr );
+                    break;
+                case 'Delete':
+                    this.deleteRow( row, tr );
+                    break;
+                default:
+                    // check the api for an extension
+                    if ( command in node.api ) {
+                        node.api[command]( row, tr );
+                    }
+                    else {
+                    }
+                    break;
+            }
+        },
+    
+        addRowSelectHandler: function ( config ) {
             if ( gp.hasValue( config.Onrowselect ) ) {
-                type = typeof config.Onrowselect;
-                if ( type === 'string' && config.Onrowselect.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
                 // it's got to be either a function or a URL template
-                if ( /function|urlTemplate/.test( type ) ) {
+                if ( /function|urlTemplate/.test( typeof config.Onrowselect ) ) {
                     // add click handler
-                    gp.on( config.node, 'click', rowSelector + ':not(.edit-mode)', function ( evt ) {
-                        // remove previously selected class
-                        trs = config.node.querySelectorAll( rowSelector + '.selected' );
-                        for ( i = 0; i < trs.length; i++ ) {
-                            gp.removeClass( trs[i], 'selected' );
-                        }
-                        // add selected class
-                        gp.addClass( this, 'selected' );
-                        // get the model for this row
-                        model = gp.getRowModel( config.pageModel.Data, this );
-    
-                        // ensure row selection doesn't interfere with button clicks in the row
-                        // by making sure the evt target is a cell
-                        if ( gp.in( evt.target, rowSelector + ' > td.body-cell', config.node ) ) {
-                            if ( type === 'function' ) {
-                                config.Onrowselect.call( this, model );
-                            }
-                            else {
-    
-                                // it's a urlTemplate
-                                window.location = gp.processBodyTemplate( config.Onrowselect, model );
-                            }
-                        }
-                    } );
+                    gp.on( config.node, 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
                 }
             }
         },
     
-        handleRefreshEvent: function ( config ) {
+        removeRowSelectHandler: function() {
+            gp.off( this.config.node, 'click', this.handlers.rowSelectHandler );
+        },
+    
+        rowSelectHandler: function ( evt ) {
+            var config = this.config,
+                tr = gp.closest( evt.selectedTarget, 'tr', config.node ),
+                trs = config.node.querySelectorAll( 'div.table-body > table > tbody > tr.selected' ),
+                type = typeof config.Onrowselect;
+    
+            if ( type === 'string' && config.Onrowselect.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
+    
+            // remove previously selected class
+            for ( var i = 0; i < trs.length; i++ ) {
+                gp.removeClass( trs[i], 'selected' );
+            }
+    
+            // add selected class
+            gp.addClass( tr, 'selected' );
+            // get the model for this row
+            model = gp.getRowModel( config.pageModel.Data, tr );
+    
+            // ensure row selection doesn't interfere with button clicks in the row
+            // by making sure the evt target is a body cell
+            if ( evt.target == evt.selectedTarget ) {
+                if ( type === 'function' ) {
+                    gp.applyFunc( config.Onrowselect, tr, [model] );
+                }
+                else {
+                    // it's a urlTemplate
+                    window.location = gp.processBodyTemplate( config.Onrowselect, model );
+                }
+            }
+        },
+    
+        addRefreshEventHandler: function ( config ) {
             if ( config.RefreshEvent ) {
-                gp.on( document, config.RefreshEvent, this.read.bind(this) );
+                gp.on( document, config.RefreshEvent, this.handlers.readHandler );
+            }
+        },
+    
+        removeRefreshEventHandler: function ( config ) {
+            if ( config.RefreshEvent ) {
+                gp.off( document, config.RefreshEvent, this.handlers.readHandler );
             }
         },
     
@@ -283,7 +352,7 @@ var gridponent = gridponent || {};
                 gp.shallowCopy( model, self.config.pageModel );
                 self.refresh( self.config );
                 gp.raiseCustomEvent( this.config.node, gp.events.afterRead, { model: this.config.pageModel } );
-                gp.tryCallback( callback, self.config.node, self.config.pageModel );
+                gp.applyFunc( callback, self.config.node, self.config.pageModel );
             } );
         },
     
@@ -298,7 +367,7 @@ var gridponent = gridponent || {};
                     builder;
     
                 if ( !gp.hasValue( this.config.Create ) ) {
-                    gp.tryCallback( callback, self.config.node );
+                    gp.applyFunc( callback, self.config.node );
                     return;
                 }
     
@@ -342,13 +411,13 @@ var gridponent = gridponent || {};
                         tableRow: tr
                     } );
     
-                    gp.tryCallback( callback, self.config.node, row );
+                    gp.applyFunc( callback, self.config.node, row );
                 } );
             }
             catch (ex) {
                 gp.error( ex );
     
-                gp.tryCallback( callback, self.config.node );
+                gp.applyFunc( callback, self.config.node );
             }
         },
     
@@ -397,7 +466,7 @@ var gridponent = gridponent || {};
     
                 // if there is no Update configuration setting or model, we're done here
                 if ( !gp.hasValue( this.config.Update ) || !updateModel) {
-                    gp.tryCallback( callback, self.config.node );
+                    gp.applyFunc( callback, self.config.node );
                     return;
                 }
     
@@ -411,7 +480,7 @@ var gridponent = gridponent || {};
                     try {
                         if ( returnedUpdateModel.ValidationErrors && returnedUpdateModel.ValidationErrors.length ) {
                             if ( typeof self.config.Validate === 'function' ) {
-                                self.config.Validate.call( this, tr, returnedUpdateModel );
+                                gp.applyFunc( self.config.Validate, this, [tr, returnedUpdateModel] );
                             }
                             else {
                                 gp.helpers['validation'].call( this, tr, returnedUpdateModel.ValidationErrors );
@@ -440,7 +509,7 @@ var gridponent = gridponent || {};
                         model: updateModel
                     } );
     
-                    gp.tryCallback( callback, self.config.node, updateModel );
+                    gp.applyFunc( callback, self.config.node, updateModel );
                 } );
             }
             catch (ex) {
@@ -452,7 +521,7 @@ var gridponent = gridponent || {};
         deleteRow: function (row, callback, skipConfirm) {
             try {
                 if ( !gp.hasValue( this.config.Delete ) ) {
-                    gp.tryCallback( callback, this.config.node );
+                    gp.applyFunc( callback, this.config.node );
                     return;
                 }
     
@@ -463,7 +532,7 @@ var gridponent = gridponent || {};
                     tr = gp.getTableRow(this.config.pageModel.Data, row, this.config.node);
     
                 if ( !confirmed ) {
-                    gp.tryCallback( callback, this.config.node );
+                    gp.applyFunc( callback, this.config.node );
                     return;
                 }
     
@@ -474,7 +543,7 @@ var gridponent = gridponent || {};
                 this.model.delete( row, function ( response ) {
     
                     try {
-                        if ( response.Success ) {
+                        if ( response.Success == true || response == true ) {
                             // remove the row from the model
                             var index = self.config.pageModel.Data.indexOf( row );
                             if ( index != -1 ) {
@@ -498,7 +567,7 @@ var gridponent = gridponent || {};
                         row: row
                     } );
     
-                    gp.tryCallback( callback, self.config.node, response );
+                    gp.applyFunc( callback, self.config.node, response );
                 } );
             }
             catch (ex) {
@@ -560,19 +629,13 @@ var gridponent = gridponent || {};
             gp.removeClass( tr, 'edit-mode' );
         },
     
-        removeReadEvents: function () {
+        removeReadHandlers: function () {
             gp.off( this.config.node, gp.events.beforeRead, gp.addBusy );
             gp.off( this.config.node, gp.events.afterRead, gp.removeBusy );
             gp.off( this.config.node, gp.events.beforeUpdate, gp.addBusy );
             gp.off( this.config.node, gp.events.afterUpdate, gp.removeBusy );
             gp.off( this.config.node, gp.events.beforeDelete, gp.addBusy );
             gp.off( this.config.node, gp.events.afterDelete, gp.removeBusy );
-        },
-    
-        dispose: function () {
-            gp.raiseCustomEvent( this.config.node, gp.events.beforeDispose );
-            this.removeReadEvents();
-            this.monitor.stop();
         }
     };
 
@@ -624,7 +687,7 @@ var gridponent = gridponent || {};
     
         gp.Formatter.prototype = {
             format: function (val, format) {
-                var key, dtf, nf, type, options;
+                var key, dtf, nf, type, options, dt;
                 if (!this.supported || !gp.hasValue(val)) return val;
     
                 type = gp.getType(val);
@@ -644,8 +707,13 @@ var gridponent = gridponent || {};
                     return dtf.format(val).replace(ltr, '');
                 }
                 if (type === 'dateString') {
-                    var parts = val.match(/\d+/g);
-                    var dt = new Date(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5]);
+                    var parts = val.match( /\d+/g );
+                    if ( parts.length >= 6 ) {
+                        dt = new Date(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5]);
+                    }
+                    else {
+                        dt = new Date( parts[0], parts[1] - 1, parts[2] );
+                    }
     
                     if (key in dateTimeFormatCache) {
                         dtf = dateTimeFormatCache[key];
@@ -820,6 +888,10 @@ var gridponent = gridponent || {};
             return to;
         };
     
+        gp.extend = function ( to, from ) {
+            return gp.shallowCopy( from, to );
+        };
+    
         gp.getLocalISOString = function ( date ) {
             if ( typeof date === 'string' ) return date;
             var offset = date.getTimezoneOffset();
@@ -844,6 +916,41 @@ var gridponent = gridponent || {};
             return typeof ( a );
         };
     
+        var proxyListener = function ( elem, event, targetSelector, listener ) {
+    
+            this.handler = function ( evt ) {
+    
+                var e = evt.target;
+    
+                // get all the elements that match targetSelector
+                var potentials = elem.querySelectorAll( targetSelector );
+    
+                // find the first element that matches targetSelector
+                // usually this will be the first one
+                while ( e ) {
+                    for ( var j = 0; j < potentials.length; j++ ) {
+                        if ( e == potentials[j] ) {
+                            // don't modify the listener's context to preserve the ability to use bind()
+                            // set selectedTarget to the matching element instead
+                            evt.selectedTarget = e;
+                            listener( evt );
+                            return;
+                        }
+                    }
+                    e = e.parentElement;
+                }
+            };
+    
+            this.remove = function () {
+                elem.removeEventListener( event, this.handler );
+            };
+    
+            // handle event
+            elem.addEventListener( event, this.handler, false );
+        };
+    
+        // this allows us to attach an event handler to the document
+        // and handle events that match a selector
         gp.on = function ( elem, event, targetSelector, listener ) {
             // if elem is a selector, convert it to an element
             if ( typeof ( elem ) === 'string' ) {
@@ -859,39 +966,15 @@ var gridponent = gridponent || {};
                 return;
             }
     
-            // this allows us to attach an event handler to the document
-            // and handle events that match a selector
-            var privateListener = function ( evt ) {
+            var proxy = new proxyListener( elem, event, targetSelector, listener );
     
-                var e = evt.target;
-    
-                // get all the elements that match targetSelector
-                var potentials = elem.querySelectorAll( targetSelector );
-    
-                // find the first element that matches targetSelector
-                // usually this will be the first one
-                while ( e ) {
-                    for ( var j = 0; j < potentials.length; j++ ) {
-                        if ( e == potentials[j] ) {
-                            // set 'this' to the matching element
-                            listener.call( e, evt );
-                            return;
-                        }
-                    }
-                    e = e.parentElement;
-                }
-            };
-    
-            // handle event
-            elem.addEventListener( event, privateListener, false );
-    
-            // use an array to store listener and privateListener 
+            // use an array to store privateListener 
             // so we can remove the handler with gp.off
             var propName = 'gp-listeners-' + event;
             var listeners = elem[propName] || ( elem[propName] = [] );
             listeners.push( {
                 pub: listener,
-                priv: privateListener
+                priv: proxy
             } );
     
             return elem;
@@ -905,7 +988,7 @@ var gridponent = gridponent || {};
                     if ( listeners[i].pub === listener ) {
     
                         // remove the event handler
-                        elem.removeEventListener( event, listeners[i].priv );
+                        listeners[i].priv.remove();
     
                         // remove it from the listener store
                         listeners.splice( i, 1 );
@@ -964,7 +1047,9 @@ var gridponent = gridponent || {};
         };
     
         gp.isNullOrEmpty = function ( val ) {
-            return gp.hasValue( val ) === false || val.length === undefined || val.length === 0;
+            // if a string or array is passed, they'll be tested for both null and zero length
+            // if any other data type is passed (no length property), it'll only be tested for null
+            return gp.hasValue( val ) === false || ( val.length != undefined && val.length === 0 );
         };
     
         gp.coalesce = function ( array ) {
@@ -1080,34 +1165,17 @@ var gridponent = gridponent || {};
             var self = this, types = /string|number|boolean/;
             return str.replace( /{{([^{}]*)}}/g,
                 function ( a, b ) {
-                    var r = o[b], t = typeof r;
-                    if ( types.test( t ) ) return r;
+                    var r = o[b];
+                    if ( types.test( typeof r ) ) return r;
+                    // it's not in o, so check for a function
                     r = gp.getObjectAtPath( b );
-                    return typeof r === 'function' ? r.apply(self, args) : '';
+                    return typeof r === 'function' ? gp.applyFunc(r, self, args) : '';
                 }
             );
         };
     
         gp.processBodyTemplate = function ( template, row, col ) {
             return gp.supplant( template, row, [row, col] );
-            //var fn, val, match, braces = template.match( gp.rexp.braces );
-            //if ( braces ) {
-            //    for ( var i = 0; i < braces.length; i++ ) {
-            //        match = braces[i].slice( 2, -2 );
-            //        if ( match in row ) {
-            //            val = row[match];
-            //            if ( gp.hasValue( val ) === false ) val = '';
-            //            template = template.replace( braces[i], val );
-            //        }
-            //        else {
-            //            fn = gp.getObjectAtPath( match );
-            //            if ( typeof fn === 'function' ) {
-            //                template = template.replace( braces[i], fn.call( this, row, col ) );
-            //            }
-            //        }
-            //    }
-            //}
-            //return template;
         };
     
         gp.processHeaderTemplate = function ( template, col ) {
@@ -1119,6 +1187,7 @@ var gridponent = gridponent || {};
         };
     
         gp.trim = function ( str ) {
+            if ( gp.isNullOrEmpty( str ) ) return str;
             return str.trim ? str.trim() : str.replace( /^\s+|\s+$/g, '' );
         };
     
@@ -1164,7 +1233,8 @@ var gridponent = gridponent || {};
         };
     
         gp.events = {
-            init: 'gp-init',
+            beforeInit: 'beforeInit',
+            afterInit: 'afterInit',
             beforeRead: 'beforeRead',
             beforeCreate: 'beforeCreate',
             beforeUpdate: 'beforeUpdate',
@@ -1199,8 +1269,7 @@ var gridponent = gridponent || {};
             }
         };
     
-    
-        gp.tryCallback = function ( callback, $this, args ) {
+        gp.applyFunc = function ( callback, context, args, error ) {
             if ( typeof callback !== 'function' ) return;
             // anytime there's the possibility of executing 
             // user-supplied code, wrap it with a try-catch block
@@ -1208,15 +1277,25 @@ var gridponent = gridponent || {};
             // keep your sloppy JavaScript OUT of my area
             try {
                 if ( args == undefined ) {
-                    callback.call( $this );
+                    return callback.call( context );
                 }
                 else {
                     args = Array.isArray( args ) ? args : [args];
-                    callback.apply( $this, args );
+                    return callback.apply( context, args );
                 }
             }
-            catch ( ex ) {
-                gp.error( ex );
+            catch ( e ) {
+                error = error || gp.error;
+                gp.applyFunc( error, context, e );
+            }
+        };
+    
+        gp.tryFunc = function(callback, arg) {
+            try {
+                callback( arg );
+            }
+            catch ( e ) {
+                gp.error( e );
             }
         };
     
@@ -1231,7 +1310,7 @@ var gridponent = gridponent || {};
         'toolbarTemplate': function () {
             var html = new gp.StringBuilder();
             if ( typeof ( this.ToolbarTemplate ) === 'function' ) {
-                html.add( this.ToolbarTemplate.call( this ) );
+                html.add( gp.applyFunc( this.ToolbarTemplate, this ) );
             }
             else {
                 html.add( this.ToolbarTemplate );
@@ -1264,7 +1343,7 @@ var gridponent = gridponent || {};
                 // check for a template
                 if ( col.HeaderTemplate ) {
                     if ( typeof ( col.HeaderTemplate ) === 'function' ) {
-                        html.add( col.HeaderTemplate.call( self, col ) );
+                        html.add( gp.applyFunc( col.HeaderTemplate, self, [col] ) );
                     }
                     else {
                         html.add( gp.processHeaderTemplate.call( this, col.HeaderTemplate, col ) );
@@ -1313,7 +1392,7 @@ var gridponent = gridponent || {};
             // check for a template
             if ( col.BodyTemplate ) {
                 if ( typeof ( col.BodyTemplate ) === 'function' ) {
-                    html.add( col.BodyTemplate.call( this, row, col ) );
+                    html.add( gp.applyFunc( col.BodyTemplate, this, [row, col] ) );
                 }
                 else {
                     html.add( gp.processBodyTemplate.call( this, col.BodyTemplate, row, col ) );
@@ -1367,7 +1446,7 @@ var gridponent = gridponent || {};
             // check for a template
             if ( col.EditTemplate ) {
                 if ( typeof ( col.EditTemplate ) === 'function' ) {
-                    html.add( col.EditTemplate.call( this, row, col ) );
+                    html.add( gp.applyFunc( col.EditTemplate, this, [row, col] ) );
                 }
                 else {
                     html.add( gp.processBodyTemplate.call( this, col.EditTemplate, row, col ) );
@@ -1431,7 +1510,7 @@ var gridponent = gridponent || {};
             var html = new gp.StringBuilder();
             if ( col.FooterTemplate ) {
                 if ( typeof ( col.FooterTemplate ) === 'function' ) {
-                    html.add( col.FooterTemplate.call( this, col, this.pageModel.Data ) );
+                    html.add( gp.applyFunc( col.FooterTemplate, this, [col, this.pageModel.Data] ) );
                 }
                 else {
                     html.add( gp.processFooterTemplate.call( this, col.FooterTemplate, col, this.pageModel.Data ) );
@@ -1545,26 +1624,29 @@ var gridponent = gridponent || {};
             this.renderLayout( this.config );
             this.attachReadEvents();
     
-            // provides a hook for extensions
-            gp.raiseCustomEvent( this.config.node, gp.events.init, this.config );
+            // events should be raised AFTER the node is added to the DOM or they won't bubble
+            // this problem occurs when nodes are created and then added to the DOM programmatically 
+            // that means initialize has to return before it raises any events
+            setTimeout( function () {
+                // provides a hook for extensions
+                gp.raiseCustomEvent( self.config.node, gp.events.beforeInit, self.config );
     
-            gp.raiseCustomEvent( this.config.node, gp.events.beforeRead, { model: this.config.pageModel } );
+                gp.raiseCustomEvent( self.config.node, gp.events.beforeRead, { model: self.config.pageModel } );
     
-            model.read( requestModel, function ( data ) {
-                try {
-                    self.config.pageModel = data;
-                    self.resolvePaging( self.config );
-                    self.resolveTypes( self.config );
-                    self.render( self.config );
-                    controller.monitorToolbars( self.config.node );
-                    controller.addCommandHandlers( self.config.node );
-                    controller.handleRowSelect( self.config );
-                    controller.handleRefreshEvent( self.config );
-                    if ( typeof callback === 'function' ) callback( self.config );
-                } catch ( e ) {
-                    gp.error( e );
-                }
-                gp.raiseCustomEvent( self.config.node, gp.events.afterRead, { model: self.config.pageModel } );
+                model.read( requestModel, function ( data ) {
+                    try {
+                        self.config.pageModel = data;
+                        self.resolvePaging( self.config );
+                        self.resolveTypes( self.config );
+                        self.render( self.config );
+                        controller.init();
+                        if ( typeof callback === 'function' ) callback( self.config );
+                    } catch ( e ) {
+                        gp.error( e );
+                    }
+                    gp.raiseCustomEvent( self.config.node, gp.events.afterRead, { model: self.config.pageModel } );
+                    gp.raiseCustomEvent( self.config.node, gp.events.afterInit, self.config );
+                } );
             } );
     
             return this.config;
@@ -1932,31 +2014,28 @@ var gridponent = gridponent || {};
     
             this.dal.read(
                 requestModel,
-                function ( arg ) { gp.tryCallback( callback, self, arg ); },
-                function ( arg ) { gp.tryCallback( error, self, arg ); }
+                function ( arg ) { gp.applyFunc( callback, self, arg ); },
+                function ( arg ) { gp.applyFunc( error, self, arg ); }
             );
         },
     
         create: function (callback, error) {
             var self = this,
+                args,
                 row;
     
             // Create config option can be a function or a URL
             if ( typeof this.config.Create === 'function' ) {
                 // call the function, set the API as the context
-                this.config.Create.call(
-                    this.config.node.api,
-                    function ( row ) { gp.tryCallback( callback, self, row ); },
-                    function ( arg ) { gp.tryCallback( error, self, row ); }
-                );
+                gp.applyFunc(this.config.Create, this.config.node.api, [callback, error], error);
             }
             else {
                 // call the URL
                 var http = new gp.Http();
                 http.get(
                     this.config.Create,
-                    function ( row ) { gp.tryCallback( callback, self, row ); },
-                    function ( arg ) { gp.tryCallback( error, self, row ); }
+                    function ( row ) { gp.applyFunc( callback, self, row ); },
+                    function ( arg ) { gp.applyFunc( error, self, row ); }
                 );
             }
         },
@@ -1966,20 +2045,15 @@ var gridponent = gridponent || {};
             // config.Update can be a function or URL
             gp.raiseCustomEvent( this.config.node, gp.events.beforeUpdate );
             if ( typeof this.config.Update === 'function' ) {
-                this.config.Update.call(
-                    this.config.node.api,
-                    row,
-                    function ( arg ) { gp.tryCallback( callback, self, arg ); },
-                    function ( arg ) { gp.tryCallback( error, self, arg ); }
-                );
+                gp.applyFunc(this.config.Update, this.config.node.api, [row, callback, error], error);
             }
             else {
                 var http = new gp.Http();
                 http.post(
                     this.config.Update,
                     row,
-                    function ( arg ) { gp.tryCallback( callback, self, arg ); },
-                    function ( arg ) { gp.tryCallback( error, self, arg ); }
+                    function ( arg ) { gp.applyFunc( callback, self, arg ); },
+                    function ( arg ) { gp.applyFunc( error, self, arg ); }
                 );
             }
         },
@@ -1987,20 +2061,15 @@ var gridponent = gridponent || {};
         'delete': function (row, callback, error) {
             var self = this;
             if ( typeof this.config.Delete === 'function' ) {
-                this.config.Delete.call(
-                    this.config.node.api,
-                    row,
-                    function ( arg ) { gp.tryCallback( callback, self, arg ); },
-                    function ( arg ) { gp.tryCallback( error, self, arg ); }
-                );
+                gp.applyFunc(this.config.Delete, this.config.node.api, [row, callback, error], error);
             }
             else {
                 var http = new gp.Http();
                 http.delete(
                     this.config.Delete,
                     row,
-                    function ( arg ) { gp.tryCallback( callback, self, arg ); },
-                    function ( arg ) { gp.tryCallback( error, self, arg ); }
+                    function ( arg ) { gp.applyFunc( callback, self, arg ); },
+                    function ( arg ) { gp.applyFunc( error, self, arg ); }
                 );
             }
         }
@@ -2040,7 +2109,7 @@ var gridponent = gridponent || {};
         },
     
         html: function ( html ) {
-            if (gp.hasClass(html) && html !== '') this.node.innerHTML = html;
+            this.node.innerHTML = gp.hasValue( html ) ? html : '';
             return this;
         },
     
@@ -2092,7 +2161,7 @@ var gridponent = gridponent || {};
                         var oldValue = dict[prop];
                         dict[prop] = value;
                         if ( typeof onPropertyChanged === 'function' ) {
-                            onPropertyChanged(self, prop, oldValue, value);
+                            gp.applyFunc( onPropertyChanged, self, [self, prop, oldValue, value] );
                         }
                     }
                 }
@@ -2152,16 +2221,18 @@ var gridponent = gridponent || {};
     gp.ClientPager.prototype = {
         read: function (model, callback, error) {
             try {
-                var self = this;
-                var skip = this.getSkip( model );
+                var self = this,
+                    search,
+                    skip = this.getSkip( model );
     
-                model.Data = this.data;
+                // don't modify the original array
+                model.Data = this.data.slice(0, this.data.length);
     
-                var count;
                 // filter first
-                if (!gp.isNullOrEmpty(model.Search)) {
+                if ( !gp.isNullOrEmpty( model.Search ) ) {
+                    search = gp.trim( model.Search.toString() );
                     model.Data = model.Data.filter(function (row) {
-                        return self.searchFilter(row, model.Search);
+                        return self.searchFilter(row, search);
                     });
                 }
     
@@ -2301,17 +2372,17 @@ var gridponent = gridponent || {};
                             callback( result );
                             break;
                         default:
-                            gp.tryCallback( error, this, 'Read returned a value which could not be resolved.' );
+                            gp.applyFunc( error, this, 'Read returned a value which could not be resolved.' );
                             break;
                     }
                 }
             }
             catch (ex) {
                 if (typeof error === 'function') {
-                    gp.tryCallback( error, this, ex );
+                    gp.applyFunc( error, this, ex );
                 }
                 else {
-                    gp.tryCallback( callback, this, this.config );
+                    gp.applyFunc( callback, this, this.config );
                 }
                 gp.error( ex );
             }
@@ -2582,9 +2653,12 @@ var gridponent = gridponent || {};
         out.push('</div>');
         out.push('    <input type="number" name="Page" value="');
         out.push(model.pageModel.Page);
-        out.push('" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" /> of ');
+        out.push('" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />');
+        out.push('<span class="page-count">');
+        out.push('        of ');
         out.push(model.pageModel.PageCount);
-            out.push('<div class="btn-group">');
+            out.push('</span>');
+        out.push('<div class="btn-group">');
         out.push('        <label class="ms-page-index btn btn-default ');
         if (model.pageModel.IsLastPage) {
         out.push(' disabled ');

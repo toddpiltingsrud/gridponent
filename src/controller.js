@@ -10,9 +10,46 @@ gp.Controller = function (config, model, requestModel) {
         this.requestModel.Top = 25;
     }
     this.monitor = null;
+    this.handlers = {
+        readHandler: self.read.bind( self ),
+        commandHandler: self.commandHandler.bind( self ),
+        rowSelectHandler: self.rowSelectHandler.bind( self )
+    };
+    this.done = false;
+    this.callbacks = [];
 };
 
 gp.Controller.prototype = {
+
+    init: function () {
+        var self = this;
+        this.monitorToolbars( this.config.node );
+        this.addCommandHandlers( this.config.node );
+        this.addRowSelectHandler( this.config );
+        this.addRefreshEventHandler( this.config );
+        this.done = true;
+        this.callbacks.forEach( function ( callback ) {
+            gp.tryFunc( callback, self.config );
+        } );
+    },
+
+    ready: function(callback) {
+        if ( this.done ) {
+            gp.tryFunc( callback, this.config );
+        }
+        else {
+            this.callbacks.push( callback );
+        }
+    },
+
+    dispose: function () {
+        gp.raiseCustomEvent( this.config.node, gp.events.beforeDispose );
+        this.removeRefreshEventHandler( this.config );
+        this.removeReadHandlers();
+        this.removeRowSelectHandler();
+        this.removeCommandHandlers( this.config.node );
+        this.monitor.stop();
+    },
 
     monitorToolbars: function (node) {
         var self = this;
@@ -45,82 +82,101 @@ gp.Controller.prototype = {
     },
 
     addCommandHandlers: function (node) {
-        var command, tr, row, self = this;
         // listen for command button clicks
-        gp.on(node, 'click', 'button[value]', function (evt) {
-            // 'this' is the element that was clicked
-            gp.info('addCommandHandlers:this:', this);
-            command = this.attributes['value'].value;
-            tr = gp.closest(this, 'tr[data-index]', node);
-            row = tr ? gp.getRowModel(self.config.pageModel.Data, tr) : null;
-            switch (command) {
-                case 'Create':
-                    self.createRow();
-                    break;
-                case 'Edit':
-                    self.editRow(row, tr);
-                    break;
-                case 'Update':
-                    self.updateRow(row, tr);
-                    break;
-                case 'Cancel':
-                    self.cancelEdit(row, tr);
-                    break;
-                case 'Delete':
-                    self.deleteRow( row, tr );
-                    break;
-                default:
-                    // check the api for an extension
-                    if ( command in node.api ) {
-                        node.api[command]( row, tr );
-                    }
-                    else {
-                        gp.log( 'Unrecognized command: ' + command );
-                    }
-                    break;
-            }
-        });
+        gp.on( node, 'click', 'button[value]', this.handlers.commandHandler );
     },
 
-    handleRowSelect: function ( config ) {
-        var trs, i = 0, model, type, url, rowSelector = 'div.table-body > table > tbody > tr';
+    removeCommandHandlers: function(node) {
+        gp.off( node, 'click', this.handlers.commandHandler );
+    },
+
+    commandHandler: function(evt) {
+        var command, tr, row, node = this.config.node;
+        command = evt.selectedTarget.attributes['value'].value;
+        tr = gp.closest( evt.selectedTarget, 'tr[data-index]', node );
+        row = tr ? gp.getRowModel( this.config.pageModel.Data, tr ) : null;
+        switch ( command ) {
+            case 'Create':
+                this.createRow();
+                break;
+            case 'Edit':
+                this.editRow( row, tr );
+                break;
+            case 'Update':
+                this.updateRow( row, tr );
+                break;
+            case 'Cancel':
+                this.cancelEdit( row, tr );
+                break;
+            case 'Delete':
+                this.deleteRow( row, tr );
+                break;
+            default:
+                // check the api for an extension
+                if ( command in node.api ) {
+                    node.api[command]( row, tr );
+                }
+                else {
+                    gp.log( 'Unrecognized command: ' + command );
+                }
+                break;
+        }
+    },
+
+    addRowSelectHandler: function ( config ) {
         if ( gp.hasValue( config.Onrowselect ) ) {
-            type = typeof config.Onrowselect;
-            if ( type === 'string' && config.Onrowselect.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
             // it's got to be either a function or a URL template
-            if ( /function|urlTemplate/.test( type ) ) {
+            if ( /function|urlTemplate/.test( typeof config.Onrowselect ) ) {
                 // add click handler
-                gp.on( config.node, 'click', rowSelector + ':not(.edit-mode)', function ( evt ) {
-                    // remove previously selected class
-                    trs = config.node.querySelectorAll( rowSelector + '.selected' );
-                    for ( i = 0; i < trs.length; i++ ) {
-                        gp.removeClass( trs[i], 'selected' );
-                    }
-                    // add selected class
-                    gp.addClass( this, 'selected' );
-                    // get the model for this row
-                    model = gp.getRowModel( config.pageModel.Data, this );
-
-                    // ensure row selection doesn't interfere with button clicks in the row
-                    // by making sure the evt target is a cell
-                    if ( gp.in( evt.target, rowSelector + ' > td.body-cell', config.node ) ) {
-                        if ( type === 'function' ) {
-                            config.Onrowselect.call( this, model );
-                        }
-                        else {
-
-                            // it's a urlTemplate
-                            window.location = gp.processBodyTemplate( config.Onrowselect, model );
-                        }
-                    }
-                } );
+                gp.on( config.node, 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
             }
         }
     },
 
-    handleRefreshEvent: function ( config ) {
+    removeRowSelectHandler: function() {
+        gp.off( this.config.node, 'click', this.handlers.rowSelectHandler );
+    },
+
+    rowSelectHandler: function ( evt ) {
+        var config = this.config,
+            tr = gp.closest( evt.selectedTarget, 'tr', config.node ),
+            trs = config.node.querySelectorAll( 'div.table-body > table > tbody > tr.selected' ),
+            type = typeof config.Onrowselect;
+
+        if ( type === 'string' && config.Onrowselect.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
+
+        // remove previously selected class
+        for ( var i = 0; i < trs.length; i++ ) {
+            gp.removeClass( trs[i], 'selected' );
+        }
+
+        // add selected class
+        gp.addClass( tr, 'selected' );
+        // get the model for this row
+        model = gp.getRowModel( config.pageModel.Data, tr );
+
+        // ensure row selection doesn't interfere with button clicks in the row
+        // by making sure the evt target is a body cell
+        if ( evt.target == evt.selectedTarget ) {
+            if ( type === 'function' ) {
+                gp.applyFunc( config.Onrowselect, tr, [model] );
+            }
+            else {
+                // it's a urlTemplate
+                window.location = gp.processBodyTemplate( config.Onrowselect, model );
+            }
+        }
+    },
+
+    addRefreshEventHandler: function ( config ) {
         if ( config.RefreshEvent ) {
-            gp.on( document, config.RefreshEvent, this.read.bind(this) );
+            gp.on( document, config.RefreshEvent, this.handlers.readHandler );
+        }
+    },
+
+    removeRefreshEventHandler: function ( config ) {
+        if ( config.RefreshEvent ) {
+            gp.off( document, config.RefreshEvent, this.handlers.readHandler );
         }
     },
 
@@ -148,7 +204,7 @@ gp.Controller.prototype = {
             gp.shallowCopy( model, self.config.pageModel );
             self.refresh( self.config );
             gp.raiseCustomEvent( this.config.node, gp.events.afterRead, { model: this.config.pageModel } );
-            gp.tryCallback( callback, self.config.node, self.config.pageModel );
+            gp.applyFunc( callback, self.config.node, self.config.pageModel );
         } );
     },
 
@@ -163,7 +219,7 @@ gp.Controller.prototype = {
                 builder;
 
             if ( !gp.hasValue( this.config.Create ) ) {
-                gp.tryCallback( callback, self.config.node );
+                gp.applyFunc( callback, self.config.node );
                 return;
             }
 
@@ -207,13 +263,13 @@ gp.Controller.prototype = {
                     tableRow: tr
                 } );
 
-                gp.tryCallback( callback, self.config.node, row );
+                gp.applyFunc( callback, self.config.node, row );
             } );
         }
         catch (ex) {
             gp.error( ex );
 
-            gp.tryCallback( callback, self.config.node );
+            gp.applyFunc( callback, self.config.node );
         }
     },
 
@@ -262,7 +318,7 @@ gp.Controller.prototype = {
 
             // if there is no Update configuration setting or model, we're done here
             if ( !gp.hasValue( this.config.Update ) || !updateModel) {
-                gp.tryCallback( callback, self.config.node );
+                gp.applyFunc( callback, self.config.node );
                 return;
             }
 
@@ -276,7 +332,7 @@ gp.Controller.prototype = {
                 try {
                     if ( returnedUpdateModel.ValidationErrors && returnedUpdateModel.ValidationErrors.length ) {
                         if ( typeof self.config.Validate === 'function' ) {
-                            self.config.Validate.call( this, tr, returnedUpdateModel );
+                            gp.applyFunc( self.config.Validate, this, [tr, returnedUpdateModel] );
                         }
                         else {
                             gp.helpers['validation'].call( this, tr, returnedUpdateModel.ValidationErrors );
@@ -305,7 +361,7 @@ gp.Controller.prototype = {
                     model: updateModel
                 } );
 
-                gp.tryCallback( callback, self.config.node, updateModel );
+                gp.applyFunc( callback, self.config.node, updateModel );
             } );
         }
         catch (ex) {
@@ -317,7 +373,7 @@ gp.Controller.prototype = {
     deleteRow: function (row, callback, skipConfirm) {
         try {
             if ( !gp.hasValue( this.config.Delete ) ) {
-                gp.tryCallback( callback, this.config.node );
+                gp.applyFunc( callback, this.config.node );
                 return;
             }
 
@@ -328,7 +384,7 @@ gp.Controller.prototype = {
                 tr = gp.getTableRow(this.config.pageModel.Data, row, this.config.node);
 
             if ( !confirmed ) {
-                gp.tryCallback( callback, this.config.node );
+                gp.applyFunc( callback, this.config.node );
                 return;
             }
 
@@ -339,7 +395,7 @@ gp.Controller.prototype = {
             this.model.delete( row, function ( response ) {
 
                 try {
-                    if ( response.Success ) {
+                    if ( response.Success == true || response == true ) {
                         // remove the row from the model
                         var index = self.config.pageModel.Data.indexOf( row );
                         if ( index != -1 ) {
@@ -363,7 +419,7 @@ gp.Controller.prototype = {
                     row: row
                 } );
 
-                gp.tryCallback( callback, self.config.node, response );
+                gp.applyFunc( callback, self.config.node, response );
             } );
         }
         catch (ex) {
@@ -425,18 +481,12 @@ gp.Controller.prototype = {
         gp.removeClass( tr, 'edit-mode' );
     },
 
-    removeReadEvents: function () {
+    removeReadHandlers: function () {
         gp.off( this.config.node, gp.events.beforeRead, gp.addBusy );
         gp.off( this.config.node, gp.events.afterRead, gp.removeBusy );
         gp.off( this.config.node, gp.events.beforeUpdate, gp.addBusy );
         gp.off( this.config.node, gp.events.afterUpdate, gp.removeBusy );
         gp.off( this.config.node, gp.events.beforeDelete, gp.addBusy );
         gp.off( this.config.node, gp.events.afterDelete, gp.removeBusy );
-    },
-
-    dispose: function () {
-        gp.raiseCustomEvent( this.config.node, gp.events.beforeDispose );
-        this.removeReadEvents();
-        this.monitor.stop();
     }
 };

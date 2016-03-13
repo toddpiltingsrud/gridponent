@@ -29,7 +29,7 @@
 
     gp.Formatter.prototype = {
         format: function (val, format) {
-            var key, dtf, nf, type, options;
+            var key, dtf, nf, type, options, dt;
             if (!this.supported || !gp.hasValue(val)) return val;
 
             type = gp.getType(val);
@@ -49,8 +49,13 @@
                 return dtf.format(val).replace(ltr, '');
             }
             if (type === 'dateString') {
-                var parts = val.match(/\d+/g);
-                var dt = new Date(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5]);
+                var parts = val.match( /\d+/g );
+                if ( parts.length >= 6 ) {
+                    dt = new Date(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5]);
+                }
+                else {
+                    dt = new Date( parts[0], parts[1] - 1, parts[2] );
+                }
 
                 if (key in dateTimeFormatCache) {
                     dtf = dateTimeFormatCache[key];

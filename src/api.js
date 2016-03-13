@@ -8,6 +8,10 @@ gp.api = function ( controller ) {
 
 gp.api.prototype = {
 
+    ready: function(callback) {
+        this.controller.ready( callback );
+    },
+
     getData: function ( index ) {
         if ( typeof index == 'number' ) return this.controller.config.pageModel.Data[index];
         return this.controller.config.pageModel.Data;

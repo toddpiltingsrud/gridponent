@@ -115,7 +115,7 @@
 .gp.fixed-headers .table-body {
   height: 400px;
   overflow-y: scroll;
-  box-shadow: inset -6px 0 8px 4px #888888;
+  box-shadow: inset -6px 0 8px 4px #888;
 }
 .gp.fixed-footers .table-footer {
   padding-right: 17px;
@@ -205,6 +205,9 @@
 .gp .table-pager label input {
   display: none;
 }
+.gp .table-pager .page-count {
+  margin: 0 6px;
+}
 .gp td.commands-cell {
   white-space: nowrap;
 }
@@ -243,4 +246,3 @@
 .gp input[type=date] {
   min-width: 125px;
 }
-/*# sourceMappingURL=gridponent.css.map */

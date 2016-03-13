@@ -7,7 +7,7 @@ gp.helpers = {
     'toolbarTemplate': function () {
         var html = new gp.StringBuilder();
         if ( typeof ( this.ToolbarTemplate ) === 'function' ) {
-            html.add( this.ToolbarTemplate.call( this ) );
+            html.add( gp.applyFunc( this.ToolbarTemplate, this ) );
         }
         else {
             html.add( this.ToolbarTemplate );
@@ -42,7 +42,7 @@ gp.helpers = {
                 gp.verbose( 'helpers.thead: col.HeaderTemplate:' );
                 gp.verbose( col.HeaderTemplate );
                 if ( typeof ( col.HeaderTemplate ) === 'function' ) {
-                    html.add( col.HeaderTemplate.call( self, col ) );
+                    html.add( gp.applyFunc( col.HeaderTemplate, self, [col] ) );
                 }
                 else {
                     html.add( gp.processHeaderTemplate.call( this, col.HeaderTemplate, col ) );
@@ -91,7 +91,7 @@ gp.helpers = {
         // check for a template
         if ( col.BodyTemplate ) {
             if ( typeof ( col.BodyTemplate ) === 'function' ) {
-                html.add( col.BodyTemplate.call( this, row, col ) );
+                html.add( gp.applyFunc( col.BodyTemplate, this, [row, col] ) );
             }
             else {
                 html.add( gp.processBodyTemplate.call( this, col.BodyTemplate, row, col ) );
@@ -145,7 +145,7 @@ gp.helpers = {
         // check for a template
         if ( col.EditTemplate ) {
             if ( typeof ( col.EditTemplate ) === 'function' ) {
-                html.add( col.EditTemplate.call( this, row, col ) );
+                html.add( gp.applyFunc( col.EditTemplate, this, [row, col] ) );
             }
             else {
                 html.add( gp.processBodyTemplate.call( this, col.EditTemplate, row, col ) );
@@ -209,7 +209,7 @@ gp.helpers = {
         var html = new gp.StringBuilder();
         if ( col.FooterTemplate ) {
             if ( typeof ( col.FooterTemplate ) === 'function' ) {
-                html.add( col.FooterTemplate.call( this, col, this.pageModel.Data ) );
+                html.add( gp.applyFunc( col.FooterTemplate, this, [col, this.pageModel.Data] ) );
             }
             else {
                 html.add( gp.processFooterTemplate.call( this, col.FooterTemplate, col, this.pageModel.Data ) );

@@ -31,7 +31,7 @@ gp.NodeBuilder.prototype = {
     },
 
     html: function ( html ) {
-        if (gp.hasClass(html) && html !== '') this.node.innerHTML = html;
+        this.node.innerHTML = gp.hasValue( html ) ? html : '';
         return this;
     },
 

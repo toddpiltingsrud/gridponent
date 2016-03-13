@@ -22,7 +22,7 @@ gp.Http.prototype = {
                 callback( JSON.parse( xhr.responseText ), xhr );
             }
             else {
-                gp.tryCallback( error, xhr, xhr.responseText );
+                gp.applyFunc( error, xhr, xhr.responseText );
             }
         }
         xhr.onerror = error;

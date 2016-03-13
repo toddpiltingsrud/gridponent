@@ -64,9 +64,12 @@ gp.templates['gridponent-pager'] = function(model, arg) {
     out.push('</div>');
     out.push('    <input type="number" name="Page" value="');
     out.push(model.pageModel.Page);
-    out.push('" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" /> of ');
+    out.push('" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />');
+    out.push('<span class="page-count">');
+    out.push('        of ');
     out.push(model.pageModel.PageCount);
-        out.push('<div class="btn-group">');
+        out.push('</span>');
+    out.push('<div class="btn-group">');
     out.push('        <label class="ms-page-index btn btn-default ');
     if (model.pageModel.IsLastPage) {
     out.push(' disabled ');

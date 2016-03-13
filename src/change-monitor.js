@@ -36,26 +36,34 @@ gp.ChangeMonitor.prototype = {
     syncModel: function (target, model) {
         // get name and value of target
         var name = target.name,
-            value = target.value,
+            val = target.value,
             handled = false,
             type;
 
         try {
             if ( name in model ) {
                 if ( typeof ( this.beforeSync ) === 'function' ) {
-                    handled = this.beforeSync( name, value, this.model );
+                    handled = this.beforeSync( name, val, this.model );
                 }
                 if ( !handled ) {
                     type = gp.getType( model[name] );
                     switch ( type ) {
                         case 'number':
-                            model[name] = parseFloat( value );
+                            model[name] = parseFloat( val );
                             break;
                         case 'boolean':
-                            model[name] = ( value.toLowerCase() == 'true' );
+                            if ( target.type == 'checkbox' ) {
+                                if ( val.toLowerCase() == 'true' ) val = target.checked;
+                                else if ( val.toLowerCase() == 'false' ) val = !target.checked;
+                                else val = target.checked ? val : null;
+                                model[name] = val;
+                            }
+                            else {
+                                model[name] = ( val.toLowerCase() == 'true' );
+                            }
                             break;
                         default:
-                            model[name] = value;
+                            model[name] = val;
                     }
                 }
             }
