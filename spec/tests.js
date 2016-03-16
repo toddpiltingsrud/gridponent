@@ -260,77 +260,77 @@ QUnit.test( 'refresh-event', function ( assert ) {
 
 } );
 
-QUnit.test( 'api.create 1', function ( assert ) {
+//QUnit.test( 'api.create 1', function ( assert ) {
 
-    var done = assert.async();
+//    var done = assert.async();
 
-    getTableConfig( configOptions, function ( config ) {
+//    getTableConfig( configOptions, function ( config ) {
 
-        $( config.node ).one( gp.events.afterInit, function () {
+//        $( config.node ).one( gp.events.afterInit, function () {
 
-            var cellCount1 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
+//            var cellCount1 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
 
-            config.node.api.create( function ( row ) {
-                console.log( 'api.create 1', row );
-                var cellCount2 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
-                assert.ok( gp.hasValue( row ), 'api should return a row' );
-                assert.strictEqual( cellCount1, cellCount2, 'should create the same number of cells' );
-                //$( '#table .box' ).empty();
-                config.node.api.dispose();
-                done();
-            } );
+//            config.node.api.create( function ( row ) {
+//                console.log( 'api.create 1', row );
+//                var cellCount2 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
+//                assert.ok( gp.hasValue( row ), 'api should return a row' );
+//                assert.strictEqual( cellCount1, cellCount2, 'should create the same number of cells' );
+//                //$( '#table .box' ).empty();
+//                config.node.api.dispose();
+//                done();
+//            } );
 
-        } );
+//        } );
 
-    } );
+//    } );
 
-} );
+//} );
 
-QUnit.test( 'api.create 2', function ( assert ) {
+//QUnit.test( 'api.create 2', function ( assert ) {
 
-    createFn = function ( callback ) {
-        callback(
-            { "ProductID": 0, "Name": "test", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": null, "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0.0000, "ListPrice": 0.0000, "Size": null, "SizeUnitMeasureCode": null, "WeightUnitMeasureCode": null, "Weight": null, "DaysToManufacture": 0, "ProductLine": null, "Class": null, "Style": null, "ProductSubcategoryID": null, "ProductModelID": null, "SellStartDate": new Date(), "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "694215b7-70dd-4c0d-acb1-d734ba44c0c8", "ModifiedDate": null, "Markup": "" }
-        );
-    };
+//    createFn = function ( callback ) {
+//        callback(
+//            { "ProductID": 0, "Name": "test", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": null, "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0.0000, "ListPrice": 0.0000, "Size": null, "SizeUnitMeasureCode": null, "WeightUnitMeasureCode": null, "Weight": null, "DaysToManufacture": 0, "ProductLine": null, "Class": null, "Style": null, "ProductSubcategoryID": null, "ProductModelID": null, "SellStartDate": new Date(), "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "694215b7-70dd-4c0d-acb1-d734ba44c0c8", "ModifiedDate": null, "Markup": "" }
+//        );
+//    };
 
-    var options = gp.shallowCopy( configOptions );
-    options.create = 'createFn';
-    var done = assert.async();
+//    var options = gp.shallowCopy( configOptions );
+//    options.create = 'createFn';
+//    var done = assert.async();
 
-    getTableConfig( options, function ( config ) {
+//    getTableConfig( options, function ( config ) {
 
-        $( config.node ).one( gp.events.afterInit, function () {
-            config.node.api.create( function ( row ) {
-                console.log( row );
-                assert.strictEqual( row.Name, 'test', 'create should support functions that return a row' );
-                config.node.api.dispose();
-                done();
-            } );
+//        $( config.node ).one( gp.events.afterInit, function () {
+//            config.node.api.create( function ( row ) {
+//                console.log( row );
+//                assert.strictEqual( row.Name, 'test', 'create should support functions that return a row' );
+//                config.node.api.dispose();
+//                done();
+//            } );
 
-        } );
+//        } );
 
-    } );
+//    } );
 
-    // now try it with a null create setting
-    options.create = null;
-    var done3 = assert.async();
+//    // now try it with a null create setting
+//    options.create = null;
+//    var done3 = assert.async();
 
-    getTableConfig( options, function ( config ) {
+//    getTableConfig( options, function ( config ) {
 
-        $( config.node ).one( gp.events.afterInit, function () {
+//        $( config.node ).one( gp.events.afterInit, function () {
 
-            config.node.api.create( function ( row ) {
-                assert.ok( row == undefined, 'empty create setting should execute the callback with no arguments' );
-                config.node.api.dispose();
-                done3();
-            } );
+//            config.node.api.create( function ( row ) {
+//                assert.ok( row == undefined, 'empty create setting should execute the callback with no arguments' );
+//                config.node.api.dispose();
+//                done3();
+//            } );
 
-        } );
+//        } );
 
-    } );
+//    } );
 
-} );
+//} );
 
 QUnit.test( 'api.update', function ( assert ) {
 
@@ -1021,7 +1021,6 @@ QUnit.test( 'gp.Model', function ( assert ) {
         done4 = assert.async(),
         done5 = assert.async(),
         done6 = assert.async(),
-        done7 = assert.async(),
         done8 = assert.async(),
         done9 = assert.async();
 
@@ -1159,15 +1158,6 @@ QUnit.test( 'gp.Model', function ( assert ) {
             model.read( request, function ( response ) {
                 assert.equal( response.Data.length, 1, 'should return a single record' );
                 done6();
-            } );
-
-
-            // create
-
-            model.create( function ( response ) {
-                assert.ok( 'ProductID' in response, 'should return a new record' );
-                assert.equal( response.ProductID, 0, 'should return a new record' );
-                done7();
             } );
 
 
@@ -1707,13 +1697,13 @@ QUnit.test( 'edit and update', function ( assert ) {
             node.addEventListener( 'afterUpdate', function ( evt ) {
                 assert.ok( evt != null );
                 assert.ok( evt.detail != null );
-                assert.ok( evt.detail.model != null );
-                assert.strictEqual( evt.detail.model.Row.StandardCost, 5, 'change monitor should update the model' );
+                assert.ok( evt.detail.Row != null );
+                assert.strictEqual( evt.detail.Row.StandardCost, 5, 'change monitor should update the model' );
 
                 // make sure the grid is updated with the correct value
                 var updatedCellValue = evt.target.querySelector( 'td:nth-child(' + ( colIndex + 1 ) + ')' ).innerHTML;
 
-                var expectedValue = gp.getFormattedValue( evt.detail.model.Row, col, true );
+                var expectedValue = gp.getFormattedValue( evt.detail.Row, col, true );
 
                 assert.equal( updatedCellValue, expectedValue, 'grid should be updated with the correct value' );
 
@@ -2000,7 +1990,7 @@ QUnit.test( 'controller.render', function ( assert ) {
             assert.ok( pager == null, 'there should be no pager' );
         }
 
-        var addButton = node.querySelector( '.table-toolbar button[value=Create]' );
+        var addButton = node.querySelector( '.table-toolbar button[value=AddRow]' );
 
         if ( config.Create ) {
             assert.ok( addButton != null, 'there should be a button for adding new rows' );
