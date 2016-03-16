@@ -308,12 +308,20 @@
 
     tr.edit-mode, tr.create-mode {
 
-        td.body-cell div.btn-group {
-            white-space:nowrap;
+        td.body-cell {
 
-            .btn {
-                float:none;
+            div.btn-group {
+                white-space:nowrap;
+
+                .btn {
+                    float:none;
+                }
             }
+
+            [name].error {
+                border-color:red;
+            }
+            
         }
     }
 }

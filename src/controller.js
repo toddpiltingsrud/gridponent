@@ -286,8 +286,8 @@ gp.Controller.prototype = {
 
             tr['gp-update-model'] = updateModel;
 
-            gp.raiseCustomEvent( this.config.node, gp.events.afterCreate, {
-                model: updateModel,
+            gp.raiseCustomEvent( this.config.node, gp.events.afterAdd, {
+                row: row,
                 tableRow: tr
             } );
 
@@ -405,7 +405,7 @@ gp.Controller.prototype = {
                 return;
             }
 
-            gp.raiseCustomEvent(tr, 'beforeUpdate', updateModel );
+            gp.raiseCustomEvent(tr, gp.events.beforeUpdate, row );
 
             // call the data layer
             this.model.update( updateModel.Row, function ( returnedUpdateModel ) {
@@ -472,20 +472,15 @@ gp.Controller.prototype = {
             this.model.delete( row, function ( response ) {
 
                 try {
-                    if ( response.Success == true || response == true ) {
-                        // remove the row from the model
-                        var index = self.config.pageModel.Data.indexOf( row );
-                        if ( index != -1 ) {
-                            self.config.pageModel.Data.splice( index, 1 );
-                            // if the row is currently being displayed, refresh the grid
-                            if ( tr ) {
-                                self.refresh( self.config );
-                            }
+                    // if it didn't error out, we'll assume it succeeded
+                    // remove the row from the model
+                    var index = self.config.pageModel.Data.indexOf( row );
+                    if ( index != -1 ) {
+                        self.config.pageModel.Data.splice( index, 1 );
+                        // if the row is currently being displayed, refresh the grid
+                        if ( tr ) {
+                            self.refresh( self.config );
                         }
-                    }
-                    else {
-                        message = response.Message || 'The row could not be deleted.';
-                        alert( message );
                     }
                 }
                 catch ( err ) {

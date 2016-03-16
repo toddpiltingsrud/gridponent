@@ -196,12 +196,18 @@ gp.helpers = {
     },
 
     'validation': function ( tr, validationErrors ) {
-        var builder = new gp.StringBuilder();
-        builder.add('Please correct the following errors:\r\n');
+        var builder = new gp.StringBuilder(), input, msg;
+        builder.add( 'Please correct the following errors:\r\n' );
+        // remove error class from inputs
+        gp.removeClass( tr.querySelectorAll( '[name].error' ), 'error' );
         validationErrors.forEach( function ( v ) {
-            builder.add(v.Key + ':\r\n');
+            input = tr.querySelector( '[name="' + v.Key + '"]' );
+            if ( input ) {
+                gp.addClass( input, 'error' );
+            }
+            builder.add( v.Key + ':\r\n' );
             // extract the error message
-            var msg = v.Value.Errors.map( function ( e ) { return '    - ' + e.ErrorMessage + '\r\n'; } ).join( '' );
+            msg = v.Value.Errors.map( function ( e ) { return '    - ' + e.ErrorMessage + '\r\n'; } ).join( '' );
             builder.add( msg );
         } );
         alert( builder.toString() );

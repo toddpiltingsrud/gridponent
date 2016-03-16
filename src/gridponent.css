@@ -254,3 +254,7 @@
 .gp tr.create-mode td.body-cell div.btn-group .btn {
   float: none;
 }
+.gp tr.edit-mode td.body-cell [name].error,
+.gp tr.create-mode td.body-cell [name].error {
+  border-color: red;
+}

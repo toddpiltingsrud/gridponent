@@ -454,8 +454,8 @@ var gridponent = gridponent || {};
     
                 tr['gp-update-model'] = updateModel;
     
-                gp.raiseCustomEvent( this.config.node, gp.events.afterCreate, {
-                    model: updateModel,
+                gp.raiseCustomEvent( this.config.node, gp.events.afterAdd, {
+                    row: row,
                     tableRow: tr
                 } );
     
@@ -573,7 +573,7 @@ var gridponent = gridponent || {};
                     return;
                 }
     
-                gp.raiseCustomEvent(tr, 'beforeUpdate', updateModel );
+                gp.raiseCustomEvent(tr, gp.events.beforeUpdate, row );
     
                 // call the data layer
                 this.model.update( updateModel.Row, function ( returnedUpdateModel ) {
@@ -640,20 +640,15 @@ var gridponent = gridponent || {};
                 this.model.delete( row, function ( response ) {
     
                     try {
-                        if ( response.Success == true || response == true ) {
-                            // remove the row from the model
-                            var index = self.config.pageModel.Data.indexOf( row );
-                            if ( index != -1 ) {
-                                self.config.pageModel.Data.splice( index, 1 );
-                                // if the row is currently being displayed, refresh the grid
-                                if ( tr ) {
-                                    self.refresh( self.config );
-                                }
+                        // if it didn't error out, we'll assume it succeeded
+                        // remove the row from the model
+                        var index = self.config.pageModel.Data.indexOf( row );
+                        if ( index != -1 ) {
+                            self.config.pageModel.Data.splice( index, 1 );
+                            // if the row is currently being displayed, refresh the grid
+                            if ( tr ) {
+                                self.refresh( self.config );
                             }
-                        }
-                        else {
-                            message = response.Message || 'The row could not be deleted.';
-                            alert( message );
                         }
                     }
                     catch ( err ) {
@@ -941,7 +936,7 @@ var gridponent = gridponent || {};
     
         // logging
         gp.logging = 'info';
-        gp.log = window.console ? window.console.log.bind( window.console ) : function () { };
+        gp.log = ( window.console ? window.console.log.bind( window.console ) : function () { } );
         gp.error = function ( e ) {
             if ( console && console.error ) {
                 console.error( e );
@@ -1264,12 +1259,14 @@ var gridponent = gridponent || {};
             return false;
         };
     
-    
         gp.resolveTemplate = function ( template ) {
-            // it's either a selector or a function
+            // can be a selector, an inline template, or a function
             var t = gp.getObjectAtPath( template );
             if ( typeof ( t ) === 'function' ) {
                 return t;
+            }
+            else if ( gp.rexp.braces.test( template ) ) {
+                return template;
             }
             else {
                 t = document.querySelector( template );
@@ -1335,13 +1332,27 @@ var gridponent = gridponent || {};
         };
     
         gp.addClass = function ( el, cn ) {
-            if ( !gp.hasClass( el, cn ) ) {
+            if ( el instanceof NodeList ) {
+                for (var i = 0; i < el.length; i++) {
+                    if ( !gp.hasClass( el[i], cn ) ) {
+                        el[i].className = ( el[i].className === '' ) ? cn : el[i].className + ' ' + cn;
+                    }
+                }
+            }
+            else if ( !gp.hasClass( el, cn ) ) {
                 el.className = ( el.className === '' ) ? cn : el.className + ' ' + cn;
             }
         };
     
         gp.removeClass = function ( el, cn ) {
-            el.className = gp.trim(( ' ' + el.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
+            if ( el instanceof NodeList ) {
+                for ( var i = 0; i < el.length; i++ ) {
+                    el[i].className = gp.trim(( ' ' + el[i].className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
+                }
+            }
+            else {
+                el.className = gp.trim(( ' ' + el.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
+            }
         };
     
         gp.prependChild = function ( node, child ) {
@@ -1620,12 +1631,18 @@ var gridponent = gridponent || {};
         },
     
         'validation': function ( tr, validationErrors ) {
-            var builder = new gp.StringBuilder();
-            builder.add('Please correct the following errors:\r\n');
+            var builder = new gp.StringBuilder(), input, msg;
+            builder.add( 'Please correct the following errors:\r\n' );
+            // remove error class from inputs
+            gp.removeClass( tr.querySelectorAll( '[name].error' ), 'error' );
             validationErrors.forEach( function ( v ) {
-                builder.add(v.Key + ':\r\n');
+                input = tr.querySelector( '[name="' + v.Key + '"]' );
+                if ( input ) {
+                    gp.addClass( input, 'error' );
+                }
+                builder.add( v.Key + ':\r\n' );
                 // extract the error message
-                var msg = v.Value.Errors.map( function ( e ) { return '    - ' + e.ErrorMessage + '\r\n'; } ).join( '' );
+                msg = v.Value.Errors.map( function ( e ) { return '    - ' + e.ErrorMessage + '\r\n'; } ).join( '' );
                 builder.add( msg );
             } );
             alert( builder.toString() );

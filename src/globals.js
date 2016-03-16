@@ -344,12 +344,14 @@
         return false;
     };
 
-
     gp.resolveTemplate = function ( template ) {
-        // it's either a selector or a function
+        // can be a selector, an inline template, or a function
         var t = gp.getObjectAtPath( template );
         if ( typeof ( t ) === 'function' ) {
             return t;
+        }
+        else if ( gp.rexp.braces.test( template ) ) {
+            return template;
         }
         else {
             t = document.querySelector( template );
@@ -415,13 +417,27 @@
     };
 
     gp.addClass = function ( el, cn ) {
-        if ( !gp.hasClass( el, cn ) ) {
+        if ( el instanceof NodeList ) {
+            for (var i = 0; i < el.length; i++) {
+                if ( !gp.hasClass( el[i], cn ) ) {
+                    el[i].className = ( el[i].className === '' ) ? cn : el[i].className + ' ' + cn;
+                }
+            }
+        }
+        else if ( !gp.hasClass( el, cn ) ) {
             el.className = ( el.className === '' ) ? cn : el.className + ' ' + cn;
         }
     };
 
     gp.removeClass = function ( el, cn ) {
-        el.className = gp.trim(( ' ' + el.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
+        if ( el instanceof NodeList ) {
+            for ( var i = 0; i < el.length; i++ ) {
+                el[i].className = gp.trim(( ' ' + el[i].className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
+            }
+        }
+        else {
+            el.className = gp.trim(( ' ' + el.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
+        }
     };
 
     gp.prependChild = function ( node, child ) {
