@@ -107,7 +107,7 @@ var getTableConfig = function ( options, callback ) {
     var $node = $( out.join( '' ) );
 
     if ( document.registerElement ) {
-        $node.one( gp.events.afterInit, function ( evt ) {
+        $node.one( gp.events.beforeInit, function ( evt ) {
             callback( evt.originalEvent.detail );
         } );
     }
@@ -558,8 +558,8 @@ QUnit.test( 'api.delete', function ( assert ) {
     // test it with a function
     fns = fns || {};
     fns.delete = function ( row, callback ) {
-        var index = config.pageModel.Data.indexOf( row );
-        config.pageModel.Data.splice( index, 1 );
+        var index = data.products.indexOf( row );
+        data.products.splice( index, 1 );
         callback( {
             Success: true,
             Message: null
@@ -612,21 +612,30 @@ QUnit.test( 'api.delete', function ( assert ) {
 if ( document.registerElement ) {
 
     QUnit.test( 'dispose', function ( assert ) {
-        getTableConfig( null, function(config){} );
-
-        $( '#table .box' ).empty().append( config.node );
 
         var done = assert.async();
 
-        var handler = function () {
-            assert.ok( true, 'dispose was called' );
-            config.node.removeEventListener( gp.events.beforeDispose, handler, false );
-            done();
-        };
+        getTableConfig( null, function ( config ) {
 
-        config.node.addEventListener( gp.events.beforeDispose, handler, false );
+            config.node.api.ready( function () {
 
-        config.node.parentNode.removeChild( config.node );
+                $( '#table .box' ).empty().append( config.node );
+
+
+                var handler = function () {
+                    assert.ok( true, 'dispose was called' );
+                    config.node.removeEventListener( gp.events.beforeDispose, handler, false );
+                    done();
+                };
+
+                config.node.addEventListener( gp.events.beforeDispose, handler, false );
+
+                config.node.parentNode.removeChild( config.node );
+
+            } );
+
+        } );
+
     } );
 
 }
@@ -1971,8 +1980,8 @@ QUnit.test( 'controller.render', function ( assert ) {
     var done1 = assert.async(),
         done2 = assert.async();
 
-    function tests( node ) {
-        var search = node.querySelector( '.table-toolbar input[name=Search]' );
+    function tests( config ) {
+        var search = config.node.querySelector( '.table-toolbar input[name=Search]' );
 
         if ( config.Search ) {
             assert.ok( search != null, 'there should be a search box' );
@@ -1981,7 +1990,7 @@ QUnit.test( 'controller.render', function ( assert ) {
             assert.ok( search == null, 'there should be no search box' );
         }
 
-        var pager = node.querySelector( '.table-pager input' );
+        var pager = config.node.querySelector( '.table-pager input' );
 
         if ( config.Pager ) {
             assert.ok( pager != null, 'there should be a pager with some inputs in it' );
@@ -1990,7 +1999,7 @@ QUnit.test( 'controller.render', function ( assert ) {
             assert.ok( pager == null, 'there should be no pager' );
         }
 
-        var addButton = node.querySelector( '.table-toolbar button[value=AddRow]' );
+        var addButton = config.node.querySelector( '.table-toolbar button[value=AddRow]' );
 
         if ( config.Create ) {
             assert.ok( addButton != null, 'there should be a button for adding new rows' );
@@ -1999,7 +2008,7 @@ QUnit.test( 'controller.render', function ( assert ) {
             assert.ok( addButton == null, 'there should not be a button for adding new rows' );
         }
 
-        var columnWidthStyle = node.querySelector( 'style.column-width-style' );
+        var columnWidthStyle = config.node.querySelector( 'style.column-width-style' );
 
         assert.ok( columnWidthStyle != null, 'column width styles should always render' );
     }
@@ -2014,7 +2023,7 @@ QUnit.test( 'controller.render', function ( assert ) {
 
         config.node.api.ready( function () {
 
-            tests( config.node );
+            tests( config );
 
             done1();
 
@@ -2026,7 +2035,7 @@ QUnit.test( 'controller.render', function ( assert ) {
 
         config.node.api.ready( function () {
 
-            tests( config.node );
+            tests( config );
 
             done2();
 
