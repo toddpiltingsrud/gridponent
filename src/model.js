@@ -42,38 +42,41 @@ gp.Model.prototype = {
         );
     },
 
-    create: function (callback, error) {
-        var self = this,
-            args,
-            row;
+    create: function ( row, callback, error) {
+        var self = this, url;
 
-        // Create config option can be a function or a URL
+        // config.Create can be a function or a URL
         if ( typeof this.config.Create === 'function' ) {
             // call the function, set the API as the context
-            gp.applyFunc(this.config.Create, this.config.node.api, [callback, error], error);
+            gp.applyFunc(this.config.Create, this.config.node.api, [row, callback, error], error);
         }
         else {
+            // the url can be a template
+            url = gp.supplant( this.config.Create, row );
             // call the URL
             var http = new gp.Http();
-            http.get(
-                this.config.Create,
-                function ( row ) { gp.applyFunc( callback, self, row ); },
-                function ( arg ) { gp.applyFunc( error, self, row ); }
+            http.post(
+                url,
+                row,
+                function ( arg ) { gp.applyFunc( callback, self, arg ); },
+                function ( arg ) { gp.applyFunc( error, self, arg ); }
             );
         }
     },
 
     update: function (row, callback, error) {
-        var self = this;
+        var self = this, url;
+
         // config.Update can be a function or URL
-        gp.raiseCustomEvent( this.config.node, gp.events.beforeUpdate );
         if ( typeof this.config.Update === 'function' ) {
             gp.applyFunc(this.config.Update, this.config.node.api, [row, callback, error], error);
         }
         else {
+            // the url can be a template
+            url = gp.supplant( this.config.Update, row );
             var http = new gp.Http();
             http.post(
-                this.config.Update,
+                url,
                 row,
                 function ( arg ) { gp.applyFunc( callback, self, arg ); },
                 function ( arg ) { gp.applyFunc( error, self, arg ); }
@@ -82,14 +85,16 @@ gp.Model.prototype = {
     },
 
     'delete': function (row, callback, error) {
-        var self = this;
+        var self = this, url;
         if ( typeof this.config.Delete === 'function' ) {
             gp.applyFunc(this.config.Delete, this.config.node.api, [row, callback, error], error);
         }
         else {
+            // the url can be a template
+            url = gp.supplant( this.config.Delete, row );
             var http = new gp.Http();
             http.delete(
-                this.config.Delete,
+                url,
                 row,
                 function ( arg ) { gp.applyFunc( callback, self, arg ); },
                 function ( arg ) { gp.applyFunc( error, self, arg ); }

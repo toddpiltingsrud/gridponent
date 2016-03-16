@@ -139,7 +139,7 @@ gp.helpers = {
         return html.toString();
     },
 
-    'editCellContent': function ( col, row ) {
+    'editCellContent': function ( col, row, mode ) {
         var template, html = new gp.StringBuilder();
 
         // check for a template
@@ -153,7 +153,9 @@ gp.helpers = {
         }
         else if ( col.Commands ) {
             html.add( '<div class="btn-group" role="group">' )
-                .add( '<button type="button" class="btn btn-primary btn-xs" value="Update">' )
+                .add( '<button type="button" class="btn btn-primary btn-xs" value="' )
+                .add( mode == 'create' ? 'Create' : 'Update' )
+                .add( '">' )
                 .add( '<span class="glyphicon glyphicon-save"></span>Save' )
                 .add( '</button>' )
                 .add( '<button type="button" class="btn btn-default btn-xs" value="Cancel">' )

@@ -2,6 +2,25 @@
       API
 \***************/
 
+gp.events = {
+    beforeInit: 'beforeInit',
+    afterInit: 'afterInit',
+    beforeRead: 'beforeRead',
+    beforeAdd: 'beforeAdd',
+    beforeCreate: 'beforeCreate',
+    beforeUpdate: 'beforeUpdate',
+    beforeDelete: 'beforeDelete',
+    beforeEditMode: 'beforeEditMode',
+    afterRead: 'afterRead',
+    afterAdd: 'afterAdd',
+    afterCreate: 'afterCreate',
+    afterUpdate: 'afterUpdate',
+    afterDelete: 'afterDelete',
+    afterEditMode: 'afterEditMode',
+    beforeDispose: 'beforeDispose',
+    httpError: 'httpError'
+};
+
 gp.api = function ( controller ) {
     this.controller = controller;
 };

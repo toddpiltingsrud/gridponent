@@ -9,7 +9,7 @@ gp.Http.prototype = {
         var props = Object.getOwnPropertyNames( obj );
         var out = [];
         props.forEach( function ( prop ) {
-            out.push( encodeURIComponent( prop ) + '=' + encodeURIComponent( obj[prop] ) );
+            out.push( encodeURIComponent( prop ) + '=' + ( gp.isNullOrEmpty( obj[prop] ) ? '' : encodeURIComponent( obj[prop] ) ) );
         } );
         return out.join( '&' );
     },
@@ -18,11 +18,12 @@ gp.Http.prototype = {
         xhr.open(type.toUpperCase(), url, true);
         xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
         xhr.onload = function () {
+            var response = ( gp.rexp.json.test( xhr.responseText ) ? JSON.parse( xhr.responseText ) : xhr.responseText );
             if ( xhr.status == 200 ) {
-                callback( JSON.parse( xhr.responseText ), xhr );
+                callback( response, xhr );
             }
             else {
-                gp.applyFunc( error, xhr, xhr.responseText );
+                gp.applyFunc( error, xhr, response );
             }
         }
         xhr.onerror = error;

@@ -58,17 +58,17 @@
     <Content Include="spec\OutSource.txt" />
     <Content Include="spec\styles\bootstrap-theme.css" />
     <Content Include="spec\styles\bootstrap-theme.min.css" />
-    <Content Include="src\x-promise-7.0.4.js" />
-    <Content Include="src\update-model.js" />
-    <Content Include="src\string-builder.js" />
-    <Content Include="src\node-builder.js" />
-    <Content Include="src\api.js" />
     <Content Include="src\gridponent.css">
       <DependentUpon>gridponent.less</DependentUpon>
     </Content>
     <Content Include="src\gridponent.min.css">
       <DependentUpon>gridponent.css</DependentUpon>
     </Content>
+    <Content Include="src\x-promise-7.0.4.js" />
+    <Content Include="src\update-model.js" />
+    <Content Include="src\string-builder.js" />
+    <Content Include="src\node-builder.js" />
+    <Content Include="src\api.js" />
     <Content Include="src\x-polar.js" />
     <Content Include="src\model.js" />
     <Content Include="src\controller.js" />
@@ -101,9 +101,6 @@
       <LastGenOutput>Out.txt</LastGenOutput>
     </None>
     <None Include="spec\validation-errors.json" />
-    <None Include="src\gridponent.css.map">
-      <DependentUpon>gridponent.css</DependentUpon>
-    </None>
     <None Include="src\gridponent.less" />
     <Content Include="src\templates\gridponent-body.html" />
     <Content Include="src\templates\templates.js">

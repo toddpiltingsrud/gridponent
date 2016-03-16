@@ -134,7 +134,7 @@ gp.templates['gridponent'] = function(model, arg) {
     out.push('</div>');
                     }
                         if (model.Create) {
-        out.push('<button class="btn btn-default" type="button" value="Create">');
+        out.push('<button class="btn btn-default" type="button" value="AddRow">');
     out.push('<span class="glyphicon glyphicon-plus"></span>Add');
     out.push('</button>');
                     }

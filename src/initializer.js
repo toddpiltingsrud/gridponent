@@ -16,7 +16,7 @@ gp.Initializer.prototype = {
         var controller = new gp.Controller( self.config, model, requestModel );
         this.node.api = new gp.api( controller );
         this.renderLayout( this.config );
-        this.attachReadEvents();
+        this.addBusyHandlers();
 
         // events should be raised AFTER the node is added to the DOM or they won't bubble
         // this problem occurs when nodes are created and then added to the DOM programmatically 
@@ -46,13 +46,14 @@ gp.Initializer.prototype = {
         return this.config;
     },
 
-    attachReadEvents: function () {
+    addBusyHandlers: function () {
         gp.on( this.config.node, gp.events.beforeRead, gp.addBusy );
         gp.on( this.config.node, gp.events.afterRead, gp.removeBusy );
         gp.on( this.config.node, gp.events.beforeUpdate, gp.addBusy );
         gp.on( this.config.node, gp.events.afterUpdate, gp.removeBusy );
         gp.on( this.config.node, gp.events.beforeDelete, gp.addBusy );
         gp.on( this.config.node, gp.events.afterDelete, gp.removeBusy );
+        gp.on( this.config.node, gp.events.httpError, gp.removeBusy );
     },
 
     getConfig: function (node) {
@@ -174,12 +175,17 @@ gp.Initializer.prototype = {
     },
 
     resolveTypes: function ( config ) {
-        if ( !config || !config.pageModel || !config.pageModel.Data ) return;
+        if ( !config || !config.pageModel || ( !config.pageModel.Data && !config.pageModel.Types ) ) return;
         config.Columns.forEach( function ( col ) {
-            for ( var i = 0; i < config.pageModel.Data.length; i++ ) {
-                if ( config.pageModel.Data[i][col.Field] !== null ) {
-                    col.Type = gp.getType( config.pageModel.Data[i][col.Field] );
-                    break;
+            if ( config.pageModel.Types && config.pageModel.Types[col.Field] != undefined ) {
+                col.Type = gp.convertClrType( config.pageModel.Types[col.Field] )
+            }
+            else {
+                for ( var i = 0; i < config.pageModel.Data.length; i++ ) {
+                    if ( config.pageModel.Data[i][col.Field] !== null ) {
+                        col.Type = gp.getType( config.pageModel.Data[i][col.Field] );
+                        break;
+                    }
                 }
             }
         } );

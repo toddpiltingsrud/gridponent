@@ -9,12 +9,13 @@
         iso8601: /^[012][0-9]{3}-[01][0-9]-[0123][0-9]/,
         quoted: /^['"].+['"]$/,
         trueFalse: /true|false/i,
-        braces: /{{.+?}}/g
+        braces: /{{.+?}}/g,
+        json: /^\{.*\}$|^\[.*\]$/
     };
 
     // logging
     gp.logging = 'info';
-    gp.log = window.console ? window.console.log.bind( window.console ) : function () { };
+    gp.log = ( window.console ? window.console.log.bind( window.console ) : function () { } );
     gp.error = function ( e ) {
         if ( console && console.error ) {
             console.error( e );
@@ -94,6 +95,40 @@
         }
         // 'number','string','boolean','function','object'
         return typeof ( a );
+    };
+
+    gp.convertClrType = function ( clrType ) {
+        switch ( clrType ) {
+            case 'Decimal':
+            case 'Double':
+            case 'Int16':
+            case 'Int32':
+            case 'Int64':
+            case 'Single':
+            case 'Byte':
+            case 'UInt16':
+            case 'UInt32':
+            case 'UInt64':
+                return 'number';
+            case 'DateTime':
+                return 'date';
+            case 'Boolean':
+                return 'boolean';
+            default:
+                return 'string';
+        }
+    };
+
+    gp.getDefaultValue = function ( type ) {
+        switch ( type ) {
+            case 'number':
+                return 0;
+            case 'boolean':
+                return false;
+            case 'date':
+            default:
+                return null;
+        }
     };
 
     var proxyListener = function ( elem, event, targetSelector, listener ) {
@@ -415,22 +450,6 @@
         var event = new CustomEvent( name, { bubbles: true, detail: detail, cancelable: true } );
         node.dispatchEvent( event );
         gp.info( 'raiseCustomEvent: name', name );
-    };
-
-    gp.events = {
-        beforeInit: 'beforeInit',
-        afterInit: 'afterInit',
-        beforeRead: 'beforeRead',
-        beforeCreate: 'beforeCreate',
-        beforeUpdate: 'beforeUpdate',
-        beforeDelete: 'beforeDelete',
-        beforeEditMode: 'beforeEditMode',
-        afterRead: 'afterRead',
-        afterCreate: 'afterCreate',
-        afterUpdate: 'afterUpdate',
-        afterDelete: 'afterDelete',
-        afterEditMode: 'afterEditMode',
-        beforeDispose: 'beforeDispose'
     };
 
     gp.addBusy = function( evt ) {

@@ -1,6 +1,9 @@
 ﻿Use Promises instead of callbacks for reads and writes.
 <script src="https://www.promisejs.org/polyfills/promise-7.0.4.min.js"></script>
 
+Change create functionality so it creates a new row client-side and calls dal.create on save.
+We'll need to find types. What if there are no types? Will this ever happen?
+
 Add a column class config option.
 
 Onrowselect should test for a JS object. If it doesn't find one assume it's a url.

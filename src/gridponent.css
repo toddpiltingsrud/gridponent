@@ -246,3 +246,11 @@
 .gp input[type=date] {
   min-width: 125px;
 }
+.gp tr.edit-mode td.body-cell div.btn-group,
+.gp tr.create-mode td.body-cell div.btn-group {
+  white-space: nowrap;
+}
+.gp tr.edit-mode td.body-cell div.btn-group .btn,
+.gp tr.create-mode td.body-cell div.btn-group .btn {
+  float: none;
+}
