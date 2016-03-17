@@ -219,6 +219,7 @@ gp.Controller.prototype = {
         try {
             var self = this,
                 updateModel,
+                table,
                 tbody,
                 rowIndex,
                 bodyCellContent,
@@ -275,7 +276,7 @@ gp.Controller.prototype = {
                 var html = col.Readonly
                     ? bodyCellContent.call( this.config, col, row )
                     : editCellContent.call( this.config, col, row, 'create' );
-                builder.startElem( 'td' ).addClass( 'body-cell' ).html( html ).endElem();
+                builder.startElem( 'td' ).addClass( 'body-cell' ).addClass( col.bodyCell ).html( html ).endElem();
             } );
 
             var tr = builder.close();
@@ -500,23 +501,25 @@ gp.Controller.prototype = {
 
     cancelEdit: function (row, tr) {
         try {
-            if (gp.hasClass(tr, 'create-mode')) {
+            var tbl = gp.closest( tr, 'table', this.config.node ), index;
+
+            if ( gp.hasClass( tr, 'create-mode' ) ) {
                 // remove row and tr
-                tr.remove();
-                var index = this.config.pageModel.Data.indexOf(row);
-                this.config.pageModel.Data.splice(index, 1);
+                tbl.deleteRow( tr.rowIndex );
+                index = this.config.pageModel.Data.indexOf( row );
+                this.config.pageModel.Data.splice( index, 1 );
             }
             else {
                 // replace the ObjectProxy with the original row
                 this.config.Row = row;
-                this.restoreCells(this.config, row, tr);
+                this.restoreCells( this.config, row, tr );
             }
 
-            gp.raiseCustomEvent(tr, 'cancelEdit', {
+            gp.raiseCustomEvent( tr, 'cancelEdit', {
                 model: row
-            });
+            } );
         }
-        catch (ex) {
+        catch ( ex ) {
             gp.error( ex );
         }
     },
@@ -526,13 +529,13 @@ gp.Controller.prototype = {
         var node = config.node;
 
         var body = node.querySelector( 'div.table-body' );
-        var footer = node.querySelector( 'tfoot' );
+        var footer = node.querySelector( 'div.table-footer' );
         var pager = node.querySelector( 'div.table-pager' );
         var sortStyle = node.querySelector( 'style.sort-style' );
 
         body.innerHTML = gp.templates['gridponent-body']( config );
         if ( footer ) {
-            footer.innerHTML = gp.templates['gridponent-tfoot']( config );
+            footer.innerHTML = gp.templates['gridponent-table-footer']( config );
         }
         if ( pager ) {
             pager.innerHTML = gp.templates['gridponent-pager']( config );

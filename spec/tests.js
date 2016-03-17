@@ -92,7 +92,7 @@ var getTableConfig = function ( options, callback ) {
     out.push( '    <gp-column field="SafetyStockLevel" header="Safety Stock Level" body-template="#template4" footer-template="fns.average"></gp-column>' );
     out.push( '    <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.average" format="C"></gp-column>' );
     out.push( '    <gp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, yyyy"></gp-column>' );
-    out.push( '    <gp-column field="Markup" readonly></gp-column>' );
+    out.push( '    <gp-column field="Markup" readonly body-class="hidden-xs" header-class="hidden-xs"></gp-column>' );
     out.push( '    <gp-column header-template="#template3"></gp-column>' );
     out.push( '    <gp-column header-template="#template6" body-template="#template5" sort="Color" body-style="border:solid 1px #ccc;"></gp-column>' );
     out.push( '    <gp-column field="ProductNumber" header="Product #"></gp-column>' );
@@ -1398,7 +1398,7 @@ QUnit.test( 'gp.helpers.bodyCell', function ( assert ) {
 
         assert.ok( cells[2].querySelector( 'span.glyphicon.glyphicon-ok' ) != null );
 
-        assert.ok( cells[2].attributes['class'].value == 'body-cell boolean', 'should add boolean class to boolean columns' );
+        assert.ok( cells[2].attributes['class'].value.indexOf('boolean') !== -1, 'should add boolean class to boolean columns' );
 
         assert.ok( cells[3].querySelector( 'button > span' ) != null );
 

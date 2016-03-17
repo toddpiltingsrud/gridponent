@@ -1,10 +1,11 @@
 ﻿Use Promises instead of callbacks for reads and writes.
 <script src="https://www.promisejs.org/polyfills/promise-7.0.4.min.js"></script>
 
-Change create functionality so it creates a new row client-side and calls dal.create on save.
-We'll need to find types. What if there are no types? Will this ever happen?
+Footer template
 
-Add a column class config option.
+Use the HTML table interface for adding rows: insertRow. http://www.w3.org/TR/DOM-Level-2-HTML/html.html#ID-13114938
+
+Empty table template
 
 Onrowselect should test for a JS object. If it doesn't find one assume it's a url.
 Instead of setting window.location, create a hidden anchor tag inside the component and click it.
@@ -37,21 +38,6 @@ and Name in ('Name1','Name2','Name3')
 
 If paging is turned off, use client pager to sort and search.
 Problem: we won't know whether we can use client pager until after we've retrieved data from the server.
-
-Now that we've gotten rid of DataSource, how should we handle all the various scenarios?
-It's possible for each of the CRUD operations to be URL, function, object (RequestModel) or array.
-Further, we have to wait until after the initial read to assign handlers to Page, Sort and Search.
-It's possible that Read could be a URL, but the first call to it yields all the data.
-The default is to rely on the server to decide whether it should page or not.
-If the server receieves a Top value of -1, it could decide to send all the data or just a page.
-If the latter, it would send back a modified RequestModel indicating what it did.
-But what if the client wanted to override this on the first request?
-Without knowing how many records there are, it would have to set Top to -1 to retrieve them all.
-If we want, we could use a function to set first read parameters.)
-In that case, subsequent read requests (page, sort and search) would use a ClientPager.
-
-Add support for the other lifecycle callback methods:
-// http://www.html5rocks.com/en/tutorials/webcomponents/customelements/
 
 Ensure we are handling date values correctly. 
 

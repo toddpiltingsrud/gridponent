@@ -4,7 +4,7 @@
 
 gp.helpers = {
 
-    'toolbarTemplate': function () {
+    toolbarTemplate: function () {
         var html = new gp.StringBuilder();
         if ( typeof ( this.ToolbarTemplate ) === 'function' ) {
             html.add( gp.applyFunc( this.ToolbarTemplate, this ) );
@@ -15,10 +15,10 @@ gp.helpers = {
         return html.toString();
     },
 
-    'thead': function () {
+    thead: function () {
         var self = this;
         var html = new gp.StringBuilder();
-        var sort, type, template;
+        var sort, template, classes;
         html.add( '<thead>' );
         html.add( '<tr>' );
         this.Columns.forEach( function ( col ) {
@@ -33,9 +33,10 @@ gp.helpers = {
                     sort = gp.escapeHTML( col.Sort );
                 }
             }
-            type = gp.coalesce( [col.Type, ''] ).toLowerCase();
 
-            html.add( '<th class="header-cell ' + type + '" data-sort="' + sort + '">' );
+            classes = gp.trim(['header-cell', (col.Type || ''), (col.HeaderClass || '')].join(' '));
+
+            html.add( '<th class="' + classes + '" data-sort="' + sort + '">' );
 
             // check for a template
             if ( col.HeaderTemplate ) {
@@ -64,7 +65,7 @@ gp.helpers = {
         return html.toString();
     },
 
-    'tableRows': function () {
+    tableRows: function () {
         var self = this;
         var html = new gp.StringBuilder();
         this.pageModel.Data.forEach( function ( row, index ) {
@@ -78,7 +79,7 @@ gp.helpers = {
         return html.toString();
     },
 
-    'bodyCellContent': function ( col, row ) {
+    bodyCellContent: function ( col, row ) {
         var self = this,
             template,
             format,
@@ -139,7 +140,7 @@ gp.helpers = {
         return html.toString();
     },
 
-    'editCellContent': function ( col, row, mode ) {
+    editCellContent: function ( col, row, mode ) {
         var template, html = new gp.StringBuilder();
 
         // check for a template
@@ -195,7 +196,7 @@ gp.helpers = {
         return html.toString();
     },
 
-    'validation': function ( tr, validationErrors ) {
+    validation: function ( tr, validationErrors ) {
         var builder = new gp.StringBuilder(), input, msg;
         builder.add( 'Please correct the following errors:\r\n' );
         // remove error class from inputs
@@ -213,7 +214,7 @@ gp.helpers = {
         alert( builder.toString() );
     },
 
-    'footerCell': function ( col ) {
+    footerCell: function ( col ) {
         var html = new gp.StringBuilder();
         if ( col.FooterTemplate ) {
             if ( typeof ( col.FooterTemplate ) === 'function' ) {
@@ -226,7 +227,7 @@ gp.helpers = {
         return html.toString();
     },
 
-    'setPagerFlags': function () {
+    setPagerFlags: function () {
         this.pageModel.IsFirstPage = this.pageModel.Page === 1;
         this.pageModel.IsLastPage = this.pageModel.Page === this.pageModel.PageCount;
         this.pageModel.HasPages = this.pageModel.PageCount > 1;
@@ -234,7 +235,7 @@ gp.helpers = {
         this.pageModel.NextPage = this.pageModel.Page === this.pageModel.PageCount ? this.pageModel.PageCount : this.pageModel.Page + 1;
     },
 
-    'sortStyle': function () {
+    sortStyle: function () {
         var html = new gp.StringBuilder();
         if ( gp.isNullOrEmpty( this.pageModel.OrderBy ) === false ) {
             html.add( '#' + this.ID + ' thead th.header-cell[data-sort="' + gp.escapeHTML(this.pageModel.OrderBy) + '"] > label:after' )
@@ -249,7 +250,7 @@ gp.helpers = {
         return html.toString();
     },
 
-    'columnWidthStyle': function () {
+    columnWidthStyle: function () {
         var self = this,
             html = new gp.StringBuilder(),
             index = 0,
@@ -287,7 +288,7 @@ gp.helpers = {
         return html.toString();
     },
 
-    'containerClasses': function () {
+    containerClasses: function () {
         var html = new gp.StringBuilder();
         if ( this.FixedHeaders ) {
             html.add( ' fixed-headers' );

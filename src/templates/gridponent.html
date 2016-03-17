@@ -3,8 +3,8 @@
         <div class="table-toolbar">
             {{#if model.ToolbarTemplate}}
                 {{helper toolbarTemplate}}
-            {{/if}}
-            {{#if model.Search}}
+            {{else}}
+                {{#if model.Search}}
                 <div class="input-group gridponent-searchbox">
                     <input type="text" name="Search" class="form-control" placeholder="Search...">
                     <span class="input-group-btn">
@@ -13,11 +13,12 @@
                         </button>
                     </span>
                 </div>
-            {{/if}}
-            {{#if model.Create}}
+                {{/if}}
+                {{#if model.Create}}
                 <button class="btn btn-default" type="button" value="AddRow">
                     <span class="glyphicon glyphicon-plus"></span>Add
                 </button>
+                {{/if}}
             {{/if}}
         </div>
     {{/if}}
@@ -37,9 +38,7 @@
     </div>
     {{#if model.FixedFooters}}
         <div class="table-footer">
-            <table class="table" cellpadding="0" cellspacing="0">
-                {{template "gridponent-tfoot"}}
-            </table>
+            {{template "gridponent-table-footer"}}
         </div>
     {{/if}}
     {{#if model.Pager}}

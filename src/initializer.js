@@ -27,20 +27,28 @@ gp.Initializer.prototype = {
 
             gp.raiseCustomEvent( self.config.node, gp.events.beforeRead, { model: self.config.pageModel } );
 
-            model.read( requestModel, function ( data ) {
-                try {
-                    self.config.pageModel = data;
-                    self.resolvePaging( self.config );
-                    self.resolveTypes( self.config );
-                    self.render( self.config );
-                    controller.init();
-                    if ( typeof callback === 'function' ) callback( self.config );
-                } catch ( e ) {
+            model.read( requestModel,
+                function ( data ) {
+                    try {
+                        self.config.pageModel = data;
+                        self.resolvePaging( self.config );
+                        self.resolveTypes( self.config );
+                        self.render( self.config );
+                        controller.init();
+                        if ( typeof callback === 'function' ) callback( self.config );
+                    } catch ( e ) {
+                        gp.error( e );
+                    }
+                    gp.raiseCustomEvent( self.config.node, gp.events.afterRead, { model: self.config.pageModel } );
+                    gp.raiseCustomEvent( self.config.node, gp.events.afterInit, self.config );
+                },
+                function (e) {
+                    gp.raiseCustomEvent( self.config.node, gp.events.httpError, e );
+                    alert( 'An error occurred while carrying out your request.' );
                     gp.error( e );
                 }
-                gp.raiseCustomEvent( self.config.node, gp.events.afterRead, { model: self.config.pageModel } );
-                gp.raiseCustomEvent( self.config.node, gp.events.afterInit, self.config );
-            } );
+
+            );
         } );
 
         return this.config;
@@ -111,13 +119,13 @@ gp.Initializer.prototype = {
             // inject table rows, footer, pager and header style.
 
             var body = node.querySelector( 'div.table-body' );
-            var footer = node.querySelector( 'tfoot' );
+            var footer = node.querySelector( 'div.table-footer' );
             var pager = node.querySelector( 'div.table-pager' );
             var sortStyle = node.querySelector( 'style.sort-style' );
 
             body.innerHTML = gp.templates['gridponent-body']( config );
             if ( footer ) {
-                footer.innerHTML = gp.templates['gridponent-tfoot']( config );
+                footer.innerHTML = gp.templates['gridponent-table-footer']( config );
             }
             if ( pager ) {
                 pager.innerHTML = gp.templates['gridponent-pager']( config );

@@ -31,6 +31,10 @@ gp.api.prototype = {
         this.controller.ready( callback );
     },
 
+    refresh: function ( callback ) {
+        this.controller.read( null, callback );
+    },
+
     getData: function ( index ) {
         if ( typeof index == 'number' ) return this.controller.config.pageModel.Data[index];
         return this.controller.config.pageModel.Data;
@@ -49,7 +53,6 @@ gp.api.prototype = {
     },
 
     read: function ( requestModel, callback ) {
-        requestModel = requestModel || this.controller.config.pageModel;
         this.controller.read( requestModel, callback );
     },
 

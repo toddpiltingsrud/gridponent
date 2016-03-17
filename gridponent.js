@@ -36,6 +36,10 @@ var gridponent = gridponent || {};
             this.controller.ready( callback );
         },
     
+        refresh: function ( callback ) {
+            this.controller.read( null, callback );
+        },
+    
         getData: function ( index ) {
             if ( typeof index == 'number' ) return this.controller.config.pageModel.Data[index];
             return this.controller.config.pageModel.Data;
@@ -54,7 +58,6 @@ var gridponent = gridponent || {};
         },
     
         read: function ( requestModel, callback ) {
-            requestModel = requestModel || this.controller.config.pageModel;
             this.controller.read( requestModel, callback );
         },
     
@@ -387,6 +390,7 @@ var gridponent = gridponent || {};
             try {
                 var self = this,
                     updateModel,
+                    table,
                     tbody,
                     rowIndex,
                     bodyCellContent,
@@ -443,7 +447,7 @@ var gridponent = gridponent || {};
                     var html = col.Readonly
                         ? bodyCellContent.call( this.config, col, row )
                         : editCellContent.call( this.config, col, row, 'create' );
-                    builder.startElem( 'td' ).addClass( 'body-cell' ).html( html ).endElem();
+                    builder.startElem( 'td' ).addClass( 'body-cell' ).addClass( col.bodyCell ).html( html ).endElem();
                 } );
     
                 var tr = builder.close();
@@ -668,23 +672,25 @@ var gridponent = gridponent || {};
     
         cancelEdit: function (row, tr) {
             try {
-                if (gp.hasClass(tr, 'create-mode')) {
+                var tbl = gp.closest( tr, 'table', this.config.node ), index;
+    
+                if ( gp.hasClass( tr, 'create-mode' ) ) {
                     // remove row and tr
-                    tr.remove();
-                    var index = this.config.pageModel.Data.indexOf(row);
-                    this.config.pageModel.Data.splice(index, 1);
+                    tbl.deleteRow( tr.rowIndex );
+                    index = this.config.pageModel.Data.indexOf( row );
+                    this.config.pageModel.Data.splice( index, 1 );
                 }
                 else {
                     // replace the ObjectProxy with the original row
                     this.config.Row = row;
-                    this.restoreCells(this.config, row, tr);
+                    this.restoreCells( this.config, row, tr );
                 }
     
-                gp.raiseCustomEvent(tr, 'cancelEdit', {
+                gp.raiseCustomEvent( tr, 'cancelEdit', {
                     model: row
-                });
+                } );
             }
-            catch (ex) {
+            catch ( ex ) {
                 gp.error( ex );
             }
         },
@@ -694,13 +700,13 @@ var gridponent = gridponent || {};
             var node = config.node;
     
             var body = node.querySelector( 'div.table-body' );
-            var footer = node.querySelector( 'tfoot' );
+            var footer = node.querySelector( 'div.table-footer' );
             var pager = node.querySelector( 'div.table-pager' );
             var sortStyle = node.querySelector( 'style.sort-style' );
     
             body.innerHTML = gp.templates['gridponent-body']( config );
             if ( footer ) {
-                footer.innerHTML = gp.templates['gridponent-tfoot']( config );
+                footer.innerHTML = gp.templates['gridponent-table-footer']( config );
             }
             if ( pager ) {
                 pager.innerHTML = gp.templates['gridponent-pager']( config );
@@ -1441,7 +1447,7 @@ var gridponent = gridponent || {};
     
     gp.helpers = {
     
-        'toolbarTemplate': function () {
+        toolbarTemplate: function () {
             var html = new gp.StringBuilder();
             if ( typeof ( this.ToolbarTemplate ) === 'function' ) {
                 html.add( gp.applyFunc( this.ToolbarTemplate, this ) );
@@ -1452,10 +1458,10 @@ var gridponent = gridponent || {};
             return html.toString();
         },
     
-        'thead': function () {
+        thead: function () {
             var self = this;
             var html = new gp.StringBuilder();
-            var sort, type, template;
+            var sort, template, classes;
             html.add( '<thead>' );
             html.add( '<tr>' );
             this.Columns.forEach( function ( col ) {
@@ -1470,9 +1476,10 @@ var gridponent = gridponent || {};
                         sort = gp.escapeHTML( col.Sort );
                     }
                 }
-                type = gp.coalesce( [col.Type, ''] ).toLowerCase();
     
-                html.add( '<th class="header-cell ' + type + '" data-sort="' + sort + '">' );
+                classes = gp.trim(['header-cell', (col.Type || ''), (col.HeaderClass || '')].join(' '));
+    
+                html.add( '<th class="' + classes + '" data-sort="' + sort + '">' );
     
                 // check for a template
                 if ( col.HeaderTemplate ) {
@@ -1499,7 +1506,7 @@ var gridponent = gridponent || {};
             return html.toString();
         },
     
-        'tableRows': function () {
+        tableRows: function () {
             var self = this;
             var html = new gp.StringBuilder();
             this.pageModel.Data.forEach( function ( row, index ) {
@@ -1513,7 +1520,7 @@ var gridponent = gridponent || {};
             return html.toString();
         },
     
-        'bodyCellContent': function ( col, row ) {
+        bodyCellContent: function ( col, row ) {
             var self = this,
                 template,
                 format,
@@ -1574,7 +1581,7 @@ var gridponent = gridponent || {};
             return html.toString();
         },
     
-        'editCellContent': function ( col, row, mode ) {
+        editCellContent: function ( col, row, mode ) {
             var template, html = new gp.StringBuilder();
     
             // check for a template
@@ -1630,7 +1637,7 @@ var gridponent = gridponent || {};
             return html.toString();
         },
     
-        'validation': function ( tr, validationErrors ) {
+        validation: function ( tr, validationErrors ) {
             var builder = new gp.StringBuilder(), input, msg;
             builder.add( 'Please correct the following errors:\r\n' );
             // remove error class from inputs
@@ -1648,7 +1655,7 @@ var gridponent = gridponent || {};
             alert( builder.toString() );
         },
     
-        'footerCell': function ( col ) {
+        footerCell: function ( col ) {
             var html = new gp.StringBuilder();
             if ( col.FooterTemplate ) {
                 if ( typeof ( col.FooterTemplate ) === 'function' ) {
@@ -1661,7 +1668,7 @@ var gridponent = gridponent || {};
             return html.toString();
         },
     
-        'setPagerFlags': function () {
+        setPagerFlags: function () {
             this.pageModel.IsFirstPage = this.pageModel.Page === 1;
             this.pageModel.IsLastPage = this.pageModel.Page === this.pageModel.PageCount;
             this.pageModel.HasPages = this.pageModel.PageCount > 1;
@@ -1669,7 +1676,7 @@ var gridponent = gridponent || {};
             this.pageModel.NextPage = this.pageModel.Page === this.pageModel.PageCount ? this.pageModel.PageCount : this.pageModel.Page + 1;
         },
     
-        'sortStyle': function () {
+        sortStyle: function () {
             var html = new gp.StringBuilder();
             if ( gp.isNullOrEmpty( this.pageModel.OrderBy ) === false ) {
                 html.add( '#' + this.ID + ' thead th.header-cell[data-sort="' + gp.escapeHTML(this.pageModel.OrderBy) + '"] > label:after' )
@@ -1684,7 +1691,7 @@ var gridponent = gridponent || {};
             return html.toString();
         },
     
-        'columnWidthStyle': function () {
+        columnWidthStyle: function () {
             var self = this,
                 html = new gp.StringBuilder(),
                 index = 0,
@@ -1720,7 +1727,7 @@ var gridponent = gridponent || {};
             return html.toString();
         },
     
-        'containerClasses': function () {
+        containerClasses: function () {
             var html = new gp.StringBuilder();
             if ( this.FixedHeaders ) {
                 html.add( ' fixed-headers' );
@@ -1775,20 +1782,28 @@ var gridponent = gridponent || {};
     
                 gp.raiseCustomEvent( self.config.node, gp.events.beforeRead, { model: self.config.pageModel } );
     
-                model.read( requestModel, function ( data ) {
-                    try {
-                        self.config.pageModel = data;
-                        self.resolvePaging( self.config );
-                        self.resolveTypes( self.config );
-                        self.render( self.config );
-                        controller.init();
-                        if ( typeof callback === 'function' ) callback( self.config );
-                    } catch ( e ) {
+                model.read( requestModel,
+                    function ( data ) {
+                        try {
+                            self.config.pageModel = data;
+                            self.resolvePaging( self.config );
+                            self.resolveTypes( self.config );
+                            self.render( self.config );
+                            controller.init();
+                            if ( typeof callback === 'function' ) callback( self.config );
+                        } catch ( e ) {
+                            gp.error( e );
+                        }
+                        gp.raiseCustomEvent( self.config.node, gp.events.afterRead, { model: self.config.pageModel } );
+                        gp.raiseCustomEvent( self.config.node, gp.events.afterInit, self.config );
+                    },
+                    function (e) {
+                        gp.raiseCustomEvent( self.config.node, gp.events.httpError, e );
+                        alert( 'An error occurred while carrying out your request.' );
                         gp.error( e );
                     }
-                    gp.raiseCustomEvent( self.config.node, gp.events.afterRead, { model: self.config.pageModel } );
-                    gp.raiseCustomEvent( self.config.node, gp.events.afterInit, self.config );
-                } );
+    
+                );
             } );
     
             return this.config;
@@ -1858,13 +1873,13 @@ var gridponent = gridponent || {};
                 // inject table rows, footer, pager and header style.
     
                 var body = node.querySelector( 'div.table-body' );
-                var footer = node.querySelector( 'tfoot' );
+                var footer = node.querySelector( 'div.table-footer' );
                 var pager = node.querySelector( 'div.table-pager' );
                 var sortStyle = node.querySelector( 'style.sort-style' );
     
                 body.innerHTML = gp.templates['gridponent-body']( config );
                 if ( footer ) {
-                    footer.innerHTML = gp.templates['gridponent-tfoot']( config );
+                    footer.innerHTML = gp.templates['gridponent-table-footer']( config );
                 }
                 if ( pager ) {
                     pager.innerHTML = gp.templates['gridponent-pager']( config );
@@ -2252,6 +2267,8 @@ var gridponent = gridponent || {};
         },
     
         addClass: function ( name ) {
+            if ( gp.isNullOrEmpty( name ) ) return;
+    
             var hasClass = ( ' ' + this.node.className + ' ' ).indexOf( ' ' + name + ' ' ) !== -1;
     
             if ( !hasClass ) {
@@ -2762,8 +2779,10 @@ var gridponent = gridponent || {};
     gp.templates['gridponent-cells'] = function(model, arg) {
         var out = [];
         model.Columns.forEach(function(col, index) {
-                out.push('    <td class="body-cell ');
+                out.push('    <td class="');
         out.push(col.Type);
+        out.push(' body-cell ');
+        out.push(col.BodyClass);
         out.push('" ');
         if (col.BodyStyle) {
         out.push(' style="');
@@ -2840,6 +2859,13 @@ var gridponent = gridponent || {};
         }
                 return out.join('');
     };
+    gp.templates['gridponent-table-footer'] = function(model, arg) {
+        var out = [];
+        out.push('<table class="table" cellpadding="0" cellspacing="0">');
+                out.push(gp.templates['gridponent-tfoot'](model));
+            out.push('</table>');
+        return out.join('');
+    };
     gp.templates['gridponent-tfoot'] = function(model, arg) {
         var out = [];
         out.push('<tfoot>');
@@ -2864,8 +2890,8 @@ var gridponent = gridponent || {};
             out.push('<div class="table-toolbar">');
                         if (model.ToolbarTemplate) {
                                 out.push(gp.helpers['toolbarTemplate'].call(model));
-                            }
-                            if (model.Search) {
+                            } else {
+                                if (model.Search) {
             out.push('<div class="input-group gridponent-searchbox">');
         out.push('<input type="text" name="Search" class="form-control" placeholder="Search...">');
         out.push('<span class="input-group-btn">');
@@ -2874,12 +2900,13 @@ var gridponent = gridponent || {};
         out.push('</button>');
         out.push('</span>');
         out.push('</div>');
-                        }
-                            if (model.Create) {
+                            }
+                                if (model.Create) {
             out.push('<button class="btn btn-default" type="button" value="AddRow">');
         out.push('<span class="glyphicon glyphicon-plus"></span>Add');
         out.push('</button>');
-                        }
+                            }
+                            }
             out.push('</div>');
                 }
                     if (model.FixedHeaders) {
@@ -2904,10 +2931,8 @@ var gridponent = gridponent || {};
         out.push('</div>');
                 if (model.FixedFooters) {
             out.push('<div class="table-footer">');
-        out.push('<table class="table" cellpadding="0" cellspacing="0">');
-                            out.push(gp.templates['gridponent-tfoot'](model));
-            out.push('</table>');
-        out.push('</div>');
+                        out.push(gp.templates['gridponent-table-footer'](model));
+            out.push('</div>');
                 }
                     if (model.Pager) {
             out.push('<div class="table-pager"></div>');
