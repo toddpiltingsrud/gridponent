@@ -116,15 +116,10 @@ gp.Controller.prototype = {
                 this.deleteRow( row, tr );
                 break;
             default:
-                // check the api for an extension
-                if ( command in node.api ) {
-                    gp.applyFunc( node.api[command], node.api, [row, tr] );
-                }
-                else {
-                    var cmd = gp.getObjectAtPath( command );
-                    if ( typeof cmd === 'function' ) {
-                        gp.applyFunc( cmd, node.api, [row, tr] );
-                    }
+                // check for a custom command
+                var cmd = gp.getObjectAtPath( command );
+                if ( typeof cmd === 'function' ) {
+                    gp.applyFunc( cmd, node.api, [row, tr] );
                 }
                 break;
         }
@@ -146,7 +141,8 @@ gp.Controller.prototype = {
         var config = this.config,
             tr = gp.closest( evt.selectedTarget, 'tr', config.node ),
             trs = config.node.querySelectorAll( 'div.table-body > table > tbody > tr.selected' ),
-            type = typeof config.Onrowselect;
+            type = typeof config.Onrowselect,
+            row;
 
         if ( type === 'string' && config.Onrowselect.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
 
@@ -157,19 +153,26 @@ gp.Controller.prototype = {
 
         // add selected class
         gp.addClass( tr, 'selected' );
-        // get the model for this row
-        model = gp.getRowModel( config.pageModel.Data, tr );
+        // get the row for this tr
+        row = gp.getRowModel( config.pageModel.Data, tr );
 
         // ensure row selection doesn't interfere with button clicks in the row
         // by making sure the evt target is a body cell
-        if ( evt.target == evt.selectedTarget ) {
-            if ( type === 'function' ) {
-                gp.applyFunc( config.Onrowselect, tr, [model] );
-            }
-            else {
-                // it's a urlTemplate
-                window.location = gp.processBodyTemplate( config.Onrowselect, model );
-            }
+        if ( evt.target != evt.selectedTarget ) return;
+
+        var customEvt = gp.raiseCustomEvent( tr, gp.events.rowSelected, {
+            row: row,
+            tableRow: tr
+        } );
+
+        if ( customEvt.cancel ) return;
+
+        if ( type === 'function' ) {
+            gp.applyFunc( config.Onrowselect, tr, [row] );
+        }
+        else {
+            // it's a urlTemplate
+            window.location = gp.processBodyTemplate( config.Onrowselect, row );
         }
     },
 

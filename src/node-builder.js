@@ -21,7 +21,7 @@ gp.NodeBuilder.prototype = {
     },
 
     addClass: function ( name ) {
-        if ( gp.isNullOrEmpty( name ) ) return;
+        if ( gp.isNullOrEmpty( name ) ) return this;
 
         var hasClass = ( ' ' + this.node.className + ' ' ).indexOf( ' ' + name + ' ' ) !== -1;
 

@@ -18,7 +18,8 @@ gp.events = {
     afterDelete: 'afterDelete',
     afterEditMode: 'afterEditMode',
     beforeDispose: 'beforeDispose',
-    httpError: 'httpError'
+    httpError: 'httpError',
+    rowSelected: 'rowSelected'
 };
 
 gp.api = function ( controller ) {

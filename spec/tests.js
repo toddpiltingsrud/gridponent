@@ -293,18 +293,19 @@ QUnit.test( 'api.create 1', function ( assert ) {
 
     var done = assert.async();
 
+    var row = { "ProductID": 0, "Name": "test", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": null, "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0.0000, "ListPrice": 0.0000, "Size": null, "SizeUnitMeasureCode": null, "WeightUnitMeasureCode": null, "Weight": null, "DaysToManufacture": 0, "ProductLine": null, "Class": null, "Style": null, "ProductSubcategoryID": null, "ProductModelID": null, "SellStartDate": new Date(), "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "694215b7-70dd-4c0d-acb1-d734ba44c0c8", "ModifiedDate": null, "Markup": "" };
+
     getTableConfig( configOptions, function ( config ) {
 
-        $( config.node ).one( gp.events.afterInit, function () {
+        config.node.api.ready( function () {
 
             var cellCount1 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
 
-            config.node.api.create( function ( row ) {
-                console.log( 'api.create 1', row );
+            config.node.api.create( row, function ( updateModel ) {
                 var cellCount2 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
-                assert.ok( gp.hasValue( row ), 'api should return a row' );
+                assert.ok( gp.hasValue( updateModel.Row ), 'api should return an UpdateModel' );
                 assert.strictEqual( cellCount1, cellCount2, 'should create the same number of cells' );
-                //$( '#table .box' ).empty();
+                assert.ok( data.products.indexOf( row ) != -1, 'the row should have been added to the source' );
                 config.node.api.dispose();
                 done();
             } );
@@ -317,22 +318,14 @@ QUnit.test( 'api.create 1', function ( assert ) {
 
 QUnit.test( 'api.create 2', function ( assert ) {
 
-    createFn = function ( callback ) {
-        callback(
-            { "ProductID": 0, "Name": "test", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": null, "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0.0000, "ListPrice": 0.0000, "Size": null, "SizeUnitMeasureCode": null, "WeightUnitMeasureCode": null, "Weight": null, "DaysToManufacture": 0, "ProductLine": null, "Class": null, "Style": null, "ProductSubcategoryID": null, "ProductModelID": null, "SellStartDate": new Date(), "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "694215b7-70dd-4c0d-acb1-d734ba44c0c8", "ModifiedDate": null, "Markup": "" }
-        );
-    };
-
-    var options = gp.shallowCopy( configOptions );
-    options.create = 'createFn';
     var done = assert.async();
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( configOptions, function ( config ) {
 
-        $( config.node ).one( gp.events.afterInit, function () {
-            config.node.api.create( function ( row ) {
-                console.log( row );
-                assert.strictEqual( row.Name, 'test', 'create should support functions that return a row' );
+        config.node.api.ready( function () {
+
+            config.node.api.create( null, function ( updateModel ) {
+                assert.ok( updateModel.Row != null, 'calling api.create with no row should create a default one' );
                 config.node.api.dispose();
                 done();
             } );
@@ -341,18 +334,22 @@ QUnit.test( 'api.create 2', function ( assert ) {
 
     } );
 
-    // now try it with a null create setting
-    options.create = null;
-    var done3 = assert.async();
+} );
 
-    getTableConfig( options, function ( config ) {
+QUnit.test( 'api.ready', function ( assert ) {
 
-        $( config.node ).one( gp.events.afterInit, function () {
+    var done = assert.async();
 
-            config.node.api.create( function ( row ) {
-                assert.ok( row == undefined, 'empty create setting should execute the callback with no arguments' );
-                config.node.api.dispose();
-                done3();
+    getTableConfig( configOptions, function ( config ) {
+
+        config.node.api.ready( function () {
+
+            config.node.api.ready( function () {
+
+                assert.ok( true, 'calls to api.ready should execute even if ready state has already occurred' );
+
+                done();
+
             } );
 
         } );

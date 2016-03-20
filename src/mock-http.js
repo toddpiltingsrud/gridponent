@@ -70,7 +70,11 @@
             if (routes.read.test(url)) {
                 getData(model, callback);
             }
-            else if (routes.update.test(url)) {
+            else if ( routes.create.test( url ) ) {
+                data.products.push( model );
+                callback( new gp.UpdateModel( model ) );
+            }
+            else if ( routes.update.test( url ) ) {
                 callback( new gp.UpdateModel(model) );
             }
             else {

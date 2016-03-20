@@ -466,6 +466,7 @@
         var event = new CustomEvent( name, { bubbles: true, detail: detail, cancelable: true } );
         node.dispatchEvent( event );
         gp.info( 'raiseCustomEvent: name', name );
+        return event;
     };
 
     gp.addBusy = function( evt ) {
