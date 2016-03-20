@@ -14,7 +14,7 @@ gp.Model = function ( config ) {
             this.dal = new gp.FunctionPager( config );
             break;
         case 'object':
-            // Read is a RequestModel
+            // Read is a PagingModel
             this.config.pageModel = config.Read;
             this.dal = new gp.ClientPager( this.config );
             break;

@@ -12,7 +12,7 @@ gp.Initializer.prototype = {
         this.config = this.getConfig(this.node);
         this.node.config = this.config;
         var model = new gp.Model( this.config );
-        var requestModel = new gp.RequestModel();
+        var requestModel = new gp.PagingModel();
         var controller = new gp.Controller( self.config, model, requestModel );
         this.node.api = new gp.api( controller );
         this.renderLayout( this.config );
@@ -25,7 +25,7 @@ gp.Initializer.prototype = {
             // provides a hook for extensions
             gp.raiseCustomEvent( self.config.node, gp.events.beforeInit, self.config );
 
-            gp.raiseCustomEvent( self.config.node, gp.events.beforeRead, { model: self.config.pageModel } );
+            gp.raiseCustomEvent( self.config.node, gp.events.beforeRead, self.config.pageModel );
 
             model.read( requestModel,
                 function ( data ) {
@@ -39,7 +39,7 @@ gp.Initializer.prototype = {
                     } catch ( e ) {
                         gp.error( e );
                     }
-                    gp.raiseCustomEvent( self.config.node, gp.events.afterRead, { model: self.config.pageModel } );
+                    gp.raiseCustomEvent( self.config.node, gp.events.afterRead, self.config.pageModel );
                     gp.raiseCustomEvent( self.config.node, gp.events.afterInit, self.config );
                 },
                 function (e) {

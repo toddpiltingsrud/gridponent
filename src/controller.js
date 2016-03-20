@@ -131,12 +131,10 @@ gp.Controller.prototype = {
     },
 
     addRowSelectHandler: function ( config ) {
-        if ( gp.hasValue( config.Onrowselect ) ) {
-            // it's got to be either a function or a URL template
-            if ( /function|urlTemplate/.test( typeof config.Onrowselect ) ) {
-                // add click handler
-                gp.on( config.node, 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
-            }
+        // it's got to be either a function or a URL template
+        if ( typeof config.Onrowselect == 'function' || gp.rexp.braces.test( config.Onrowselect ) ) {
+            // add click handler
+            gp.on( config.node, 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
         }
     },
 
@@ -205,12 +203,12 @@ gp.Controller.prototype = {
         if ( requestModel ) {
             gp.shallowCopy( requestModel, this.config.pageModel );
         }
-        gp.raiseCustomEvent( this.config.node, gp.events.beforeRead, { model: this.config.pageModel } );
+        gp.raiseCustomEvent( this.config.node, gp.events.beforeRead, this.config.pageModel );
         gp.info( 'read.pageModel:', this.config.pageModel );
         this.model.read( this.config.pageModel, function ( model ) {
             gp.shallowCopy( model, self.config.pageModel );
             self.refresh( self.config );
-            gp.raiseCustomEvent( this.config.node, gp.events.afterRead, { model: this.config.pageModel } );
+            gp.raiseCustomEvent( this.config.node, gp.events.afterRead, this.config.pageModel );
             gp.applyFunc( callback, self.config.node, self.config.pageModel );
         }, this.handlers.httpErrorHandler );
     },
@@ -276,7 +274,7 @@ gp.Controller.prototype = {
                 var html = col.Readonly
                     ? bodyCellContent.call( this.config, col, row )
                     : editCellContent.call( this.config, col, row, 'create' );
-                builder.startElem( 'td' ).addClass( 'body-cell' ).addClass( col.bodyCell ).html( html ).endElem();
+                builder.startElem( 'td' ).addClass( 'body-cell' ).addClass( col.BodyCell ).html( html ).endElem();
             } );
 
             var tr = builder.close();
@@ -515,9 +513,7 @@ gp.Controller.prototype = {
                 this.restoreCells( this.config, row, tr );
             }
 
-            gp.raiseCustomEvent( tr, 'cancelEdit', {
-                model: row
-            } );
+            gp.raiseCustomEvent( tr, 'cancelEdit', row );
         }
         catch ( ex ) {
             gp.error( ex );

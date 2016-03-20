@@ -517,7 +517,7 @@ QUnit.test( 'api.read', function ( assert ) {
 
     getTableConfig( options, function ( config ) {
 
-        var requestModel = new gp.RequestModel();
+        var requestModel = new gp.PagingModel();
         requestModel.Top = 25;
         requestModel.Page = 2;
 
@@ -906,9 +906,9 @@ QUnit.test( 'gp.getObjectAtPath', function ( assert ) {
 
 } );
 
-QUnit.test( 'gp.RequestModel', function ( assert ) {
+QUnit.test( 'gp.PagingModel', function ( assert ) {
 
-    var rm = new gp.RequestModel();
+    var rm = new gp.PagingModel();
 
     assert.equal( rm.PageCount, 0 );
 
@@ -945,7 +945,7 @@ QUnit.test( 'gp.ClientPager', function ( assert ) {
 
             pager.data = data.products;
 
-            var model = new gp.RequestModel();
+            var model = new gp.PagingModel();
 
             // turn paging off
             model.Top = -1;
@@ -1039,7 +1039,7 @@ QUnit.test( 'gp.Model', function ( assert ) {
 
             var model = new gp.Model( config );
 
-            var request = new gp.RequestModel();
+            var request = new gp.PagingModel();
 
             gridponent.logging = null;
 
@@ -1077,7 +1077,7 @@ QUnit.test( 'gp.Model', function ( assert ) {
 
             // test Read as function
             // the Read function can use a callback
-            // or return a URL, array or RequestModel object
+            // or return a URL, array or PagingModel object
 
             // test function with callback
 
@@ -1125,7 +1125,7 @@ QUnit.test( 'gp.Model', function ( assert ) {
             // test function with object return value
 
             config.Read = function ( m ) {
-                return new gp.RequestModel( data.products );
+                return new gp.PagingModel( data.products );
             };
 
             model = new gp.Model( config );
@@ -1160,7 +1160,7 @@ QUnit.test( 'gp.Model', function ( assert ) {
 
             model = new gp.Model( config );
 
-            request = new gp.RequestModel();
+            request = new gp.PagingModel();
 
             request.Search = 'BA-8327';
 
@@ -1247,7 +1247,7 @@ QUnit.test( 'gp.Table.getConfig', function ( assert ) {
     window.model = {};
 
     window.model.read = function ( requestModel, callback ) {
-        var model = new gp.RequestModel( data.products );
+        var model = new gp.PagingModel( data.products );
         callback( model );
     };
 

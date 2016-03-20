@@ -34,9 +34,7 @@ gp.helpers = {
                 }
             }
 
-            classes = gp.trim(['header-cell', (col.Type || ''), (col.HeaderClass || '')].join(' '));
-
-            html.add( '<th class="' + classes + '" data-sort="' + sort + '">' );
+            html.add( '<th class="header-cell ' + ( col.HeaderClass || '' ) + '" data-sort="' + sort + '">' );
 
             // check for a template
             if ( col.HeaderTemplate ) {

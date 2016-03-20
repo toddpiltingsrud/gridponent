@@ -64,6 +64,7 @@
     <Content Include="src\gridponent.min.css">
       <DependentUpon>gridponent.css</DependentUpon>
     </Content>
+    <Content Include="src\templates\gridponent-table-footer.html" />
     <Content Include="src\x-promise-7.0.4.js" />
     <Content Include="src\update-model.js" />
     <Content Include="src\string-builder.js" />
@@ -84,7 +85,7 @@
     <Content Include="src\pagers.js" />
     <Content Include="src\change-monitor.js" />
     <Content Include="src\globals.js" />
-    <Content Include="src\request-model.js" />
+    <Content Include="src\paging-model.js" />
     <Content Include="src\initializer.js" />
     <Content Include="src\z-gridponent.js" />
     <None Include="compilerconfig.json" />

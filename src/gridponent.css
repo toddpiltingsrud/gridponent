@@ -115,7 +115,6 @@
 .gp.fixed-headers .table-body {
   height: 400px;
   overflow-y: scroll;
-  box-shadow: inset -6px 0 8px 4px #888;
 }
 .gp.fixed-footers .table-footer {
   padding-right: 17px;
@@ -214,12 +213,6 @@
 .gp .body-cell,
 .gp .table-header th {
   text-align: left;
-}
-.gp .body-cell.date,
-.gp .table-header th.date,
-.gp .body-cell.boolean,
-.gp .table-header th.boolean {
-  text-align: center;
 }
 .gp .gridponent-searchbox {
   max-width: 220px;

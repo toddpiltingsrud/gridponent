@@ -9,7 +9,7 @@
 <#
 var stripLogging = true;
 var coverage = false;
-var useMocks = true;
+var useMocks = false;
 
 if (coverage)
 {

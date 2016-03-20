@@ -303,12 +303,10 @@ var gridponent = gridponent || {};
         },
     
         addRowSelectHandler: function ( config ) {
-            if ( gp.hasValue( config.Onrowselect ) ) {
-                // it's got to be either a function or a URL template
-                if ( /function|urlTemplate/.test( typeof config.Onrowselect ) ) {
-                    // add click handler
-                    gp.on( config.node, 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
-                }
+            // it's got to be either a function or a URL template
+            if ( typeof config.Onrowselect == 'function' || gp.rexp.braces.test( config.Onrowselect ) ) {
+                // add click handler
+                gp.on( config.node, 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
             }
         },
     
@@ -377,11 +375,11 @@ var gridponent = gridponent || {};
             if ( requestModel ) {
                 gp.shallowCopy( requestModel, this.config.pageModel );
             }
-            gp.raiseCustomEvent( this.config.node, gp.events.beforeRead, { model: this.config.pageModel } );
+            gp.raiseCustomEvent( this.config.node, gp.events.beforeRead, this.config.pageModel );
             this.model.read( this.config.pageModel, function ( model ) {
                 gp.shallowCopy( model, self.config.pageModel );
                 self.refresh( self.config );
-                gp.raiseCustomEvent( this.config.node, gp.events.afterRead, { model: this.config.pageModel } );
+                gp.raiseCustomEvent( this.config.node, gp.events.afterRead, this.config.pageModel );
                 gp.applyFunc( callback, self.config.node, self.config.pageModel );
             }, this.handlers.httpErrorHandler );
         },
@@ -447,7 +445,7 @@ var gridponent = gridponent || {};
                     var html = col.Readonly
                         ? bodyCellContent.call( this.config, col, row )
                         : editCellContent.call( this.config, col, row, 'create' );
-                    builder.startElem( 'td' ).addClass( 'body-cell' ).addClass( col.bodyCell ).html( html ).endElem();
+                    builder.startElem( 'td' ).addClass( 'body-cell' ).addClass( col.BodyCell ).html( html ).endElem();
                 } );
     
                 var tr = builder.close();
@@ -686,9 +684,7 @@ var gridponent = gridponent || {};
                     this.restoreCells( this.config, row, tr );
                 }
     
-                gp.raiseCustomEvent( tr, 'cancelEdit', {
-                    model: row
-                } );
+                gp.raiseCustomEvent( tr, 'cancelEdit', row );
             }
             catch ( ex ) {
                 gp.error( ex );
@@ -1477,9 +1473,7 @@ var gridponent = gridponent || {};
                     }
                 }
     
-                classes = gp.trim(['header-cell', (col.Type || ''), (col.HeaderClass || '')].join(' '));
-    
-                html.add( '<th class="' + classes + '" data-sort="' + sort + '">' );
+                html.add( '<th class="header-cell ' + ( col.HeaderClass || '' ) + '" data-sort="' + sort + '">' );
     
                 // check for a template
                 if ( col.HeaderTemplate ) {
@@ -1754,6 +1748,56 @@ var gridponent = gridponent || {};
     
 
     /***************\
+         http        
+    \***************/
+    gp.Http = function () { };
+    
+    gp.Http.prototype = {
+        serialize: function ( obj ) {
+            // creates a query string from a simple object
+            var props = Object.getOwnPropertyNames( obj );
+            var out = [];
+            props.forEach( function ( prop ) {
+                out.push( encodeURIComponent( prop ) + '=' + ( gp.isNullOrEmpty( obj[prop] ) ? '' : encodeURIComponent( obj[prop] ) ) );
+            } );
+            return out.join( '&' );
+        },
+        createXhr: function ( type, url, callback, error ) {
+            var xhr = new XMLHttpRequest();
+            xhr.open(type.toUpperCase(), url, true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.onload = function () {
+                var response = ( gp.rexp.json.test( xhr.responseText ) ? JSON.parse( xhr.responseText ) : xhr.responseText );
+                if ( xhr.status == 200 ) {
+                    callback( response, xhr );
+                }
+                else {
+                    gp.applyFunc( error, xhr, response );
+                }
+            }
+            xhr.onerror = error;
+            return xhr;
+        },
+        get: function (url, callback, error) {
+            var xhr = this.createXhr('GET', url, callback, error);
+            xhr.send();
+        },
+        post: function ( url, data, callback, error ) {
+            var s = this.serialize( data );
+            var xhr = this.createXhr( 'POST', url, callback, error );
+            xhr.setRequestHeader( 'Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8' );
+            xhr.send( s );
+        },
+        'delete': function ( url, data, callback, error ) {
+            var s = this.serialize( data );
+            var xhr = this.createXhr( 'DELETE', url, callback, error );
+            xhr.setRequestHeader( 'Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8' );
+            xhr.send( s );
+        }
+    
+    };
+
+    /***************\
        Initializer
     \***************/
     gp.Initializer = function ( node ) {
@@ -1767,7 +1811,7 @@ var gridponent = gridponent || {};
             this.config = this.getConfig(this.node);
             this.node.config = this.config;
             var model = new gp.Model( this.config );
-            var requestModel = new gp.RequestModel();
+            var requestModel = new gp.PagingModel();
             var controller = new gp.Controller( self.config, model, requestModel );
             this.node.api = new gp.api( controller );
             this.renderLayout( this.config );
@@ -1780,7 +1824,7 @@ var gridponent = gridponent || {};
                 // provides a hook for extensions
                 gp.raiseCustomEvent( self.config.node, gp.events.beforeInit, self.config );
     
-                gp.raiseCustomEvent( self.config.node, gp.events.beforeRead, { model: self.config.pageModel } );
+                gp.raiseCustomEvent( self.config.node, gp.events.beforeRead, self.config.pageModel );
     
                 model.read( requestModel,
                     function ( data ) {
@@ -1794,7 +1838,7 @@ var gridponent = gridponent || {};
                         } catch ( e ) {
                             gp.error( e );
                         }
-                        gp.raiseCustomEvent( self.config.node, gp.events.afterRead, { model: self.config.pageModel } );
+                        gp.raiseCustomEvent( self.config.node, gp.events.afterRead, self.config.pageModel );
                         gp.raiseCustomEvent( self.config.node, gp.events.afterInit, self.config );
                     },
                     function (e) {
@@ -1975,173 +2019,6 @@ var gridponent = gridponent || {};
     };
 
     /***************\
-       mock-http
-    \***************/
-    (function (gp) {
-        gp.Http = function () { };
-    
-        // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
-        var routes = {
-            read: /Read/,
-            update: /Update/,
-            create: /Create/,
-            'delete': /Delete/
-        };
-    
-        gp.Http.prototype = {
-            serialize: function (obj, props) {
-                // creates a query string from a simple object
-                var self = this;
-                props = props || Object.getOwnPropertyNames(obj);
-                var out = [];
-                props.forEach(function (prop) {
-                    out.push(encodeURIComponent(prop) + '=' + encodeURIComponent(obj[prop]));
-                });
-                return out.join('&');
-            },
-            deserialize: function (queryString) {
-                var nameValue, split = queryString.split( '&' );
-                var obj = {};
-                if ( !queryString ) return obj;
-                split.forEach( function ( s ) {
-                    nameValue = s.split( '=' );
-                    var val = nameValue[1];
-                    if ( !val ) {
-                        obj[nameValue[0]] = null;
-                    }
-                    else if ( /true|false/i.test( val ) ) {
-                        obj[nameValue[0]] = ( /true/i.test( val ) );
-                    }
-                    else if ( parseFloat( val ).toString() === val ) {
-                        obj[nameValue[0]] = parseFloat( val );
-                    }
-                    else {
-                        obj[nameValue[0]] = val;
-                    }
-                } );
-                return obj;
-            },
-            get: function (url, callback, error) {
-                if (routes.read.test(url)) {
-                    var index = url.substring(url.indexOf('?'));
-                    if (index !== -1) {
-                        var queryString = url.substring(index + 1);
-                        var model = this.deserialize(queryString);
-                        this.post(url.substring(0, index), model, callback, error);
-                    }
-                    else {
-                        this.post(url, null, callback, error);
-                    }
-                }
-                else if (routes.create.test(url)) {
-                    var result = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
-                    callback(result);
-                }
-                else {
-                    throw 'Not found: ' + url;
-                }
-            },
-            post: function (url, model, callback, error) {
-                model = model || {};
-                if (routes.read.test(url)) {
-                    getData(model, callback);
-                }
-                else if (routes.update.test(url)) {
-                    callback( new gp.UpdateModel(model) );
-                }
-                else {
-                    throw '404 Not found: ' + url;
-                }
-            },
-            'delete': function ( url, model, callback, error ) {
-                model = model || {};
-                var index = data.products.indexOf( model );
-                callback( {
-                    Success: true,
-                    Message: ''
-                } );
-            }
-        };
-    
-        var getData = function (model, callback) {
-            var count, d = data.products;
-            if (!gp.isNullOrEmpty(model.Search)) {
-                var props = Object.getOwnPropertyNames(d[0]);
-                var search = model.Search.toLowerCase();
-                d = d.filter(function (row) {
-                    for (var i = 0; i < props.length; i++) {
-                        if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
-                            return true;
-                        }
-                    }
-                    return false;
-                });
-            }
-            if (!gp.isNullOrEmpty(model.OrderBy)) {
-                if (model.Desc) {
-                    d.sort(function (row1, row2) {
-                        var a = row1[model.OrderBy];
-                        var b = row2[model.OrderBy];
-                        if (a === null) {
-                            if (b != null) {
-                                return 1;
-                            }
-                        }
-                        else if (b === null) {
-                            // we already know a isn't null
-                            return -1;
-                        }
-                        if (a > b) {
-                            return -1;
-                        }
-                        if (a < b) {
-                            return 1;
-                        }
-    
-                        return 0;
-                    });
-                }
-                else {
-                    d.sort(function (row1, row2) {
-                        var a = row1[model.OrderBy];
-                        var b = row2[model.OrderBy];
-                        if (a === null) {
-                            if (b != null) {
-                                return -1;
-                            }
-                        }
-                        else if (b === null) {
-                            // we already know a isn't null
-                            return 1;
-                        }
-                        if (a > b) {
-                            return 1;
-                        }
-                        if (a < b) {
-                            return -1;
-                        }
-    
-                        return 0;
-                    });
-                }
-            }
-            count = d.length;
-            if (model.Top !== -1) {
-                model.Data = d.slice(model.Skip).slice(0, model.Top);
-            }
-            else {
-                model.Data = d;
-            }
-            model.ValidationErrors = [];
-            setTimeout(function () {
-                callback(model);
-            });
-    
-        };
-    
-    })(gridponent);
-
-    /***************\
          model
     \***************/
     gp.Model = function ( config ) {
@@ -2156,7 +2033,7 @@ var gridponent = gridponent || {};
                 this.dal = new gp.FunctionPager( config );
                 break;
             case 'object':
-                // Read is a RequestModel
+                // Read is a PagingModel
                 this.config.pageModel = config.Read;
                 this.dal = new gp.ClientPager( this.config );
                 break;
@@ -2534,11 +2411,11 @@ var gridponent = gridponent || {};
                             new gp.ServerPager( result ).read( model, callback, error );
                             break;
                         case 'array':
-                            // assume it's a row, wrap it in a RequestModel
-                            callback( new gp.RequestModel( result ) );
+                            // assume it's a row, wrap it in a PagingModel
+                            callback( new gp.PagingModel( result ) );
                             break;
                         case 'object':
-                            // assume a RequestModel
+                            // assume a PagingModel
                             callback( result );
                             break;
                         default:
@@ -2557,6 +2434,96 @@ var gridponent = gridponent || {};
                 gp.error( ex );
             }
         }
+    };
+
+    /***************\
+      RequestModel
+    \***************/
+    gp.RequestModel = function (data) {
+        var self = this;
+        // properites are capitalized here because that's the convention for server-side classes (C#)
+        // we want the serialized version of the corresponding server-side class to look exactly like this prototype
+    
+        this.Top = -1; // this is a flag to let the pagers know if paging is enabled
+        this.Page = 1;
+        this.OrderBy = '';
+        this.Desc = false;
+        this.Search = '';
+        this.Data = data;
+        this.TotalRows = 0;
+    
+        Object.defineProperty(self, 'PageIndex', {
+            get: function () {
+                return self.Page - 1;
+            }
+        });
+    
+        Object.defineProperty(self, 'PageCount', {
+            get: function () {
+                if ( self.Top > 0 ) {
+                    return Math.ceil( self.TotalRows / self.Top );
+                }
+                if ( self.TotalRows === 0 ) return 0;
+                return 1;
+            }
+        });
+    
+        Object.defineProperty(self, 'Skip', {
+            get: function () {
+                if (self.Top !== -1) {
+                    if (self.PageCount === 0) return 0;
+                    if (self.Page < 1) self.Page = 1;
+                    else if (self.Page > self.PageCount) return self.Page = self.PageCount;
+                    return self.PageIndex * self.Top;
+                }
+                return 0;
+            }
+        });
+    };
+
+    /***************\
+      PagingModel
+    \***************/
+    gp.PagingModel = function (data) {
+        var self = this;
+        // properites are capitalized here because that's the convention for server-side classes (C#)
+        // we want the serialized version of the corresponding server-side class to look exactly like this prototype
+    
+        this.Top = -1; // this is a flag to let the pagers know if paging is enabled
+        this.Page = 1;
+        this.OrderBy = '';
+        this.Desc = false;
+        this.Search = '';
+        this.Data = data;
+        this.TotalRows = 0;
+    
+        Object.defineProperty(self, 'PageIndex', {
+            get: function () {
+                return self.Page - 1;
+            }
+        });
+    
+        Object.defineProperty(self, 'PageCount', {
+            get: function () {
+                if ( self.Top > 0 ) {
+                    return Math.ceil( self.TotalRows / self.Top );
+                }
+                if ( self.TotalRows === 0 ) return 0;
+                return 1;
+            }
+        });
+    
+        Object.defineProperty(self, 'Skip', {
+            get: function () {
+                if (self.Top !== -1) {
+                    if (self.PageCount === 0) return 0;
+                    if (self.Page < 1) self.Page = 1;
+                    else if (self.Page > self.PageCount) return self.Page = self.PageCount;
+                    return self.PageIndex * self.Top;
+                }
+                return 0;
+            }
+        });
     };
 
     // pilfered from JQuery
@@ -2642,51 +2609,6 @@ var gridponent = gridponent || {};
                 })();
             }
         }
-    };
-
-    /***************\
-      RequestModel
-    \***************/
-    gp.RequestModel = function (data) {
-        var self = this;
-        // properites are capitalized here because that's the convention for server-side classes (C#)
-        // we want the serialized version of the corresponding server-side class to look exactly like this prototype
-    
-        this.Top = -1; // this is a flag to let the pagers know if paging is enabled
-        this.Page = 1;
-        this.OrderBy = '';
-        this.Desc = false;
-        this.Search = '';
-        this.Data = data;
-        this.TotalRows = 0;
-    
-        Object.defineProperty(self, 'PageIndex', {
-            get: function () {
-                return self.Page - 1;
-            }
-        });
-    
-        Object.defineProperty(self, 'PageCount', {
-            get: function () {
-                if ( self.Top > 0 ) {
-                    return Math.ceil( self.TotalRows / self.Top );
-                }
-                if ( self.TotalRows === 0 ) return 0;
-                return 1;
-            }
-        });
-    
-        Object.defineProperty(self, 'Skip', {
-            get: function () {
-                if (self.Top !== -1) {
-                    if (self.PageCount === 0) return 0;
-                    if (self.Page < 1) self.Page = 1;
-                    else if (self.Page > self.PageCount) return self.Page = self.PageCount;
-                    return self.PageIndex * self.Top;
-                }
-                return 0;
-            }
-        });
     };
 
     /***************\
@@ -2779,9 +2701,7 @@ var gridponent = gridponent || {};
     gp.templates['gridponent-cells'] = function(model, arg) {
         var out = [];
         model.Columns.forEach(function(col, index) {
-                out.push('    <td class="');
-        out.push(col.Type);
-        out.push(' body-cell ');
+                out.push('    <td class="body-cell ');
         out.push(col.BodyClass);
         out.push('" ');
         if (col.BodyStyle) {

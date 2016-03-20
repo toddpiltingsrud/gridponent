@@ -1,5 +1,7 @@
-﻿Use Promises instead of callbacks for reads and writes.
-<script src="https://www.promisejs.org/polyfills/promise-7.0.4.min.js"></script>
+﻿Allow adding event handlers declaratively inside the grid, e.g. <grid-ponent after-read="fns.afterRead" ready="fns.gridReady" ...
+
+Add a change event to a column:
+<gp-column field="IsCurrent" change="fns.isCurrentChanged"></gp-column>
 
 Footer template
 
@@ -11,6 +13,9 @@ Onrowselect should test for a JS object. If it doesn't find one assume it's a ur
 Instead of setting window.location, create a hidden anchor tag inside the component and click it.
 That way it could be intercepted by event handlers.
 Detect ctrl key for onrowselect.
+
+Use Promises instead of callbacks for reads and writes.
+<script src="https://www.promisejs.org/polyfills/promise-7.0.4.min.js"></script>
 
 It's best to replace MVC's default JSON serializer with Json.NET:
 http://labs.bjfocus.co.uk/2014/06/using-json-net-as-default-json-serializer-in-mvc/

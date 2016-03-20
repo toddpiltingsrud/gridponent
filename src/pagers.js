@@ -192,11 +192,11 @@ gp.FunctionPager.prototype = {
                         new gp.ServerPager( result ).read( model, callback, error );
                         break;
                     case 'array':
-                        // assume it's a row, wrap it in a RequestModel
-                        callback( new gp.RequestModel( result ) );
+                        // assume it's a row, wrap it in a PagingModel
+                        callback( new gp.PagingModel( result ) );
                         break;
                     case 'object':
-                        // assume a RequestModel
+                        // assume a PagingModel
                         callback( result );
                         break;
                     default:
