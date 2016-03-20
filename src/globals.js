@@ -368,7 +368,7 @@
         var type = ( col.Type || '' ).toLowerCase();
         var val = row[col.Field];
 
-        if ( /date|datestring/.test( type ) ) {
+        if ( /^(date|datestring)$/.test( type ) ) {
             // apply default formatting to dates
             //return gp.formatDate(val, col.Format || 'M/d/yyyy');
             return gp.formatter.format( val, col.Format );
@@ -383,7 +383,7 @@
     };
 
     gp.supplant = function ( str, o, args ) {
-        var self = this, types = /string|number|boolean/;
+        var self = this, types = /^(string|number|boolean)$/;
         return str.replace( /{{([^{}]*)}}/g,
             function ( a, b ) {
                 var r = o[b];

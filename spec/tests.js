@@ -1398,8 +1398,6 @@ QUnit.test( 'gp.helpers.bodyCell', function ( assert ) {
 
         assert.ok( cells[2].querySelector( 'span.glyphicon.glyphicon-ok' ) != null );
 
-        assert.ok( cells[2].attributes['class'].value.indexOf('boolean') !== -1, 'should add boolean class to boolean columns' );
-
         assert.ok( cells[3].querySelector( 'button > span' ) != null );
 
         assert.equal( isNaN( parseInt( cells[3].textContent ) ), false, 'should be a number' );
@@ -1763,6 +1761,7 @@ QUnit.test( 'edit and cancel', function ( assert ) {
                 assert.ok( evt != null );
                 assert.ok( evt.detail != null );
                 assert.ok( evt.detail.model != null );
+                assert.ok( evt.detail.tableRow != null );
                 done1();
                 var saveBtn = node.querySelector( 'button[value=Cancel]' );
                 saveBtn.dispatchEvent( clickEvent2 );
@@ -1771,7 +1770,6 @@ QUnit.test( 'edit and cancel', function ( assert ) {
             node.addEventListener( 'cancelEdit', function ( evt ) {
                 assert.ok( evt != null );
                 assert.ok( evt.detail != null );
-                assert.ok( evt.detail.model != null );
                 done2();
             } );
 

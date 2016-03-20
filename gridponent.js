@@ -50,10 +50,15 @@ var gridponent = gridponent || {};
         },
     
         search: function ( searchTerm, callback ) {
+            // make sure we pass in a string
+            searchTerm = gp.isNullOrEmpty( searchTerm ) ? '' : searchTerm.toString();
             this.controller.search( searchTerm, callback );
         },
     
         sort: function ( name, desc, callback ) {
+            // validate the args
+            name = gp.isNullOrEmpty( name ) ? '' : name.toString();
+            typeof desc == 'boolean' ? desc : desc === 'false' ? false : !!desc;
             this.controller.sort( name, desc, callback );
         },
     
@@ -1285,7 +1290,7 @@ var gridponent = gridponent || {};
             var type = ( col.Type || '' ).toLowerCase();
             var val = row[col.Field];
     
-            if ( /date|datestring/.test( type ) ) {
+            if ( /^(date|datestring)$/.test( type ) ) {
                 // apply default formatting to dates
                 //return gp.formatDate(val, col.Format || 'M/d/yyyy');
                 return gp.formatter.format( val, col.Format );
@@ -1300,7 +1305,7 @@ var gridponent = gridponent || {};
         };
     
         gp.supplant = function ( str, o, args ) {
-            var self = this, types = /string|number|boolean/;
+            var self = this, types = /^(string|number|boolean)$/;
             return str.replace( /{{([^{}]*)}}/g,
                 function ( a, b ) {
                     var r = o[b];
@@ -1983,38 +1988,25 @@ var gridponent = gridponent || {};
         resolveTypes: function ( config ) {
             if ( !config || !config.pageModel || ( !config.pageModel.Data && !config.pageModel.Types ) ) return;
             config.Columns.forEach( function ( col ) {
-                if ( config.pageModel.Types && config.pageModel.Types[col.Field] != undefined ) {
-                    col.Type = gp.convertClrType( config.pageModel.Types[col.Field] )
+                // look for a type by Field first, then by Sort
+                var field = gp.hasValue( col.Field ) ? col.Field : col.Sort;
+                if ( gp.isNullOrEmpty( field ) ) return;
+                if ( config.pageModel.Types && config.pageModel.Types[field] != undefined ) {
+                    col.Type = gp.convertClrType( config.pageModel.Types[field] )
                 }
                 else {
-                    for ( var i = 0; i < config.pageModel.Data.length; i++ ) {
-                        if ( config.pageModel.Data[i][col.Field] !== null ) {
-                            col.Type = gp.getType( config.pageModel.Data[i][col.Field] );
-                            break;
+                    if ( config.pageModel.Data.length ) {
+                        // if we haven't found a value after 200 iterations, give up
+                        for ( var i = 0; i < config.pageModel.Data.length && i < 200 ; i++ ) {
+                            if ( config.pageModel.Data[i][field] !== null ) {
+                                col.Type = gp.getType( config.pageModel.Data[i][field] );
+                                break;
+                            }
                         }
                     }
                 }
             } );
         }
-        //measureTables: function (node) {
-        //    // for fixed headers, adjust the padding on the header to match the width of the main table
-        //    var header = node.querySelector('.table-header');
-        //    var footer = node.querySelector('.table-footer');
-        //    if (header || footer) {
-        //        var bodyWidth = node.querySelector('.table-body > table').offsetWidth;
-        //        var headerWidth = (header || footer).querySelector('table').offsetWidth;
-        //        var diff = (headerWidth - bodyWidth);
-        //        if (diff !== 0) {
-        //            var paddingRight = diff;
-        //            if (header) {
-        //                header.style.paddingRight = paddingRight.toString() + 'px';
-        //            }
-        //            if (footer) {
-        //                footer.style.paddingRight = paddingRight.toString() + 'px';
-        //            }
-        //        }
-        //    }
-        //}
     
     };
 
@@ -2277,6 +2269,7 @@ var gridponent = gridponent || {};
     
                 // filter first
                 if ( !gp.isNullOrEmpty( model.Search ) ) {
+                    // make sure searchTerm is a string and trim it
                     search = gp.trim( model.Search.toString() );
                     model.Data = model.Data.filter(function (row) {
                         return self.searchFilter(row, search);
@@ -2326,7 +2319,7 @@ var gridponent = gridponent || {};
             return col.length ? col[0] : null;
         },
         getSortFunction: function (col, desc) {
-            if ( /number|date|boolean/.test( col.Type ) ) {
+            if ( /^(number|date|boolean)$/.test( col.Type ) ) {
                 if ( desc ) {
                     return this.diffSortDesc;
                 }
@@ -2356,10 +2349,14 @@ var gridponent = gridponent || {};
                 // we already know a isn't null
                 return -1;
             }
-            if (a.toLowerCase() > b.toLowerCase()) {
+    
+            // string sorting is the default if no type was detected
+            // so make sure what we're sorting is a string
+    
+            if ( a.toString().toLowerCase() > b.toString().toLowerCase() ) {
                 return -1;
             }
-            if (a.toLowerCase() < b.toLowerCase()) {
+            if ( a.toString().toLowerCase() < b.toString().toLowerCase() ) {
                 return 1;
             }
     
@@ -2376,10 +2373,14 @@ var gridponent = gridponent || {};
                 // we already know a isn't null
                 return 1;
             }
-            if (a.toLowerCase() > b.toLowerCase()) {
+    
+            // string sorting is the default if no type was detected
+            // so make sure what we're sorting is a string
+    
+            if ( a.toString().toLowerCase() > b.toString().toLowerCase() ) {
                 return 1;
             }
-            if (a.toLowerCase() < b.toLowerCase()) {
+            if ( a.toString().toLowerCase() < b.toString().toLowerCase() ) {
                 return -1;
             }
     

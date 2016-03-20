@@ -185,38 +185,24 @@ gp.Initializer.prototype = {
     resolveTypes: function ( config ) {
         if ( !config || !config.pageModel || ( !config.pageModel.Data && !config.pageModel.Types ) ) return;
         config.Columns.forEach( function ( col ) {
-            if ( config.pageModel.Types && config.pageModel.Types[col.Field] != undefined ) {
-                col.Type = gp.convertClrType( config.pageModel.Types[col.Field] )
+            // look for a type by Field first, then by Sort
+            var field = gp.hasValue( col.Field ) ? col.Field : col.Sort;
+            if ( gp.isNullOrEmpty( field ) ) return;
+            if ( config.pageModel.Types && config.pageModel.Types[field] != undefined ) {
+                col.Type = gp.convertClrType( config.pageModel.Types[field] )
             }
             else {
-                for ( var i = 0; i < config.pageModel.Data.length; i++ ) {
-                    if ( config.pageModel.Data[i][col.Field] !== null ) {
-                        col.Type = gp.getType( config.pageModel.Data[i][col.Field] );
-                        break;
+                if ( config.pageModel.Data.length ) {
+                    // if we haven't found a value after 200 iterations, give up
+                    for ( var i = 0; i < config.pageModel.Data.length && i < 200 ; i++ ) {
+                        if ( config.pageModel.Data[i][field] !== null ) {
+                            col.Type = gp.getType( config.pageModel.Data[i][field] );
+                            break;
+                        }
                     }
                 }
             }
         } );
     }
-    //measureTables: function (node) {
-    //    // for fixed headers, adjust the padding on the header to match the width of the main table
-    //    var header = node.querySelector('.table-header');
-    //    var footer = node.querySelector('.table-footer');
-    //    if (header || footer) {
-    //        var bodyWidth = node.querySelector('.table-body > table').offsetWidth;
-    //        var headerWidth = (header || footer).querySelector('table').offsetWidth;
-    //        var diff = (headerWidth - bodyWidth);
-    //        if (diff !== 0) {
-    //            var paddingRight = diff;
-    //            gp.log('diff:' + diff + ', paddingRight:' + paddingRight);
-    //            if (header) {
-    //                header.style.paddingRight = paddingRight.toString() + 'px';
-    //            }
-    //            if (footer) {
-    //                footer.style.paddingRight = paddingRight.toString() + 'px';
-    //            }
-    //        }
-    //    }
-    //}
 
 };

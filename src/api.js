@@ -45,10 +45,15 @@ gp.api.prototype = {
     },
 
     search: function ( searchTerm, callback ) {
+        // make sure we pass in a string
+        searchTerm = gp.isNullOrEmpty( searchTerm ) ? '' : searchTerm.toString();
         this.controller.search( searchTerm, callback );
     },
 
     sort: function ( name, desc, callback ) {
+        // validate the args
+        name = gp.isNullOrEmpty( name ) ? '' : name.toString();
+        typeof desc == 'boolean' ? desc : desc === 'false' ? false : !!desc;
         this.controller.sort( name, desc, callback );
     },
 

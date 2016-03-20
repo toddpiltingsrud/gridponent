@@ -58,6 +58,7 @@ gp.ClientPager.prototype = {
 
             // filter first
             if ( !gp.isNullOrEmpty( model.Search ) ) {
+                // make sure searchTerm is a string and trim it
                 search = gp.trim( model.Search.toString() );
                 model.Data = model.Data.filter(function (row) {
                     return self.searchFilter(row, search);
@@ -107,7 +108,7 @@ gp.ClientPager.prototype = {
         return col.length ? col[0] : null;
     },
     getSortFunction: function (col, desc) {
-        if ( /number|date|boolean/.test( col.Type ) ) {
+        if ( /^(number|date|boolean)$/.test( col.Type ) ) {
             if ( desc ) {
                 return this.diffSortDesc;
             }
@@ -137,10 +138,14 @@ gp.ClientPager.prototype = {
             // we already know a isn't null
             return -1;
         }
-        if (a.toLowerCase() > b.toLowerCase()) {
+
+        // string sorting is the default if no type was detected
+        // so make sure what we're sorting is a string
+
+        if ( a.toString().toLowerCase() > b.toString().toLowerCase() ) {
             return -1;
         }
-        if (a.toLowerCase() < b.toLowerCase()) {
+        if ( a.toString().toLowerCase() < b.toString().toLowerCase() ) {
             return 1;
         }
 
@@ -157,10 +162,14 @@ gp.ClientPager.prototype = {
             // we already know a isn't null
             return 1;
         }
-        if (a.toLowerCase() > b.toLowerCase()) {
+
+        // string sorting is the default if no type was detected
+        // so make sure what we're sorting is a string
+
+        if ( a.toString().toLowerCase() > b.toString().toLowerCase() ) {
             return 1;
         }
-        if (a.toLowerCase() < b.toLowerCase()) {
+        if ( a.toString().toLowerCase() < b.toString().toLowerCase() ) {
             return -1;
         }
 
