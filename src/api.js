@@ -40,10 +40,6 @@ gp.api.prototype = {
         return this.controller.config.pageModel.Data;
     },
 
-    addRow: function ( row ) {
-        this.controller.config.pageModel.Data.push( row );
-    },
-
     search: function ( searchTerm, callback ) {
         // make sure we pass in a string
         searchTerm = gp.isNullOrEmpty( searchTerm ) ? '' : searchTerm.toString();
@@ -61,8 +57,9 @@ gp.api.prototype = {
         this.controller.read( requestModel, callback );
     },
 
-    create: function (callback) {
-        this.controller.createRow(callback);
+    create: function ( row, callback ) {
+        var tr = this.controller.addRow( row ).tableRow;
+        this.controller.createRow(row, tr, callback);
     },
 
     // This would have to be called after having retrieved the row from the table with getData().
@@ -71,8 +68,6 @@ gp.api.prototype = {
     // this function is mainly for testing
     update: function ( row, callback ) {
         var tr = gp.getTableRow( this.controller.config.pageModel.Data, row, this.controller.config.node );
-
-        tr['gp-update-model'] = new gp.UpdateModel( row );
 
         this.controller.updateRow( row, tr, callback );
     },

@@ -207,6 +207,35 @@ var productsTable = function () {
     return config;
 };
 
+QUnit.test( 'api.refresh', function ( assert ) {
+
+    var done = assert.async();
+
+    getTableConfig( configOptions, function ( config ) {
+
+        config.node.api.ready( function () {
+
+            var firstRow = data.products[0];
+
+            data.products.slice( 1 );
+
+            config.node.api.refresh( function () {
+                // firstRow should be gone
+
+                var productNumber = $( config.node ).find( 'tr[data-index=0] > td.body-cell:nth-child(10)' ).text();
+
+                assert.equal( productNumber, data.products[0].ProductNumber, 'product number should equal the second row in the table' );
+
+                done();
+
+            } );
+
+        } );
+
+    } );
+
+} );
+
 QUnit.test( 'supplant', function ( assert ) {
 
     var supplant = function ( str, o ) {
@@ -260,77 +289,77 @@ QUnit.test( 'refresh-event', function ( assert ) {
 
 } );
 
-//QUnit.test( 'api.create 1', function ( assert ) {
+QUnit.test( 'api.create 1', function ( assert ) {
 
-//    var done = assert.async();
+    var done = assert.async();
 
-//    getTableConfig( configOptions, function ( config ) {
+    getTableConfig( configOptions, function ( config ) {
 
-//        $( config.node ).one( gp.events.afterInit, function () {
+        $( config.node ).one( gp.events.afterInit, function () {
 
-//            var cellCount1 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
+            var cellCount1 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
 
-//            config.node.api.create( function ( row ) {
-//                console.log( 'api.create 1', row );
-//                var cellCount2 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
-//                assert.ok( gp.hasValue( row ), 'api should return a row' );
-//                assert.strictEqual( cellCount1, cellCount2, 'should create the same number of cells' );
-//                //$( '#table .box' ).empty();
-//                config.node.api.dispose();
-//                done();
-//            } );
+            config.node.api.create( function ( row ) {
+                console.log( 'api.create 1', row );
+                var cellCount2 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
+                assert.ok( gp.hasValue( row ), 'api should return a row' );
+                assert.strictEqual( cellCount1, cellCount2, 'should create the same number of cells' );
+                //$( '#table .box' ).empty();
+                config.node.api.dispose();
+                done();
+            } );
 
-//        } );
+        } );
 
-//    } );
+    } );
 
-//} );
+} );
 
-//QUnit.test( 'api.create 2', function ( assert ) {
+QUnit.test( 'api.create 2', function ( assert ) {
 
-//    createFn = function ( callback ) {
-//        callback(
-//            { "ProductID": 0, "Name": "test", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": null, "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0.0000, "ListPrice": 0.0000, "Size": null, "SizeUnitMeasureCode": null, "WeightUnitMeasureCode": null, "Weight": null, "DaysToManufacture": 0, "ProductLine": null, "Class": null, "Style": null, "ProductSubcategoryID": null, "ProductModelID": null, "SellStartDate": new Date(), "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "694215b7-70dd-4c0d-acb1-d734ba44c0c8", "ModifiedDate": null, "Markup": "" }
-//        );
-//    };
+    createFn = function ( callback ) {
+        callback(
+            { "ProductID": 0, "Name": "test", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": null, "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0.0000, "ListPrice": 0.0000, "Size": null, "SizeUnitMeasureCode": null, "WeightUnitMeasureCode": null, "Weight": null, "DaysToManufacture": 0, "ProductLine": null, "Class": null, "Style": null, "ProductSubcategoryID": null, "ProductModelID": null, "SellStartDate": new Date(), "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "694215b7-70dd-4c0d-acb1-d734ba44c0c8", "ModifiedDate": null, "Markup": "" }
+        );
+    };
 
-//    var options = gp.shallowCopy( configOptions );
-//    options.create = 'createFn';
-//    var done = assert.async();
+    var options = gp.shallowCopy( configOptions );
+    options.create = 'createFn';
+    var done = assert.async();
 
-//    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( config ) {
 
-//        $( config.node ).one( gp.events.afterInit, function () {
-//            config.node.api.create( function ( row ) {
-//                console.log( row );
-//                assert.strictEqual( row.Name, 'test', 'create should support functions that return a row' );
-//                config.node.api.dispose();
-//                done();
-//            } );
+        $( config.node ).one( gp.events.afterInit, function () {
+            config.node.api.create( function ( row ) {
+                console.log( row );
+                assert.strictEqual( row.Name, 'test', 'create should support functions that return a row' );
+                config.node.api.dispose();
+                done();
+            } );
 
-//        } );
+        } );
 
-//    } );
+    } );
 
-//    // now try it with a null create setting
-//    options.create = null;
-//    var done3 = assert.async();
+    // now try it with a null create setting
+    options.create = null;
+    var done3 = assert.async();
 
-//    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( config ) {
 
-//        $( config.node ).one( gp.events.afterInit, function () {
+        $( config.node ).one( gp.events.afterInit, function () {
 
-//            config.node.api.create( function ( row ) {
-//                assert.ok( row == undefined, 'empty create setting should execute the callback with no arguments' );
-//                config.node.api.dispose();
-//                done3();
-//            } );
+            config.node.api.create( function ( row ) {
+                assert.ok( row == undefined, 'empty create setting should execute the callback with no arguments' );
+                config.node.api.dispose();
+                done3();
+            } );
 
-//        } );
+        } );
 
-//    } );
+    } );
 
-//} );
+} );
 
 QUnit.test( 'api.update', function ( assert ) {
 
@@ -339,8 +368,9 @@ QUnit.test( 'api.update', function ( assert ) {
     var done3 = assert.async();
 
     // this would be called instead of posting the row to a URL
-    updateFn = function ( updateModel, callback ) {
+    updateFn = function ( row, callback ) {
         // simulate some validation errors
+        var updateModel = new gp.UpdateModel( row );
         updateModel.ValidationErrors = getValidationErrors();
         callback( updateModel );
     };
@@ -1614,14 +1644,16 @@ QUnit.test( 'beforeEditMode and afterEditMode events', function ( assert ) {
             node.addEventListener( gp.events.beforeEditMode, function ( evt ) {
                 assert.ok( evt != null );
                 assert.ok( evt.detail != null );
-                assert.ok( evt.detail.model != null );
+                assert.ok( evt.detail.row != null );
+                assert.ok( evt.detail.tableRow != null );
                 done1();
             } );
 
             node.addEventListener( gp.events.afterEditMode, function ( evt ) {
                 assert.ok( evt != null );
                 assert.ok( evt.detail != null );
-                assert.ok( evt.detail.model != null );
+                assert.ok( evt.detail.row != null );
+                assert.ok( evt.detail.tableRow != null );
                 done2();
             } );
 
@@ -1690,7 +1722,7 @@ QUnit.test( 'edit and update', function ( assert ) {
             node.addEventListener( gp.events.afterEditMode, function ( evt ) {
                 assert.ok( evt != null );
                 assert.ok( evt.detail != null );
-                assert.ok( evt.detail.model != null );
+                assert.ok( evt.detail.row != null );
                 assert.ok( evt.detail.tableRow != null );
                 // change some of the values
                 var input = evt.target.querySelector( '[name=StandardCost]' )
@@ -1760,7 +1792,7 @@ QUnit.test( 'edit and cancel', function ( assert ) {
             node.addEventListener( gp.events.afterEditMode, function ( evt ) {
                 assert.ok( evt != null );
                 assert.ok( evt.detail != null );
-                assert.ok( evt.detail.model != null );
+                assert.ok( evt.detail.row != null );
                 assert.ok( evt.detail.tableRow != null );
                 done1();
                 var saveBtn = node.querySelector( 'button[value=Cancel]' );
@@ -1770,6 +1802,8 @@ QUnit.test( 'edit and cancel', function ( assert ) {
             node.addEventListener( 'cancelEdit', function ( evt ) {
                 assert.ok( evt != null );
                 assert.ok( evt.detail != null );
+                assert.ok( evt.detail.row != null );
+                assert.ok( evt.detail.tableRow != null );
                 done2();
             } );
 

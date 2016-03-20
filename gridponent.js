@@ -45,10 +45,6 @@ var gridponent = gridponent || {};
             return this.controller.config.pageModel.Data;
         },
     
-        addRow: function ( row ) {
-            this.controller.config.pageModel.Data.push( row );
-        },
-    
         search: function ( searchTerm, callback ) {
             // make sure we pass in a string
             searchTerm = gp.isNullOrEmpty( searchTerm ) ? '' : searchTerm.toString();
@@ -66,8 +62,9 @@ var gridponent = gridponent || {};
             this.controller.read( requestModel, callback );
         },
     
-        create: function (callback) {
-            this.controller.createRow(callback);
+        create: function ( row, callback ) {
+            var tr = this.controller.addRow( row ).tableRow;
+            this.controller.createRow(row, tr, callback);
         },
     
         // This would have to be called after having retrieved the row from the table with getData().
@@ -76,8 +73,6 @@ var gridponent = gridponent || {};
         // this function is mainly for testing
         update: function ( row, callback ) {
             var tr = gp.getTableRow( this.controller.config.pageModel.Data, row, this.controller.config.node );
-    
-            tr['gp-update-model'] = new gp.UpdateModel( row );
     
             this.controller.updateRow( row, tr, callback );
         },
@@ -389,53 +384,54 @@ var gridponent = gridponent || {};
             }, this.handlers.httpErrorHandler );
         },
     
-        addRow: function ( callback ) {
+        addRow: function ( row ) {
+            var self = this,
+                table,
+                tbody,
+                rowIndex,
+                bodyCellContent,
+                editCellContent,
+                builder,
+                props,
+                jsType,
+                tr,
+                html;
+    
             try {
-                var self = this,
-                    updateModel,
-                    table,
-                    tbody,
-                    rowIndex,
-                    bodyCellContent,
-                    editCellContent,
-                    builder,
-                    props,
-                    jsType,
-                    row = {};
     
                 if ( !gp.hasValue( this.config.Create ) ) {
-                    gp.applyFunc( callback, this.config.node );
                     return;
                 }
     
-                // create a row using the config object
-                if ( !gp.isNullOrEmpty( this.config.pageModel.Types ) ) {
-                    Object.getOwnPropertyNames(this.config.pageModel.Types).forEach( function ( field ) {
-                        jsType = gp.convertClrType( self.config.pageModel.Types[field] );
-                        row[field] = gp.getDefaultValue( jsType );
-                    } );
-                }
-                else if ( this.config.pageModel.Data.length > 0 ) {
-                    Object.getOwnPropertyNames( this.config.pageModel.Data[0] ).forEach( function ( field ) {
-                        jsType = gp.getType( self.config.pageModel.Data[0][field] );
-                        row[field] = gp.getDefaultValue( jsType );
-                    } );
-                }
-                else {
-                    this.config.Columns.foreach( function ( col ) {
-                        if ( gp.hasValue( gp.Field ) ) {
-                            row[Field] = '';
-                        }
-                    } );
+                if ( row == undefined ) {
+                    row = {};
+    
+                    // create a row using the config object
+                    if ( !gp.isNullOrEmpty( this.config.pageModel.Types ) ) {
+                        Object.getOwnPropertyNames( this.config.pageModel.Types ).forEach( function ( field ) {
+                            jsType = gp.convertClrType( self.config.pageModel.Types[field] );
+                            row[field] = gp.getDefaultValue( jsType );
+                        } );
+                    }
+                    else if ( this.config.pageModel.Data.length > 0 ) {
+                        Object.getOwnPropertyNames( this.config.pageModel.Data[0] ).forEach( function ( field ) {
+                            jsType = gp.getType( self.config.pageModel.Data[0][field] );
+                            row[field] = gp.getDefaultValue( jsType );
+                        } );
+                    }
+                    else {
+                        this.config.Columns.foreach( function ( col ) {
+                            if ( gp.hasValue( gp.Field ) ) {
+                                row[Field] = '';
+                            }
+                        } );
+                    }
                 }
     
                 gp.raiseCustomEvent( this.config.node, gp.events.beforeAdd, row );
     
                 // add the new row to the internal data array
                 this.config.pageModel.Data.push( row );
-    
-                // wrap the new row in an UpdateModel
-                updateModel = new gp.UpdateModel( row );
     
                 tbody = this.config.node.querySelector( 'div.table-body > table > tbody' );
                 rowIndex = this.config.pageModel.Data.indexOf( row );
@@ -447,63 +443,62 @@ var gridponent = gridponent || {};
     
                 // add td.body-cell elements to the tr
                 this.config.Columns.forEach( function ( col ) {
-                    var html = col.Readonly
-                        ? bodyCellContent.call( this.config, col, row )
-                        : editCellContent.call( this.config, col, row, 'create' );
+                    html = col.Readonly ?
+                        bodyCellContent.call( this.config, col, row ) :
+                        editCellContent.call( this.config, col, row, 'create' );
                     builder.startElem( 'td' ).addClass( 'body-cell' ).addClass( col.BodyCell ).html( html ).endElem();
                 } );
     
-                var tr = builder.close();
+                tr = builder.close();
     
                 gp.prependChild( tbody, tr );
     
                 tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', row ).start();
     
-                tr['gp-update-model'] = updateModel;
-    
                 gp.raiseCustomEvent( this.config.node, gp.events.afterAdd, {
                     row: row,
                     tableRow: tr
                 } );
-    
-                gp.applyFunc( callback, this.config.node, row );
             }
             catch ( ex ) {
                 gp.error( ex );
-    
-                gp.applyFunc( callback, this.config.node );
             }
+    
+            return {
+                row: row,
+                tableRow: tr
+            };
         },
     
         createRow: function (row, tr, callback) {
             try {
                 var monitor,
-                    self = this,
-                    updateModel = tr['gp-update-model'];
+                    self = this;
     
-                // if there is no Update configuration setting or model, we're done here
-                if ( !gp.hasValue( this.config.Create ) || !updateModel ) {
+                // if there is no Create configuration setting, we're done here
+                if ( !gp.hasValue( this.config.Create ) ) {
                     gp.applyFunc( callback, self.config.node );
                     return;
                 }
     
                 gp.raiseCustomEvent( this.config.node, gp.events.beforeCreate, row );
     
-                // call the data layer
-                this.model.create( updateModel.Row, function ( returnedUpdateModel ) {
+                // call the data layer with just the row
+                // the data layer should respond with an updateModel
+                this.model.create( row, function ( updateModel ) {
     
                     try {
-                        if ( returnedUpdateModel.ValidationErrors && returnedUpdateModel.ValidationErrors.length ) {
+                        if ( updateModel.ValidationErrors && updateModel.ValidationErrors.length ) {
                             if ( typeof self.config.Validate === 'function' ) {
-                                gp.applyFunc( self.config.Validate, this, [tr, returnedUpdateModel] );
+                                gp.applyFunc( self.config.Validate, this, [tr, updateModel] );
                             }
                             else {
-                                gp.helpers['validation'].call( this, tr, returnedUpdateModel.ValidationErrors );
+                                gp.helpers['validation'].call( this, tr, updateModel.ValidationErrors );
                             }
                         }
                         else {
                             // copy the returned row back to the internal data array
-                            gp.shallowCopy( returnedUpdateModel.Row, row );
+                            gp.shallowCopy( updateModel.Row, row );
                             // refresh the UI
                             self.restoreCells( self.config, row, tr );
                             // dispose of the ChangeMonitor
@@ -512,8 +507,6 @@ var gridponent = gridponent || {};
                                 monitor.stop();
                                 monitor = null;
                             }
-                            // dispose of the updateModel
-                            delete tr['gp-update-model'];
                         }
                     }
                     catch ( err ) {
@@ -535,10 +528,8 @@ var gridponent = gridponent || {};
             try {
                 // put the row in edit mode
     
-                var updateModel = tr['gp-update-model'] = new gp.UpdateModel( row );
-    
                 gp.raiseCustomEvent( tr, gp.events.beforeEditMode, {
-                    model: updateModel,
+                    row: row,
                     tableRow: tr
                 } );
     
@@ -553,13 +544,11 @@ var gridponent = gridponent || {};
                     }
                 }
                 gp.addClass( tr, 'edit-mode' );
-                tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', updateModel.Row ).start();
+                tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', row ).start();
                 gp.raiseCustomEvent( tr, gp.events.afterEditMode, {
-                    model: updateModel,
+                    row: row,
                     tableRow: tr
                 } );
-    
-                return this.config.updateModel;
             }
             catch (ex) {
                 gp.error( ex );
@@ -571,32 +560,32 @@ var gridponent = gridponent || {};
     
             try {
                 var monitor,
-                    self = this,
-                    updateModel = tr['gp-update-model'];
+                    self = this;
     
-                // if there is no Update configuration setting or model, we're done here
-                if ( !gp.hasValue( this.config.Update ) || !updateModel) {
+                // if there is no Update configuration setting, we're done here
+                if ( !gp.hasValue( this.config.Update ) ) {
                     gp.applyFunc( callback, self.config.node );
                     return;
                 }
     
                 gp.raiseCustomEvent(tr, gp.events.beforeUpdate, row );
     
-                // call the data layer
-                this.model.update( updateModel.Row, function ( returnedUpdateModel ) {
+                // call the data layer with just the row
+                // the data layer should respond with an updateModel
+                this.model.update( row, function ( updateModel ) {
     
                     try {
-                        if ( returnedUpdateModel.ValidationErrors && returnedUpdateModel.ValidationErrors.length ) {
+                        if ( updateModel.ValidationErrors && updateModel.ValidationErrors.length ) {
                             if ( typeof self.config.Validate === 'function' ) {
-                                gp.applyFunc( self.config.Validate, this, [tr, returnedUpdateModel] );
+                                gp.applyFunc( self.config.Validate, this, [tr, updateModel] );
                             }
                             else {
-                                gp.helpers['validation'].call( this, tr, returnedUpdateModel.ValidationErrors );
+                                gp.helpers['validation'].call( this, tr, updateModel.ValidationErrors );
                             }
                         }
                         else {
                             // copy the returned row back to the internal data array
-                            gp.shallowCopy( returnedUpdateModel.Row, row );
+                            gp.shallowCopy( updateModel.Row, row );
                             // refresh the UI
                             self.restoreCells( self.config, row, tr );
                             // dispose of the ChangeMonitor
@@ -605,8 +594,6 @@ var gridponent = gridponent || {};
                                 monitor.stop();
                                 monitor = null;
                             }
-                            // dispose of the updateModel
-                            delete tr['gp-update-model'];
                         }
                     }
                     catch (err) {
@@ -689,7 +676,10 @@ var gridponent = gridponent || {};
                     this.restoreCells( this.config, row, tr );
                 }
     
-                gp.raiseCustomEvent( tr, 'cancelEdit', row );
+                gp.raiseCustomEvent( tr, 'cancelEdit', {
+                    row: row,
+                    tableRow: tr
+                } );
             }
             catch ( ex ) {
                 gp.error( ex );
