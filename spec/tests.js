@@ -336,6 +336,29 @@ QUnit.test( 'api.create 2', function ( assert ) {
 
 } );
 
+QUnit.test( 'api.create 3', function ( assert ) {
+
+    var done = assert.async();
+
+    var options = gp.shallowCopy( configOptions );
+    options.create = null;
+
+    getTableConfig( options, function ( config ) {
+
+        config.node.api.ready( function () {
+
+            config.node.api.create( null, function ( updateModel ) {
+                assert.ok( updateModel == null, 'calling api.create with no Create configuration should return null' );
+                config.node.api.dispose();
+                done();
+            } );
+
+        } );
+
+    } );
+
+} );
+
 QUnit.test( 'api.ready', function ( assert ) {
 
     var done = assert.async();
@@ -759,6 +782,43 @@ QUnit.test( 'row selection', function ( assert ) {
     };
 
     getTableConfig( options, function ( config ) {
+
+        config.node.api.ready( function () {
+
+            assert.equal( config.Onrowselect, onRowSelect, 'onRowSelect can be a function' );
+
+            var btn = config.node.querySelector( 'td.body-cell' );
+
+            $( btn ).click();
+
+        } );
+
+    } );
+
+} );
+
+QUnit.test( 'events.rowSelected', function ( assert ) {
+
+    var done = assert.async();
+
+    var options = gp.shallowCopy( configOptions );
+
+    options.onRowSelect = 'onRowSelect';
+
+    onRowSelect = function () {
+        assert.ok( true, 'row selection works' );
+        done();
+    };
+
+    getTableConfig( options, function ( config ) {
+
+        $( config.node ).one( gp.events.rowSelected, function ( evt ) {
+
+            evt.originalEvent.cancel = true;
+
+            done();
+
+        } );
 
         config.node.api.ready( function () {
 

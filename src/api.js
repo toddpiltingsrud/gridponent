@@ -59,8 +59,9 @@ gp.api.prototype = {
     },
 
     create: function ( row, callback ) {
-        var tr = this.controller.addRow( row ).tableRow;
-        this.controller.createRow(row, tr, callback);
+        var model = this.controller.addRow( row );
+        if ( model != null ) this.controller.createRow( row, model.tableRow, callback );
+        else callback( null );
     },
 
     // This would have to be called after having retrieved the row from the table with getData().
