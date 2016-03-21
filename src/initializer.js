@@ -18,6 +18,14 @@ gp.Initializer.prototype = {
         this.renderLayout( this.config );
         this.addBusyHandlers();
 
+        if ( typeof this.config.Ready === 'function' ) {
+            controller.ready( this.config.Ready );
+        }
+
+        if ( typeof this.config.AfterEdit === 'function' ) {
+            gp.on( this.config.node, gp.events.afterEdit, this.config.AfterEdit );
+        }
+
         // events should be raised AFTER the node is added to the DOM or they won't bubble
         // this problem occurs when nodes are created and then added to the DOM programmatically 
         // that means initialize has to return before it raises any events
@@ -80,7 +88,7 @@ gp.Initializer.prototype = {
             this.resolveTemplates(colConfig);
         }
         config.Footer = this.resolveFooter(config);
-        var options = 'Onrowselect SearchFunction Read Create Update Delete Validate'.split(' ');
+        var options = 'Onrowselect SearchFunction Read Create Update Delete Validate Ready AfterEdit'.split(' ');
         options.forEach( function ( option ) {
 
             if ( gp.hasValue(config[option]) ) {
@@ -97,7 +105,6 @@ gp.Initializer.prototype = {
             config.ToolbarTemplate = gp.resolveTemplate( config.ToolbarTemplate );
         }
 
-        gp.info('getConfig.config:', config);
         return config;
     },
 

@@ -3,6 +3,7 @@
 \***************/
 
 gp.events = {
+    rowSelected: 'rowSelected',
     beforeInit: 'beforeInit',
     afterInit: 'afterInit',
     beforeRead: 'beforeRead',
@@ -10,16 +11,14 @@ gp.events = {
     beforeCreate: 'beforeCreate',
     beforeUpdate: 'beforeUpdate',
     beforeDelete: 'beforeDelete',
-    beforeEditMode: 'beforeEditMode',
     afterRead: 'afterRead',
-    afterAdd: 'afterAdd',
     afterCreate: 'afterCreate',
     afterUpdate: 'afterUpdate',
     afterDelete: 'afterDelete',
-    afterEditMode: 'afterEditMode',
+    afterEdit: 'afterEdit',
     beforeDispose: 'beforeDispose',
-    httpError: 'httpError',
-    rowSelected: 'rowSelected'
+    editMode: 'editMode',
+    httpError: 'httpError'
 };
 
 gp.api = function ( controller ) {

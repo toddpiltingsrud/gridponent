@@ -35,9 +35,9 @@
   </PropertyGroup>
   <ItemGroup>
     <Content Include="gridponent.js">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
       <DependentUpon>gridponent.tt</DependentUpon>
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
     </Content>
     <Content Include="gridponent.tt">
       <Generator>TextTemplatingFileGenerator</Generator>

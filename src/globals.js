@@ -73,13 +73,6 @@
         return gp.shallowCopy( from, to );
     };
 
-    gp.getLocalISOString = function ( date ) {
-        if ( typeof date === 'string' ) return date;
-        var offset = date.getTimezoneOffset();
-        var adjustedDate = new Date( date.valueOf() - ( offset * 60000 ) );
-        return adjustedDate.toISOString();
-    };
-
     gp.getType = function ( a ) {
         if ( a === null || a === undefined ) {
             return a;
