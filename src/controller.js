@@ -50,6 +50,9 @@ gp.Controller.prototype = {
         this.removeRowSelectHandler();
         this.removeCommandHandlers( this.config.node );
         this.monitor.stop();
+        if ( typeof this.config.AfterEdit === 'function' ) {
+            gp.off( this.config.node, gp.events.afterEdit, this.config.AfterEdit );
+        }
     },
 
     monitorToolbars: function (node) {
@@ -239,11 +242,12 @@ gp.Controller.prototype = {
                 row = {};
 
                 // create a row using the config object
-                if ( !gp.isNullOrEmpty( this.config.pageModel.Types ) ) {
-                    Object.getOwnPropertyNames( this.config.pageModel.Types ).forEach( function ( field ) {
-                        jsType = gp.convertClrType( self.config.pageModel.Types[field] );
-                        row[field] = gp.getDefaultValue( jsType );
-                    } );
+                // check for a Model first
+                if ( typeof this.config.Model == 'object' ) {
+                    gp.shallowCopy( config.Model, row );
+                }
+                else if ( typeof this.config.Model == 'function') {
+                    gp.shallowCopy( config.Model(), row );
                 }
                 else if ( this.config.pageModel.Data.length > 0 ) {
                     Object.getOwnPropertyNames( this.config.pageModel.Data[0] ).forEach( function ( field ) {
@@ -260,7 +264,8 @@ gp.Controller.prototype = {
                 }
             }
 
-            gp.raiseCustomEvent( this.config.node, gp.events.beforeAdd, row );
+            // gives external code the opportunity to set defaults on the new row
+            gp.raiseCustomEvent( self.config.node, gp.events.beforeAdd, row );
 
             // add the new row to the internal data array
             this.config.pageModel.Data.push( row );
@@ -287,7 +292,8 @@ gp.Controller.prototype = {
 
             tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', row ).start();
 
-            gp.raiseCustomEvent( this.config.node, gp.events.afterAdd, {
+            // gives external code the opportunity to initialize UI elements (e.g. datepickers)
+            gp.raiseCustomEvent( tr, gp.events.editMode, {
                 row: row,
                 tableRow: tr
             } );
@@ -346,6 +352,7 @@ gp.Controller.prototype = {
                 }
 
                 gp.raiseCustomEvent( tr, gp.events.afterCreate, updateModel );
+                gp.raiseCustomEvent( self.config.node, gp.events.afterEdit, self.config.pageModel );
 
                 gp.applyFunc( callback, self.config.node, updateModel );
             },
@@ -360,11 +367,6 @@ gp.Controller.prototype = {
         try {
             // put the row in edit mode
 
-            gp.raiseCustomEvent( tr, gp.events.beforeEditMode, {
-                row: row,
-                tableRow: tr
-            } );
-
             // IE9 can't set innerHTML of tr, so iterate through each cell
             // besides, that way we can just skip readonly cells
             var editCellContent = gp.helpers['editCellContent'];
@@ -377,7 +379,9 @@ gp.Controller.prototype = {
             }
             gp.addClass( tr, 'edit-mode' );
             tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', row ).start();
-            gp.raiseCustomEvent( tr, gp.events.afterEditMode, {
+
+            // gives external code the opportunity to initialize UI elements (e.g. datepickers)
+            gp.raiseCustomEvent( tr, gp.events.editMode, {
                 row: row,
                 tableRow: tr
             } );
@@ -433,6 +437,7 @@ gp.Controller.prototype = {
                 }
 
                 gp.raiseCustomEvent( tr, gp.events.afterUpdate, updateModel );
+                gp.raiseCustomEvent( self.config.node, gp.events.afterEdit, self.config.pageModel );
 
                 gp.applyFunc( callback, self.config.node, updateModel );
             },
@@ -482,6 +487,7 @@ gp.Controller.prototype = {
                 }
 
                 gp.raiseCustomEvent( self.config.node, gp.events.afterDelete, row );
+                gp.raiseCustomEvent( self.config.node, gp.events.afterEdit, self.config.pageModel );
 
                 gp.applyFunc( callback, self.config.node, response );
             },

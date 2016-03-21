@@ -18,6 +18,14 @@ gp.Initializer.prototype = {
         this.renderLayout( this.config );
         this.addBusyHandlers();
 
+        if ( typeof this.config.Ready === 'function' ) {
+            controller.ready( this.config.Ready );
+        }
+
+        if ( typeof this.config.AfterEdit === 'function' ) {
+            gp.on( this.config.node, gp.events.afterEdit, this.config.AfterEdit );
+        }
+
         // events should be raised AFTER the node is added to the DOM or they won't bubble
         // this problem occurs when nodes are created and then added to the DOM programmatically 
         // that means initialize has to return before it raises any events
@@ -31,7 +39,6 @@ gp.Initializer.prototype = {
                 function ( data ) {
                     try {
                         self.config.pageModel = data;
-                        self.resolvePaging( self.config );
                         self.resolveTypes( self.config );
                         self.render( self.config );
                         controller.init();
@@ -80,7 +87,7 @@ gp.Initializer.prototype = {
             this.resolveTemplates(colConfig);
         }
         config.Footer = this.resolveFooter(config);
-        var options = 'Onrowselect SearchFunction Read Create Update Delete Validate'.split(' ');
+        var options = 'Onrowselect SearchFunction Read Create Update Delete Validate Model Ready AfterEdit'.split(' ');
         options.forEach( function ( option ) {
 
             if ( gp.hasValue(config[option]) ) {
@@ -97,7 +104,6 @@ gp.Initializer.prototype = {
             config.ToolbarTemplate = gp.resolveTemplate( config.ToolbarTemplate );
         }
 
-        gp.info('getConfig.config:', config);
         return config;
     },
 
@@ -177,28 +183,18 @@ gp.Initializer.prototype = {
         }
     },
 
-    resolvePaging: function ( config ) {
-        // if we've got all the data, do paging/sorting/searching on the client
-
-    },
-
     resolveTypes: function ( config ) {
-        if ( !config || !config.pageModel || ( !config.pageModel.Data && !config.pageModel.Types ) ) return;
+        if ( !config || !config.pageModel ) return;
         config.Columns.forEach( function ( col ) {
             // look for a type by Field first, then by Sort
             var field = gp.hasValue( col.Field ) ? col.Field : col.Sort;
             if ( gp.isNullOrEmpty( field ) ) return;
-            if ( config.pageModel.Types && config.pageModel.Types[field] != undefined ) {
-                col.Type = gp.convertClrType( config.pageModel.Types[field] )
-            }
-            else {
-                if ( config.pageModel.Data.length ) {
-                    // if we haven't found a value after 200 iterations, give up
-                    for ( var i = 0; i < config.pageModel.Data.length && i < 200 ; i++ ) {
-                        if ( config.pageModel.Data[i][field] !== null ) {
-                            col.Type = gp.getType( config.pageModel.Data[i][field] );
-                            break;
-                        }
+            if ( config.pageModel.Data.length ) {
+                // if we haven't found a value after 200 iterations, give up
+                for ( var i = 0; i < config.pageModel.Data.length && i < 200 ; i++ ) {
+                    if ( config.pageModel.Data[i][field] !== null ) {
+                        col.Type = gp.getType( config.pageModel.Data[i][field] );
+                        break;
                     }
                 }
             }

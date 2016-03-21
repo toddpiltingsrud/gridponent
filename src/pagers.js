@@ -128,13 +128,13 @@ gp.ClientPager.prototype = {
         return a - b;
     },
     stringSortDesc: function (a, b) {
-        if (a === null) {
-            if (b != null) {
+        if ( gp.hasValue( a ) === false ) {
+            if ( gp.hasValue( b ) ) {
                 return 1;
             }
             return 0;
         }
-        else if (b === null) {
+        else if ( gp.hasValue( b ) === false ) {
             // we already know a isn't null
             return -1;
         }
@@ -152,13 +152,13 @@ gp.ClientPager.prototype = {
         return 0;
     },
     stringSortAsc: function (a, b) {
-        if (a === null) {
-            if (b != null) {
+        if (gp.hasValue(a) === false) {
+            if (gp.hasValue(b)) {
                 return -1;
             }
             return 0;
         }
-        else if (b === null) {
+        else if (gp.hasValue(b) === false) {
             // we already know a isn't null
             return 1;
         }

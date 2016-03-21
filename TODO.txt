@@ -1,7 +1,7 @@
-﻿Allow adding event handlers declaratively inside the grid, e.g. <grid-ponent after-read="fns.afterRead" ready="fns.gridReady" ...
-
-Add a change event to a column:
+﻿Add a change event to a column:
 <gp-column field="IsCurrent" change="fns.isCurrentChanged"></gp-column>
+
+Make formatting modular so we can swap out formatting libraries.
 
 Footer template
 

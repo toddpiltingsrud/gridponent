@@ -68,22 +68,24 @@ var getTableConfig = function ( options, callback ) {
     div.append( '<script type="text/html" id="template4"><button class="btn"><span class="glyphicon glyphicon-search"></span>{{SafetyStockLevel}}</button></script>' );
     div.append( '<script type="text/html" id="template5"><button class="btn" value="{{fns.getButtonText}}"><span class="glyphicon {{fns.getButtonIcon}}"></span>{{fns.getButtonText}}</button></script>' );
     div.append( '<script type="text/html" id="template6"><button class="btn" value="">{{fns.getHeaderText}}</button></script>' );
+    div.append( '<script type="text/html" id="toolbar"><button class="btn" value="xyz"></button></script>' );
 
     var out = [];
 
     out.push( '<grid-ponent ' );
-    if ( options.fixedHeaders ) out.push( ' fixed-headers' );
-    if ( options.fixedFooters ) out.push( ' fixed-footers="true"' );
-    if ( options.responsive ) out.push( '   responsive="true"' );
-    if ( options.sorting ) out.push( '      sorting ' );
-    if ( options.onRowSelect ) out.push( '  onrowselect="' + options.onRowSelect + '"' );
-    if ( options.searchFilter ) out.push( ' search-function="' + options.searchFilter + '"' );
-    if ( options.read ) out.push( '         read="' + options.read + '"' );
-    if ( options.create ) out.push( '       create="' + options.create + '"' );
-    if ( options.update ) out.push( '       update="' + options.update + '"' );
-    if ( options.delete ) out.push( '       delete="' + options.delete + '"' );
-    if ( options.refreshEvent ) out.push( ' refresh-event="' + options.refreshEvent + '"' );
-    if ( options.validate ) out.push( '     validate="' + options.validate + '7"' );
+    if ( options.fixedHeaders ) out.push( '    fixed-headers' );
+    if ( options.fixedFooters ) out.push( '    fixed-footers="true"' );
+    if ( options.responsive ) out.push( '      responsive="true"' );
+    if ( options.sorting ) out.push( '         sorting ' );
+    if ( options.onRowSelect ) out.push( '     onrowselect="' + options.onRowSelect + '"' );
+    if ( options.searchFilter ) out.push( '    search-function="' + options.searchFilter + '"' );
+    if ( options.read ) out.push( '            read="' + options.read + '"' );
+    if ( options.create ) out.push( '          create="' + options.create + '"' );
+    if ( options.update ) out.push( '          update="' + options.update + '"' );
+    if ( options.delete ) out.push( '          delete="' + options.delete + '"' );
+    if ( options.toolbarTemplate ) out.push( ' toolbar-template="' + options.toolbarTemplate + '"' );
+    if ( options.refreshEvent ) out.push( '    refresh-event="' + options.refreshEvent + '"' );
+    if ( options.validate ) out.push( '        validate="' + options.validate + '7"' );
     out.push( '             pager="top-right"' );
     out.push( '             search="top-left">' );
     out.push( '    <gp-column header-template="fns.checkbox" body-template="fns.checkbox" footer-template="fns.checkbox"></gp-column>' );
@@ -206,6 +208,30 @@ var productsTable = function () {
 
     return config;
 };
+
+QUnit.test( 'ToolbarTemplate', function ( assert ) {
+
+    var done = assert.async();
+
+    var options = gp.shallowCopy( configOptions );
+
+    options.toolbarTemplate = '#toolbar';
+
+    getTableConfig( options, function ( config ) {
+
+        config.node.api.ready( function () {
+
+            var btn = $( config.node ).find( 'div.table-toolbar button[value=xyz]' );
+
+            assert.equal( btn.length, 1, 'should create a custom toolbar' );
+
+            done();
+
+        } );
+
+    } );
+
+} );
 
 QUnit.test( 'api.refresh', function ( assert ) {
 
@@ -1683,9 +1709,8 @@ QUnit.test( 'custom search filter', function ( assert ) {
 
 } );
 
-QUnit.test( 'beforeEditMode and afterEditMode events', function ( assert ) {
+QUnit.test( 'editMode event', function ( assert ) {
 
-    var done1 = assert.async();
     var done2 = assert.async();
 
     var options = gp.shallowCopy( configOptions );
@@ -1698,15 +1723,7 @@ QUnit.test( 'beforeEditMode and afterEditMode events', function ( assert ) {
 
         config.node.api.ready( function () {
 
-            node.addEventListener( gp.events.beforeEditMode, function ( evt ) {
-                assert.ok( evt != null );
-                assert.ok( evt.detail != null );
-                assert.ok( evt.detail.row != null );
-                assert.ok( evt.detail.tableRow != null );
-                done1();
-            } );
-
-            node.addEventListener( gp.events.afterEditMode, function ( evt ) {
+            node.addEventListener( gp.events.editMode, function ( evt ) {
                 assert.ok( evt != null );
                 assert.ok( evt.detail != null );
                 assert.ok( evt.detail.row != null );
@@ -1776,7 +1793,7 @@ QUnit.test( 'edit and update', function ( assert ) {
                 return false;
             } )[0];
 
-            node.addEventListener( gp.events.afterEditMode, function ( evt ) {
+            node.addEventListener( gp.events.editMode, function ( evt ) {
                 assert.ok( evt != null );
                 assert.ok( evt.detail != null );
                 assert.ok( evt.detail.row != null );
@@ -1790,7 +1807,7 @@ QUnit.test( 'edit and update', function ( assert ) {
                 saveBtn.dispatchEvent( clickEvent2 );
             } );
 
-            node.addEventListener( 'afterUpdate', function ( evt ) {
+            node.addEventListener( gp.events.afterUpdate, function ( evt ) {
                 assert.ok( evt != null );
                 assert.ok( evt.detail != null );
                 assert.ok( evt.detail.Row != null );
@@ -1846,7 +1863,7 @@ QUnit.test( 'edit and cancel', function ( assert ) {
 
         node.api.ready( function () {
 
-            node.addEventListener( gp.events.afterEditMode, function ( evt ) {
+            node.addEventListener( gp.events.editMode, function ( evt ) {
                 assert.ok( evt != null );
                 assert.ok( evt.detail != null );
                 assert.ok( evt.detail.row != null );
@@ -2041,7 +2058,7 @@ QUnit.test( 'readonly fields', function ( assert ) {
             // use this index to locate the table cell
             var index = config.Columns.indexOf( readonlyColumns[0] );
 
-            node.addEventListener( gp.events.afterEditMode, function ( evt ) {
+            node.addEventListener( gp.events.editMode, function ( evt ) {
                 var input = evt.target.querySelector( 'td:nth-child(' + ( index + 1 ).toString() + ') input' );
                 assert.equal( input, null, 'there should not be an input' );
                 done();

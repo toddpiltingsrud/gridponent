@@ -172,9 +172,11 @@ gp.helpers = {
             switch ( col.Type ) {
                 case 'date':
                 case 'dateString':
-                    // use the required format for the date input element
-                    val = gp.getLocalISOString( val ).substring( 0, 10 );
-                    html.add( 'date" value="' + gp.escapeHTML( val ) + '" />' );
+                    // Don't bother with date input type.
+                    // Indicate the type using data-type attribute so a custom date picker can be used.
+                    // This sidesteps the problem of polyfilling browsers that don't support date input type
+                    // and makes for a more consistent experience across browsers.
+                    html.add( 'text" data-type="date" value="' + gp.escapeHTML( val ) + '" />' );
                     break;
                 case 'number':
                     html.add( 'number" value="' + gp.escapeHTML( val ) + '" />' );

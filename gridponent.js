@@ -18,6 +18,7 @@ var gridponent = gridponent || {};
     \***************/
     
     gp.events = {
+        rowSelected: 'rowSelected',
         beforeInit: 'beforeInit',
         afterInit: 'afterInit',
         beforeRead: 'beforeRead',
@@ -25,16 +26,14 @@ var gridponent = gridponent || {};
         beforeCreate: 'beforeCreate',
         beforeUpdate: 'beforeUpdate',
         beforeDelete: 'beforeDelete',
-        beforeEditMode: 'beforeEditMode',
         afterRead: 'afterRead',
-        afterAdd: 'afterAdd',
         afterCreate: 'afterCreate',
         afterUpdate: 'afterUpdate',
         afterDelete: 'afterDelete',
-        afterEditMode: 'afterEditMode',
+        afterEdit: 'afterEdit',
         beforeDispose: 'beforeDispose',
-        httpError: 'httpError',
-        rowSelected: 'rowSelected'
+        editMode: 'editMode',
+        httpError: 'httpError'
     };
     
     gp.api = function ( controller ) {
@@ -267,14 +266,18 @@ cov.cover(32);
             this.removeRowSelectHandler();
             this.removeCommandHandlers( this.config.node );
             this.monitor.stop();
+            if ( typeof this.config.AfterEdit === 'function' ) {
+cov.cover(33);
+                gp.off( this.config.node, gp.events.afterEdit, this.config.AfterEdit );
+            }
         },
     
         monitorToolbars: function (node) {
-cov.cover(33);
+cov.cover(34);
             var self = this;
             // monitor changes to search, sort, and paging
             this.monitor = new gp.ChangeMonitor( node, '.table-toolbar [name], thead input, .table-pager input', this.config.pageModel, function ( evt ) {
-cov.cover(34);
+cov.cover(35);
                 self.read();
                 // reset the radio inputs
                 var radios = node.querySelectorAll( 'thead input[type=radio], .table-pager input[type=radio]' );
@@ -283,16 +286,16 @@ cov.cover(34);
                 }
             } );
             this.monitor.beforeSync = function ( name, value, model ) {
-cov.cover(35);
+cov.cover(36);
                 // the OrderBy property requires special handling
                 if (name === 'OrderBy') {
-cov.cover(36);
-                    if (model[name] === value) {
 cov.cover(37);
+                    if (model[name] === value) {
+cov.cover(38);
                         model.Desc = !model.Desc;
                     }
                     else {
-cov.cover(38);
+cov.cover(39);
                         model[name] = value;
                         model.Desc = false;
                     }
@@ -305,18 +308,18 @@ cov.cover(38);
         },
     
         addCommandHandlers: function (node) {
-cov.cover(39);
+cov.cover(40);
             // listen for command button clicks
             gp.on( node, 'click', 'button[value]', this.handlers.commandHandler );
         },
     
         removeCommandHandlers: function(node) {
-cov.cover(40);
+cov.cover(41);
             gp.off( node, 'click', this.handlers.commandHandler );
         },
     
         commandHandler: function(evt) {
-cov.cover(41);
+cov.cover(42);
             var command, tr, row, node = this.config.node;
             command = evt.selectedTarget.attributes['value'].value;
             tr = gp.closest( evt.selectedTarget, 'tr[data-index]', node );
@@ -344,7 +347,7 @@ cov.cover(41);
                     // check for a custom command
                     var cmd = gp.getObjectAtPath( command );
                     if ( typeof cmd === 'function' ) {
-cov.cover(42);
+cov.cover(43);
                         gp.applyFunc( cmd, node.api, [row, tr] );
                     }
                     break;
@@ -352,22 +355,22 @@ cov.cover(42);
         },
     
         addRowSelectHandler: function ( config ) {
-cov.cover(43);
+cov.cover(44);
             // it's got to be either a function or a URL template
             if ( typeof config.Onrowselect == 'function' || gp.rexp.braces.test( config.Onrowselect ) ) {
-cov.cover(44);
+cov.cover(45);
                 // add click handler
                 gp.on( config.node, 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
             }
         },
     
         removeRowSelectHandler: function() {
-cov.cover(45);
+cov.cover(46);
             gp.off( this.config.node, 'click', this.handlers.rowSelectHandler );
         },
     
         rowSelectHandler: function ( evt ) {
-cov.cover(46);
+cov.cover(47);
             var config = this.config,
                 tr = gp.closest( evt.selectedTarget, 'tr', config.node ),
                 trs = config.node.querySelectorAll( 'div.table-body > table > tbody > tr.selected' ),
@@ -398,34 +401,34 @@ cov.cover(46);
             if ( customEvt.cancel ) return;
     
             if ( type === 'function' ) {
-cov.cover(47);
+cov.cover(48);
                 gp.applyFunc( config.Onrowselect, tr, [row] );
             }
             else {
-cov.cover(48);
+cov.cover(49);
                 // it's a urlTemplate
                 window.location = gp.processBodyTemplate( config.Onrowselect, row );
             }
         },
     
         addRefreshEventHandler: function ( config ) {
-cov.cover(49);
-            if ( config.RefreshEvent ) {
 cov.cover(50);
+            if ( config.RefreshEvent ) {
+cov.cover(51);
                 gp.on( document, config.RefreshEvent, this.handlers.readHandler );
             }
         },
     
         removeRefreshEventHandler: function ( config ) {
-cov.cover(51);
-            if ( config.RefreshEvent ) {
 cov.cover(52);
+            if ( config.RefreshEvent ) {
+cov.cover(53);
                 gp.off( document, config.RefreshEvent, this.handlers.readHandler );
             }
         },
     
         search: function(searchTerm, callback) {
-cov.cover(53);
+cov.cover(54);
             this.config.pageModel.Search = searchTerm;
             var searchBox = this.config.node.querySelector( 'div.table-toolbar input[name=Search' );
             searchBox.value = searchTerm;
@@ -433,22 +436,22 @@ cov.cover(53);
         },
     
         sort: function(field, desc, callback) {
-cov.cover(54);
+cov.cover(55);
             this.config.pageModel.OrderBy = field;
             this.config.pageModel.Desc = ( desc == true );
             this.read(null, callback);
         },
     
         read: function ( requestModel, callback ) {
-cov.cover(55);
+cov.cover(56);
             var self = this;
             if ( requestModel ) {
-cov.cover(56);
+cov.cover(57);
                 gp.shallowCopy( requestModel, this.config.pageModel );
             }
             gp.raiseCustomEvent( this.config.node, gp.events.beforeRead, this.config.pageModel );
             this.model.read( this.config.pageModel, function ( model ) {
-cov.cover(57);
+cov.cover(58);
                 gp.shallowCopy( model, self.config.pageModel );
                 self.refresh( self.config );
                 gp.raiseCustomEvent( this.config.node, gp.events.afterRead, this.config.pageModel );
@@ -457,7 +460,7 @@ cov.cover(57);
         },
     
         addRow: function ( row ) {
-cov.cover(58);
+cov.cover(59);
             var self = this,
                 table,
                 tbody,
@@ -473,44 +476,46 @@ cov.cover(58);
             try {
     
                 if ( !gp.hasValue( this.config.Create ) ) {
-cov.cover(59);
+cov.cover(60);
                     return;
                 }
     
                 if ( row == undefined ) {
-cov.cover(60);
+cov.cover(61);
                     row = {};
     
                     // create a row using the config object
-                    if ( !gp.isNullOrEmpty( this.config.pageModel.Types ) ) {
-cov.cover(61);
-                        Object.getOwnPropertyNames( this.config.pageModel.Types ).forEach( function ( field ) {
+                    // check for a Model first
+                    if ( typeof this.config.Model == 'object' ) {
 cov.cover(62);
-                            jsType = gp.convertClrType( self.config.pageModel.Types[field] );
-                            row[field] = gp.getDefaultValue( jsType );
-                        } );
+                        gp.shallowCopy( config.Model, row );
+                    }
+                    else if ( typeof this.config.Model == 'function') {
+cov.cover(63);
+                        gp.shallowCopy( config.Model(), row );
                     }
                     else if ( this.config.pageModel.Data.length > 0 ) {
-cov.cover(63);
-                        Object.getOwnPropertyNames( this.config.pageModel.Data[0] ).forEach( function ( field ) {
 cov.cover(64);
+                        Object.getOwnPropertyNames( this.config.pageModel.Data[0] ).forEach( function ( field ) {
+cov.cover(65);
                             jsType = gp.getType( self.config.pageModel.Data[0][field] );
                             row[field] = gp.getDefaultValue( jsType );
                         } );
                     }
                     else {
-cov.cover(65);
-                        this.config.Columns.foreach( function ( col ) {
 cov.cover(66);
-                            if ( gp.hasValue( gp.Field ) ) {
+                        this.config.Columns.foreach( function ( col ) {
 cov.cover(67);
+                            if ( gp.hasValue( gp.Field ) ) {
+cov.cover(68);
                                 row[Field] = '';
                             }
                         } );
                     }
                 }
     
-                gp.raiseCustomEvent( this.config.node, gp.events.beforeAdd, row );
+                // gives external code the opportunity to set defaults on the new row
+                gp.raiseCustomEvent( self.config.node, gp.events.beforeAdd, row );
     
                 // add the new row to the internal data array
                 this.config.pageModel.Data.push( row );
@@ -525,7 +530,7 @@ cov.cover(67);
     
                 // add td.body-cell elements to the tr
                 this.config.Columns.forEach( function ( col ) {
-cov.cover(68);
+cov.cover(69);
                     html = col.Readonly ?
                         bodyCellContent.call( this.config, col, row ) :
                         editCellContent.call( this.config, col, row, 'create' );
@@ -538,7 +543,8 @@ cov.cover(68);
     
                 tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', row ).start();
     
-                gp.raiseCustomEvent( this.config.node, gp.events.afterAdd, {
+                // gives external code the opportunity to initialize UI elements (e.g. datepickers)
+                gp.raiseCustomEvent( tr, gp.events.editMode, {
                     row: row,
                     tableRow: tr
                 } );
@@ -554,14 +560,14 @@ cov.cover(68);
         },
     
         createRow: function (row, tr, callback) {
-cov.cover(69);
+cov.cover(70);
             try {
                 var monitor,
                     self = this;
     
                 // if there is no Create configuration setting, we're done here
                 if ( !gp.hasValue( this.config.Create ) ) {
-cov.cover(70);
+cov.cover(71);
                     gp.applyFunc( callback, self.config.node );
                     return;
                 }
@@ -571,22 +577,22 @@ cov.cover(70);
                 // call the data layer with just the row
                 // the data layer should respond with an updateModel
                 this.model.create( row, function ( updateModel ) {
-cov.cover(71);
+cov.cover(72);
     
                     try {
                         if ( updateModel.ValidationErrors && updateModel.ValidationErrors.length ) {
-cov.cover(72);
-                            if ( typeof self.config.Validate === 'function' ) {
 cov.cover(73);
+                            if ( typeof self.config.Validate === 'function' ) {
+cov.cover(74);
                                 gp.applyFunc( self.config.Validate, this, [tr, updateModel] );
                             }
                             else {
-cov.cover(74);
+cov.cover(75);
                                 gp.helpers['validation'].call( this, tr, updateModel.ValidationErrors );
                             }
                         }
                         else {
-cov.cover(75);
+cov.cover(76);
                             // copy the returned row back to the internal data array
                             gp.shallowCopy( updateModel.Row, row );
                             // refresh the UI
@@ -594,7 +600,7 @@ cov.cover(75);
                             // dispose of the ChangeMonitor
                             monitor = tr['gp-change-monitor'];
                             if ( monitor ) {
-cov.cover(76);
+cov.cover(77);
                                 monitor.stop();
                                 monitor = null;
                             }
@@ -605,6 +611,7 @@ cov.cover(76);
                     }
     
                     gp.raiseCustomEvent( tr, gp.events.afterCreate, updateModel );
+                    gp.raiseCustomEvent( self.config.node, gp.events.afterEdit, self.config.pageModel );
     
                     gp.applyFunc( callback, self.config.node, updateModel );
                 },
@@ -616,14 +623,9 @@ cov.cover(76);
         },
     
         editRow: function (row, tr) {
-cov.cover(77);
+cov.cover(78);
             try {
                 // put the row in edit mode
-    
-                gp.raiseCustomEvent( tr, gp.events.beforeEditMode, {
-                    row: row,
-                    tableRow: tr
-                } );
     
                 // IE9 can't set innerHTML of tr, so iterate through each cell
                 // besides, that way we can just skip readonly cells
@@ -632,13 +634,15 @@ cov.cover(77);
                 for ( var i = 0; i < cells.length; i++ ) {
                     col = this.config.Columns[i];
                     if ( !col.Readonly ) {
-cov.cover(78);
+cov.cover(79);
                         cells[i].innerHTML = editCellContent.call( this.config, col, row, 'edit' );
                     }
                 }
                 gp.addClass( tr, 'edit-mode' );
                 tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', row ).start();
-                gp.raiseCustomEvent( tr, gp.events.afterEditMode, {
+    
+                // gives external code the opportunity to initialize UI elements (e.g. datepickers)
+                gp.raiseCustomEvent( tr, gp.events.editMode, {
                     row: row,
                     tableRow: tr
                 } );
@@ -649,7 +653,7 @@ cov.cover(78);
         },
     
         updateRow: function (row, tr, callback) {
-cov.cover(79);
+cov.cover(80);
             // save the row and return it to read mode
     
             try {
@@ -658,7 +662,7 @@ cov.cover(79);
     
                 // if there is no Update configuration setting, we're done here
                 if ( !gp.hasValue( this.config.Update ) ) {
-cov.cover(80);
+cov.cover(81);
                     gp.applyFunc( callback, self.config.node );
                     return;
                 }
@@ -668,22 +672,22 @@ cov.cover(80);
                 // call the data layer with just the row
                 // the data layer should respond with an updateModel
                 this.model.update( row, function ( updateModel ) {
-cov.cover(81);
+cov.cover(82);
     
                     try {
                         if ( updateModel.ValidationErrors && updateModel.ValidationErrors.length ) {
-cov.cover(82);
-                            if ( typeof self.config.Validate === 'function' ) {
 cov.cover(83);
+                            if ( typeof self.config.Validate === 'function' ) {
+cov.cover(84);
                                 gp.applyFunc( self.config.Validate, this, [tr, updateModel] );
                             }
                             else {
-cov.cover(84);
+cov.cover(85);
                                 gp.helpers['validation'].call( this, tr, updateModel.ValidationErrors );
                             }
                         }
                         else {
-cov.cover(85);
+cov.cover(86);
                             // copy the returned row back to the internal data array
                             gp.shallowCopy( updateModel.Row, row );
                             // refresh the UI
@@ -691,7 +695,7 @@ cov.cover(85);
                             // dispose of the ChangeMonitor
                             monitor = tr['gp-change-monitor'];
                             if ( monitor ) {
-cov.cover(86);
+cov.cover(87);
                                 monitor.stop();
                                 monitor = null;
                             }
@@ -702,6 +706,7 @@ cov.cover(86);
                     }
     
                     gp.raiseCustomEvent( tr, gp.events.afterUpdate, updateModel );
+                    gp.raiseCustomEvent( self.config.node, gp.events.afterEdit, self.config.pageModel );
     
                     gp.applyFunc( callback, self.config.node, updateModel );
                 },
@@ -714,10 +719,10 @@ cov.cover(86);
     
         // we don't require a tr parameter because it may not be in the grid
         deleteRow: function (row, callback, skipConfirm) {
-cov.cover(87);
+cov.cover(88);
             try {
                 if ( !gp.hasValue( this.config.Delete ) ) {
-cov.cover(88);
+cov.cover(89);
                     gp.applyFunc( callback, this.config.node );
                     return;
                 }
@@ -728,7 +733,7 @@ cov.cover(88);
                     tr = gp.getTableRow(this.config.pageModel.Data, row, this.config.node);
     
                 if ( !confirmed ) {
-cov.cover(89);
+cov.cover(90);
                     gp.applyFunc( callback, this.config.node );
                     return;
                 }
@@ -736,18 +741,18 @@ cov.cover(89);
                 gp.raiseCustomEvent(this.config.node, gp.events.beforeDelete, row );
     
                 this.model.delete( row, function ( response ) {
-cov.cover(90);
+cov.cover(91);
     
                     try {
                         // if it didn't error out, we'll assume it succeeded
                         // remove the row from the model
                         var index = self.config.pageModel.Data.indexOf( row );
                         if ( index != -1 ) {
-cov.cover(91);
+cov.cover(92);
                             self.config.pageModel.Data.splice( index, 1 );
                             // if the row is currently being displayed, refresh the grid
                             if ( tr ) {
-cov.cover(92);
+cov.cover(93);
                                 self.refresh( self.config );
                             }
                         }
@@ -757,6 +762,7 @@ cov.cover(92);
                     }
     
                     gp.raiseCustomEvent( self.config.node, gp.events.afterDelete, row );
+                    gp.raiseCustomEvent( self.config.node, gp.events.afterEdit, self.config.pageModel );
     
                     gp.applyFunc( callback, self.config.node, response );
                 },
@@ -768,19 +774,19 @@ cov.cover(92);
         },
     
         cancelEdit: function (row, tr) {
-cov.cover(93);
+cov.cover(94);
             try {
                 var tbl = gp.closest( tr, 'table', this.config.node ), index;
     
                 if ( gp.hasClass( tr, 'create-mode' ) ) {
-cov.cover(94);
+cov.cover(95);
                     // remove row and tr
                     tbl.deleteRow( tr.rowIndex );
                     index = this.config.pageModel.Data.indexOf( row );
                     this.config.pageModel.Data.splice( index, 1 );
                 }
                 else {
-cov.cover(95);
+cov.cover(96);
                     // replace the ObjectProxy with the original row
                     this.config.Row = row;
                     this.restoreCells( this.config, row, tr );
@@ -797,7 +803,7 @@ cov.cover(95);
         },
     
         refresh: function ( config ) {
-cov.cover(96);
+cov.cover(97);
             // inject table rows, footer, pager and header style.
             var node = config.node;
     
@@ -808,18 +814,18 @@ cov.cover(96);
     
             body.innerHTML = gp.templates['gridponent-body']( config );
             if ( footer ) {
-cov.cover(97);
+cov.cover(98);
                 footer.innerHTML = gp.templates['gridponent-table-footer']( config );
             }
             if ( pager ) {
-cov.cover(98);
+cov.cover(99);
                 pager.innerHTML = gp.templates['gridponent-pager']( config );
             }
             sortStyle.innerHTML = gp.helpers.sortStyle.call( config );
         },
     
         restoreCells: function ( config, row, tr ) {
-cov.cover(99);
+cov.cover(100);
             var col,
                 i = 0;
             helper = gp.helpers['bodyCellContent'],
@@ -833,14 +839,14 @@ cov.cover(99);
         },
     
         httpErrorHandler: function ( e ) {
-cov.cover(100);
+cov.cover(101);
             gp.raiseCustomEvent( this.config.node, gp.events.httpError, e );
             alert( 'An error occurred while carrying out your request.' );
             gp.error( e );
         },
     
         removeBusyHandlers: function () {
-cov.cover(101);
+cov.cover(102);
             gp.off( this.config.node, gp.events.beforeRead, gp.addBusy );
             gp.off( this.config.node, gp.events.afterRead, gp.removeBusy );
             gp.off( this.config.node, gp.events.beforeUpdate, gp.addBusy );
@@ -855,10 +861,10 @@ cov.cover(101);
       CustomEvent
     \***************/
     (function () {
-cov.cover(102);
+cov.cover(103);
     
         function CustomEvent(event, params) {
-cov.cover(103);
+cov.cover(104);
             params = params || { bubbles: false, cancelable: false, detail: undefined };
             var evt = document.createEvent('CustomEvent');
             evt.initCustomEvent(event, params.bubbles, params.cancelable, params.detail);
@@ -879,7 +885,7 @@ cov.cover(103);
     // It allows the use of common format strings for dates and numbers.
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl
     (function () {
-cov.cover(104);
+cov.cover(105);
     
         // IE inserts unicode left-to-right-mark characters into the formatted string, 
         // causing the length property to return invalid results, even though the strings look the same.
@@ -895,7 +901,7 @@ cov.cover(104);
         gp.defaultCurrencyCode = 'USD';
     
         gp.Formatter = function (locale, currencyCode) {
-cov.cover(105);
+cov.cover(106);
             this.locale = locale || gp.defaultLocale;
             this.currencyCode = currencyCode || gp.defaultCurrencyCode;
             this.supported = (window.Intl !== undefined);
@@ -903,7 +909,7 @@ cov.cover(105);
     
         gp.Formatter.prototype = {
             format: function (val, format) {
-cov.cover(106);
+cov.cover(107);
                 var key, dtf, nf, type, options, dt;
                 if (!this.supported || !gp.hasValue(val)) return val;
     
@@ -911,13 +917,13 @@ cov.cover(106);
                 key = (format || '') + '|' + this.locale + '|' + this.currencyCode;
     
                 if (type === 'date') {
-cov.cover(107);
-                    if (key in dateTimeFormatCache) {
 cov.cover(108);
+                    if (key in dateTimeFormatCache) {
+cov.cover(109);
                         dtf = dateTimeFormatCache[key];
                     }
                     else {
-cov.cover(109);
+cov.cover(110);
                         options = getDateTimeFormatOptions(format);
     
                         dtf = new Intl.DateTimeFormat(this.locale, options)
@@ -927,23 +933,23 @@ cov.cover(109);
                     return dtf.format(val).replace(ltr, '');
                 }
                 if (type === 'dateString') {
-cov.cover(110);
+cov.cover(111);
                     var parts = val.match( /\d+/g );
                     if ( parts.length >= 6 ) {
-cov.cover(111);
+cov.cover(112);
                         dt = new Date(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5]);
                     }
                     else {
-cov.cover(112);
+cov.cover(113);
                         dt = new Date( parts[0], parts[1] - 1, parts[2] );
                     }
     
                     if (key in dateTimeFormatCache) {
-cov.cover(113);
+cov.cover(114);
                         dtf = dateTimeFormatCache[key];
                     }
                     else {
-cov.cover(114);
+cov.cover(115);
                         options = getDateTimeFormatOptions(format);
     
                         dtf = new Intl.DateTimeFormat(this.locale, options)
@@ -953,13 +959,13 @@ cov.cover(114);
                     return dtf.format(dt).replace(ltr, '');
                 }
                 if (type === 'number') {
-cov.cover(115);
-                    if (key in numberFormatCache) {
 cov.cover(116);
+                    if (key in numberFormatCache) {
+cov.cover(117);
                         nf = numberFormatCache[key];
                     }
                     else {
-cov.cover(117);
+cov.cover(118);
                         options = getNumberFormatOptions(format, this.currencyCode);
                         nf = new Intl.NumberFormat(this.locale, options);
                         numberFormatCache[key] = nf;
@@ -999,19 +1005,19 @@ cov.cover(117);
         ];
     
         function getDateTimeFormatOptions(format) {
-cov.cover(118);
+cov.cover(119);
             var options = {};
     
             if (gp.hasValue(format)) {
-cov.cover(119);
+cov.cover(120);
     
                 dateTimeTokens.forEach(function (token) {
-cov.cover(120);
-                    if (!(token[1] in options) && format.match(token[0])) {
 cov.cover(121);
+                    if (!(token[1] in options) && format.match(token[0])) {
+cov.cover(122);
                         options[token[1]] = token[2];
                         if ( token.length === 4 ) {
-cov.cover(122);
+cov.cover(123);
                             // set hour12 to true|false
                             options.hour12 = (token[3] === 'hour12');
                         }
@@ -1030,26 +1036,26 @@ cov.cover(122);
         ];
     
         function getNumberFormatOptions(format, currencyCode) {
-cov.cover(123);
+cov.cover(124);
             var options = {};
     
             if (gp.hasValue(format)) {
-cov.cover(124);
+cov.cover(125);
     
                 numberTokens.forEach(function (token) {
-cov.cover(125);
-                    if (!(token[1] in options) && format.match(token[0])) {
 cov.cover(126);
+                    if (!(token[1] in options) && format.match(token[0])) {
+cov.cover(127);
                         options[token[1]] = token[2];
                         if (token[2] === 'currency') {
-cov.cover(127);
+cov.cover(128);
                             options.currency = currencyCode;
                         }
                     }
                 });
                 var digits = format.match(/\d+/);
                 if (digits) {
-cov.cover(128);
+cov.cover(129);
                     options.minimumFractionDigits = options.maximumFractionDigits = parseInt(digits);
                 }
             }
@@ -1063,7 +1069,7 @@ cov.cover(128);
          globals
     \***************/
     ( function ( gp ) {
-cov.cover(129);
+cov.cover(130);
     
         gp.rexp = {
             splitPath: /[^\[\]\.\s]+|\[\d+\]/g,
@@ -1079,9 +1085,9 @@ cov.cover(129);
         gp.logging = 'info';
         gp.log = ( window.console ? window.console.log.bind( window.console ) : function () { } );
         gp.error = function ( e ) {
-cov.cover(130);
-            if ( console && console.error ) {
 cov.cover(131);
+            if ( console && console.error ) {
+cov.cover(132);
                 console.error( e );
             }
         };
@@ -1090,7 +1096,7 @@ cov.cover(131);
         gp.warn = /verbose|info|warn/.test( gp.logging ) ? gp.log : function () { };
     
         gp.getAttributes = function ( node ) {
-cov.cover(132);
+cov.cover(133);
             var config = {}, name, attr, attrs = node.attributes;
             config.node = node;
             for ( var i = attrs.length - 1; i >= 0; i-- ) {
@@ -1108,9 +1114,9 @@ cov.cover(132);
         var escaped = ['&amp;', '&lt;', '&gt;', '&quot;', '&apos;', '&#96;'];
     
         gp.escapeHTML = function ( obj ) {
-cov.cover(133);
-            if ( typeof obj !== 'string' ) {
 cov.cover(134);
+            if ( typeof obj !== 'string' ) {
+cov.cover(135);
                 return obj;
             }
             for ( var i = 0; i < chars.length; i++ ) {
@@ -1120,35 +1126,27 @@ cov.cover(134);
         };
     
         gp.camelize = function ( str ) {
-cov.cover(135);
-            return str.replace( /(?:^|[-_])(\w)/g, function ( _, c ) {
 cov.cover(136);
+            return str.replace( /(?:^|[-_])(\w)/g, function ( _, c ) {
+cov.cover(137);
                 return c ? c.toUpperCase() : '';
             } );
         };
     
         gp.shallowCopy = function ( from, to ) {
-cov.cover(137);
+cov.cover(138);
             to = to || {};
             var props = Object.getOwnPropertyNames( from );
             props.forEach( function ( prop ) {
-cov.cover(138);
+cov.cover(139);
                 to[prop] = from[prop];
             } );
             return to;
         };
     
         gp.extend = function ( to, from ) {
-cov.cover(139);
-            return gp.shallowCopy( from, to );
-        };
-    
-        gp.getLocalISOString = function ( date ) {
 cov.cover(140);
-            if ( typeof date === 'string' ) return date;
-            var offset = date.getTimezoneOffset();
-            var adjustedDate = new Date( date.valueOf() - ( offset * 60000 ) );
-            return adjustedDate.toISOString();
+            return gp.shallowCopy( from, to );
         };
     
         gp.getType = function ( a ) {
@@ -1481,8 +1479,6 @@ cov.cover(184);
     
             if ( /^(date|datestring)$/.test( type ) ) {
 cov.cover(185);
-                // apply default formatting to dates
-                //return gp.formatDate(val, col.Format || 'M/d/yyyy');
                 return gp.formatter.format( val, col.Format );
             }
             if ( type === 'number' && col.Format ) {
@@ -1870,9 +1866,11 @@ cov.cover(250);
                 switch ( col.Type ) {
                     case 'date':
                     case 'dateString':
-                        // use the required format for the date input element
-                        val = gp.getLocalISOString( val ).substring( 0, 10 );
-                        html.add( 'date" value="' + gp.escapeHTML( val ) + '" />' );
+                        // Don't bother with date input type.
+                        // Indicate the type using data-type attribute so a custom date picker can be used.
+                        // This sidesteps the problem of polyfilling browsers that don't support date input type
+                        // and makes for a more consistent experience across browsers.
+                        html.add( 'text" data-type="date" value="' + gp.escapeHTML( val ) + '" />' );
                         break;
                     case 'number':
                         html.add( 'number" value="' + gp.escapeHTML( val ) + '" />' );
@@ -2054,11 +2052,21 @@ cov.cover(276);
             this.renderLayout( this.config );
             this.addBusyHandlers();
     
+            if ( typeof this.config.Ready === 'function' ) {
+cov.cover(277);
+                controller.ready( this.config.Ready );
+            }
+    
+            if ( typeof this.config.AfterEdit === 'function' ) {
+cov.cover(278);
+                gp.on( this.config.node, gp.events.afterEdit, this.config.AfterEdit );
+            }
+    
             // events should be raised AFTER the node is added to the DOM or they won't bubble
             // this problem occurs when nodes are created and then added to the DOM programmatically 
             // that means initialize has to return before it raises any events
             setTimeout( function () {
-cov.cover(277);
+cov.cover(279);
                 // provides a hook for extensions
                 gp.raiseCustomEvent( self.config.node, gp.events.beforeInit, self.config );
     
@@ -2066,10 +2074,9 @@ cov.cover(277);
     
                 model.read( requestModel,
                     function ( data ) {
-cov.cover(278);
+cov.cover(280);
                         try {
                             self.config.pageModel = data;
-                            self.resolvePaging( self.config );
                             self.resolveTypes( self.config );
                             self.render( self.config );
                             controller.init();
@@ -2081,7 +2088,7 @@ cov.cover(278);
                         gp.raiseCustomEvent( self.config.node, gp.events.afterInit, self.config );
                     },
                     function (e) {
-cov.cover(279);
+cov.cover(281);
                         gp.raiseCustomEvent( self.config.node, gp.events.httpError, e );
                         alert( 'An error occurred while carrying out your request.' );
                         gp.error( e );
@@ -2094,7 +2101,7 @@ cov.cover(279);
         },
     
         addBusyHandlers: function () {
-cov.cover(280);
+cov.cover(282);
             gp.on( this.config.node, gp.events.beforeRead, gp.addBusy );
             gp.on( this.config.node, gp.events.afterRead, gp.removeBusy );
             gp.on( this.config.node, gp.events.beforeUpdate, gp.addBusy );
@@ -2105,7 +2112,7 @@ cov.cover(280);
         },
     
         getConfig: function (node) {
-cov.cover(281);
+cov.cover(283);
             var self = this;
             var obj, config = gp.getAttributes( node );
             var gpColumns = config.node.querySelectorAll( 'gp-column' );
@@ -2121,12 +2128,12 @@ cov.cover(281);
                 this.resolveTemplates(colConfig);
             }
             config.Footer = this.resolveFooter(config);
-            var options = 'Onrowselect SearchFunction Read Create Update Delete Validate'.split(' ');
+            var options = 'Onrowselect SearchFunction Read Create Update Delete Validate Model Ready AfterEdit'.split(' ');
             options.forEach( function ( option ) {
-cov.cover(282);
+cov.cover(284);
     
                 if ( gp.hasValue(config[option]) ) {
-cov.cover(283);
+cov.cover(285);
                     // see if this config option points to an object
                     // otherwise it must be a URL
                     obj = gp.getObjectAtPath( config[option] );
@@ -2137,7 +2144,7 @@ cov.cover(283);
             } );
     
             if ( gp.hasValue( config.ToolbarTemplate ) ) {
-cov.cover(284);
+cov.cover(286);
                 config.ToolbarTemplate = gp.resolveTemplate( config.ToolbarTemplate );
             }
     
@@ -2145,7 +2152,7 @@ cov.cover(284);
         },
     
         renderLayout: function ( config ) {
-cov.cover(285);
+cov.cover(287);
             var self = this;
             try {
                 config.node.innerHTML = gp.templates['gridponent']( config );
@@ -2156,7 +2163,7 @@ cov.cover(285);
         },
     
         render: function ( config ) {
-cov.cover(286);
+cov.cover(288);
             var self = this;
             try {
                 var node = config.node;
@@ -2170,29 +2177,29 @@ cov.cover(286);
     
                 body.innerHTML = gp.templates['gridponent-body']( config );
                 if ( footer ) {
-cov.cover(287);
+cov.cover(289);
                     footer.innerHTML = gp.templates['gridponent-table-footer']( config );
                 }
                 if ( pager ) {
-cov.cover(288);
+cov.cover(290);
                     pager.innerHTML = gp.templates['gridponent-pager']( config );
                 }
                 sortStyle = gp.helpers.sortStyle.call( config );
     
                 // sync column widths
                 if ( config.FixedHeaders || config.FixedFooters ) {
-cov.cover(289);
+cov.cover(291);
                     var nodes = node.querySelectorAll( '.table-body > table > tbody > tr:first-child > td' );
     
                     if ( gp.hasPositiveWidth( nodes ) ) {
-cov.cover(290);
+cov.cover(292);
                         // call syncColumnWidths twice because the first call causes things to shift around a bit
                         self.syncColumnWidths( config )
                         self.syncColumnWidths( config )
                     }
     
                     window.addEventListener( 'resize', function () {
-cov.cover(291);
+cov.cover(293);
                         self.syncColumnWidths( config );
                     } );
                 }
@@ -2203,13 +2210,13 @@ cov.cover(291);
         },
     
         syncColumnWidths: function (config) {
-cov.cover(292);
+cov.cover(294);
             var html = gp.helpers.columnWidthStyle.call( config );
             config.node.querySelector( 'style.column-width-style' ).innerHTML = html;
         },
     
         resolveFooter: function (config) {
-cov.cover(293);
+cov.cover(295);
             for (var i = 0; i < config.Columns.length; i++) {
                 if (config.Columns[i].FooterTemplate) return true;
             }
@@ -2217,51 +2224,38 @@ cov.cover(293);
         },
     
         resolveTemplates: function (column) {
-cov.cover(294);
+cov.cover(296);
             var props = 'HeaderTemplate BodyTemplate EditTemplate FooterTemplate'.split(' ');
             props.forEach(function (prop) {
-cov.cover(295);
+cov.cover(297);
                 column[prop] = gp.resolveTemplate(column[prop]);
             });
         },
     
         resolveCommands: function (col) {
-cov.cover(296);
+cov.cover(298);
             if (col.Commands) {
-cov.cover(297);
+cov.cover(299);
                 col.Commands = col.Commands.split(',');
             }
         },
     
-        resolvePaging: function ( config ) {
-cov.cover(298);
-            // if we've got all the data, do paging/sorting/searching on the client
-    
-        },
-    
         resolveTypes: function ( config ) {
-cov.cover(299);
-            if ( !config || !config.pageModel || ( !config.pageModel.Data && !config.pageModel.Types ) ) return;
-            config.Columns.forEach( function ( col ) {
 cov.cover(300);
+            if ( !config || !config.pageModel ) return;
+            config.Columns.forEach( function ( col ) {
+cov.cover(301);
                 // look for a type by Field first, then by Sort
                 var field = gp.hasValue( col.Field ) ? col.Field : col.Sort;
                 if ( gp.isNullOrEmpty( field ) ) return;
-                if ( config.pageModel.Types && config.pageModel.Types[field] != undefined ) {
-cov.cover(301);
-                    col.Type = gp.convertClrType( config.pageModel.Types[field] )
-                }
-                else {
+                if ( config.pageModel.Data.length ) {
 cov.cover(302);
-                    if ( config.pageModel.Data.length ) {
+                    // if we haven't found a value after 200 iterations, give up
+                    for ( var i = 0; i < config.pageModel.Data.length && i < 200 ; i++ ) {
+                        if ( config.pageModel.Data[i][field] !== null ) {
 cov.cover(303);
-                        // if we haven't found a value after 200 iterations, give up
-                        for ( var i = 0; i < config.pageModel.Data.length && i < 200 ; i++ ) {
-                            if ( config.pageModel.Data[i][field] !== null ) {
-cov.cover(304);
-                                col.Type = gp.getType( config.pageModel.Data[i][field] );
-                                break;
-                            }
+                            col.Type = gp.getType( config.pageModel.Data[i][field] );
+                            break;
                         }
                     }
                 }
@@ -2274,7 +2268,7 @@ cov.cover(304);
        mock-http
     \***************/
     (function (gp) {
-cov.cover(305);
+cov.cover(304);
         gp.Http = function () { };
     
         // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
@@ -2287,94 +2281,94 @@ cov.cover(305);
     
         gp.Http.prototype = {
             serialize: function (obj, props) {
-cov.cover(306);
+cov.cover(305);
                 // creates a query string from a simple object
                 var self = this;
                 props = props || Object.getOwnPropertyNames(obj);
                 var out = [];
                 props.forEach(function (prop) {
-cov.cover(307);
+cov.cover(306);
                     out.push(encodeURIComponent(prop) + '=' + encodeURIComponent(obj[prop]));
                 });
                 return out.join('&');
             },
             deserialize: function (queryString) {
-cov.cover(308);
+cov.cover(307);
                 var nameValue, split = queryString.split( '&' );
                 var obj = {};
                 if ( !queryString ) return obj;
                 split.forEach( function ( s ) {
-cov.cover(309);
+cov.cover(308);
                     nameValue = s.split( '=' );
                     var val = nameValue[1];
                     if ( !val ) {
-cov.cover(310);
+cov.cover(309);
                         obj[nameValue[0]] = null;
                     }
                     else if ( /true|false/i.test( val ) ) {
-cov.cover(311);
+cov.cover(310);
                         obj[nameValue[0]] = ( /true/i.test( val ) );
                     }
                     else if ( parseFloat( val ).toString() === val ) {
-cov.cover(312);
+cov.cover(311);
                         obj[nameValue[0]] = parseFloat( val );
                     }
                     else {
-cov.cover(313);
+cov.cover(312);
                         obj[nameValue[0]] = val;
                     }
                 } );
                 return obj;
             },
             get: function (url, callback, error) {
-cov.cover(314);
+cov.cover(313);
                 if (routes.read.test(url)) {
-cov.cover(315);
+cov.cover(314);
                     var index = url.substring(url.indexOf('?'));
                     if (index !== -1) {
-cov.cover(316);
+cov.cover(315);
                         var queryString = url.substring(index + 1);
                         var model = this.deserialize(queryString);
                         this.post(url.substring(0, index), model, callback, error);
                     }
                     else {
-cov.cover(317);
+cov.cover(316);
                         this.post(url, null, callback, error);
                     }
                 }
                 else if (routes.create.test(url)) {
-cov.cover(318);
+cov.cover(317);
                     var result = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
                     callback(result);
                 }
                 else {
-cov.cover(319);
+cov.cover(318);
                     throw 'Not found: ' + url;
                 }
             },
             post: function (url, model, callback, error) {
-cov.cover(320);
+cov.cover(319);
                 model = model || {};
                 if (routes.read.test(url)) {
-cov.cover(321);
+cov.cover(320);
                     getData(model, callback);
                 }
                 else if ( routes.create.test( url ) ) {
-cov.cover(322);
+cov.cover(321);
                     data.products.push( model );
                     callback( new gp.UpdateModel( model ) );
                 }
                 else if ( routes.update.test( url ) ) {
-cov.cover(323);
+cov.cover(322);
                     callback( new gp.UpdateModel(model) );
                 }
                 else {
-cov.cover(324);
+cov.cover(323);
                     throw '404 Not found: ' + url;
                 }
             },
             'delete': function ( url, model, callback, error ) {
-cov.cover(325);
+cov.cover(324);
                 model = model || {};
                 var index = data.products.indexOf( model );
                 callback( {
@@ -2385,17 +2379,17 @@ cov.cover(325);
         };
     
         var getData = function (model, callback) {
-cov.cover(326);
+cov.cover(325);
             var count, d = data.products;
             if (!gp.isNullOrEmpty(model.Search)) {
-cov.cover(327);
+cov.cover(326);
                 var props = Object.getOwnPropertyNames(d[0]);
                 var search = model.Search.toLowerCase();
                 d = d.filter(function (row) {
-cov.cover(328);
+cov.cover(327);
                     for (var i = 0; i < props.length; i++) {
                         if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
-cov.cover(329);
+cov.cover(328);
                             return true;
                         }
                     }
@@ -2403,31 +2397,31 @@ cov.cover(329);
                 });
             }
             if (!gp.isNullOrEmpty(model.OrderBy)) {
-cov.cover(330);
+cov.cover(329);
                 if (model.Desc) {
-cov.cover(331);
+cov.cover(330);
                     d.sort(function (row1, row2) {
-cov.cover(332);
+cov.cover(331);
                         var a = row1[model.OrderBy];
                         var b = row2[model.OrderBy];
                         if (a === null) {
-cov.cover(333);
+cov.cover(332);
                             if (b != null) {
-cov.cover(334);
+cov.cover(333);
                                 return 1;
                             }
                         }
                         else if (b === null) {
-cov.cover(335);
+cov.cover(334);
                             // we already know a isn't null
                             return -1;
                         }
                         if (a > b) {
-cov.cover(336);
+cov.cover(335);
                             return -1;
                         }
                         if (a < b) {
-cov.cover(337);
+cov.cover(336);
                             return 1;
                         }
     
@@ -2435,29 +2429,29 @@ cov.cover(337);
                     });
                 }
                 else {
-cov.cover(338);
+cov.cover(337);
                     d.sort(function (row1, row2) {
-cov.cover(339);
+cov.cover(338);
                         var a = row1[model.OrderBy];
                         var b = row2[model.OrderBy];
                         if (a === null) {
-cov.cover(340);
+cov.cover(339);
                             if (b != null) {
-cov.cover(341);
+cov.cover(340);
                                 return -1;
                             }
                         }
                         else if (b === null) {
-cov.cover(342);
+cov.cover(341);
                             // we already know a isn't null
                             return 1;
                         }
                         if (a > b) {
-cov.cover(343);
+cov.cover(342);
                             return 1;
                         }
                         if (a < b) {
-cov.cover(344);
+cov.cover(343);
                             return -1;
                         }
     
@@ -2467,16 +2461,16 @@ cov.cover(344);
             }
             count = d.length;
             if (model.Top !== -1) {
-cov.cover(345);
+cov.cover(344);
                 model.Data = d.slice(model.Skip).slice(0, model.Top);
             }
             else {
-cov.cover(346);
+cov.cover(345);
                 model.Data = d;
             }
             model.ValidationErrors = [];
             setTimeout(function () {
-cov.cover(347);
+cov.cover(346);
                 callback(model);
             });
     
@@ -2488,7 +2482,7 @@ cov.cover(347);
          model
     \***************/
     gp.Model = function ( config ) {
-cov.cover(348);
+cov.cover(347);
         this.config = config;
         this.dal = null;
         var type = gp.getType( config.Read );
@@ -2516,7 +2510,7 @@ cov.cover(348);
     gp.Model.prototype = {
     
         read: function ( requestModel, callback, error ) {
-cov.cover(349);
+cov.cover(348);
             var self = this;
     
     
@@ -2528,17 +2522,17 @@ cov.cover(349);
         },
     
         create: function ( row, callback, error) {
-cov.cover(350);
+cov.cover(349);
             var self = this, url;
     
             // config.Create can be a function or a URL
             if ( typeof this.config.Create === 'function' ) {
-cov.cover(351);
+cov.cover(350);
                 // call the function, set the API as the context
                 gp.applyFunc(this.config.Create, this.config.node.api, [row, callback, error], error);
             }
             else {
-cov.cover(352);
+cov.cover(351);
                 // the url can be a template
                 url = gp.supplant( this.config.Create, row );
                 // call the URL
@@ -2553,16 +2547,16 @@ cov.cover(352);
         },
     
         update: function (row, callback, error) {
-cov.cover(353);
+cov.cover(352);
             var self = this, url;
     
             // config.Update can be a function or URL
             if ( typeof this.config.Update === 'function' ) {
-cov.cover(354);
+cov.cover(353);
                 gp.applyFunc(this.config.Update, this.config.node.api, [row, callback, error], error);
             }
             else {
-cov.cover(355);
+cov.cover(354);
                 // the url can be a template
                 url = gp.supplant( this.config.Update, row );
                 var http = new gp.Http();
@@ -2576,14 +2570,14 @@ cov.cover(355);
         },
     
         'delete': function (row, callback, error) {
-cov.cover(356);
+cov.cover(355);
             var self = this, url;
             if ( typeof this.config.Delete === 'function' ) {
-cov.cover(357);
+cov.cover(356);
                 gp.applyFunc(this.config.Delete, this.config.node.api, [row, callback, error], error);
             }
             else {
-cov.cover(358);
+cov.cover(357);
                 // the url can be a template
                 url = gp.supplant( this.config.Delete, row );
                 var http = new gp.Http();
@@ -2603,18 +2597,18 @@ cov.cover(358);
     \***************/
     
     gp.NodeBuilder = function ( parent ) {
-cov.cover(359);
+cov.cover(358);
         this.node = parent || null;
     };
     
     gp.NodeBuilder.prototype = {
     
         startElem: function ( tagName ) {
-cov.cover(360);
+cov.cover(359);
             var n = document.createElement( tagName );
     
             if ( this.node ) {
-cov.cover(361);
+cov.cover(360);
                 this.node.appendChild( n );
             }
     
@@ -2624,13 +2618,13 @@ cov.cover(361);
         },
     
         addClass: function ( name ) {
-cov.cover(362);
+cov.cover(361);
             if ( gp.isNullOrEmpty( name ) ) return this;
     
             var hasClass = ( ' ' + this.node.className + ' ' ).indexOf( ' ' + name + ' ' ) !== -1;
     
             if ( !hasClass ) {
-cov.cover(363);
+cov.cover(362);
                 this.node.className = ( this.node.className === '' ) ? name : this.node.className + ' ' + name;
             }
     
@@ -2638,26 +2632,26 @@ cov.cover(363);
         },
     
         html: function ( html ) {
-cov.cover(364);
+cov.cover(363);
             this.node.innerHTML = gp.hasValue( html ) ? html : '';
             return this;
         },
     
         endElem: function () {
-cov.cover(365);
+cov.cover(364);
             if ( this.node.parentElement ) {
-cov.cover(366);
+cov.cover(365);
                 this.node = this.node.parentElement;
             }
             return this;
         },
     
         attr: function ( name, value ) {
-cov.cover(367);
+cov.cover(366);
             var attr = document.createAttribute( name );
     
             if ( value != undefined ) {
-cov.cover(368);
+cov.cover(367);
                 attr.value = gp.escapeHTML( value );
             }
     
@@ -2667,7 +2661,7 @@ cov.cover(368);
         },
     
         close: function () {
-cov.cover(369);
+cov.cover(368);
             while ( this.node.parentElement ) {
                 this.node = this.node.parentElement;
             }
@@ -2680,7 +2674,7 @@ cov.cover(369);
        ObjectProxy
     \***************/
     gp.ObjectProxy = function (obj, onPropertyChanged ) {
-cov.cover(370);
+cov.cover(369);
         var self = this;
         var dict = {};
     
@@ -2688,20 +2682,20 @@ cov.cover(370);
         var props = Object.getOwnPropertyNames( obj );
     
         props.forEach(function (prop) {
-cov.cover(371);
+cov.cover(370);
             Object.defineProperty(self, prop, {
                 get: function () {
-cov.cover(372);
+cov.cover(371);
                     return dict[prop];
                 },
                 set: function (value) {
-cov.cover(373);
+cov.cover(372);
                     if (dict[prop] != value) {
-cov.cover(374);
+cov.cover(373);
                         var oldValue = dict[prop];
                         dict[prop] = value;
                         if ( typeof onPropertyChanged === 'function' ) {
-cov.cover(375);
+cov.cover(374);
                             gp.applyFunc( onPropertyChanged, self, [self, prop, oldValue, value] );
                         }
                     }
@@ -2715,19 +2709,19 @@ cov.cover(375);
     server-side pager
     \***************/
     gp.ServerPager = function (url) {
-cov.cover(376);
+cov.cover(375);
         this.url = url;
     };
     
     gp.ServerPager.prototype = {
         read: function ( model, callback, error ) {
-cov.cover(377);
+cov.cover(376);
             var copy = gp.shallowCopy( model );
             // delete anything we don't want to send to the server
             var props = Object.getOwnPropertyNames( copy ).forEach(function(prop){
-cov.cover(378);
+cov.cover(377);
                 if ( /^(Page|Top|OrderBy|Desc|Search)$/i.test( prop ) == false ) {
-cov.cover(379);
+cov.cover(378);
                     delete copy[prop];
                 }
             });
@@ -2741,26 +2735,26 @@ cov.cover(379);
     client-side pager
     \***************/
     gp.ClientPager = function (config) {
-cov.cover(380);
+cov.cover(379);
         var value, self = this;
         this.data = config.pageModel.Data;
         this.columns = config.Columns.filter(function (c) {
-cov.cover(381);
+cov.cover(380);
             return c.Field !== undefined || c.Sort !== undefined;
         });
         if (typeof config.SearchFunction === 'function') {
-cov.cover(382);
+cov.cover(381);
             this.searchFilter = config.SearchFunction;
         }
         else {
-cov.cover(383);
+cov.cover(382);
             this.searchFilter = function (row, search) {
-cov.cover(384);
+cov.cover(383);
                 var s = search.toLowerCase();
                 for (var i = 0; i < self.columns.length; i++) {
                     value = gp.getFormattedValue( row, self.columns[i], false );
                     if (gp.hasValue(value) && value.toString().toLowerCase().indexOf(s) !== -1) {
-cov.cover(385);
+cov.cover(384);
                         return true;
                     }
                 }
@@ -2771,7 +2765,7 @@ cov.cover(385);
     
     gp.ClientPager.prototype = {
         read: function (model, callback, error) {
-cov.cover(386);
+cov.cover(385);
             try {
                 var self = this,
                     search,
@@ -2782,11 +2776,11 @@ cov.cover(386);
     
                 // filter first
                 if ( !gp.isNullOrEmpty( model.Search ) ) {
-cov.cover(387);
+cov.cover(386);
                     // make sure searchTerm is a string and trim it
                     search = gp.trim( model.Search.toString() );
                     model.Data = model.Data.filter(function (row) {
-cov.cover(388);
+cov.cover(387);
                         return self.searchFilter(row, search);
                     });
                 }
@@ -2796,14 +2790,14 @@ cov.cover(388);
     
                 // then sort
                 if (gp.isNullOrEmpty(model.OrderBy) === false) {
-cov.cover(389);
+cov.cover(388);
                     var col = this.getColumnByField( this.columns, model.OrderBy );
                     if (gp.hasValue(col)) {
-cov.cover(390);
+cov.cover(389);
                         var sortFunction = this.getSortFunction( col, model.Desc );
                         var fieldName = col.Field || col.Sort;
                         model.Data.sort( function ( row1, row2 ) {
-cov.cover(391);
+cov.cover(390);
                             return sortFunction( row1[fieldName], row2[fieldName] );
                         });
                     }
@@ -2811,7 +2805,7 @@ cov.cover(391);
     
                 // then page
                 if (model.Top !== -1) {
-cov.cover(392);
+cov.cover(391);
                     model.Data = model.Data.slice(skip).slice(0, model.Top);
                 }
             }
@@ -2821,66 +2815,66 @@ cov.cover(392);
             callback(model);
         },
         getSkip: function ( model ) {
-cov.cover(393);
+cov.cover(392);
             var data = model;
             if ( data.PageCount == 0 ) {
-cov.cover(394);
+cov.cover(393);
                 return 0;
             }
             if ( data.Page < 1 ) {
-cov.cover(395);
+cov.cover(394);
                 data.Page = 1;
             }
             else if ( data.Page > data.PageCount ) {
-cov.cover(396);
+cov.cover(395);
                 return data.Page = data.PageCount;
             }
             return ( data.Page - 1 ) * data.Top;
         },
         getColumnByField: function ( columns, field ) {
-cov.cover(397);
+cov.cover(396);
             var col = columns.filter(function (c) { return c.Field === field || c.Sort === field });
             return col.length ? col[0] : null;
         },
         getSortFunction: function (col, desc) {
-cov.cover(398);
+cov.cover(397);
             if ( /^(number|date|boolean)$/.test( col.Type ) ) {
-cov.cover(399);
+cov.cover(398);
                 if ( desc ) {
-cov.cover(400);
+cov.cover(399);
                     return this.diffSortDesc;
                 }
                 return this.diffSortAsc;
             }
             else {
-cov.cover(401);
+cov.cover(400);
                 if ( desc ) {
-cov.cover(402);
+cov.cover(401);
                     return this.stringSortDesc;
                 }
                 return this.stringSortAsc;
             }
         },
         diffSortDesc: function(a, b) {
-cov.cover(403);
+cov.cover(402);
             return b - a;
         },
         diffSortAsc: function(a, b) {
-cov.cover(404);
+cov.cover(403);
             return a - b;
         },
         stringSortDesc: function (a, b) {
+cov.cover(404);
+            if ( gp.hasValue( a ) === false ) {
 cov.cover(405);
-            if (a === null) {
+                if ( gp.hasValue( b ) ) {
 cov.cover(406);
-                if (b != null) {
-cov.cover(407);
                     return 1;
                 }
                 return 0;
             }
-            else if (b === null) {
-cov.cover(408);
+            else if ( gp.hasValue( b ) === false ) {
+cov.cover(407);
                 // we already know a isn't null
                 return -1;
             }
@@ -2889,28 +2883,28 @@ cov.cover(408);
             // so make sure what we're sorting is a string
     
             if ( a.toString().toLowerCase() > b.toString().toLowerCase() ) {
-cov.cover(409);
+cov.cover(408);
                 return -1;
             }
             if ( a.toString().toLowerCase() < b.toString().toLowerCase() ) {
-cov.cover(410);
+cov.cover(409);
                 return 1;
             }
     
             return 0;
         },
         stringSortAsc: function (a, b) {
+cov.cover(410);
+            if (gp.hasValue(a) === false) {
 cov.cover(411);
-            if (a === null) {
+                if (gp.hasValue(b)) {
 cov.cover(412);
-                if (b != null) {
-cov.cover(413);
                     return -1;
                 }
                 return 0;
             }
-            else if (b === null) {
-cov.cover(414);
+            else if (gp.hasValue(b) === false) {
+cov.cover(413);
                 // we already know a isn't null
                 return 1;
             }
@@ -2919,11 +2913,11 @@ cov.cover(414);
             // so make sure what we're sorting is a string
     
             if ( a.toString().toLowerCase() > b.toString().toLowerCase() ) {
-cov.cover(415);
+cov.cover(414);
                 return 1;
             }
             if ( a.toString().toLowerCase() < b.toString().toLowerCase() ) {
-cov.cover(416);
+cov.cover(415);
                 return -1;
             }
     
@@ -2936,13 +2930,13 @@ cov.cover(416);
     \***************/
     
     gp.FunctionPager = function ( config ) {
-cov.cover(417);
+cov.cover(416);
         this.config = config;
     };
     
     gp.FunctionPager.prototype = {
         read: function ( model, callback, error ) {
-cov.cover(418);
+cov.cover(417);
             try {
                 var type,
                     result = this.config.Read( model, callback );
@@ -2950,7 +2944,7 @@ cov.cover(418);
                 // if the function returned a value instead of using the callback
                 // check its type
                 if ( result != undefined ) {
-cov.cover(419);
+cov.cover(418);
                     type = gp.getType(result);
                     switch (type) {
                         case 'string':
@@ -2973,11 +2967,11 @@ cov.cover(419);
             }
             catch (ex) {
                 if (typeof error === 'function') {
-cov.cover(420);
+cov.cover(419);
                     gp.applyFunc( error, this, ex );
                 }
                 else {
-cov.cover(421);
+cov.cover(420);
                     gp.applyFunc( callback, this, this.config );
                 }
                 gp.error( ex );
@@ -2989,7 +2983,7 @@ cov.cover(421);
       RequestModel
     \***************/
     gp.RequestModel = function (data) {
-cov.cover(422);
+cov.cover(421);
         var self = this;
         // properites are capitalized here because that's the convention for server-side classes (C#)
         // we want the serialized version of the corresponding server-side class to look exactly like this prototype
@@ -3004,16 +2998,16 @@ cov.cover(422);
     
         Object.defineProperty(self, 'PageIndex', {
             get: function () {
-cov.cover(423);
+cov.cover(422);
                 return self.Page - 1;
             }
         });
     
         Object.defineProperty(self, 'PageCount', {
             get: function () {
-cov.cover(424);
+cov.cover(423);
                 if ( self.Top > 0 ) {
-cov.cover(425);
+cov.cover(424);
                     return Math.ceil( self.TotalRows / self.Top );
                 }
                 if ( self.TotalRows === 0 ) return 0;
@@ -3023,9 +3017,9 @@ cov.cover(425);
     
         Object.defineProperty(self, 'Skip', {
             get: function () {
-cov.cover(426);
+cov.cover(425);
                 if (self.Top !== -1) {
-cov.cover(427);
+cov.cover(426);
                     if (self.PageCount === 0) return 0;
                     if (self.Page < 1) self.Page = 1;
                     else if (self.Page > self.PageCount) return self.Page = self.PageCount;
@@ -3040,7 +3034,7 @@ cov.cover(427);
       PagingModel
     \***************/
     gp.PagingModel = function (data) {
-cov.cover(428);
+cov.cover(427);
         var self = this;
         // properites are capitalized here because that's the convention for server-side classes (C#)
         // we want the serialized version of the corresponding server-side class to look exactly like this prototype
@@ -3055,16 +3049,16 @@ cov.cover(428);
     
         Object.defineProperty(self, 'PageIndex', {
             get: function () {
-cov.cover(429);
+cov.cover(428);
                 return self.Page - 1;
             }
         });
     
         Object.defineProperty(self, 'PageCount', {
             get: function () {
-cov.cover(430);
+cov.cover(429);
                 if ( self.Top > 0 ) {
-cov.cover(431);
+cov.cover(430);
                     return Math.ceil( self.TotalRows / self.Top );
                 }
                 if ( self.TotalRows === 0 ) return 0;
@@ -3074,9 +3068,9 @@ cov.cover(431);
     
         Object.defineProperty(self, 'Skip', {
             get: function () {
-cov.cover(432);
+cov.cover(431);
                 if (self.Top !== -1) {
-cov.cover(433);
+cov.cover(432);
                     if (self.PageCount === 0) return 0;
                     if (self.Page < 1) self.Page = 1;
                     else if (self.Page > self.PageCount) return self.Page = self.PageCount;
@@ -3099,15 +3093,15 @@ cov.cover(433);
      * Date: 2015-04-28T16:01Z
      */
     gp.ready = function (fn) {
-cov.cover(434);
+cov.cover(433);
     
         var isReady = false;
     
         var completed = function (event) {
-cov.cover(435);
+cov.cover(434);
             // readyState === "complete" is good enough for us to call the dom ready in oldIE
             if (document.addEventListener || event.type === "load" || document.readyState === "complete") {
-cov.cover(436);
+cov.cover(435);
                 isReady = true;
                 detach();
                 fn();
@@ -3115,27 +3109,27 @@ cov.cover(436);
         };
     
         var detach = function () {
-cov.cover(437);
+cov.cover(436);
             if (document.addEventListener) {
-cov.cover(438);
+cov.cover(437);
                 document.removeEventListener("DOMContentLoaded", completed, false);
                 window.removeEventListener("load", completed, false);
     
             } else {
-cov.cover(439);
+cov.cover(438);
                 document.detachEvent("onreadystatechange", completed);
                 window.detachEvent("onload", completed);
             }
         };
     
         if (document.readyState === "complete") {
-cov.cover(440);
+cov.cover(439);
             // Handle it asynchronously to allow scripts the opportunity to delay ready
             setTimeout(fn);
     
             // Standards-based browsers support DOMContentLoaded
         } else if (document.addEventListener) {
-cov.cover(441);
+cov.cover(440);
             // Use the handy event callback
             document.addEventListener("DOMContentLoaded", completed, false);
     
@@ -3144,7 +3138,7 @@ cov.cover(441);
     
             // If IE event model is used
         } else {
-cov.cover(442);
+cov.cover(441);
             // Ensure firing before onload, maybe late but safe also for iframes
             document.attachEvent("onreadystatechange", completed);
     
@@ -3160,11 +3154,11 @@ cov.cover(442);
             } catch (e) { }
     
             if (top && top.doScroll) {
-cov.cover(443);
+cov.cover(442);
                 (function doScrollCheck() {
-cov.cover(444);
+cov.cover(443);
                     if (!isReady) {
-cov.cover(445);
+cov.cover(444);
     
                         try {
                             // Use the trick by Diego Perini
@@ -3189,20 +3183,20 @@ cov.cover(445);
     \***************/
     
     gp.StringBuilder = function () {
-cov.cover(446);
+cov.cover(445);
         this.out = [];
     };
     
     gp.StringBuilder.prototype = {
     
         add: function ( str ) {
-cov.cover(447);
+cov.cover(446);
             this.out.push( str );
             return this;
         },
     
         toString: function ( ) {
-cov.cover(448);
+cov.cover(447);
             return this.out.join('');
         }
     
@@ -3212,7 +3206,7 @@ cov.cover(448);
        UpdateModel
     \***************/
     gp.UpdateModel = function ( row, validationErrors ) {
-cov.cover(449);
+cov.cover(448);
     
         this.Row = row;
         this.ValidationErrors = validationErrors;
@@ -3226,18 +3220,18 @@ cov.cover(449);
     
     // check for web component support
     if (document.registerElement) {
-cov.cover(450);
+cov.cover(449);
     
         gp.Gridponent = Object.create(HTMLElement.prototype);
     
         gp.Gridponent.createdCallback = function () {
-cov.cover(451);
+cov.cover(450);
             var init = new gp.Initializer( this );
             gp.ready( init.initialize.bind( init ) );
         };
     
         gp.Gridponent.detachedCallback = function () {
-cov.cover(452);
+cov.cover(451);
             this.api.dispose();
         };
     
@@ -3246,11 +3240,11 @@ cov.cover(452);
         });
     }
     else {
-cov.cover(453);
+cov.cover(452);
         // no web component support
         // provide a static function to initialize grid-ponent elements manually
         gp.initialize = function (root) {
-cov.cover(454);
+cov.cover(453);
             root = root || document;
             var node, nodes = root.querySelectorAll( 'grid-ponent' );
             for ( var i = 0; i < nodes.length; i++ ) {
@@ -3266,33 +3260,33 @@ cov.cover(454);
     \***************/
     gp.templates = gp.templates || {};
     gp.templates['gridponent-body'] = function(model, arg) {
-cov.cover(455);
+cov.cover(454);
         var out = [];
         out.push('<table class="table" cellpadding="0" cellspacing="0">');
                 if (!model.FixedHeaders) {
-cov.cover(456);
+cov.cover(455);
                         out.push(gp.helpers['thead'].call(model));
                     }
             out.push('<tbody>');
                     out.push(gp.helpers['tableRows'].call(model));
             out.push('</tbody>');
                 if (model.Footer && !model.FixedFooters) {
-cov.cover(457);
+cov.cover(456);
                         out.push(gp.templates['gridponent-tfoot'](model));
                     }
             out.push('</table>');
         return out.join('');
     };
     gp.templates['gridponent-cells'] = function(model, arg) {
-cov.cover(458);
+cov.cover(457);
         var out = [];
         model.Columns.forEach(function(col, index) {
-cov.cover(459);
+cov.cover(458);
                 out.push('    <td class="body-cell ');
         out.push(col.BodyClass);
         out.push('" ');
         if (col.BodyStyle) {
-cov.cover(460);
+cov.cover(459);
         out.push(' style="');
         out.push(col.BodyStyle);
         out.push('"');
@@ -3304,33 +3298,33 @@ cov.cover(460);
                 return out.join('');
     };
     gp.templates['gridponent-pager'] = function(model, arg) {
-cov.cover(461);
+cov.cover(460);
         var out = [];
         out.push(gp.helpers['setPagerFlags'].call(model));
                 if (model.pageModel.HasPages) {
-cov.cover(462);
+cov.cover(461);
                 out.push('<div class="btn-group">');
         out.push('        <label class="ms-page-index btn btn-default ');
         if (model.pageModel.IsFirstPage) {
-cov.cover(463);
+cov.cover(462);
         out.push(' disabled ');
         }
         out.push('" title="First page">');
         out.push('<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>');
                         if (model.pageModel.IsFirstPage == false) {
-cov.cover(464);
+cov.cover(463);
             out.push('<input type="radio" name="Page" value="1" />');
                         }
             out.push('</label>');
             out.push('        <label class="ms-page-index btn btn-default ');
         if (model.pageModel.IsFirstPage) {
-cov.cover(465);
+cov.cover(464);
         out.push(' disabled ');
         }
         out.push('" title="Previous page">');
         out.push('<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>');
                         if (model.pageModel.IsFirstPage == false) {
-cov.cover(466);
+cov.cover(465);
             out.push('                <input type="radio" name="Page" value="');
         out.push(model.pageModel.PreviousPage);
         out.push('" />');
@@ -3347,13 +3341,13 @@ cov.cover(466);
         out.push('<div class="btn-group">');
         out.push('        <label class="ms-page-index btn btn-default ');
         if (model.pageModel.IsLastPage) {
-cov.cover(467);
+cov.cover(466);
         out.push(' disabled ');
         }
         out.push('" title="Next page">');
         out.push('<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>');
                         if (model.pageModel.IsLastPage == false) {
-cov.cover(468);
+cov.cover(467);
             out.push('            <input type="radio" name="Page" value="');
         out.push(model.pageModel.NextPage);
         out.push('" />');
@@ -3361,13 +3355,13 @@ cov.cover(468);
             out.push('</label>');
             out.push('        <label class="ms-page-index btn btn-default ');
         if (model.pageModel.IsLastPage) {
-cov.cover(469);
+cov.cover(468);
         out.push(' disabled ');
         }
         out.push('" title="Last page">');
         out.push('<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>');
                         if (model.pageModel.IsLastPage == false) {
-cov.cover(470);
+cov.cover(469);
             out.push('            <input type="radio" name="Page" value="');
         out.push(model.pageModel.PageCount);
         out.push('" />');
@@ -3378,7 +3372,7 @@ cov.cover(470);
                 return out.join('');
     };
     gp.templates['gridponent-table-footer'] = function(model, arg) {
-cov.cover(471);
+cov.cover(470);
         var out = [];
         out.push('<table class="table" cellpadding="0" cellspacing="0">');
                 out.push(gp.templates['gridponent-tfoot'](model));
@@ -3386,12 +3380,12 @@ cov.cover(471);
         return out.join('');
     };
     gp.templates['gridponent-tfoot'] = function(model, arg) {
-cov.cover(472);
+cov.cover(471);
         var out = [];
         out.push('<tfoot>');
         out.push('<tr>');
                     model.Columns.forEach(function(col, index) {
-cov.cover(473);
+cov.cover(472);
             out.push('<td class="footer-cell">');
                         out.push(gp.helpers['footerCell'].call(model, col));
             out.push('</td>');
@@ -3401,7 +3395,7 @@ cov.cover(473);
         return out.join('');
     };
     gp.templates['gridponent'] = function(model, arg) {
-cov.cover(474);
+cov.cover(473);
         var out = [];
         out.push('<div class="gp table-container');
         out.push(gp.helpers['containerClasses'].call(model));
@@ -3409,15 +3403,15 @@ cov.cover(474);
         out.push(model.ID);
         out.push('">');
                 if (model.Search || model.Create || model.ToolbarTemplate) {
-cov.cover(475);
+cov.cover(474);
             out.push('<div class="table-toolbar">');
                         if (model.ToolbarTemplate) {
-cov.cover(476);
+cov.cover(475);
                                 out.push(gp.helpers['toolbarTemplate'].call(model));
                             } else {
-cov.cover(477);
+cov.cover(476);
                                 if (model.Search) {
-cov.cover(478);
+cov.cover(477);
             out.push('<div class="input-group gridponent-searchbox">');
         out.push('<input type="text" name="Search" class="form-control" placeholder="Search...">');
         out.push('<span class="input-group-btn">');
@@ -3428,7 +3422,7 @@ cov.cover(478);
         out.push('</div>');
                             }
                                 if (model.Create) {
-cov.cover(479);
+cov.cover(478);
             out.push('<button class="btn btn-default" type="button" value="AddRow">');
         out.push('<span class="glyphicon glyphicon-plus"></span>Add');
         out.push('</button>');
@@ -3437,7 +3431,7 @@ cov.cover(479);
             out.push('</div>');
                 }
                     if (model.FixedHeaders) {
-cov.cover(480);
+cov.cover(479);
             out.push('<div class="table-header">');
         out.push('<table class="table" cellpadding="0" cellspacing="0">');
                             out.push(gp.helpers['thead'].call(model));
@@ -3446,7 +3440,7 @@ cov.cover(480);
                 }
             out.push('    <div class="table-body ');
         if (model.FixedHeaders) {
-cov.cover(481);
+cov.cover(480);
         out.push('table-scroll');
         }
         out.push('" style="');
@@ -3454,19 +3448,19 @@ cov.cover(481);
         out.push('">');
         out.push('<table class="table" cellpadding="0" cellspacing="0">');
                         if (!model.FixedHeaders) {
-cov.cover(482);
+cov.cover(481);
                                 out.push(gp.helpers['thead'].call(model));
                             }
             out.push('</table>');
         out.push('</div>');
                 if (model.FixedFooters) {
-cov.cover(483);
+cov.cover(482);
             out.push('<div class="table-footer">');
                         out.push(gp.templates['gridponent-table-footer'](model));
             out.push('</div>');
                 }
                     if (model.Pager) {
-cov.cover(484);
+cov.cover(483);
             out.push('<div class="table-pager"></div>');
                 }
             out.push('<style type="text/css" class="sort-style">');
@@ -3483,7 +3477,7 @@ cov.cover(484);
         out.push('</div>');
         return out.join('');
     };
-cov.maxCoverage = 484;
+cov.maxCoverage = 483;
 
 
 })(gridponent);

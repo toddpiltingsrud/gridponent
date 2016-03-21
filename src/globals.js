@@ -73,13 +73,6 @@
         return gp.shallowCopy( from, to );
     };
 
-    gp.getLocalISOString = function ( date ) {
-        if ( typeof date === 'string' ) return date;
-        var offset = date.getTimezoneOffset();
-        var adjustedDate = new Date( date.valueOf() - ( offset * 60000 ) );
-        return adjustedDate.toISOString();
-    };
-
     gp.getType = function ( a ) {
         if ( a === null || a === undefined ) {
             return a;
@@ -369,8 +362,6 @@
         var val = row[col.Field];
 
         if ( /^(date|datestring)$/.test( type ) ) {
-            // apply default formatting to dates
-            //return gp.formatDate(val, col.Format || 'M/d/yyyy');
             return gp.formatter.format( val, col.Format );
         }
         if ( type === 'number' && col.Format ) {
