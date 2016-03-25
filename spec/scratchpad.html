@@ -4,68 +4,48 @@
 <head>
     <meta charset="utf-8" />
     <title></title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>gridponent tests</title>
+    <link href="styles/qunit-1.20.0.css" rel="stylesheet" />
+    <link href="styles/bootstrap.min.css" rel="stylesheet">
+    <link href="styles/styles.css" rel="stylesheet">
+    <link href="../src/gridponent.css" rel="stylesheet">
+    <script src="scripts/jquery-2.1.4.min.js"></script>
+    <script src="scripts/qunit-1.20.0.js"></script>
+    <script src="../data/products.js"></script>
+    <script src="../gridponent.js"></script>
+    <script src="scripts/modernizr-custom-3.0.0.min.js"></script>
+    <script src="scripts/bootstrap.min.js"></script>
 </head>
 <body>
 
-    <div class="gp table-container pager-top-right search-top-left" id="gpiqdovjuj73vk">
-        <div class="table-toolbar">
-            <div class="input-group gridponent-searchbox">
-                <input name="Search" class="form-control" type="text" placeholder="Search...">
-                <span class="input-group-btn"><button class="btn btn-default" type="button"><span class="glyphicon glyphicon-search"></span></button></span>
-            </div>
-            <button class="btn btn-default" type="button" value="Create"><span class="glyphicon glyphicon-plus"></span>Add</button>
-        </div>
-        <div class="table-body ">
-            <table class="table" cellspacing="0" cellpadding="0">
-                <thead>
-                    <tr>
-                        <th class="header-cell " data-sort=""></th>
-                        <th class="header-cell " data-sort="Name">
-                            <label class="table-sort"><input name="OrderBy" type="radio" value="Name">ID</label>
-                        </th>
-                        <th class="header-cell " data-sort="">Make</th>
-                        <th class="header-cell " data-sort="">Safety Stock Level</th>
-                        <th class="header-cell " data-sort="">Standard Cost</th>
-                        <th class="header-cell " data-sort="">Sell Start Date</th>
-                        <th class="header-cell " data-sort="">Markup</th>
-                        <th class="header-cell " data-sort="">
-                            Test Header
-                            <input type="checkbox">
-                        </th>
-                        <th class="header-cell " data-sort="Color">
-                            <button class="btn" value="">undefined</button>
-                        </th>
-                        <th class="header-cell " data-sort="">Product #</th>
-                        <th class="header-cell " data-sort="">&nbsp;</th>
-                    </tr>
-                </thead>
-            </table>
-        </div>
-        <div class="table-pager"></div>
-        <style class="sort-style" type="text/css"></style>
-        <style class="column-width-style" type="text/css">
-            #gpiqdovjuj73vk .table-header th.header-cell:nth-child(3), #gpiqdovjuj73vk .table-footer td.footer-cell:nth-child(3), #gpiqdovjuj73vk > .table-body > table > thead th:nth-child(3), #gpiqdovjuj73vk > .table-body > table > tbody td:nth-child(3) {
-                width: 75px;
-            }
-        </style>
-        <div class="gp-progress-overlay">
-            <div class="gp-progress gp-progress-container">
-                <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>
-            </div>
-        </div>
+
+
+
+    <div class="table-toolbar">
+        <button class="btn btn-default" type="button" value="AddRow"><span class="glyphicon glyphicon-plus"></span>Add</button>
     </div>
+    <div class="table-body " style="">
+        <table class="table" cellpadding="0" cellspacing="0">
+            <thead>
+                <tr>
+                    <th class="header-cell " data-sort="">Current</th>
+                    <th class="header-cell " data-sort="">Address</th>
+                    <th class="header-cell " data-sort="">City</th>
+                    <th class="header-cell " data-sort="">State</th>
+                    <th class="header-cell " data-sort="">Zip</th>
+                    <th class="header-cell " data-sort="">Years</th>
+                    <th class="header-cell " data-sort="">Months</th>
+                    <th class="header-cell " data-sort=""></th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+    <style type="text/css" class="sort-style"></style>
 
-    <script>
-        var json = {
-            "Types":
-                {
-                    "Id": "Int32",
-                    "Line1": "String",
-                    "Line2": "String", "Line3": "String", "City": "String", "Region": "String", "SubRegion": "String", "Country": "String", "PostCode": "String", "IsCurrent": "Boolean", "AddressType": "String", "TimeAtAddressYears": "Int32", "TimeAtAddressMonths": "Int32"
-                }, "Page": 1, "Top": -1, "OrderBy": "", "Desc": false, "Search": "", "TotalRows": 1, "PageCount": 1, "Data": [{ "Id": 387420, "Line1": "111 18Th Ave Nw", "Line2": null, "Line3": null, "City": "Rochester", "Region": "MN", "SubRegion": "OLMSTED", "Country": "US", "PostCode": "55901", "IsCurrent": true, "AddressType": "Residence", "TimeAtAddressYears": 10, "TimeAtAddressMonths": 0 }]
-        };
-
-    </script>
 
 </body>
 </html>

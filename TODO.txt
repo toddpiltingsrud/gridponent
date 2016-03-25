@@ -1,11 +1,9 @@
-﻿Add a change event to a column:
+﻿What happens if a grid is rendered twice? Make sure the original is disposed if this happens.
+
+Add a change event to a column:
 <gp-column field="IsCurrent" change="fns.isCurrentChanged"></gp-column>
 
-Make formatting modular so we can swap out formatting libraries.
-
 Footer template
-
-Use the HTML table interface for adding rows: insertRow. http://www.w3.org/TR/DOM-Level-2-HTML/html.html#ID-13114938
 
 Empty table template
 

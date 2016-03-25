@@ -33,6 +33,8 @@ gp.Initializer.prototype = {
             // provides a hook for extensions
             gp.raiseCustomEvent( self.config.node, gp.events.beforeInit, self.config );
 
+            // we need both beforeInit and beforeRead because beforeRead is used after every read in the controller
+            // and beforeInit happens just once after the node is created, but before first read
             gp.raiseCustomEvent( self.config.node, gp.events.beforeRead, self.config.pageModel );
 
             model.read( requestModel,
@@ -72,22 +74,32 @@ gp.Initializer.prototype = {
     },
 
     getConfig: function (node) {
-        var self = this;
-        var obj, config = gp.getAttributes( node );
-        var gpColumns = config.node.querySelectorAll( 'gp-column' );
+        var self = this,
+            obj,
+            colNode,
+            colConfig,
+            templates,
+            config = gp.getAttributes( node ),
+            gpColumns = config.node.querySelectorAll( 'gp-column' );
+
         config.Columns = [];
         config.pageModel = {};
         config.ID = gp.createUID();
 
+        // create the column configurations
+        templates = 'header body edit footer'.split( ' ' );
         for ( var i = 0; i < gpColumns.length; i++ ) {
-            var col = gpColumns[i];
-            var colConfig = gp.getAttributes(col);
+            colNode = gpColumns[i];
+            colConfig = gp.getAttributes(colNode);
             config.Columns.push(colConfig);
             this.resolveCommands(colConfig);
-            this.resolveTemplates(colConfig);
+            this.resolveTemplates( templates, colConfig, colNode );
         }
-        config.Footer = this.resolveFooter(config);
-        var options = 'Onrowselect SearchFunction Read Create Update Delete Validate Model Ready AfterEdit'.split(' ');
+
+        config.Footer = this.resolveFooter( config );
+
+        // resolve the top level configurations
+        var options = 'Onrowselect SearchFunction Read Create Update Delete Validate Model Ready AfterEdit Model'.split(' ');
         options.forEach( function ( option ) {
 
             if ( gp.hasValue(config[option]) ) {
@@ -100,9 +112,8 @@ gp.Initializer.prototype = {
 
         } );
 
-        if ( gp.hasValue( config.ToolbarTemplate ) ) {
-            config.ToolbarTemplate = gp.resolveTemplate( config.ToolbarTemplate );
-        }
+        // resolve the various templates
+        this.resolveTemplates( ['toolbar', 'footer'], config, config.node );
 
         return config;
     },
@@ -170,16 +181,29 @@ gp.Initializer.prototype = {
         return false;
     },
 
-    resolveTemplates: function (column) {
-        var props = 'HeaderTemplate BodyTemplate EditTemplate FooterTemplate'.split(' ');
-        props.forEach(function (prop) {
-            column[prop] = gp.resolveTemplate(column[prop]);
-        });
+    resolveTemplates: function ( names, config, node ) {
+        var selector,
+            template,
+            prop,
+            selectorTemplate = 'script[type="text/html"][data-template*="{{name}}"],template[data-template*="{{name}}"]';
+        names.forEach( function ( n ) {
+            selector = gp.supplant( selectorTemplate, { name: n } );
+            template = node.querySelector( selector );
+            if ( template != null ) {
+                for ( var i = 0; i < node.children.length; i++ ) {
+                    if ( node.children[i] == template ) {
+                        prop = gp.camelize( n ) + 'Template';
+                        config[prop] = template.innerHTML;
+                        return;
+                    }
+                }
+            }
+        } );
     },
 
     resolveCommands: function (col) {
-        if (col.Commands) {
-            col.Commands = col.Commands.split(',');
+        if ( typeof col.Commands == 'string' ) {
+            col.Commands = col.Commands.split( ',' );
         }
     },
 

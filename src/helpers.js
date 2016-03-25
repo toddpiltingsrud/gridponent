@@ -49,12 +49,14 @@ gp.helpers = {
             }
             else if ( sort != '' ) {
                 html.add( '<label class="table-sort">' )
-                .add( '<input type="radio" name="OrderBy" value="' + sort + '" />' )
-                .add( gp.coalesce( [col.Header, col.Field, sort] ) )
-                .add( '</label>' );
+                    .add( '<input type="radio" name="OrderBy" value="' )
+                    .escape( sort )
+                    .add( '" />' )
+                    .escape( gp.coalesce( [col.Header, col.Field, sort] ) )
+                    .add( '</label>' );
             }
             else {
-                html.add( gp.coalesce( [col.Header, col.Field, '&nbsp;'] ) );
+                html.escape( gp.coalesce( [col.Header, col.Field, '&nbsp;'] ) );
             }
             html.add( '</th>' );
         } );
@@ -238,7 +240,7 @@ gp.helpers = {
     sortStyle: function () {
         var html = new gp.StringBuilder();
         if ( gp.isNullOrEmpty( this.pageModel.OrderBy ) === false ) {
-            html.add( '#' + this.ID + ' thead th.header-cell[data-sort="' + gp.escapeHTML(this.pageModel.OrderBy) + '"] > label:after' )
+            html.add( '#' + this.ID + ' thead th.header-cell[data-sort="' + gp.escapeHTML( this.pageModel.OrderBy ) + '"] > label:after' )
                 .add( '{ content: ' );
             if ( this.pageModel.Desc ) {
                 html.add( '"\\e114"; }' );
@@ -273,8 +275,8 @@ gp.helpers = {
             else if ( bodyCols.length && ( self.FixedHeaders || self.FixedFooters ) ) {
                 // sync header and footer to body
                 width = bodyCols[index].offsetWidth;
-                html.add( '#' +self.ID + ' .table-header th.header-cell:nth-child(' +( index +1 ) + '),' )
-                    .add( '#' +self.ID + ' .table-footer td.footer-cell:nth-child(' +( index +1 ) + ')' )
+                html.add( '#' + self.ID + ' .table-header th.header-cell:nth-child(' + ( index + 1 ) + '),' )
+                    .add( '#' + self.ID + ' .table-footer td.footer-cell:nth-child(' + ( index + 1 ) + ')' )
                     .add( '{ width:' )
                     .add( bodyCols[index].offsetWidth )
                     .add( 'px;}' );

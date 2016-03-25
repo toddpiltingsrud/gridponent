@@ -246,9 +246,6 @@ gp.Controller.prototype = {
                 if ( typeof this.config.Model == 'object' ) {
                     gp.shallowCopy( config.Model, row );
                 }
-                else if ( typeof this.config.Model == 'function') {
-                    gp.shallowCopy( config.Model(), row );
-                }
                 else if ( this.config.pageModel.Data.length > 0 ) {
                     Object.getOwnPropertyNames( this.config.pageModel.Data[0] ).forEach( function ( field ) {
                         jsType = gp.getType( self.config.pageModel.Data[0][field] );

@@ -62,14 +62,6 @@ var getTableConfig = function ( options, callback ) {
     options = options || configOptions;
     options.read = options.read || 'data.products';
 
-    div.append( '<script type="text/html" id="template1">Test Header</script>' );
-    div.append( '<script type="text/html" id="template2"><input class="form-control" type="checkbox" value="true" checked="{{MakeFlag}}"/></script>' );
-    div.append( '<script type="text/html" id="template3">Test Header<input type="checkbox"/></script>' );
-    div.append( '<script type="text/html" id="template4"><button class="btn"><span class="glyphicon glyphicon-search"></span>{{SafetyStockLevel}}</button></script>' );
-    div.append( '<script type="text/html" id="template5"><button class="btn" value="{{fns.getButtonText}}"><span class="glyphicon {{fns.getButtonIcon}}"></span>{{fns.getButtonText}}</button></script>' );
-    div.append( '<script type="text/html" id="template6"><button class="btn" value="">{{fns.getHeaderText}}</button></script>' );
-    div.append( '<script type="text/html" id="toolbar"><button class="btn" value="xyz"></button></script>' );
-
     var out = [];
 
     out.push( '<grid-ponent ' );
@@ -83,20 +75,34 @@ var getTableConfig = function ( options, callback ) {
     if ( options.create ) out.push( '          create="' + options.create + '"' );
     if ( options.update ) out.push( '          update="' + options.update + '"' );
     if ( options.delete ) out.push( '          delete="' + options.delete + '"' );
-    if ( options.toolbarTemplate ) out.push( ' toolbar-template="' + options.toolbarTemplate + '"' );
     if ( options.refreshEvent ) out.push( '    refresh-event="' + options.refreshEvent + '"' );
     if ( options.validate ) out.push( '        validate="' + options.validate + '7"' );
     out.push( '             pager="top-right"' );
     out.push( '             search="top-left">' );
-    out.push( '    <gp-column header-template="fns.checkbox" body-template="fns.checkbox" footer-template="fns.checkbox"></gp-column>' );
-    out.push( '    <gp-column header="ID" sort="Name" body-template="fns.getName" edit-template="fns.dropdown"></gp-column>' );
+    if ( options.toolbarTemplate )
+    out.push( '    <script type="text/html" data-template="toolbar"><button class="btn" value="xyz"></button></script>' );
+    out.push( '    <gp-column>' );
+    out.push( '        <script type="text/html" data-template="header body footer"><input type="checkbox" name="test" /></script>' );
+    out.push( '    </gp-column>' );
+    out.push( '    <gp-column header="ID" sort="Name">' );
+    out.push( '        <script type="text/html" data-template="body">{{fns.getName}}</script>' );
+    out.push( '        <script type="text/html" data-template="edit">{{fns.dropdown}}</script>' );
+    out.push( '    </gp-column>' );
     out.push( '    <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>' );
-    out.push( '    <gp-column field="SafetyStockLevel" header="Safety Stock Level" body-template="#template4" footer-template="fns.average"></gp-column>' );
-    out.push( '    <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.average" format="C"></gp-column>' );
-    out.push( '    <gp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, yyyy"></gp-column>' );
+    out.push( '    <gp-column field="SafetyStockLevel" header="Safety Stock Level">' );
+    out.push( '        <script type="text/html" data-template="body"><button class="btn"><span class="glyphicon glyphicon-search"></span>{{SafetyStockLevel}}</button></script>' );
+    out.push( '        <script type="text/html" data-template="footer">{{fns.average}}</script>' );
+    out.push( '    </gp-column>' );
+    out.push( '    <gp-column field="StandardCost" header="Standard Cost" format="C"></gp-column>' );
+    out.push( '    <gp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, YYYY"></gp-column>' );
     out.push( '    <gp-column field="Markup" readonly body-class="hidden-xs" header-class="hidden-xs"></gp-column>' );
-    out.push( '    <gp-column header-template="#template3"></gp-column>' );
-    out.push( '    <gp-column header-template="#template6" body-template="#template5" sort="Color" body-style="border:solid 1px #ccc;"></gp-column>' );
+    out.push( '    <gp-column>' );
+    out.push( '        <script type="text/html" data-template="header">Test Header<input type="checkbox"/></script>' );
+    out.push( '    </gp-column>' );
+    out.push( '    <gp-column sort="Color" body-style="border:solid 1px #ccc;">' );
+    out.push( '        <script type="text/html" data-template="header"><button class="btn" value="">{{fns.getHeaderText}}</button></script>' );
+    out.push( '        <script type="text/html" data-template="body"><button class="btn" value="{{fns.getButtonText}}"><span class="glyphicon {{fns.getButtonIcon}}"></span>{{fns.getButtonText}}</button></script>' );
+    out.push( '    </gp-column>' );
     out.push( '    <gp-column field="ProductNumber" header="Product #"></gp-column>' );
     out.push( '    <gp-column commands="Edit,Delete"></gp-column>' );
     if ( options.customCommand ) {
@@ -186,11 +192,14 @@ var productsTable = function () {
     out.push( '                create="/Products/Create"' );
     out.push( '                update="/Products/Update"' );
     out.push( '                delete="/Products/Delete">' );
-    out.push( '    <gp-column header="Product" field="ProductID" body-template="fns.getName" edit-template="fns.dropdown"></gp-column>' );
+    out.push( '    <gp-column header="Product" field="ProductID">' );
+    out.push( '        <script type="text/html" data-template="body">{{fns.getName}}</script>' );
+    out.push( '        <script type="text/html" data-template="edit">{{fns.dropdown}}</script>' );
+    out.push( '    </gp-column>' );
     out.push( '    <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>' );
     out.push( '    <gp-column field="SafetyStockLevel" header="Safety Stock Level" footer-template="fns.average"></gp-column>' );
     out.push( '    <gp-column field="StandardCost" header="Standard Cost" footer-template="fns.average" format="C"></gp-column>' );
-    out.push( '    <gp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, yyyy"></gp-column>' );
+    out.push( '    <gp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, YYYY"></gp-column>' );
     out.push( '    <gp-column field="Markup" readonly header="Marked-Up Name"></gp-column>' );
     out.push( '    <gp-column commands="Edit,Delete,Show Row" body-style="width:155px;text-align:center"></gp-column>' );
     out.push( '</grid-ponent>' );
@@ -209,13 +218,102 @@ var productsTable = function () {
     return config;
 };
 
+QUnit.test( 'gp.ClientPager', function ( assert ) {
+
+    var done = assert.async();
+
+    getTableConfig( null, function ( config ) {
+
+        config.node.api.ready( function () {
+
+            var pager = new gp.ClientPager( config );
+
+            pager.data = data.products;
+
+            var model = new gp.PagingModel();
+
+            // turn paging off
+            model.Top = -1;
+
+            pager.read( model, function ( response ) {
+                assert.ok( response != null );
+                assert.equal( response.Data.length, data.products.length, 'should return all rows' );
+            } );
+
+            // turn paging on
+            model.Top = 10;
+
+            pager.read( model, function ( response ) {
+                assert.equal( response.Data.length, 10, 'should return a subset of rows' );
+            } );
+
+            model.Search = 'BA-8327';
+
+            pager.read( model, function ( response ) {
+                assert.equal( response.Data.length, 1, 'should return a single row' );
+            } );
+
+            model.Search = null;
+
+            model.OrderBy = 'MakeFlag';
+
+            pager.read( model, function ( response ) {
+                assert.equal( response.Data[0].MakeFlag, false, 'ascending sort should put false values at the top' );
+            } );
+
+            model.Desc = true;
+
+            pager.read( model, function ( response ) {
+                assert.equal( response.Data[0].MakeFlag, true, 'descending sort should put true values at the top' );
+            } );
+
+            // descending string sort 
+            model.OrderBy = 'Color';
+            model.Top = -1;
+
+            model.Desc = true;
+
+            pager.read( model, function ( response ) {
+                assert.ok( gp.hasValue( response.Data[0].Color ), 'descending string sort should put non-null values at the top ' );
+                assert.ok( response.Data[response.Data.length - 1].Color == null, 'descending string sort should put null values at the bottom ' );
+            } );
+
+            // ascending string sort
+            model.Desc = false;
+
+            pager.read( model, function ( response ) {
+                assert.ok( response.Data[0].Color == null, 'ascending string sort should put null values at the top ' );
+                assert.ok( response.Data[response.Data.length - 1].Color != null, 'ascending string sort should put non-null values at the bottom ' );
+            } );
+
+            // page range checks
+            model.Top = 25;
+            model.Page = 0;
+
+            pager.getSkip( model );
+
+            assert.equal( model.Page, 1, 'getSkip should correct values outside of the page range' );
+
+            model.Page = model.PageCount + 1;
+            pager.getSkip( model );
+
+            assert.equal( model.Page, model.PageCount, 'getSkip should correct values outside of the page range' );
+
+            done();
+
+        } );
+
+    } );
+
+} );
+
 QUnit.test( 'ToolbarTemplate', function ( assert ) {
 
     var done = assert.async();
 
     var options = gp.shallowCopy( configOptions );
 
-    options.toolbarTemplate = '#toolbar';
+    options.toolbarTemplate = true;
 
     getTableConfig( options, function ( config ) {
 
@@ -233,6 +331,28 @@ QUnit.test( 'ToolbarTemplate', function ( assert ) {
 
 } );
 
+QUnit.test( 'api.search', function ( assert ) {
+
+    var done = assert.async();
+
+    getTableConfig( null, function ( config ) {
+
+        config.node.api.ready( function () {
+
+            config.node.api.search( 'Bearing' );
+
+            // take note of the content of the column before sorting
+            var rows = config.node.querySelectorAll( 'div.table-body tbody tr' );
+
+            assert.strictEqual( rows.length, 3, 'Should yield 3 rows' );
+
+            done();
+        } );
+
+    } );
+
+} );
+
 QUnit.test( 'api.refresh', function ( assert ) {
 
     var done = assert.async();
@@ -243,7 +363,7 @@ QUnit.test( 'api.refresh', function ( assert ) {
 
             var firstRow = data.products[0];
 
-            data.products.slice( 1 );
+            data.products.splice( 0, 1 );
 
             config.node.api.refresh( function () {
                 // firstRow should be gone
@@ -501,28 +621,6 @@ QUnit.test( 'api.update', function ( assert ) {
 
     } );
 
-
-} );
-
-QUnit.test( 'api.search', function ( assert ) {
-
-    var done = assert.async();
-
-    getTableConfig( null, function ( config ) {
-
-        config.node.api.ready( function () {
-
-            config.node.api.search( 'Bearing' );
-
-            // take note of the content of the column before sorting
-            var rows = config.node.querySelectorAll( 'div.table-body tbody tr' );
-
-            assert.strictEqual( rows.length, 3, 'Should yield 3 rows' );
-
-            done();
-        } );
-
-    } );
 
 } );
 
@@ -1019,121 +1117,33 @@ QUnit.test( 'gp.getObjectAtPath', function ( assert ) {
 
 } );
 
-QUnit.test( 'gp.PagingModel', function ( assert ) {
+//QUnit.test( 'gp.PagingModel', function ( assert ) {
 
-    var rm = new gp.PagingModel();
+//    var rm = new gp.PagingModel();
 
-    assert.equal( rm.PageCount, 0 );
+//    assert.equal( rm.PageCount, 0 );
 
-    assert.equal( rm.Skip, 0 );
+//    assert.equal( rm.Skip, 0 );
 
-    rm.Data = data.products;
+//    rm.Data = data.products;
 
-    rm.TotalRows = data.products.length;
+//    rm.TotalRows = data.products.length;
 
-    assert.equal( rm.PageCount, 1 );
+//    assert.equal( rm.PageCount, 1 );
 
-    assert.equal( rm.Skip, 0 );
+//    assert.equal( rm.Skip, 0 );
 
-    rm.Top = 25;
+//    rm.Top = 25;
 
-    assert.equal( rm.PageCount, Math.ceil( data.products.length / 25 ) );
+//    assert.equal( rm.PageCount, Math.ceil( data.products.length / 25 ) );
 
-    assert.equal( rm.Skip, 0 );
+//    assert.equal( rm.Skip, 0 );
 
-    rm.Page = 3;
+//    rm.Page = 3;
 
-    assert.equal( rm.Skip, 50 );
-} );
+//    assert.equal( rm.Skip, 50 );
+//} );
 
-QUnit.test( 'gp.ClientPager', function ( assert ) {
-
-    var done = assert.async();
-
-    getTableConfig( null, function ( config ) {
-
-        config.node.api.ready( function () {
-
-            var pager = new gp.ClientPager( config );
-
-            pager.data = data.products;
-
-            var model = new gp.PagingModel();
-
-            // turn paging off
-            model.Top = -1;
-
-            pager.read( model, function ( response ) {
-                assert.ok( response != null );
-                assert.equal( response.Data.length, data.products.length, 'should return all rows' );
-            } );
-
-            // turn paging on
-            model.Top = 10;
-
-            pager.read( model, function ( response ) {
-                assert.equal( response.Data.length, 10, 'should return a subset of rows' );
-            } );
-
-            model.Search = 'BA-8327';
-
-            pager.read( model, function ( response ) {
-                assert.equal( response.Data.length, 1, 'should return a single row' );
-            } );
-
-            model.Search = null;
-
-            model.OrderBy = 'MakeFlag';
-
-            pager.read( model, function ( response ) {
-                assert.equal( response.Data[0].MakeFlag, false, 'ascending sort should put false values at the top' );
-            } );
-
-            model.Desc = true;
-
-            pager.read( model, function ( response ) {
-                assert.equal( response.Data[0].MakeFlag, true, 'descending sort should put true values at the top' );
-            } );
-
-            // descending string sort 
-            model.OrderBy = 'Color';
-            model.Top = -1;
-
-            model.Desc = true;
-
-            pager.read( model, function ( response ) {
-                assert.ok( gp.hasValue( response.Data[0].Color ), 'descending string sort should put non-null values at the top ' );
-                assert.ok( response.Data[response.Data.length - 1].Color == null , 'descending string sort should put null values at the bottom ' );
-            } );
-
-            // ascending string sort
-            model.Desc = false;
-
-            pager.read( model, function ( response ) {
-                assert.ok( response.Data[0].Color == null, 'ascending string sort should put null values at the top ' );
-                assert.ok( response.Data[response.Data.length - 1].Color != null, 'ascending string sort should put non-null values at the bottom ' );
-            } );
-
-            // page range checks
-            model.Top = 25;
-            model.Page = 0;
-
-            pager.getSkip( model );
-
-            assert.equal( model.Page, 1, 'getSkip should correct values outside of the page range' );
-
-            model.Page = model.PageCount + 1;
-            pager.getSkip( model );
-
-            assert.equal( model.Page, model.PageCount, 'getSkip should correct values outside of the page range' );
-
-            done();
-
-        } );
-
-    } );
-
-} );
 
 QUnit.test( 'gp.Model', function ( assert ) {
 
@@ -1703,7 +1713,6 @@ QUnit.test( 'custom search filter', function ( assert ) {
             searchInput.dispatchEvent( event );
 
         } );
-
     } );
 
 
@@ -1904,52 +1913,32 @@ QUnit.test( 'Intl.DateTimeFormat', function ( assert ) {
 
     var formatter = new gp.Formatter();
 
-    var formatted = formatter.format( date, 'M/d/yyyy' );
+    var formatted = formatter.format( date, 'M/D/YYYY' );
     assert.equal( formatted, '12/6/2015' );
 
-    formatted = formatter.format( new Date( 2015, 11, 7, 13, 5, 6 ), 'M/d/yyyy' );
+    formatted = formatter.format( new Date( 2015, 11, 7, 13, 5, 6 ), 'M/D/YYYY' );
     assert.equal( formatted, '12/7/2015' );
 
-    formatted = formatter.format( date, 'MMMM/dd/yy' );
-    assert.ok( formatted == 'December 06, 15'
-        || formatted == '06-December-15' ); // IE11
+    formatted = formatter.format( date, 'MMMM DD, YY' );
+    assert.equal( formatted, 'December 06, 15');
 
-    formatted = formatter.format( date, 'MMM/d/yy' );
-    assert.ok( formatted == 'Dec 6, 15'
-        || formatted == '06-Dec-15' ); // IE11
+    formatted = formatter.format( date, 'MMM D, YY' );
+    assert.equal( formatted, 'Dec 6, 15' );
 
-    formatted = formatter.format( date, 'h m s' );
+    formatted = formatter.format( date, 'h:mm:ss A' );
     assert.equal( formatted, '1:05:06 PM' );
 
-    formatted = formatter.format( date, 'HH mm' );
+    formatted = formatter.format( date, 'HH:mm' );
     assert.equal( formatted, '13:05' );
 
-    formatted = formatter.format( date, 'www' );
+    formatted = formatter.format( date, 'dddd' );
     assert.equal( formatted, 'Sunday' );
 
-    formatted = formatter.format( date, 'ww' );
+    formatted = formatter.format( date, 'ddd' );
     assert.equal( formatted, 'Sun' );
 
-    formatted = formatter.format( date, 'w' );
-    assert.ok( formatted == 'Su'
-        || formatted == 'S' ); // IE11
-
-    formatted = formatter.format( date, 'tt' );
-    assert.ok( formatted.indexOf( 'Central Standard Time' ) != -1
-        || formatted == '12/6/2015', // IE
-        formatted );
-
-    formatted = formatter.format( date, 't' );
-    assert.ok( formatted.indexOf( 'CST' ) != -1
-        || formatted == '12/6/2015', // IE
-        formatted );
-
-    // era is not supported in IE
-    formatted = formatter.format( date, 'ee' );
-    assert.ok( formatted.length > 0 );
-
-    formatted = formatter.format( date );
-    assert.equal( formatted, '12/6/2015' );
+    formatted = formatter.format( date, 'dd' );
+    assert.equal( formatted, 'Su' );
 
 } );
 
@@ -1957,56 +1946,38 @@ QUnit.test( 'Intl.NumberFormat', function ( assert ) {
 
     var formatter = new gp.Formatter();
 
-    var space = /\s+/g;
-
-    var formatted = formatter.format( 5, 'P' ).replace( space, '' );
+    var formatted = formatter.format( 5, '0%' );
     assert.equal( formatted, '500%' );
 
-    formatted = formatter.format( .05, 'P' ).replace( space, '' );
+    formatted = formatter.format( .05, '0%' );
     assert.equal( formatted, '5%' );
 
-    formatted = formatter.format( .05, 'P0' ).replace( space, '' );
+    formatted = formatter.format( .05, '0%' );
     assert.equal( formatted, '5%' );
 
-    formatted = formatter.format( .05, 'P2' ).replace( space, '' );
+    formatted = formatter.format( .05, '0.00%' );
     assert.equal( formatted, '5.00%' );
 
-    formatted = formatter.format( .05, 'N2' ).replace( space, '' );
+    formatted = formatter.format( .05, '0.00' );
     assert.equal( formatted, '0.05' );
 
-    formatted = formatter.format( 1234.56, 'N1' ).replace( space, '' );
+    formatted = formatter.format( 1234.56, '0,0.0' );
     assert.equal( formatted, '1,234.6' );
 
-    formatted = formatter.format( 1234.56, 'N' ).replace( space, '' );
+    formatted = formatter.format( 1234.56, '0,0.00' );
     assert.equal( formatted, '1,234.56' );
 
-    formatted = formatter.format( 1234.56, 'N0' ).replace( space, '' );
+    formatted = formatter.format( 1234.56, '0,0' );
     assert.equal( formatted, '1,235' );
 
-    formatted = formatter.format( 1234.56, 'C' ).replace( space, '' );
+    formatted = formatter.format( 1234.56, '$0,0.00' );
     assert.equal( formatted, '$1,234.56' );
 
-    formatted = formatter.format( 1234.56, 'C0' ).replace( space, '' );
+    formatted = formatter.format( 1234.56, '$0,0' );
     assert.equal( formatted, '$1,235' );
 
-    formatted = formatter.format( 1234.56, 'C2' ).replace( space, '' );
-    assert.equal( formatted, '$1,234.56' );
-
     formatted = formatter.format( 1234.56 );
-    assert.equal( formatted, '1,234.56' );
-
-    //formatter.locale = 'de-AT';
-    //formatter.currencyCode = 'EUR';
-
-    //formatted = formatter.format(1234.56, 'C').replace(space, '');
-
-    //var eur = formatted[0];
-
-    //assert.equal(formatted, eur + '1.234,56');
-
-    //formatted = formatter.format(1234.56, 'C0').replace(space, '');
-    //assert.equal(formatted, eur + '1.235');
-
+    assert.equal( formatted, '1,235' );
 } );
 
 QUnit.test( 'gp.prependChild', function ( assert ) {
