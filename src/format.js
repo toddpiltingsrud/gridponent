@@ -16,11 +16,9 @@
                 return moment(val).format( format );
             }
             if ( type === 'number' ) {
+                // numeral's defaultFormat option doesn't work as of 3/25/2016
                 format = format || '0,0';
-                if ( format ) {
-                    return numeral( val ).format( format );
-                }
-                return numeral( val ).format();
+                return numeral( val ).format( format );
             }
 
             return val;
