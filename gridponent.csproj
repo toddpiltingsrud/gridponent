@@ -60,6 +60,7 @@
     <Content Include="spec\OutSource.txt" />
     <Content Include="spec\styles\bootstrap-theme.css" />
     <Content Include="spec\styles\bootstrap-theme.min.css" />
+    <Content Include="src\z-webcomponent.js" />
     <Content Include="src\gridponent.css">
       <DependentUpon>gridponent.less</DependentUpon>
     </Content>
@@ -90,7 +91,7 @@
     <Content Include="src\globals.js" />
     <Content Include="src\paging-model.js" />
     <Content Include="src\initializer.js" />
-    <Content Include="src\z-gridponent.js" />
+    <Content Include="src\a-gridponent.js" />
     <None Include="compilerconfig.json" />
     <None Include="compilerconfig.json.defaults">
       <DependentUpon>compilerconfig.json</DependentUpon>

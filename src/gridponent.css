@@ -145,7 +145,7 @@
 .gp .table-toolbar {
   min-width: 300px;
 }
-.gp .table-toolbar button[value=Create] {
+.gp .table-toolbar button[value=create] {
   margin-left: 5px;
 }
 .gp .gp-progress-overlay {

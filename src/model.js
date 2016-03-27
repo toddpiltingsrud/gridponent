@@ -3,101 +3,99 @@
 \***************/
 gp.Model = function ( config ) {
     this.config = config;
-    this.dal = null;
-    var type = gp.getType( config.Read );
-    gp.info( 'Model: type:', type );
+    this.reader = null;
+    var type = gp.getType( config.read );
     switch ( type ) {
         case 'string':
-            this.dal = new gp.ServerPager( config.Read );
+            this.reader = new gp.ServerPager( config.read );
             break;
         case 'function':
-            this.dal = new gp.FunctionPager( config );
+            this.reader = new gp.FunctionPager( config );
             break;
         case 'object':
-            // Read is a PagingModel
-            this.config.pageModel = config.Read;
-            this.dal = new gp.ClientPager( this.config );
+            // read is a PagingModel
+            this.config.pageModel = config.read;
+            this.reader = new gp.ClientPager( this.config );
             break;
         case 'array':
-            this.config.pageModel.Data = this.config.Read;
-            this.dal = new gp.ClientPager( this.config );
+            this.config.pageModel.data = this.config.read;
+            this.reader = new gp.ClientPager( this.config );
             break;
         default:
-            throw 'Unsupported Read configuration';
+            throw 'Unsupported read configuration';
     }
 };
 
 gp.Model.prototype = {
 
-    read: function ( requestModel, callback, error ) {
+    read: function ( requestModel, done, fail ) {
         var self = this;
-        gp.info( 'Model.read: requestModel:', requestModel );
 
-        gp.info( 'Model.dal:', this.dal );
-
-        this.dal.read(
+        this.reader.read (
             requestModel,
-            function ( arg ) { gp.applyFunc( callback, self, arg ); },
-            function ( arg ) { gp.applyFunc( error, self, arg ); }
+            // make sure we explicitly wrap the arg in an array
+            // if arg is an array of data, then applyFunc will end up only grabbing the first row
+            function ( arg ) { gp.applyFunc( done, self, [arg] ); },
+            function ( arg ) { gp.applyFunc( fail, self, [arg] ); }
         );
     },
 
-    create: function ( row, callback, error) {
+    create: function ( row, done, fail) {
         var self = this, url;
 
-        // config.Create can be a function or a URL
-        if ( typeof this.config.Create === 'function' ) {
+        // config.create can be a function or a URL
+        if ( typeof this.config.create === 'function' ) {
             // call the function, set the API as the context
-            gp.applyFunc(this.config.Create, this.config.node.api, [row, callback, error], error);
+            gp.applyFunc(this.config.create, this.config.node.api, [row, done, fail], fail);
         }
         else {
             // the url can be a template
-            url = gp.supplant( this.config.Create, row );
+            url = gp.supplant( this.config.create, row );
             // call the URL
             var http = new gp.Http();
             http.post(
                 url,
                 row,
-                function ( arg ) { gp.applyFunc( callback, self, arg ); },
-                function ( arg ) { gp.applyFunc( error, self, arg ); }
+                function ( arg ) { gp.applyFunc( done, self, arg ); },
+                function ( arg ) { gp.applyFunc( fail, self, arg ); }
             );
         }
     },
 
-    update: function (row, callback, error) {
+    update: function (row, done, fail) {
         var self = this, url;
 
-        // config.Update can be a function or URL
-        if ( typeof this.config.Update === 'function' ) {
-            gp.applyFunc(this.config.Update, this.config.node.api, [row, callback, error], error);
+        // config.update can be a function or URL
+        if ( typeof this.config.update === 'function' ) {
+            gp.applyFunc(this.config.update, this.config.node.api, [row, done, fail], fail);
         }
         else {
             // the url can be a template
-            url = gp.supplant( this.config.Update, row );
+            url = gp.supplant( this.config.update, row );
             var http = new gp.Http();
             http.post(
                 url,
                 row,
-                function ( arg ) { gp.applyFunc( callback, self, arg ); },
-                function ( arg ) { gp.applyFunc( error, self, arg ); }
+                function ( arg ) { gp.applyFunc( done, self, arg ); },
+                function ( arg ) { gp.applyFunc( fail, self, arg ); }
             );
         }
     },
 
-    'delete': function (row, callback, error) {
+    'destroy': function (row, done, fail) {
         var self = this, url;
-        if ( typeof this.config.Delete === 'function' ) {
-            gp.applyFunc(this.config.Delete, this.config.node.api, [row, callback, error], error);
+        if ( typeof this.config.destroy === 'function' ) {
+            gp.applyFunc(this.config.destroy, this.config.node.api, [row, done, fail], fail);
         }
         else {
             // the url can be a template
-            url = gp.supplant( this.config.Delete, row );
+            url = gp.supplant( this.config.destroy, row );
             var http = new gp.Http();
-            http.delete(
+            http.destroy(
                 url,
                 row,
-                function ( arg ) { gp.applyFunc( callback, self, arg ); },
-                function ( arg ) { gp.applyFunc( error, self, arg ); }
+                function ( arg ) { gp.applyFunc( done, self, arg ); },
+                function ( arg ) { gp.applyFunc( fail, self, arg ); }
             );
         }
     }

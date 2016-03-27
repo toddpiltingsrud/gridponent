@@ -26,17 +26,11 @@ cov.cover = function(index) {
 
 <#
 }
-#>
-// namespace
-var gridponent = gridponent || {};
-
-(function(gp) { 
-<#
 var path = Host.ResolvePath("src");
 
 var files = new DirectoryInfo(path).GetFiles("*.js", SearchOption.AllDirectories);
 
-foreach (var file in files)
+foreach (var file in files.OrderBy(f => f.Name))
 {
 	if (useMocks)
 	{
@@ -66,7 +60,7 @@ foreach (var file in files)
     {
         if (stripLogging && IsLogExpression(line)) continue;
 #>
-    <#= line #>
+<#= line #>
 <#  
 		if (coverage) {
 #>
@@ -83,8 +77,6 @@ cov.maxCoverage = <#= coverageIndex #>;
 }
 #>
 
-
-})(gridponent);
 <#+ 
 System.Text.RegularExpressions.Regex rLog = new System.Text.RegularExpressions.Regex(@"gp\.log\(|gp\.verbose\(|gp\.info\(|gp\.warn\(");
 

@@ -10,12 +10,13 @@ gp.ServerPager.prototype = {
         var copy = gp.shallowCopy( model );
         // delete anything we don't want to send to the server
         var props = Object.getOwnPropertyNames( copy ).forEach(function(prop){
-            if ( /^(Page|Top|OrderBy|Desc|Search)$/i.test( prop ) == false ) {
+            if ( /^(page|top|sort|desc|search)$/i.test( prop ) == false ) {
                 delete copy[prop];
             }
-        });
+        } );
+        var url = gp.supplant( this.url, copy, copy );
         var h = new gp.Http();
-        h.post(this.url, copy, callback, error);
+        h.post(url, copy, callback, error);
     }
 };
 
@@ -25,12 +26,12 @@ client-side pager
 \***************/
 gp.ClientPager = function (config) {
     var value, self = this;
-    this.data = config.pageModel.Data;
-    this.columns = config.Columns.filter(function (c) {
-        return c.Field !== undefined || c.Sort !== undefined;
+    this.data = config.pageModel.data;
+    this.columns = config.columns.filter(function (c) {
+        return c.field !== undefined || c.sort !== undefined;
     });
-    if (typeof config.SearchFunction === 'function') {
-        this.searchFilter = config.SearchFunction;
+    if (typeof config.searchfunction === 'function') {
+        this.searchFilter = config.searchfunction;
     }
     else {
         this.searchFilter = function (row, search) {
@@ -54,35 +55,34 @@ gp.ClientPager.prototype = {
                 skip = this.getSkip( model );
 
             // don't modify the original array
-            model.Data = this.data.slice(0, this.data.length);
+            model.data = this.data.slice(0, this.data.length);
 
             // filter first
-            if ( !gp.isNullOrEmpty( model.Search ) ) {
+            if ( !gp.isNullOrEmpty( model.search ) ) {
                 // make sure searchTerm is a string and trim it
-                search = gp.trim( model.Search.toString() );
-                model.Data = model.Data.filter(function (row) {
+                search = gp.trim( model.search.toString() );
+                model.data = model.data.filter(function (row) {
                     return self.searchFilter(row, search);
                 });
             }
 
-            // set TotalRows after filtering, but before paging
-            model.TotalRows = model.Data.length;
+            // set totalrows after filtering, but before paging
+            model.totalrows = model.data.length;
 
             // then sort
-            if (gp.isNullOrEmpty(model.OrderBy) === false) {
-                var col = this.getColumnByField( this.columns, model.OrderBy );
+            if (gp.isNullOrEmpty(model.sort) === false) {
+                var col = this.getColumnByField( this.columns, model.sort );
                 if (gp.hasValue(col)) {
-                    var sortFunction = this.getSortFunction( col, model.Desc );
-                    var fieldName = col.Field || col.Sort;
-                    model.Data.sort( function ( row1, row2 ) {
-                        return sortFunction( row1[fieldName], row2[fieldName] );
+                    var sortFunction = this.getSortFunction( col, model.desc );
+                    model.data.sort( function ( row1, row2 ) {
+                        return sortFunction( row1[model.sort], row2[model.sort] );
                     });
                 }
             }
 
             // then page
-            if (model.Top !== -1) {
-                model.Data = model.Data.slice(skip).slice(0, model.Top);
+            if (model.top !== -1) {
+                model.data = model.data.slice(skip).slice(0, model.top);
             }
         }
         catch (ex) {
@@ -92,19 +92,19 @@ gp.ClientPager.prototype = {
     },
     getSkip: function ( model ) {
         var data = model;
-        if ( data.PageCount == 0 ) {
+        if ( data.pagecount == 0 ) {
             return 0;
         }
-        if ( data.Page < 1 ) {
-            data.Page = 1;
+        if ( data.page < 1 ) {
+            data.page = 1;
         }
-        else if ( data.Page > data.PageCount ) {
-            return data.Page = data.PageCount;
+        else if ( data.page > data.pagecount ) {
+            return data.page = data.pagecount;
         }
-        return ( data.Page - 1 ) * data.Top;
+        return ( data.page - 1 ) * data.top;
     },
     getColumnByField: function ( columns, field ) {
-        var col = columns.filter(function (c) { return c.Field === field || c.Sort === field });
+        var col = columns.filter(function (c) { return c.field === field || c.sort === field });
         return col.length ? col[0] : null;
     },
     getSortFunction: function (col, desc) {
@@ -188,29 +188,29 @@ gp.FunctionPager = function ( config ) {
 gp.FunctionPager.prototype = {
     read: function ( model, callback, error ) {
         try {
-            var type,
-                result = this.config.Read( model, callback );
-
-            // if the function returned a value instead of using the callback
-            // check its type
-            if ( result != undefined ) {
-                type = gp.getType(result);
-                switch (type) {
-                    case 'string':
-                        // assume it's a url, make an HTTP call
-                        new gp.ServerPager( result ).read( model, callback, error );
-                        break;
-                    case 'array':
-                        // assume it's a row, wrap it in a PagingModel
-                        callback( new gp.PagingModel( result ) );
-                        break;
-                    case 'object':
-                        // assume a PagingModel
-                        callback( result );
-                        break;
-                    default:
-                        gp.applyFunc( error, this, 'Read returned a value which could not be resolved.' );
-                        break;
+            var self = this,
+                result = this.config.read( model, function ( result ) {
+                    if ( gp.hasValue( result ) ) {
+                        result = self.resolveResult( result );
+                        if ( gp.hasValue( result ) ) {
+                            callback( result );
+                        }
+                        else {
+                            error( 'Unsupported return value.' );
+                        }
+                    }
+                    else {
+                        callback();
+                    }
+                } );
+            // check if the function returned a value instead of using the callback
+            if ( gp.hasValue( result ) ) {
+                result = this.resolveResult( result );
+                if ( gp.hasValue( result ) ) {
+                    callback( result );
+                }
+                else {
+                    error( 'Unsupported return value.' );
                 }
             }
         }
@@ -223,5 +223,19 @@ gp.FunctionPager.prototype = {
             }
             gp.error( ex );
         }
+    },
+    resolveResult: function ( result ) {
+        if ( result != undefined ) {
+            var type = gp.getType( result );
+            if ( type == 'array' ) {
+                //  wrap the array in a PagingModel
+                return new gp.PagingModel( result );
+            }
+            else if ( type == 'object' ) {
+                // assume it's a PagingModel
+                return result;
+            }
+        }
+
     }
 };

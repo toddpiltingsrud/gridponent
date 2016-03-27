@@ -7,10 +7,17 @@ gp.Initializer = function ( node ) {
 
 gp.Initializer.prototype = {
 
-    initialize: function (callback) {
+    initialize: function ( callback ) {
+        this.config = this.getConfig( this.node );
+        return this.initializeOptions( this.config, callback );
+    },
+
+    initializeOptions: function ( options, callback ) {
         var self = this;
-        this.config = this.getConfig(this.node);
-        this.node.config = this.config;
+        options.pageModel = {};
+        options.ID = gp.createUID();
+        this.config = options;
+        this.config.node = this.node;
         var model = new gp.Model( this.config );
         var requestModel = new gp.PagingModel();
         var controller = new gp.Controller( self.config, model, requestModel );
@@ -18,8 +25,8 @@ gp.Initializer.prototype = {
         this.renderLayout( this.config );
         this.addBusyHandlers();
 
-        if ( typeof this.config.Ready === 'function' ) {
-            controller.ready( this.config.Ready );
+        if ( typeof this.config.ready === 'function' ) {
+            controller.ready( this.config.ready );
         }
 
         if ( typeof this.config.AfterEdit === 'function' ) {
@@ -51,7 +58,7 @@ gp.Initializer.prototype = {
                     gp.raiseCustomEvent( self.config.node, gp.events.afterRead, self.config.pageModel );
                     gp.raiseCustomEvent( self.config.node, gp.events.afterInit, self.config );
                 },
-                function (e) {
+                function ( e ) {
                     gp.raiseCustomEvent( self.config.node, gp.events.httpError, e );
                     alert( 'An error occurred while carrying out your request.' );
                     gp.error( e );
@@ -82,16 +89,16 @@ gp.Initializer.prototype = {
             config = gp.getAttributes( node ),
             gpColumns = config.node.querySelectorAll( 'gp-column' );
 
-        config.Columns = [];
-        config.pageModel = {};
-        config.ID = gp.createUID();
+        config.columns = [];
+        //config.pageModel = {};
+        //config.ID = gp.createUID();
 
         // create the column configurations
         templates = 'header body edit footer'.split( ' ' );
         for ( var i = 0; i < gpColumns.length; i++ ) {
             colNode = gpColumns[i];
             colConfig = gp.getAttributes(colNode);
-            config.Columns.push(colConfig);
+            config.columns.push(colConfig);
             this.resolveCommands(colConfig);
             this.resolveTemplates( templates, colConfig, colNode );
         }
@@ -99,7 +106,7 @@ gp.Initializer.prototype = {
         config.Footer = this.resolveFooter( config );
 
         // resolve the top level configurations
-        var options = 'Onrowselect SearchFunction Read Create Update Delete Validate Model Ready AfterEdit Model'.split(' ');
+        var options = 'onrowselect searchfunction read create update destroy validate model ready afteredit model'.split(' ');
         options.forEach( function ( option ) {
 
             if ( gp.hasValue(config[option]) ) {
@@ -150,7 +157,7 @@ gp.Initializer.prototype = {
             sortStyle = gp.helpers.sortStyle.call( config );
 
             // sync column widths
-            if ( config.FixedHeaders || config.FixedFooters ) {
+            if ( config.fixedheaders || config.fixedfooters ) {
                 var nodes = node.querySelectorAll( '.table-body > table > tbody > tr:first-child > td' );
 
                 if ( gp.hasPositiveWidth( nodes ) ) {
@@ -175,8 +182,8 @@ gp.Initializer.prototype = {
     },
 
     resolveFooter: function (config) {
-        for (var i = 0; i < config.Columns.length; i++) {
-            if (config.Columns[i].FooterTemplate) return true;
+        for (var i = 0; i < config.columns.length; i++) {
+            if (config.columns[i].footertemplate) return true;
         }
         return false;
     },
@@ -192,7 +199,7 @@ gp.Initializer.prototype = {
             if ( template != null ) {
                 for ( var i = 0; i < node.children.length; i++ ) {
                     if ( node.children[i] == template ) {
-                        prop = gp.camelize( n ) + 'Template';
+                        prop = gp.camelize( n ) + 'template';
                         config[prop] = template.innerHTML;
                         return;
                     }
@@ -202,22 +209,29 @@ gp.Initializer.prototype = {
     },
 
     resolveCommands: function (col) {
-        if ( typeof col.Commands == 'string' ) {
-            col.Commands = col.Commands.split( ',' );
+        if ( typeof col.commands == 'string' ) {
+            col.commands = col.commands.split( ',' );
         }
     },
 
     resolveTypes: function ( config ) {
-        if ( !config || !config.pageModel ) return;
-        config.Columns.forEach( function ( col ) {
-            // look for a type by Field first, then by Sort
-            var field = gp.hasValue( col.Field ) ? col.Field : col.Sort;
+        var field,
+            hasData = config && config.pageModel && config.pageModel.data && config.pageModel.data.length;
+
+        config.columns.forEach( function ( col ) {
+            field = gp.hasValue( col.field ) ? col.field : col.sort;
             if ( gp.isNullOrEmpty( field ) ) return;
-            if ( config.pageModel.Data.length ) {
+            if ( config.Model ) {
+                // look for a type by field first, then by sort
+                if ( gp.hasValue( config.Model[field] ) ) {
+                    col.Type = gp.getType( config.Model[field] );
+                }
+            }
+            else if ( hasData ) {
                 // if we haven't found a value after 200 iterations, give up
-                for ( var i = 0; i < config.pageModel.Data.length && i < 200 ; i++ ) {
-                    if ( config.pageModel.Data[i][field] !== null ) {
-                        col.Type = gp.getType( config.pageModel.Data[i][field] );
+                for ( var i = 0; i < config.pageModel.data.length && i < 200 ; i++ ) {
+                    if ( config.pageModel.data[i][field] !== null ) {
+                        col.Type = gp.getType( config.pageModel.data[i][field] );
                         break;
                     }
                 }

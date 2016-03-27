@@ -55,9 +55,7 @@
     };
 
     gp.camelize = function ( str ) {
-        return str.replace( /(?:^|[-_])(\w)/g, function ( _, c ) {
-            return c ? c.toUpperCase() : '';
-        } );
+        return str.toLowerCase().replace( '-', '' );
     };
 
     gp.shallowCopy = function ( from, to ) {
@@ -359,13 +357,13 @@
 
     gp.getFormattedValue = function ( row, col, escapeHTML ) {
         var type = ( col.Type || '' ).toLowerCase();
-        var val = row[col.Field];
+        var val = row[col.field];
 
         if ( /^(date|datestring)$/.test( type ) ) {
-            return gp.formatter.format( val, col.Format );
+            return gp.formatter.format( val, col.format );
         }
-        if ( type === 'number' && col.Format ) {
-            return gp.formatter.format( val, col.Format );
+        if ( type === 'number' && col.format ) {
+            return gp.formatter.format( val, col.format );
         }
         if ( type === 'string' && escapeHTML ) {
             return gp.escapeHTML( val );
@@ -487,7 +485,6 @@
         // anytime there's the possibility of executing 
         // user-supplied code, wrap it with a try-catch block
         // so it doesn't affect my component
-        // keep your sloppy JavaScript OUT of my area
         try {
             if ( args == undefined ) {
                 return callback.call( context );

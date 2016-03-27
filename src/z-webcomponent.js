@@ -1,8 +1,4 @@
-﻿/***************\
-   Gridponent
-\***************/
-
-// check for web component support
+﻿// check for web component support
 if (document.registerElement) {
 
     gp.Gridponent = Object.create(HTMLElement.prototype);
@@ -34,3 +30,5 @@ else {
 
     gp.ready( gp.initialize );
 }
+
+})(gridponent);

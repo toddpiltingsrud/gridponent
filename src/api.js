@@ -36,8 +36,8 @@ gp.api.prototype = {
     },
 
     getData: function ( index ) {
-        if ( typeof index == 'number' ) return this.controller.config.pageModel.Data[index];
-        return this.controller.config.pageModel.Data;
+        if ( typeof index == 'number' ) return this.controller.config.pageModel.data[index];
+        return this.controller.config.pageModel.data;
     },
 
     search: function ( searchTerm, callback ) {
@@ -68,12 +68,12 @@ gp.api.prototype = {
     // So the original row object reference has to be preserved.
     // this function is mainly for testing
     update: function ( row, callback ) {
-        var tr = gp.getTableRow( this.controller.config.pageModel.Data, row, this.controller.config.node );
+        var tr = gp.getTableRow( this.controller.config.pageModel.data, row, this.controller.config.node );
 
         this.controller.updateRow( row, tr, callback );
     },
 
-    'delete': function ( row, callback ) {
+    'destroy': function ( row, callback ) {
         this.controller.deleteRow( row, callback, true );
     },
 

@@ -1,12 +1,12 @@
 ﻿<div class="gp table-container{{helper containerClasses}}" id="{{model.ID}}">
-    {{#if model.Search || model.Create || model.ToolbarTemplate}}
+    {{#if model.search || model.create || model.toolbartemplate}}
         <div class="table-toolbar">
-            {{#if model.ToolbarTemplate}}
-                {{helper toolbarTemplate}}
+            {{#if model.toolbartemplate}}
+                {{helper toolbartemplate}}
             {{else}}
-                {{#if model.Search}}
+                {{#if model.search}}
                 <div class="input-group gridponent-searchbox">
-                    <input type="text" name="Search" class="form-control" placeholder="Search...">
+                    <input type="text" name="search" class="form-control" placeholder="Search...">
                     <span class="input-group-btn">
                         <button class="btn btn-default" type="button">
                             <span class="glyphicon glyphicon-search"></span>
@@ -14,7 +14,7 @@
                     </span>
                 </div>
                 {{/if}}
-                {{#if model.Create}}
+                {{#if model.create}}
                 <button class="btn btn-default" type="button" value="AddRow">
                     <span class="glyphicon glyphicon-plus"></span>Add
                 </button>
@@ -22,26 +22,26 @@
             {{/if}}
         </div>
     {{/if}}
-    {{#if model.FixedHeaders}}
+    {{#if model.fixedheaders}}
         <div class="table-header">
             <table class="table" cellpadding="0" cellspacing="0">
                 {{helper thead}}
             </table>
         </div>
     {{/if}}
-    <div class="table-body {{#if model.FixedHeaders}}table-scroll{{/if}}" style="{{model.Style}}">
+    <div class="table-body {{#if model.fixedheaders}}table-scroll{{/if}}" style="{{model.style}}">
         <table class="table" cellpadding="0" cellspacing="0">
-            {{#if !model.FixedHeaders}}
+            {{#if !model.fixedheaders}}
                 {{helper thead}}
             {{/if}}
         </table>
     </div>
-    {{#if model.FixedFooters}}
+    {{#if model.fixedfooters}}
         <div class="table-footer">
             {{template "gridponent-table-footer"}}
         </div>
     {{/if}}
-    {{#if model.Pager}}
+    {{#if model.pager}}
         <div class="table-pager"></div>
     {{/if}}
     <style type="text/css" class="sort-style">

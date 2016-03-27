@@ -6,10 +6,10 @@
 
     // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
     var routes = {
-        read: /Read/,
-        update: /Update/,
-        create: /Create/,
-        'delete': /Delete/
+        read: /read/i,
+        update: /update/i,
+        create: /create/i,
+        destroy: /Delete/i
     };
 
     gp.Http.prototype = {
@@ -81,7 +81,7 @@
                 throw '404 Not found: ' + url;
             }
         },
-        'delete': function ( url, model, callback, error ) {
+        'destroy': function ( url, model, callback, error ) {
             model = model || {};
             var index = data.products.indexOf( model );
             callback( {
@@ -92,10 +92,11 @@
     };
 
     var getData = function (model, callback) {
-        var count, d = data.products;
-        if (!gp.isNullOrEmpty(model.Search)) {
+        var count, d = data.products.slice( 0, this.data.length );
+
+        if (!gp.isNullOrEmpty(model.search)) {
             var props = Object.getOwnPropertyNames(d[0]);
-            var search = model.Search.toLowerCase();
+            var search = model.search.toLowerCase();
             d = d.filter(function (row) {
                 for (var i = 0; i < props.length; i++) {
                     if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
@@ -105,11 +106,11 @@
                 return false;
             });
         }
-        if (!gp.isNullOrEmpty(model.OrderBy)) {
-            if (model.Desc) {
+        if (!gp.isNullOrEmpty(model.sort)) {
+            if (model.desc) {
                 d.sort(function (row1, row2) {
-                    var a = row1[model.OrderBy];
-                    var b = row2[model.OrderBy];
+                    var a = row1[model.sort];
+                    var b = row2[model.sort];
                     if (a === null) {
                         if (b != null) {
                             return 1;
@@ -131,8 +132,8 @@
             }
             else {
                 d.sort(function (row1, row2) {
-                    var a = row1[model.OrderBy];
-                    var b = row2[model.OrderBy];
+                    var a = row1[model.sort];
+                    var b = row2[model.sort];
                     if (a === null) {
                         if (b != null) {
                             return -1;
@@ -154,11 +155,11 @@
             }
         }
         count = d.length;
-        if (model.Top !== -1) {
-            model.Data = d.slice(model.Skip).slice(0, model.Top);
+        if (model.top !== -1) {
+            model.data = d.slice(model.skip).slice(0, model.top);
         }
         else {
-            model.Data = d;
+            model.data = d;
         }
         model.ValidationErrors = [];
         setTimeout(function () {

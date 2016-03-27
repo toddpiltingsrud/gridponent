@@ -1,5 +1,13 @@
 ﻿What happens if a grid is rendered twice? Make sure the original is disposed if this happens.
 
+Add the ability to create gridponents with JS:
+
+gridponent('select', {
+
+	
+
+});
+
 Add a change event to a column:
 <gp-column field="IsCurrent" change="fns.isCurrentChanged"></gp-column>
 
@@ -19,7 +27,7 @@ Move the globals into a private variable. Currently they are all on the main obj
 
 Use a CommonJS module library (e.g. webpack).
 
-Create a filter API:
+create a filter API:
 
 node.api.filter({
 	ID: [2,3,4],

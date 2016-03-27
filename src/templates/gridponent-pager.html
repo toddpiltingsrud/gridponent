@@ -17,7 +17,7 @@
     </div>
     <input type="number" name="Page" value="{{model.pageModel.Page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />
     <span class="page-count">
-        of {{model.pageModel.PageCount}}
+        of {{model.pageModel.pagecount}}
     </span>
     <div class="btn-group">
         <label class="ms-page-index btn btn-default {{#if model.pageModel.IsLastPage}} disabled {{/if}}" title="Next page">
@@ -30,7 +30,7 @@
         <label class="ms-page-index btn btn-default {{#if model.pageModel.IsLastPage}} disabled {{/if}}" title="Last page">
             <span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>
             {{#if model.pageModel.IsLastPage == false}}
-            <input type="radio" name="Page" value="{{model.pageModel.PageCount}}" />
+            <input type="radio" name="Page" value="{{model.pageModel.pagecount}}" />
             {{/if}}
         </label>
     </div>

@@ -4,13 +4,13 @@
 
 gp.helpers = {
 
-    toolbarTemplate: function () {
+    toolbartemplate: function () {
         var html = new gp.StringBuilder();
-        if ( typeof ( this.ToolbarTemplate ) === 'function' ) {
-            html.add( gp.applyFunc( this.ToolbarTemplate, this ) );
+        if ( typeof ( this.toolbartemplate ) === 'function' ) {
+            html.add( gp.applyFunc( this.toolbartemplate, this ) );
         }
         else {
-            html.add( this.ToolbarTemplate );
+            html.add( this.toolbartemplate );
         }
         return html.toString();
     },
@@ -21,42 +21,42 @@ gp.helpers = {
         var sort, template, classes;
         html.add( '<thead>' );
         html.add( '<tr>' );
-        this.Columns.forEach( function ( col ) {
+        this.columns.forEach( function ( col ) {
             sort = '';
-            if ( self.Sorting ) {
+            if ( self.sorting ) {
                 // if sort isn't specified, use the field
-                sort = gp.escapeHTML( gp.coalesce( [col.Sort, col.Field] ) );
+                sort = gp.escapeHTML( gp.coalesce( [col.sort, col.field] ) );
             }
             else {
                 // only provide sorting where it is explicitly specified
-                if ( gp.hasValue( col.Sort ) ) {
-                    sort = gp.escapeHTML( col.Sort );
+                if ( gp.hasValue( col.sort ) ) {
+                    sort = gp.escapeHTML( col.sort );
                 }
             }
 
-            html.add( '<th class="header-cell ' + ( col.HeaderClass || '' ) + '" data-sort="' + sort + '">' );
+            html.add( '<th class="header-cell ' + ( col.headerclass || '' ) + '" data-sort="' + sort + '">' );
 
             // check for a template
-            if ( col.HeaderTemplate ) {
-                gp.verbose( 'helpers.thead: col.HeaderTemplate:' );
-                gp.verbose( col.HeaderTemplate );
-                if ( typeof ( col.HeaderTemplate ) === 'function' ) {
-                    html.add( gp.applyFunc( col.HeaderTemplate, self, [col] ) );
+            if ( col.headertemplate ) {
+                gp.verbose( 'helpers.thead: col.headertemplate:' );
+                gp.verbose( col.headertemplate );
+                if ( typeof ( col.headertemplate ) === 'function' ) {
+                    html.add( gp.applyFunc( col.headertemplate, self, [col] ) );
                 }
                 else {
-                    html.add( gp.processHeaderTemplate.call( this, col.HeaderTemplate, col ) );
+                    html.add( gp.processHeaderTemplate.call( this, col.headertemplate, col ) );
                 }
             }
             else if ( sort != '' ) {
                 html.add( '<label class="table-sort">' )
-                    .add( '<input type="radio" name="OrderBy" value="' )
+                    .add( '<input type="radio" name="sort" value="' )
                     .escape( sort )
                     .add( '" />' )
-                    .escape( gp.coalesce( [col.Header, col.Field, sort] ) )
+                    .escape( gp.coalesce( [col.header, col.field, sort] ) )
                     .add( '</label>' );
             }
             else {
-                html.escape( gp.coalesce( [col.Header, col.Field, '&nbsp;'] ) );
+                html.escape( gp.coalesce( [col.header, col.field, '&nbsp;'] ) );
             }
             html.add( '</th>' );
         } );
@@ -68,7 +68,7 @@ gp.helpers = {
     tableRows: function () {
         var self = this;
         var html = new gp.StringBuilder();
-        this.pageModel.Data.forEach( function ( row, index ) {
+        this.pageModel.data.forEach( function ( row, index ) {
             self.Row = row;
             html.add( '<tr data-index="' )
             .add( index )
@@ -90,18 +90,18 @@ gp.helpers = {
             html = new gp.StringBuilder();
 
         // check for a template
-        if ( col.BodyTemplate ) {
-            if ( typeof ( col.BodyTemplate ) === 'function' ) {
-                html.add( gp.applyFunc( col.BodyTemplate, this, [row, col] ) );
+        if ( col.bodytemplate ) {
+            if ( typeof ( col.bodytemplate ) === 'function' ) {
+                html.add( gp.applyFunc( col.bodytemplate, this, [row, col] ) );
             }
             else {
-                html.add( gp.processBodyTemplate.call( this, col.BodyTemplate, row, col ) );
+                html.add( gp.processBodyTemplate.call( this, col.bodytemplate, row, col ) );
             }
         }
-        else if ( col.Commands && col.Commands.length ) {
+        else if ( col.commands && col.commands.length ) {
             html.add( '<div class="btn-group" role="group">' );
-            col.Commands.forEach( function ( cmd, index ) {
-                if ( cmd == 'Edit' && gp.hasValue( self.Update ) ) {
+            col.commands.forEach( function ( cmd, index ) {
+                if ( cmd == 'Edit' && gp.hasValue( self.update ) ) {
                     html.add( '<button type="button" class="btn btn-default btn-xs" value="' )
                         .add( cmd )
                         .add( '">' )
@@ -109,8 +109,8 @@ gp.helpers = {
                         .add( cmd )
                         .add( '</button>' );
                 }
-                else if ( cmd == 'Delete' && gp.hasValue( self.Delete ) ) {
-                    html.add( '<button type="button" class="btn btn-danger btn-xs" value="Delete">' )
+                else if ( cmd == 'destroy' && gp.hasValue( self.destroy ) ) {
+                    html.add( '<button type="button" class="btn btn-danger btn-xs" value="destroy">' )
                         .add( '<span class="glyphicon glyphicon-remove"></span>Delete' )
                         .add( '</button>' );
                 }
@@ -152,10 +152,10 @@ gp.helpers = {
                 html.add( gp.processBodyTemplate.call( this, col.EditTemplate, row, col ) );
             }
         }
-        else if ( col.Commands ) {
+        else if ( col.commands ) {
             html.add( '<div class="btn-group" role="group">' )
                 .add( '<button type="button" class="btn btn-primary btn-xs" value="' )
-                .add( mode == 'create' ? 'Create' : 'Update' )
+                .add( mode == 'create' ? 'create' : 'update' )
                 .add( '">' )
                 .add( '<span class="glyphicon glyphicon-save"></span>Save' )
                 .add( '</button>' )
@@ -165,12 +165,12 @@ gp.helpers = {
                 .add( '</div>' );
         }
         else {
-            var val = row[col.Field];
+            var val = row[col.field];
             // render empty cell if this field doesn't exist in the data
             if ( val === undefined ) return '';
             // render null as empty string
             if ( val === null ) val = '';
-            html.add( '<input class="form-control" name="' + col.Field + '" type="' );
+            html.add( '<input class="form-control" name="' + col.field + '" type="' );
             switch ( col.Type ) {
                 case 'date':
                 case 'dateString':
@@ -218,31 +218,31 @@ gp.helpers = {
 
     footerCell: function ( col ) {
         var html = new gp.StringBuilder();
-        if ( col.FooterTemplate ) {
-            if ( typeof ( col.FooterTemplate ) === 'function' ) {
-                html.add( gp.applyFunc( col.FooterTemplate, this, [col, this.pageModel.Data] ) );
+        if ( col.footertemplate ) {
+            if ( typeof ( col.footertemplate ) === 'function' ) {
+                html.add( gp.applyFunc( col.footertemplate, this, [col, this.pageModel.data] ) );
             }
             else {
-                html.add( gp.processFooterTemplate.call( this, col.FooterTemplate, col, this.pageModel.Data ) );
+                html.add( gp.processFooterTemplate.call( this, col.footertemplate, col, this.pageModel.data ) );
             }
         }
         return html.toString();
     },
 
     setPagerFlags: function () {
-        this.pageModel.IsFirstPage = this.pageModel.Page === 1;
-        this.pageModel.IsLastPage = this.pageModel.Page === this.pageModel.PageCount;
-        this.pageModel.HasPages = this.pageModel.PageCount > 1;
-        this.pageModel.PreviousPage = this.pageModel.Page === 1 ? 1 : this.pageModel.Page - 1;
-        this.pageModel.NextPage = this.pageModel.Page === this.pageModel.PageCount ? this.pageModel.PageCount : this.pageModel.Page + 1;
+        this.pageModel.IsFirstPage = this.pageModel.page === 1;
+        this.pageModel.IsLastPage = this.pageModel.page === this.pageModel.pagecount;
+        this.pageModel.HasPages = this.pageModel.pagecount > 1;
+        this.pageModel.PreviousPage = this.pageModel.page === 1 ? 1 : this.pageModel.page - 1;
+        this.pageModel.NextPage = this.pageModel.page === this.pageModel.pagecount ? this.pageModel.pagecount : this.pageModel.page + 1;
     },
 
     sortStyle: function () {
         var html = new gp.StringBuilder();
-        if ( gp.isNullOrEmpty( this.pageModel.OrderBy ) === false ) {
-            html.add( '#' + this.ID + ' thead th.header-cell[data-sort="' + gp.escapeHTML( this.pageModel.OrderBy ) + '"] > label:after' )
+        if ( gp.isNullOrEmpty( this.pageModel.sort ) === false ) {
+            html.add( '#' + this.ID + ' thead th.header-cell[data-sort="' + gp.escapeHTML( this.pageModel.sort ) + '"] > label:after' )
                 .add( '{ content: ' );
-            if ( this.pageModel.Desc ) {
+            if ( this.pageModel.desc ) {
                 html.add( '"\\e114"; }' );
             }
             else {
@@ -259,8 +259,8 @@ gp.helpers = {
             bodyCols = document.querySelectorAll( '#' + this.ID + ' .table-body > table > tbody > tr:first-child > td' );
 
         // even though the table might not exist yet, we still should render width styles because there might be fixed widths specified
-        this.Columns.forEach( function ( col ) {
-            if ( col.Width ) {
+        this.columns.forEach( function ( col ) {
+            if ( col.width ) {
                 // fixed width should include the body
                 html.add( '#' + self.ID + ' .table-header th.header-cell:nth-child(' + ( index + 1 ) + '),' )
                     .add( '#' + self.ID + ' .table-footer td.footer-cell:nth-child(' + ( index + 1 ) + ')' )
@@ -268,11 +268,11 @@ gp.helpers = {
                     .add( '#' + self.ID + ' > .table-body > table > thead th:nth-child(' + ( index + 1 ) + '),' )
                     .add( '#' + self.ID + ' > .table-body > table > tbody td:nth-child(' + ( index + 1 ) + ')' )
                     .add( '{ width:' )
-                    .add( col.Width );
-                if ( isNaN( col.Width ) == false ) html.add( 'px' );
+                    .add( col.width );
+                if ( isNaN( col.width ) == false ) html.add( 'px' );
                 html.add( ';}' );
             }
-            else if ( bodyCols.length && ( self.FixedHeaders || self.FixedFooters ) ) {
+            else if ( bodyCols.length && ( self.fixedheaders || self.fixedfooters ) ) {
                 // sync header and footer to body
                 width = bodyCols[index].offsetWidth;
                 html.add( '#' + self.ID + ' .table-header th.header-cell:nth-child(' + ( index + 1 ) + '),' )
@@ -292,22 +292,22 @@ gp.helpers = {
 
     containerClasses: function () {
         var html = new gp.StringBuilder();
-        if ( this.FixedHeaders ) {
+        if ( this.fixedheaders ) {
             html.add( ' fixed-headers' );
         }
-        if ( this.FixedFooters ) {
+        if ( this.fixedfooters ) {
             html.add( ' fixed-footers' );
         }
-        if ( this.Pager ) {
-            html.add( ' pager-' + this.Pager );
+        if ( this.pager ) {
+            html.add( ' pager-' + this.pager );
         }
-        if ( this.Responsive ) {
+        if ( this.responsive ) {
             html.add( ' responsive' );
         }
-        if ( this.Search ) {
-            html.add( ' search-' + this.Search );
+        if ( this.search ) {
+            html.add( ' search-' + this.search );
         }
-        if ( this.Onrowselect ) {
+        if ( this.onrowselect ) {
             html.add( ' selectable' );
         }
         return html.toString();
