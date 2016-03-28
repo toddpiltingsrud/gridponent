@@ -74,7 +74,7 @@ var getTableConfig = function ( options, callback ) {
     if ( options.read ) out.push( '            read="' + options.read + '"' );
     if ( options.create ) out.push( '          create="' + options.create + '"' );
     if ( options.update ) out.push( '          update="' + options.update + '"' );
-    if ( options.destroy ) out.push( '          destroy="' + options.destroy + '"' );
+    if ( options.destroy ) out.push( '         destroy="' + options.destroy + '"' );
     if ( options.refreshevent ) out.push( '    refresh-event="' + options.refreshevent + '"' );
     if ( options.validate ) out.push( '        validate="' + options.validate + '7"' );
     out.push( '             pager="top-right"' );
@@ -268,7 +268,7 @@ QUnit.test( 'read', function ( assert ) {
 
     var options = gp.shallowCopy( configOptions );
 
-    options.read = '/Products/Read?page={{page}}';
+    options.read = '/Products/read?page={{page}}';
 
     getTableConfig( options, function ( config ) {
 
@@ -470,6 +470,8 @@ QUnit.test( 'api.refresh', function ( assert ) {
 
                 assert.equal( productNumber, data.products[0].ProductNumber, 'product number should equal the second row in the table' );
 
+                data.products.push(firstRow);
+
                 done();
 
             } );
@@ -570,6 +572,7 @@ QUnit.test( 'api.create 2', function ( assert ) {
 
             config.node.api.create( null, function ( updateModel ) {
                 assert.ok( updateModel.Row != null, 'calling api.create with no row should create a default one' );
+
                 config.node.api.dispose();
                 done();
             } );
@@ -1282,7 +1285,7 @@ QUnit.test( 'gp.Model', function ( assert ) {
                 done2();
             } );
 
-            request.search = 'BA-8327';
+            request.search = data.products[1].ProductNumber;
 
             model.read( request, function ( response ) {
                 assert.equal( response.data.length, 1, 'should return a single row' );
@@ -1394,7 +1397,7 @@ QUnit.test( 'gp.Model', function ( assert ) {
 
             request = new gp.PagingModel();
 
-            request.search = 'BA-8327';
+            request.search = data.products[2].ProductNumber;
 
             model.read( request, function ( response ) {
                 assert.equal( response.data.length, 1, 'should return a single record' );
@@ -1800,7 +1803,7 @@ QUnit.test( 'custom search filter', function ( assert ) {
 
             //$( '#table .box' ).append( config.node );
 
-            var productNumber = 'BA-8327';
+            var productNumber = data.products[1].ProductNumber;
 
             // find the search box
             var searchInput = config.node.querySelector( 'input[name=search]' );
@@ -1901,9 +1904,9 @@ QUnit.test( 'edit and update', function ( assert ) {
 
         node.api.ready( function () {
 
-            // find the SafetyStockLevel column
+            // find the StandardCost column
             var colIndex = -1;
-            var col = node.config.columns.filter( function ( col, index ) {
+            var col = config.columns.filter( function ( col, index ) {
                 if ( col.field == "StandardCost" ) {
                     colIndex = index;
                     return true;

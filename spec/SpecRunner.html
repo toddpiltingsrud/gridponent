@@ -32,16 +32,16 @@
     };
 
     fns.dropdown = function (row, column) {
-        var val = row[column.Field];
+        var val = row[column.field];
         var data = fns.getData().Data;
         var out = [];
         out.push('<select name="MakeFlag" class="form-control">');
         data.forEach(function (r) {
-            if (val == r[column.Field]) {
-                out.push('<option value="' + r[column.Field] + '" selected="selected">' + gridponent.escapeHTML(r.Name) + '</option>');
+            if (val == r[column.field]) {
+                out.push('<option value="' + r[column.field] + '" selected="selected">' + gridponent.escapeHTML(r.Name) + '</option>');
             }
             else {
-                out.push('<option value="' + r[column.Field] + '">' + gridponent.escapeHTML(r.Name) + '</option>');
+                out.push('<option value="' + r[column.field] + '">' + gridponent.escapeHTML(r.Name) + '</option>');
             }
         });
         out.push('</select>');

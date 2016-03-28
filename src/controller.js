@@ -230,7 +230,8 @@ gp.Controller.prototype = {
             props,
             jsType,
             tr,
-            html;
+            html,
+            field;
 
         try {
 
@@ -253,8 +254,9 @@ gp.Controller.prototype = {
                     } );
                 }
                 else {
-                    this.config.columns.foreach( function ( col ) {
-                        if ( gp.hasValue( gp.field ) ) {
+                    this.config.columns.forEach( function ( col ) {
+                        var field = col.field || col.sort;
+                        if ( gp.hasValue( field ) ) {
                             row[field] = '';
                         }
                     } );
