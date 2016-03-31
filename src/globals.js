@@ -58,11 +58,12 @@
         return str.toLowerCase().replace( '-', '' );
     };
 
-    gp.shallowCopy = function ( from, to ) {
+    gp.shallowCopy = function ( from, to, lowerCase ) {
         to = to || {};
-        var props = Object.getOwnPropertyNames( from );
+        var p, props = Object.getOwnPropertyNames( from );
         props.forEach( function ( prop ) {
-            to[prop] = from[prop];
+            p = lowerCase ? prop.toLowerCase() : prop;
+            to[p] = from[prop];
         } );
         return to;
     };

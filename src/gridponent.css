@@ -161,15 +161,14 @@
 .gp .gp-progress-overlay .gp-progress-container {
   min-width: 150px;
   max-width: 403px;
-  height: 75px;
+  height: 25px;
   position: absolute;
   top: 50%;
   left: 35%;
-  width: 30%;
+  width: 25%;
   margin: 0 auto;
-  padding: 23px;
-  background-color: #404040;
-  border: solid 2px #ccc;
+  padding: 3px;
+  background-color: #fff;
   border-radius: 4px;
   box-shadow: 0 0 12px 6px #888;
 }
@@ -233,11 +232,18 @@
 .gp .table-body > table > tbody > tr {
   background: transparent;
 }
-.gp input.form-control {
+.gp input.form-control:not([type=checkbox],[type=radio]) {
   width: 100%;
 }
 .gp input[type=date] {
   min-width: 125px;
+}
+.gp th input[type=checkbox],
+.gp th input[type=radio],
+.gp td input[type=checkbox],
+.gp td input[type=radio] {
+  margin-top: 0;
+  margin-bottom: 0;
 }
 .gp tr.edit-mode td.body-cell div.btn-group,
 .gp tr.create-mode td.body-cell div.btn-group {

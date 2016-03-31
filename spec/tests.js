@@ -31,7 +31,7 @@ fns.getButtonIcon = function ( row, col ) {
 
 fns.getButtonText = function ( row, col ) {
     if ( row.MakeFlag ) {
-        return 'Edit';
+        return 'edit';
     }
     return 'Remove';
 };
@@ -52,7 +52,7 @@ var configOptions = {
     read: null,
     create: '/Products/create',
     update: '/Products/update',
-    'destroy': '/Products/Delete',
+    destroy: '/Products/Delete',
     searchFilter: null,
     customCommand: null,
     orRowSelect: null
@@ -76,7 +76,10 @@ var getTableConfig = function ( options, callback ) {
     if ( options.update ) out.push( '          update="' + options.update + '"' );
     if ( options.destroy ) out.push( '         destroy="' + options.destroy + '"' );
     if ( options.refreshevent ) out.push( '    refresh-event="' + options.refreshevent + '"' );
-    if ( options.validate ) out.push( '        validate="' + options.validate + '7"' );
+    if ( options.validate ) out.push( '        validate="' + options.validate + '"' );
+    if ( options.onread ) out.push( '          onread="' + options.onread + '"' );
+    if ( options.editmode ) out.push( '        editmode="' + options.editmode + '"' );
+    if ( options.onupdate ) out.push( '        onupdate="' + options.onupdate + '"' );
     out.push( '             pager="top-right"' );
     out.push( '             search="top-left">' );
     if ( options.toolbartemplate )
@@ -104,7 +107,7 @@ var getTableConfig = function ( options, callback ) {
     out.push( '        <script type="text/html" data-template="body"><button class="btn" value="{{fns.getButtonText}}"><span class="glyphicon {{fns.getButtonIcon}}"></span>{{fns.getButtonText}}</button></script>' );
     out.push( '    </gp-column>' );
     out.push( '    <gp-column field="ProductNumber" header="Product #"></gp-column>' );
-    out.push( '    <gp-column commands="Edit,Delete"></gp-column>' );
+    out.push( '    <gp-column commands="edit,destroy"></gp-column>' );
     if ( options.customCommand ) {
         out.push( '    <gp-column commands="' + options.customCommand + '"></gp-column>' );
     }
@@ -115,13 +118,13 @@ var getTableConfig = function ( options, callback ) {
     var $node = $( out.join( '' ) );
 
     if ( document.registerElement ) {
-        $node.one( gp.events.beforeInit, function ( evt ) {
-            callback( evt.originalEvent.detail );
+        setTimeout( function () {
+            $node[0].api.ready( callback );
         } );
     }
     else {
         config = new gp.Initializer( $node[0] ).initialize();
-        callback( config );
+        config.node.api.ready( callback );
     }
 };
 
@@ -510,12 +513,13 @@ QUnit.test( 'refresh-event', function ( assert ) {
 
     var options = gp.shallowCopy( configOptions );
     options.refreshevent = 'data-changed';
+    options.onread = 'fns.onread';
 
     var reads = 0;
 
     var refreshevent = new CustomEvent( options.refreshevent, { detail: 'test', bubbles: true } );
 
-    document.addEventListener( gp.events.afterRead, function () {
+    fns.onread = function () {
         reads++;
 
         // trigger the refresh event after the grid fully initializes
@@ -527,7 +531,7 @@ QUnit.test( 'refresh-event', function ( assert ) {
             done1();
             $( '#table .box' ).empty( );
         }
-    } );
+    };
 
     getTableConfig( options, function ( config ) {
         $( '#table .box' ).append( config.node );
@@ -543,19 +547,15 @@ QUnit.test( 'api.create 1', function ( assert ) {
 
     getTableConfig( configOptions, function ( config ) {
 
-        config.node.api.ready( function () {
+        var cellCount1 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
 
-            var cellCount1 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
-
-            config.node.api.create( row, function ( updateModel ) {
-                var cellCount2 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
-                assert.ok( gp.hasValue( updateModel.Row ), 'api should return an UpdateModel' );
-                assert.strictEqual( cellCount1, cellCount2, 'should create the same number of cells' );
-                assert.ok( data.products.indexOf( row ) != -1, 'the row should have been added to the source' );
-                config.node.api.dispose();
-                done();
-            } );
-
+        config.node.api.create( row, function ( updateModel ) {
+            var cellCount2 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
+            assert.ok( gp.hasValue( updateModel.Row ), 'api should return an UpdateModel' );
+            assert.strictEqual( cellCount1, cellCount2, 'should create the same number of cells' );
+            assert.ok( data.products.indexOf( row ) != -1, 'the row should have been added to the source' );
+            config.node.api.dispose();
+            done();
         } );
 
     } );
@@ -884,37 +884,6 @@ QUnit.test( 'api.destroy', function ( assert ) {
 
 } );
 
-if ( document.registerElement ) {
-
-    QUnit.test( 'dispose', function ( assert ) {
-
-        var done = assert.async();
-
-        getTableConfig( null, function ( config ) {
-
-            config.node.api.ready( function () {
-
-                $( '#table .box' ).empty().append( config.node );
-
-
-                var handler = function () {
-                    assert.ok( true, 'dispose was called' );
-                    config.node.removeEventListener( gp.events.beforeDispose, handler, false );
-                    done();
-                };
-
-                config.node.addEventListener( gp.events.beforeDispose, handler, false );
-
-                config.node.parentNode.removeChild( config.node );
-
-            } );
-
-        } );
-
-    } );
-
-}
-
 QUnit.test( 'ChangeMonitor.beforeSync', function ( assert ) {
 
     var done = assert.async();
@@ -1022,7 +991,7 @@ QUnit.test( 'row selection', function ( assert ) {
 
 } );
 
-QUnit.test( 'events.rowSelected', function ( assert ) {
+QUnit.test( 'events.rowselected', function ( assert ) {
 
     var done = assert.async();
 
@@ -1036,14 +1005,6 @@ QUnit.test( 'events.rowSelected', function ( assert ) {
     };
 
     getTableConfig( options, function ( config ) {
-
-        $( config.node ).one( gp.events.rowSelected, function ( evt ) {
-
-            evt.originalEvent.cancel = true;
-
-            done();
-
-        } );
 
         config.node.api.ready( function () {
 
@@ -1830,41 +1791,36 @@ QUnit.test( 'custom search filter', function ( assert ) {
 
 } );
 
-QUnit.test( 'editMode event', function ( assert ) {
+QUnit.test( 'editmode event', function ( assert ) {
 
     var done2 = assert.async();
 
     var options = gp.shallowCopy( configOptions );
     options.fixedheaders = true;
     options.sorting = true;
+    options.editmode = 'fns.editmode';
+
+    fns.editmode = function ( evt ) {
+        assert.ok( evt != null );
+        assert.ok( evt.row != null );
+        assert.ok( evt.tableRow != null );
+        done2();
+    };
 
     getTableConfig( options, function ( config ) {
 
         var node = config.node;
 
-        config.node.api.ready( function () {
+        // trigger a click event on an edit button
+        var btn = node.querySelector( 'button[value=edit]' );
 
-            node.addEventListener( gp.events.editMode, function ( evt ) {
-                assert.ok( evt != null );
-                assert.ok( evt.detail != null );
-                assert.ok( evt.detail.row != null );
-                assert.ok( evt.detail.tableRow != null );
-                done2();
-            } );
-
-            // trigger a click event on an edit button
-            var btn = node.querySelector( 'button[value=Edit]' );
-
-            var event = new CustomEvent( 'click', {
-                'view': window,
-                'bubbles': true,
-                'cancelable': true
-            } );
-
-            btn.dispatchEvent( event );
-
-
+        var event = new CustomEvent( 'click', {
+            'view': window,
+            'bubbles': true,
+            'cancelable': true
         } );
+
+        btn.dispatchEvent( event );
 
     } );
 
@@ -1879,6 +1835,10 @@ QUnit.test( 'edit and update', function ( assert ) {
     var options = gp.shallowCopy( configOptions );
     options.fixedheaders = true;
     options.sorting = true;
+    options.editmode = 'fns.editmode';
+    options.onupdate = 'fns.onupdate';
+    var colIndex = -1;
+    var col = null;
 
     var clickEvent1 = new CustomEvent( 'click', {
         'view': window,
@@ -1898,120 +1858,53 @@ QUnit.test( 'edit and update', function ( assert ) {
         'cancelable': true
     } );
 
-    getTableConfig( options, function ( config ) {
+    fns.editmode = function ( evt ) {
+        assert.ok( evt != null );
+        assert.ok( evt.row != null );
+        assert.ok( evt.tableRow != null );
+        // change some of the values
+        var input = this.querySelector( '[name=StandardCost]' )
+        input.value = '5';
+        input.dispatchEvent( ChangeEvent() );
+        done1();
+        var saveBtn = this.querySelector( 'button[value=update]' );
+        saveBtn.dispatchEvent( clickEvent2 );
+    };
 
-        var node = config.node;
+    fns.onupdate = function ( evt ) {
+        assert.ok( evt != null );
+        assert.ok( evt.Row != null );
+        assert.strictEqual( evt.Row.StandardCost, 5, 'change monitor should update the model' );
 
-        node.api.ready( function () {
+        // make sure the grid is updated with the correct value
+        var updatedCellValue = this.querySelector( 'td:nth-child(' + ( colIndex + 1 ) + ')' ).innerHTML;
 
-            // find the StandardCost column
-            var colIndex = -1;
-            var col = config.columns.filter( function ( col, index ) {
-                if ( col.field == "StandardCost" ) {
-                    colIndex = index;
-                    return true;
-                }
-                return false;
-            } )[0];
+        var expectedValue = gp.getFormattedValue( evt.Row, col, true );
 
-            node.addEventListener( gp.events.editMode, function ( evt ) {
-                assert.ok( evt != null );
-                assert.ok( evt.detail != null );
-                assert.ok( evt.detail.row != null );
-                assert.ok( evt.detail.tableRow != null );
-                // change some of the values
-                var input = evt.target.querySelector( '[name=StandardCost]' )
-                input.value = '5';
-                input.dispatchEvent( ChangeEvent() );
-                done1();
-                var saveBtn = node.querySelector( 'button[value=update]' );
-                saveBtn.dispatchEvent( clickEvent2 );
-            } );
+        assert.equal( updatedCellValue, expectedValue, 'grid should be updated with the correct value' );
 
-            node.addEventListener( gp.events.afterUpdate, function ( evt ) {
-                assert.ok( evt != null );
-                assert.ok( evt.detail != null );
-                assert.ok( evt.detail.Row != null );
-                assert.strictEqual( evt.detail.Row.StandardCost, 5, 'change monitor should update the model' );
-
-                // make sure the grid is updated with the correct value
-                var updatedCellValue = evt.target.querySelector( 'td:nth-child(' + ( colIndex + 1 ) + ')' ).innerHTML;
-
-                var expectedValue = gp.getFormattedValue( evt.detail.Row, col, true );
-
-                assert.equal( updatedCellValue, expectedValue, 'grid should be updated with the correct value' );
-
-                done2();
-            } );
-
-            // trigger a click event on an edit button
-            var btn = node.querySelector( 'button[value=Edit]' );
-
-            btn.dispatchEvent( clickEvent1 );
-
-        } );
-
-    } );
-
-
-
-} );
-
-QUnit.test( 'edit and cancel', function ( assert ) {
-
-    var done1 = assert.async();
-    var done2 = assert.async();
-
-    var options = gp.shallowCopy( configOptions );
-    options.fixedheaders = true;
-    options.sorting = true;
-
-    var clickEvent1 = new CustomEvent( 'click', {
-        'view': window,
-        'bubbles': true,
-        'cancelable': true
-    } );
-
-    var clickEvent2 = new CustomEvent( 'click', {
-        'view': window,
-        'bubbles': true,
-        'cancelable': true
-    } );
+        done2();
+    };
 
     getTableConfig( options, function ( config ) {
 
         var node = config.node;
 
-        node.api.ready( function () {
+        // find the StandardCost column
+        col = config.columns.filter( function ( col, index ) {
+            if ( col.field == "StandardCost" ) {
+                colIndex = index;
+                return true;
+            }
+            return false;
+        } )[0];
 
-            node.addEventListener( gp.events.editMode, function ( evt ) {
-                assert.ok( evt != null );
-                assert.ok( evt.detail != null );
-                assert.ok( evt.detail.row != null );
-                assert.ok( evt.detail.tableRow != null );
-                done1();
-                var saveBtn = node.querySelector( 'button[value=Cancel]' );
-                saveBtn.dispatchEvent( clickEvent2 );
-            } );
+        // trigger a click event on an edit button
+        var btn = node.querySelector( 'button[value=edit]' );
 
-            node.addEventListener( 'cancelEdit', function ( evt ) {
-                assert.ok( evt != null );
-                assert.ok( evt.detail != null );
-                assert.ok( evt.detail.row != null );
-                assert.ok( evt.detail.tableRow != null );
-                done2();
-            } );
-
-            // trigger a click event on an edit button
-            var btn = node.querySelector( 'button[value=Edit]' );
-
-            btn.dispatchEvent( clickEvent1 );
-
-        } );
+        btn.dispatchEvent( clickEvent1 );
 
     } );
-
-
 
 } );
 
@@ -2125,40 +2018,40 @@ QUnit.test( 'readonly fields', function ( assert ) {
     var options = gp.shallowCopy( configOptions );
     options.fixedheaders = true;
     options.sorting = true;
+    options.editmode = 'fns.editmode';
+
+    var index;
+
+    fns.editmode = function ( evt ) {
+        var input = this.querySelector( 'td:nth-child(' + ( index + 1 ).toString() + ') input' );
+        assert.equal( input, null, 'there should not be an input' );
+        done();
+    };
 
     getTableConfig( options, function ( config ) {
 
         var node = config.node;
 
-        node.api.ready( function () {
-
-            var readonlyColumns = config.columns.filter( function ( col ) {
-                return col.readonly;
-            } );
-
-            assert.ok( readonlyColumns != null && readonlyColumns.length, 'should find a readonly column' );
-
-            // use this index to locate the table cell
-            var index = config.columns.indexOf( readonlyColumns[0] );
-
-            node.addEventListener( gp.events.editMode, function ( evt ) {
-                var input = evt.target.querySelector( 'td:nth-child(' + ( index + 1 ).toString() + ') input' );
-                assert.equal( input, null, 'there should not be an input' );
-                done();
-            } );
-
-            // trigger a click event on an edit button
-            var btn = node.querySelector( 'button[value=Edit]' );
-
-            var event = new CustomEvent( 'click', {
-                'view': window,
-                'bubbles': true,
-                'cancelable': true
-            } );
-
-            btn.dispatchEvent( event );
-
+        var readonlyColumns = config.columns.filter( function ( col ) {
+            return col.readonly;
         } );
+
+        assert.ok( readonlyColumns != null && readonlyColumns.length, 'should find a readonly column' );
+
+        // use this index to locate the table cell
+        index = config.columns.indexOf( readonlyColumns[0] );
+
+
+        // trigger a click event on an edit button
+        var btn = node.querySelector( 'button[value=edit]' );
+
+        var event = new CustomEvent( 'click', {
+            'view': window,
+            'bubbles': true,
+            'cancelable': true
+        } );
+
+        btn.dispatchEvent( event );
 
     } );
 

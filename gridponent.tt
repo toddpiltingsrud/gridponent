@@ -8,7 +8,7 @@
 <#@ output extension=".js" #>
 <#
 var stripLogging = true;
-var coverage = true;
+var coverage = false;
 var useMocks = true;
 
 if (coverage)
@@ -90,13 +90,14 @@ System.Text.RegularExpressions.Regex comment = new System.Text.RegularExpression
 System.Text.RegularExpressions.Regex function = new System.Text.RegularExpressions.Regex(@"function.+\{$");
 System.Text.RegularExpressions.Regex ifStatement = new System.Text.RegularExpressions.Regex(@"if.+\{$");
 System.Text.RegularExpressions.Regex elseStatement = new System.Text.RegularExpressions.Regex(@"else.+\{$");
+System.Text.RegularExpressions.Regex caseStatement = new System.Text.RegularExpressions.Regex(@"case\s.+:$");
 System.Text.RegularExpressions.Regex lineEnd = new System.Text.RegularExpressions.Regex(@"\{$|;$");
 bool inQualifyingStatement = false;
 
 private string OutputCoverage(string line)
 {
 	if (!comment.IsMatch(line) && 
-		(function.IsMatch(line) || ifStatement.IsMatch(line) || elseStatement.IsMatch(line)))
+		(function.IsMatch(line) || ifStatement.IsMatch(line) || elseStatement.IsMatch(line) || caseStatement.IsMatch(line)))
 	{
 		inQualifyingStatement = true;
 	}

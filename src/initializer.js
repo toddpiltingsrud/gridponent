@@ -18,36 +18,27 @@ gp.Initializer.prototype = {
         options.ID = gp.createUID();
         this.config = options;
         this.config.node = this.node;
-        var model = new gp.Model( this.config );
+        var dal = new gp.Model( this.config );
         var requestModel = new gp.PagingModel();
-        var controller = new gp.Controller( self.config, model, requestModel );
+        var controller = new gp.Controller( self.config, dal, requestModel );
+        this.addEventDelegates( this.config, controller.eventDelegates );
         this.node.api = new gp.api( controller );
         this.renderLayout( this.config );
         this.addBusyHandlers();
 
-        if ( typeof this.config.ready === 'function' ) {
-            controller.ready( this.config.ready );
-        }
-
-        if ( typeof this.config.AfterEdit === 'function' ) {
-            gp.on( this.config.node, gp.events.afterEdit, this.config.AfterEdit );
-        }
-
-        // events should be raised AFTER the node is added to the DOM or they won't bubble
-        // this problem occurs when nodes are created and then added to the DOM programmatically 
-        // that means initialize has to return before it raises any events
         setTimeout( function () {
             // provides a hook for extensions
-            gp.raiseCustomEvent( self.config.node, gp.events.beforeInit, self.config );
+            controller.invokeDelegates( self.config.node, gp.events.beforeinit, self.config );
 
-            // we need both beforeInit and beforeRead because beforeRead is used after every read in the controller
-            // and beforeInit happens just once after the node is created, but before first read
-            gp.raiseCustomEvent( self.config.node, gp.events.beforeRead, self.config.pageModel );
+            // we need both beforeinit and beforeread because beforeread is used after every read in the controller
+            // and beforeinit happens just once after the node is created, but before first read
+            controller.invokeDelegates( self.config.node, gp.events.beforeread, self.config.pageModel );
 
-            model.read( requestModel,
+            dal.read( requestModel,
                 function ( data ) {
                     try {
-                        self.config.pageModel = data;
+                        gp.shallowCopy( data, self.config.pageModel, true );
+                        //self.config.pageModel = data;
                         self.resolveTypes( self.config );
                         self.render( self.config );
                         controller.init();
@@ -55,11 +46,10 @@ gp.Initializer.prototype = {
                     } catch ( e ) {
                         gp.error( e );
                     }
-                    gp.raiseCustomEvent( self.config.node, gp.events.afterRead, self.config.pageModel );
-                    gp.raiseCustomEvent( self.config.node, gp.events.afterInit, self.config );
+                    controller.invokeDelegates( self.config.node, gp.events.onread, self.config.pageModel );
                 },
                 function ( e ) {
-                    gp.raiseCustomEvent( self.config.node, gp.events.httpError, e );
+                    controller.invokeDelegates( self.config.node, gp.events.httpError, e );
                     alert( 'An error occurred while carrying out your request.' );
                     gp.error( e );
                 }
@@ -71,12 +61,14 @@ gp.Initializer.prototype = {
     },
 
     addBusyHandlers: function () {
-        gp.on( this.config.node, gp.events.beforeRead, gp.addBusy );
-        gp.on( this.config.node, gp.events.afterRead, gp.removeBusy );
-        gp.on( this.config.node, gp.events.beforeUpdate, gp.addBusy );
-        gp.on( this.config.node, gp.events.afterUpdate, gp.removeBusy );
-        gp.on( this.config.node, gp.events.beforeDelete, gp.addBusy );
-        gp.on( this.config.node, gp.events.afterDelete, gp.removeBusy );
+        gp.on( this.config.node, gp.events.beforeread, gp.addBusy );
+        gp.on( this.config.node, gp.events.onread, gp.removeBusy );
+        gp.on( this.config.node, gp.events.beforecreate, gp.addBusy );
+        gp.on( this.config.node, gp.events.oncreate, gp.removeBusy );
+        gp.on( this.config.node, gp.events.beforeupdate, gp.addBusy );
+        gp.on( this.config.node, gp.events.onupdate, gp.removeBusy );
+        gp.on( this.config.node, gp.events.beforedestroy, gp.addBusy );
+        gp.on( this.config.node, gp.events.ondestroy, gp.removeBusy );
         gp.on( this.config.node, gp.events.httpError, gp.removeBusy );
     },
 
@@ -90,8 +82,6 @@ gp.Initializer.prototype = {
             gpColumns = config.node.querySelectorAll( 'gp-column' );
 
         config.columns = [];
-        //config.pageModel = {};
-        //config.ID = gp.createUID();
 
         // create the column configurations
         templates = 'header body edit footer'.split( ' ' );
@@ -106,7 +96,7 @@ gp.Initializer.prototype = {
         config.Footer = this.resolveFooter( config );
 
         // resolve the top level configurations
-        var options = 'onrowselect searchfunction read create update destroy validate model ready afteredit model'.split(' ');
+        var options = 'onrowselect searchfunction read create update destroy validate model'.split(' ');
         options.forEach( function ( option ) {
 
             if ( gp.hasValue(config[option]) ) {
@@ -119,10 +109,27 @@ gp.Initializer.prototype = {
 
         } );
 
+
         // resolve the various templates
         this.resolveTemplates( ['toolbar', 'footer'], config, config.node );
 
         return config;
+    },
+
+    addEventDelegates: function ( config, dictionary ) {
+        var self = this, fn, api = config.node.api;
+        Object.getOwnPropertyNames( gp.events ).forEach( function ( event ) {
+            fn = config[event];
+            if ( typeof fn === 'string' ) {
+                fn = gp.getObjectAtPath( fn );
+            }
+
+            // event delegates must point to a function
+            if ( typeof fn == 'function' ) {
+                config[event] = fn;
+                dictionary[event] = fn;
+            }
+        } );
     },
 
     renderLayout: function ( config ) {
@@ -221,13 +228,13 @@ gp.Initializer.prototype = {
         config.columns.forEach( function ( col ) {
             field = gp.hasValue( col.field ) ? col.field : col.sort;
             if ( gp.isNullOrEmpty( field ) ) return;
-            if ( config.Model ) {
+            if ( config.model ) {
                 // look for a type by field first, then by sort
-                if ( gp.hasValue( config.Model[field] ) ) {
-                    col.Type = gp.getType( config.Model[field] );
+                if ( gp.hasValue( config.model[field] ) ) {
+                    col.Type = gp.getType( config.model[field] );
                 }
             }
-            else if ( hasData ) {
+            if ( !gp.hasValue( col.Type ) && hasData ) {
                 // if we haven't found a value after 200 iterations, give up
                 for ( var i = 0; i < config.pageModel.data.length && i < 200 ; i++ ) {
                     if ( config.pageModel.data[i][field] !== null ) {

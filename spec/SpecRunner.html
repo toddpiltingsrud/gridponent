@@ -33,7 +33,7 @@
 
     fns.dropdown = function (row, column) {
         var val = row[column.field];
-        var data = fns.getData().Data;
+        var data = fns.getData().data;
         var out = [];
         out.push('<select name="MakeFlag" class="form-control">');
         data.forEach(function (r) {
@@ -52,7 +52,7 @@
         return 10;
     };
 
-    fns.rowSelected = function (model) {
+    fns.rowselected = function (model) {
         gp.info(model);
     };
 
@@ -230,7 +230,7 @@
                     //}
                 };
 
-                document.addEventListener(gp.events.editMode, setDatePickers);
+                document.addEventListener(gp.events.editmode, setDatePickers);
             }
         })();
     </script>

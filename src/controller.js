@@ -18,6 +18,7 @@ gp.Controller = function (config, model, requestModel) {
     };
     this.done = false;
     this.callbacks = [];
+    this.eventDelegates = {};
 };
 
 gp.Controller.prototype = {
@@ -43,16 +44,19 @@ gp.Controller.prototype = {
         }
     },
 
-    dispose: function () {
-        gp.raiseCustomEvent( this.config.node, gp.events.beforeDispose );
-        this.removeRefreshEventHandler( this.config );
-        this.removeBusyHandlers();
-        this.removeRowSelectHandler();
-        this.removeCommandHandlers( this.config.node );
-        this.monitor.stop();
-        if ( typeof this.config.AfterEdit === 'function' ) {
-            gp.off( this.config.node, gp.events.afterEdit, this.config.AfterEdit );
+    addDelegate: function( event, delegate) {
+        this.eventDelegates[event] = delegate;
+    },
+
+    invokeDelegates: function ( context, event, args ) {
+        var proceed = true,
+            delegate = this.eventDelegates[event];
+        if ( gp.hasValue( delegate ) ) {
+            proceed = gp.applyFunc( delegate, context, args );
+            if ( proceed === false ) return proceed;
         }
+        gp.raiseCustomEvent( context, event, args );
+        return proceed;
     },
 
     monitorToolbars: function (node) {
@@ -94,27 +98,29 @@ gp.Controller.prototype = {
         gp.off( node, 'click', this.handlers.commandHandler );
     },
 
-    commandHandler: function(evt) {
-        var command, tr, row, node = this.config.node;
+    commandHandler: function ( evt ) {
+        var command, lower, tr, row, node = this.config.node;
         command = evt.selectedTarget.attributes['value'].value;
+        if ( gp.hasValue( command ) ) lower = command.toLowerCase();
         tr = gp.closest( evt.selectedTarget, 'tr[data-index]', node );
         row = tr ? gp.getRowModel( this.config.pageModel.data, tr ) : null;
-        switch ( command ) {
-            case 'AddRow':
+        switch ( lower ) {
+            case 'addrow':
                 this.addRow();
                 break;
             case 'create':
                 this.createRow( row, tr );
                 break;
-            case 'Edit':
+            case 'edit':
                 this.editRow( row, tr );
                 break;
             case 'update':
                 this.updateRow( row, tr );
                 break;
-            case 'Cancel':
+            case 'cancel':
                 this.cancelEdit( row, tr );
                 break;
+            case 'delete':
             case 'destroy':
                 this.deleteRow( row, tr );
                 break;
@@ -145,7 +151,8 @@ gp.Controller.prototype = {
             tr = gp.closest( evt.selectedTarget, 'tr', config.node ),
             trs = config.node.querySelectorAll( 'div.table-body > table > tbody > tr.selected' ),
             type = typeof config.onrowselect,
-            row;
+            row,
+            proceed;
 
         if ( type === 'string' && config.onrowselect.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
 
@@ -163,12 +170,12 @@ gp.Controller.prototype = {
         // by making sure the evt target is a body cell
         if ( evt.target != evt.selectedTarget ) return;
 
-        var customEvt = gp.raiseCustomEvent( tr, gp.events.rowSelected, {
+        proceed = this.invokeDelegates( tr, gp.events.rowselected, {
             row: row,
             tableRow: tr
         } );
 
-        if ( customEvt.cancel ) return;
+        if ( proceed === false ) return;
 
         if ( type === 'function' ) {
             gp.applyFunc( config.onrowselect, tr, [row] );
@@ -205,30 +212,29 @@ gp.Controller.prototype = {
     },
 
     read: function ( requestModel, callback ) {
-        var self = this;
+        var self = this, proceed = true;
         if ( requestModel ) {
             gp.shallowCopy( requestModel, this.config.pageModel );
         }
-        gp.raiseCustomEvent( this.config.node, gp.events.beforeRead, this.config.pageModel );
+        proceed = this.invokeDelegates( this.config.node, gp.events.beforeread, this.config.pageModel );
+        if ( proceed === false ) return;
         gp.info( 'read.pageModel:', this.config.pageModel );
         this.model.read( this.config.pageModel, function ( model ) {
-            gp.shallowCopy( model, self.config.pageModel );
+            // models coming from the server should be lower-cased
+            gp.shallowCopy( model, self.config.pageModel, true );
             self.refresh( self.config );
-            gp.raiseCustomEvent( this.config.node, gp.events.afterRead, this.config.pageModel );
+            self.invokeDelegates( self.config.node, gp.events.onread, this.config.pageModel );
             gp.applyFunc( callback, self.config.node, self.config.pageModel );
         }, this.handlers.httpErrorHandler );
     },
 
     addRow: function ( row ) {
         var self = this,
-            table,
             tbody,
             rowIndex,
             bodyCellContent,
             editCellContent,
             builder,
-            props,
-            jsType,
             tr,
             html,
             field;
@@ -242,29 +248,24 @@ gp.Controller.prototype = {
             if ( row == undefined ) {
                 row = {};
 
-                // create a row using the config object
-                // check for a Model first
-                if ( typeof this.config.Model == 'object' ) {
-                    gp.shallowCopy( config.Model, row );
-                }
-                else if ( this.config.pageModel.data.length > 0 ) {
-                    Object.getOwnPropertyNames( this.config.pageModel.data[0] ).forEach( function ( field ) {
-                        jsType = gp.getType( self.config.pageModel.data[0][field] );
-                        row[field] = gp.getDefaultValue( jsType );
-                    } );
-                }
-                else {
-                    this.config.columns.forEach( function ( col ) {
-                        var field = col.field || col.sort;
-                        if ( gp.hasValue( field ) ) {
+                // set defaults
+                this.config.columns.forEach( function ( col ) {
+                    var field = col.field || col.sort;
+                    if ( gp.hasValue( field ) ) {
+                        if ( gp.hasValue( col.Type ) ) {
+                            row[field] = gp.getDefaultValue( col.Type );
+                        }
+                        else {
                             row[field] = '';
                         }
-                    } );
+                    }
+                } );
+
+                // overwrite defaults with a model if specified
+                if ( typeof this.config.model == 'object' ) {
+                    gp.shallowCopy( this.config.model, row );
                 }
             }
-
-            // gives external code the opportunity to set defaults on the new row
-            gp.raiseCustomEvent( self.config.node, gp.events.beforeAdd, row );
 
             // add the new row to the internal data array
             this.config.pageModel.data.push( row );
@@ -292,7 +293,7 @@ gp.Controller.prototype = {
             tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', row ).start();
 
             // gives external code the opportunity to initialize UI elements (e.g. datepickers)
-            gp.raiseCustomEvent( tr, gp.events.editMode, {
+            this.invokeDelegates( tr, gp.events.editmode, {
                 row: row,
                 tableRow: tr
             } );
@@ -310,7 +311,8 @@ gp.Controller.prototype = {
     createRow: function (row, tr, callback) {
         try {
             var monitor,
-                self = this;
+                self = this,
+                returnedRow;
 
             // if there is no create configuration setting, we're done here
             if ( !gp.hasValue( this.config.create ) ) {
@@ -318,7 +320,7 @@ gp.Controller.prototype = {
                 return;
             }
 
-            gp.raiseCustomEvent( this.config.node, gp.events.beforeCreate, row );
+            this.invokeDelegates( this.config.node, gp.events.beforecreate, row );
 
             // call the data layer with just the row
             // the data layer should respond with an updateModel
@@ -335,7 +337,8 @@ gp.Controller.prototype = {
                     }
                     else {
                         // copy the returned row back to the internal data array
-                        gp.shallowCopy( updateModel.Row, row );
+                        returnedRow = gp.hasValue( updateModel.Row ) ? updateModel.Row : ( updateModel.Data && updateModel.Data.length ) ? updateModel.Data[0] : row;
+                        gp.shallowCopy( returnedRow, row );
                         // refresh the UI
                         self.restoreCells( self.config, row, tr );
                         // dispose of the ChangeMonitor
@@ -350,8 +353,8 @@ gp.Controller.prototype = {
                     gp.error( err );
                 }
 
-                gp.raiseCustomEvent( tr, gp.events.afterCreate, updateModel );
-                gp.raiseCustomEvent( self.config.node, gp.events.afterEdit, self.config.pageModel );
+                self.invokeDelegates( tr, gp.events.oncreate, updateModel );
+                self.invokeDelegates( self.config.node, gp.events.onedit, self.config.pageModel );
 
                 gp.applyFunc( callback, self.config.node, updateModel );
             },
@@ -380,7 +383,7 @@ gp.Controller.prototype = {
             tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', row ).start();
 
             // gives external code the opportunity to initialize UI elements (e.g. datepickers)
-            gp.raiseCustomEvent( tr, gp.events.editMode, {
+            this.invokeDelegates( tr, gp.events.editmode, {
                 row: row,
                 tableRow: tr
             } );
@@ -395,7 +398,8 @@ gp.Controller.prototype = {
 
         try {
             var monitor,
-                self = this;
+                self = this,
+                updatedRow;
 
             // if there is no update configuration setting, we're done here
             if ( !gp.hasValue( this.config.update ) ) {
@@ -403,7 +407,7 @@ gp.Controller.prototype = {
                 return;
             }
 
-            gp.raiseCustomEvent(tr, gp.events.beforeUpdate, row );
+            this.invokeDelegates(tr, gp.events.beforeupdate, row );
 
             // call the data layer with just the row
             // the data layer should respond with an updateModel
@@ -420,7 +424,8 @@ gp.Controller.prototype = {
                     }
                     else {
                         // copy the returned row back to the internal data array
-                        gp.shallowCopy( updateModel.Row, row );
+                        returnedRow = gp.hasValue( updateModel.Row ) ? updateModel.Row : ( updateModel.Data && updateModel.Data.length ) ? updateModel.Data[0] : row;
+                        gp.shallowCopy( returnedRow, row );
                         // refresh the UI
                         self.restoreCells( self.config, row, tr );
                         // dispose of the ChangeMonitor
@@ -435,8 +440,8 @@ gp.Controller.prototype = {
                     gp.error( err );
                 }
 
-                gp.raiseCustomEvent( tr, gp.events.afterUpdate, updateModel );
-                gp.raiseCustomEvent( self.config.node, gp.events.afterEdit, self.config.pageModel );
+                self.invokeDelegates( tr, gp.events.onupdate, updateModel );
+                self.invokeDelegates( self.config.node, gp.events.onedit, self.config.pageModel );
 
                 gp.applyFunc( callback, self.config.node, updateModel );
             },
@@ -465,7 +470,7 @@ gp.Controller.prototype = {
                 return;
             }
 
-            gp.raiseCustomEvent(this.config.node, gp.events.beforeDelete, row );
+            this.invokeDelegates(this.config.node, gp.events.beforedestroy, row );
 
             this.model.destroy( row, function ( response ) {
 
@@ -485,8 +490,8 @@ gp.Controller.prototype = {
                     gp.error( err );
                 }
 
-                gp.raiseCustomEvent( self.config.node, gp.events.afterDelete, row );
-                gp.raiseCustomEvent( self.config.node, gp.events.afterEdit, self.config.pageModel );
+                self.invokeDelegates( self.config.node, gp.events.ondestroy, row );
+                self.invokeDelegates( self.config.node, gp.events.onedit, self.config.pageModel );
 
                 gp.applyFunc( callback, self.config.node, response );
             },
@@ -513,7 +518,7 @@ gp.Controller.prototype = {
                 this.restoreCells( this.config, row, tr );
             }
 
-            gp.raiseCustomEvent( tr, 'cancelEdit', {
+            this.invokeDelegates( tr, 'cancelEdit', {
                 row: row,
                 tableRow: tr
             } );
@@ -556,18 +561,33 @@ gp.Controller.prototype = {
     },
 
     httpErrorHandler: function ( e ) {
-        gp.raiseCustomEvent( this.config.node, gp.events.httpError, e );
+        this.invokeDelegates( this.config.node, gp.events.httpError, e );
         alert( 'An error occurred while carrying out your request.' );
         gp.error( e );
     },
 
     removeBusyHandlers: function () {
-        gp.off( this.config.node, gp.events.beforeRead, gp.addBusy );
-        gp.off( this.config.node, gp.events.afterRead, gp.removeBusy );
-        gp.off( this.config.node, gp.events.beforeUpdate, gp.addBusy );
-        gp.off( this.config.node, gp.events.afterUpdate, gp.removeBusy );
-        gp.off( this.config.node, gp.events.beforeDelete, gp.addBusy );
-        gp.off( this.config.node, gp.events.afterDelete, gp.removeBusy );
+        gp.off( this.config.node, gp.events.beforeread, gp.addBusy );
+        gp.off( this.config.node, gp.events.onread, gp.removeBusy );
+        gp.off( this.config.node, gp.events.beforeupdate, gp.addBusy );
+        gp.off( this.config.node, gp.events.onupdate, gp.removeBusy );
+        gp.off( this.config.node, gp.events.beforedestroy, gp.addBusy );
+        gp.off( this.config.node, gp.events.ondestroy, gp.removeBusy );
         gp.off( this.config.node, gp.events.httpError, gp.removeBusy );
+    },
+
+    dispose: function () {
+        this.removeRefreshEventHandler( this.config );
+        this.removeBusyHandlers();
+        this.removeRowSelectHandler();
+        this.removeCommandHandlers( this.config.node );
+        this.monitor.stop();
+        if ( typeof this.config.onread === 'function' ) {
+            gp.off( this.config.node, gp.events.onread, this.config.onread );
+        }
+        if ( typeof this.config.onedit === 'function' ) {
+            gp.off( this.config.node, gp.events.onedit, this.config.onedit );
+        }
     }
+
 };

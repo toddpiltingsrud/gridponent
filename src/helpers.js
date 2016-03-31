@@ -56,7 +56,7 @@ gp.helpers = {
                     .add( '</label>' );
             }
             else {
-                html.escape( gp.coalesce( [col.header, col.field, '&nbsp;'] ) );
+                html.escape( gp.coalesce( [col.header, col.field, ''] ) );
             }
             html.add( '</th>' );
         } );
@@ -101,12 +101,12 @@ gp.helpers = {
         else if ( col.commands && col.commands.length ) {
             html.add( '<div class="btn-group" role="group">' );
             col.commands.forEach( function ( cmd, index ) {
-                if ( cmd == 'Edit' && gp.hasValue( self.update ) ) {
+                if ( cmd == 'edit' && gp.hasValue( self.update ) ) {
                     html.add( '<button type="button" class="btn btn-default btn-xs" value="' )
                         .add( cmd )
                         .add( '">' )
                         .add( '<span class="glyphicon glyphicon-edit"></span>' )
-                        .add( cmd )
+                        .add( 'Edit' )
                         .add( '</button>' );
                 }
                 else if ( cmd == 'destroy' && gp.hasValue( self.destroy ) ) {
@@ -144,12 +144,12 @@ gp.helpers = {
         var template, html = new gp.StringBuilder();
 
         // check for a template
-        if ( col.EditTemplate ) {
-            if ( typeof ( col.EditTemplate ) === 'function' ) {
-                html.add( gp.applyFunc( col.EditTemplate, this, [row, col] ) );
+        if ( col.edittemplate ) {
+            if ( typeof ( col.edittemplate ) === 'function' ) {
+                html.add( gp.applyFunc( col.edittemplate, this, [row, col] ) );
             }
             else {
-                html.add( gp.processBodyTemplate.call( this, col.EditTemplate, row, col ) );
+                html.add( gp.processBodyTemplate.call( this, col.edittemplate, row, col ) );
             }
         }
         else if ( col.commands ) {

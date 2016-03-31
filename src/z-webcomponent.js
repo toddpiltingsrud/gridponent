@@ -9,7 +9,6 @@ if (document.registerElement) {
     };
 
     gp.Gridponent.detachedCallback = function () {
-        gp.info( 'detachedCallback called' );
         this.api.dispose();
     };
 

@@ -1,17 +1,22 @@
-﻿What happens if a grid is rendered twice? Make sure the original is disposed if this happens.
+﻿We'll need delegate arrays because Initializer and Controller add their own handlers to them.
 
-Add the ability to create gridponents with JS:
+All main configuration options should be available through the API:
+gridponent('selector')
+	.model({...})
+	.on('onread', function...)
+	.on('onedit', function...);
 
-gridponent('select', {
-
-	
-
-});
+What happens if a grid is rendered twice? Make sure the original is disposed if this happens.
 
 Add a change event to a column:
 <gp-column field="IsCurrent" change="fns.isCurrentChanged"></gp-column>
 
+Call gridponent function with a grid-ponent element to initialize manually.
+
+Should we resolve JS config objects on demand? That would solve the problem of page ready for some config options but not others.
+
 Footer template
+edit class
 
 Empty table template
 
@@ -45,15 +50,9 @@ and Name in ('Name1','Name2','Name3')
 If paging is turned off, use client pager to sort and search.
 Problem: we won't know whether we can use client pager until after we've retrieved data from the server.
 
-Ensure we are handling date values correctly. 
-
 Allow the http module to be configured to use JSON or application/x-www-form-urlencoded.
 
 Add page size config option (default to 25).
-
-Standardize property capitalization.
-
-Rework classes to make it easy to target specific sections of the grid.
 
 Build a jQuery version.
 

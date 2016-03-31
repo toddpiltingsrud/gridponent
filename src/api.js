@@ -3,23 +3,35 @@
 \***************/
 
 gp.events = {
-    rowSelected: 'rowSelected',
-    beforeInit: 'beforeInit',
-    afterInit: 'afterInit',
-    beforeRead: 'beforeRead',
-    beforeAdd: 'beforeAdd',
-    beforeCreate: 'beforeCreate',
-    beforeUpdate: 'beforeUpdate',
-    beforeDelete: 'beforeDelete',
-    afterRead: 'afterRead',
-    afterCreate: 'afterCreate',
-    afterUpdate: 'afterUpdate',
-    afterDelete: 'afterDelete',
-    afterEdit: 'afterEdit',
-    beforeDispose: 'beforeDispose',
-    editMode: 'editMode',
-    httpError: 'httpError'
+
+    rowselected: 'rowselected',
+    beforeinit: 'beforeinit',
+    // turn progress indicator on
+    beforeread: 'beforeread',
+    // turn progress indicator on
+    beforecreate: 'beforecreate',
+    // turn progress indicator on
+    beforeupdate: 'beforeupdate',
+    // turn progress indicator on
+    beforedestroy: 'beforedestroy',
+    // turn progress indicator off
+    onread: 'onread',
+    // turn progress indicator off
+    oncreate: 'oncreate',
+    // turn progress indicator off
+    onupdate: 'onupdate',
+    // turn progress indicator off
+    ondestroy: 'ondestroy',
+    // raised after create, update and delete
+    onedit: 'onedit',
+    // gives external code the opportunity to initialize UI elements (e.g. datepickers)
+    editmode: 'editmode',
+    // turn progress indicator off
+    httpError: 'httpError',
+    // happens once after the grid is fully initialized and databound
+    ready: 'ready'
 };
+
 
 gp.api = function ( controller ) {
     this.controller = controller;
@@ -38,6 +50,14 @@ gp.api.prototype = {
     getData: function ( index ) {
         if ( typeof index == 'number' ) return this.controller.config.pageModel.data[index];
         return this.controller.config.pageModel.data;
+    },
+
+    getTableRow: function( dataRow ) {
+        return gp.getTableRow(
+            this.controller.config.pageModel.data,
+            dataRow,
+            this.controller.config.node
+        );
     },
 
     search: function ( searchTerm, callback ) {
