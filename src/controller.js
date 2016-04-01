@@ -45,17 +45,19 @@ gp.Controller.prototype = {
     },
 
     addDelegate: function( event, delegate) {
-        this.eventDelegates[event] = delegate;
+        this.eventDelegates[event] = this.eventDelegates[event] || [];
+        this.eventDelegates[event].push( delegate );
     },
 
     invokeDelegates: function ( context, event, args ) {
         var proceed = true,
-            delegate = this.eventDelegates[event];
-        if ( gp.hasValue( delegate ) ) {
-            proceed = gp.applyFunc( delegate, context, args );
-            if ( proceed === false ) return proceed;
+            delegates = this.eventDelegates[event];
+        if ( Array.isArray(delegates) ) {
+            delegates.forEach( function ( delegate ) {
+                if ( proceed === false ) return;
+                proceed = gp.applyFunc( delegate, context, args );
+            } );
         }
-        gp.raiseCustomEvent( context, event, args );
         return proceed;
     },
 

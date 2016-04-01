@@ -21,7 +21,7 @@ gp.Initializer.prototype = {
         var dal = new gp.Model( this.config );
         var requestModel = new gp.PagingModel();
         var controller = new gp.Controller( self.config, dal, requestModel );
-        this.addEventDelegates( this.config, controller.eventDelegates );
+        this.addEventDelegates( this.config, controller );
         this.node.api = new gp.api( controller );
         this.renderLayout( this.config );
         this.addBusyHandlers();
@@ -116,7 +116,7 @@ gp.Initializer.prototype = {
         return config;
     },
 
-    addEventDelegates: function ( config, dictionary ) {
+    addEventDelegates: function ( config, controller ) {
         var self = this, fn, api = config.node.api;
         Object.getOwnPropertyNames( gp.events ).forEach( function ( event ) {
             fn = config[event];
@@ -127,7 +127,7 @@ gp.Initializer.prototype = {
             // event delegates must point to a function
             if ( typeof fn == 'function' ) {
                 config[event] = fn;
-                dictionary[event] = fn;
+                controller.addDelegate( event, fn );
             }
         } );
     },

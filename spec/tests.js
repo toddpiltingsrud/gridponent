@@ -18,6 +18,18 @@ var gp = gridponent;
 
 var fns = fns || {};
 
+var clickButton = function ( btn ) {
+
+    var clickEvent1 = new CustomEvent( 'click', {
+        'view': window,
+        'bubbles': true,
+        'cancelable': true
+    } );
+
+    btn.dispatchEvent( clickEvent1 );
+
+};
+
 fns.checkbox = function ( col ) {
     return '<input type="checkbox" name="test" />';
 };
@@ -319,6 +331,140 @@ QUnit.test( 'read', function ( assert ) {
 
 } );
 
+QUnit.test( 'commandHandler', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configOptions );
+
+    getTableConfig( options, function ( config ) {
+
+        var controller = config.node.api.controller;
+
+        var addBtn = config.node.querySelector('[value=AddRow]');
+
+        clickButton( addBtn );
+
+        var editRow = config.node.querySelector( 'tr.create-mode' );
+
+        assert.ok( editRow != null, 'clicking the addrow button should create a row in create mode' );
+
+        var createBtn = editRow.querySelector( '[value=create]' );
+
+        clickButton( createBtn );
+
+        clickButton( addBtn );
+
+        editRow = config.node.querySelector( 'tr.create-mode' );
+
+        assert.ok( editRow != null, 'clicking the addrow button should create a row in create mode' );
+
+        var cancelBtn = editRow.querySelector( '[value=Cancel]' );
+
+        clickButton( cancelBtn );
+
+        editRow = config.node.querySelector( 'tr.create-mode' );
+
+        assert.ok( editRow == null, 'clicking cancel should remove the row' );
+
+        var destroyBtn = config.node.querySelector('[value=destroy]')
+
+        clickButton( destroyBtn );
+
+        done1();
+
+    } );
+
+} );
+
+QUnit.test( 'ChangeMonitor.handleEnterKey', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configOptions );
+
+    getTableConfig( options, function ( config ) {
+
+        var controller = config.node.api.controller;
+
+        var monitor = controller.monitor;
+
+        var evt = {
+            keyCode: 13,
+            target: {
+                blur: function () {
+
+                    assert.ok( true, 'change monitor should call blur on enter key' );
+
+                    done1();
+                }
+            }
+        };
+
+        monitor.handleEnterKey( evt );
+
+    } );
+
+} );
+
+QUnit.test( 'ChangeMonitor boolean', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configOptions );
+
+    getTableConfig( options, function ( config ) {
+
+        var controller = config.node.api.controller;
+
+        var monitor = controller.monitor;
+
+        var target = {
+            type: 'text',
+            value: 'false',
+            name: 'test'
+        };
+
+        var model = {
+            test: true
+        };
+
+        monitor.syncModel( target, model );
+
+        assert.equal( model.test, false, 'non-checkbox inputs should sync value directly instead of using the checked property' );
+
+        target.value = 'true';
+
+        monitor.syncModel( target, model );
+
+        assert.equal( model.test, true, 'non-checkbox inputs should sync value directly instead of using the checked property' );
+
+        done1();
+
+    } );
+
+} );
+
+QUnit.test( 'api.getTableRow', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configOptions );
+
+    getTableConfig( options, function ( config ) {
+
+        var row = data.products[0];
+
+        var tr = config.node.api.getTableRow( row );
+
+        assert.ok( tr != null, 'getTableRow should find a table row for a data row' );
+
+        done1();
+
+    } );
+
+} );
+
 QUnit.test( 'gp.ClientPager', function ( assert ) {
 
     var done = assert.async();
@@ -512,6 +658,7 @@ QUnit.test( 'refresh-event', function ( assert ) {
     var done1 = assert.async();
 
     var options = gp.shallowCopy( configOptions );
+    var config;
     options.refreshevent = 'data-changed';
     options.onread = 'fns.onread';
 
@@ -528,12 +675,15 @@ QUnit.test( 'refresh-event', function ( assert ) {
         }
         else {
             assert.ok( true, 'triggering the refresh event should cause the grid to read' );
+            // remove the event handler
+            config.node.api.controller.removeRefreshEventHandler( config );
             done1();
             $( '#table .box' ).empty( );
         }
     };
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( c ) {
+        config = c;
         $( '#table .box' ).append( config.node );
     } );
 
