@@ -1,5 +1,5 @@
 ﻿/***************\
-  table helpers
+    helpers
 \***************/
 
 gp.helpers = {

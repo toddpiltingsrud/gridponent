@@ -34,66 +34,66 @@ gp.Model.prototype = {
         this.reader.read (
             requestModel,
             // make sure we explicitly wrap the arg in an array
-            // if arg is an array of data, then applyFunc will end up only grabbing the first row
+            // if arg is an array of data, then applyFunc will end up only grabbing the first dataItem
             function ( arg ) { gp.applyFunc( done, self, [arg] ); },
             function ( arg ) { gp.applyFunc( fail, self, [arg] ); }
         );
     },
 
-    create: function ( row, done, fail) {
+    create: function ( dataItem, done, fail) {
         var self = this, url;
 
         // config.create can be a function or a URL
         if ( typeof this.config.create === 'function' ) {
             // call the function, set the API as the context
-            gp.applyFunc(this.config.create, this.config.node.api, [row, done, fail], fail);
+            gp.applyFunc(this.config.create, this.config.node.api, [dataItem, done, fail], fail);
         }
         else {
             // the url can be a template
-            url = gp.supplant( this.config.create, row );
+            url = gp.supplant( this.config.create, dataItem );
             // call the URL
             var http = new gp.Http();
             http.post(
                 url,
-                row,
+                dataItem,
                 function ( arg ) { gp.applyFunc( done, self, arg ); },
                 function ( arg ) { gp.applyFunc( fail, self, arg ); }
             );
         }
     },
 
-    update: function (row, done, fail) {
+    update: function (dataItem, done, fail) {
         var self = this, url;
 
         // config.update can be a function or URL
         if ( typeof this.config.update === 'function' ) {
-            gp.applyFunc(this.config.update, this.config.node.api, [row, done, fail], fail);
+            gp.applyFunc(this.config.update, this.config.node.api, [dataItem, done, fail], fail);
         }
         else {
             // the url can be a template
-            url = gp.supplant( this.config.update, row );
+            url = gp.supplant( this.config.update, dataItem );
             var http = new gp.Http();
             http.post(
                 url,
-                row,
+                dataItem,
                 function ( arg ) { gp.applyFunc( done, self, arg ); },
                 function ( arg ) { gp.applyFunc( fail, self, arg ); }
             );
         }
     },
 
-    'destroy': function (row, done, fail) {
+    'destroy': function (dataItem, done, fail) {
         var self = this, url;
         if ( typeof this.config.destroy === 'function' ) {
-            gp.applyFunc(this.config.destroy, this.config.node.api, [row, done, fail], fail);
+            gp.applyFunc(this.config.destroy, this.config.node.api, [dataItem, done, fail], fail);
         }
         else {
             // the url can be a template
-            url = gp.supplant( this.config.destroy, row );
+            url = gp.supplant( this.config.destroy, dataItem );
             var http = new gp.Http();
             http.destroy(
                 url,
-                row,
+                dataItem,
                 function ( arg ) { gp.applyFunc( done, self, arg ); },
                 function ( arg ) { gp.applyFunc( fail, self, arg ); }
             );

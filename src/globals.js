@@ -3,41 +3,124 @@
 \***************/
 ( function ( gp ) {
 
-    gp.rexp = {
-        splitPath: /[^\[\]\.\s]+|\[\d+\]/g,
-        indexer: /\[\d+\]/,
-        iso8601: /^[012][0-9]{3}-[01][0-9]-[0123][0-9]/,
-        quoted: /^['"].+['"]$/,
-        trueFalse: /true|false/i,
-        braces: /{{.+?}}/g,
-        json: /^\{.*\}$|^\[.*\]$/
-    };
+    gp.addBusy = function( evt ) {
+        var tblContainer = evt.target.querySelector( 'div.table-container' )
+            || gp.closest( evt.target, 'div.table-container' );
 
-    // logging
-    gp.logging = 'info';
-    gp.log = ( window.console ? window.console.log.bind( window.console ) : function () { } );
-    gp.error = function ( e ) {
-        if ( console && console.error ) {
-            console.error( e );
+        if ( tblContainer ) {
+            gp.addClass( tblContainer, 'busy' );
         }
     };
-    gp.verbose = /verbose/.test( gp.logging ) ? gp.log : function () { };
-    gp.info = /verbose|info/.test( gp.logging ) ? gp.log : function () { };
-    gp.warn = /verbose|info|warn/.test( gp.logging ) ? gp.log : function () { };
 
-    gp.getAttributes = function ( node ) {
-        gp.verbose( 'getConfig: node:', node );
-        var config = {}, name, attr, attrs = node.attributes;
-        config.node = node;
-        for ( var i = attrs.length - 1; i >= 0; i-- ) {
-            attr = attrs[i];
-            name = gp.camelize( attr.name );
-            // convert "true", "false" and empty to boolean
-            config[name] = gp.rexp.trueFalse.test( attr.value ) || attr.value === '' ?
-                ( attr.value === "true" || attr.value === '' ) : attr.value;
+    gp.addClass = function ( el, cn ) {
+        if ( el instanceof NodeList ) {
+            for (var i = 0; i < el.length; i++) {
+                if ( !gp.hasClass( el[i], cn ) ) {
+                    el[i].className = ( el[i].className === '' ) ? cn : el[i].className + ' ' + cn;
+                }
+            }
         }
-        gp.verbose( 'getConfig: config:', config );
-        return config;
+        else if ( !gp.hasClass( el, cn ) ) {
+            el.className = ( el.className === '' ) ? cn : el.className + ' ' + cn;
+        }
+    };
+
+    gp.applyFunc = function ( callback, context, args, error ) {
+        if ( typeof callback !== 'function' ) return;
+        // anytime there's the possibility of executing 
+        // user-supplied code, wrap it with a try-catch block
+        // so it doesn't affect my component
+        try {
+            if ( args == undefined ) {
+                return callback.call( context );
+            }
+            else {
+                args = Array.isArray( args ) ? args : [args];
+                return callback.apply( context, args );
+            }
+        }
+        catch ( e ) {
+            error = error || gp.error;
+            gp.applyFunc( error, context, e );
+        }
+    };
+
+    gp.camelize = function ( str ) {
+        if ( gp.isNullOrEmpty( str ) ) return str;
+        return str
+            .replace( /[A-Z]([A-Z]+)/g, function ( _, c ) {
+                return _ ? _.substr( 0, 1 ) + c.toLowerCase() : '';
+            } )
+            .replace( /[-_](\w)/g, function ( _, c ) {
+                return c ? c.toUpperCase() : '';
+            } )
+            .replace( /^([A-Z])/, function ( _, c ) {
+                return c ? c.toLowerCase() : '';
+            } );
+    };
+
+    gp.closest = function ( elem, selector, parentNode ) {
+        var e, potentials, j;
+        parentNode = parentNode || document;
+        // if elem is a selector, convert it to an element
+        if ( typeof ( elem ) === 'string' ) {
+            elem = document.querySelector( elem );
+        }
+        gp.info( 'closest: elem:' );
+        gp.info( elem );
+
+        if ( elem ) {
+            // start with elem's immediate parent
+            e = elem.parentElement;
+
+            potentials = parentNode.querySelectorAll( selector );
+
+            while ( e ) {
+                for ( j = 0; j < potentials.length; j++ ) {
+                    if ( e == potentials[j] ) {
+                        gp.info( 'closest: e:' );
+                        gp.info( e );
+                        return e;
+                    }
+                }
+                e = e.parentElement;
+            }
+        }
+    };
+
+    gp.coalesce = function ( array ) {
+        if ( gp.isNullOrEmpty( array ) ) return array;
+
+        for ( var i = 0; i < array.length; i++ ) {
+            if ( gp.hasValue( array[i] ) ) {
+                return array[i];
+            }
+        }
+
+        return array[array.length - 1];
+    };
+
+    var FP = Function.prototype;
+
+    var callbind = FP.bind
+       ? FP.bind.bind( FP.call )
+       : ( function ( call ) {
+           return function ( func ) {
+               return function () {
+                   return call.apply( func, arguments );
+               };
+           };
+       }( FP.call ) );
+
+    var uids = {};
+    var slice = callbind( ''.slice );
+    var zero = 0;
+    var numberToString = callbind( zero.toString );
+
+    gp.createUID = function () {
+        // id's can't begin with a number
+        var key = 'gp' + slice( numberToString( Math.random(), 36 ), 2 );
+        return key in uids ? createUID() : uids[key] = key;
     };
 
     var chars = [/&/g, /</g, />/g, /"/g, /'/g, /`/g];
@@ -54,22 +137,94 @@
         return obj;
     };
 
-    gp.camelize = function ( str ) {
-        return str.toLowerCase().replace( '-', '' );
-    };
-
-    gp.shallowCopy = function ( from, to, lowerCase ) {
-        to = to || {};
-        var p, props = Object.getOwnPropertyNames( from );
-        props.forEach( function ( prop ) {
-            p = lowerCase ? prop.toLowerCase() : prop;
-            to[p] = from[prop];
-        } );
-        return to;
-    };
-
     gp.extend = function ( to, from ) {
         return gp.shallowCopy( from, to );
+    };
+
+    gp.formatter = new gp.Formatter();
+
+    gp.getAttributes = function ( node ) {
+        gp.verbose( 'getConfig: node:', node );
+        var config = {}, name, attr, attrs = node.attributes;
+        config.node = node;
+        for ( var i = attrs.length - 1; i >= 0; i-- ) {
+            attr = attrs[i];
+            name = attr.name.toLowerCase().replace('-', '');
+            // convert "true", "false" and empty to boolean
+            config[name] = gp.rexp.trueFalse.test( attr.value ) || attr.value === '' ?
+                ( attr.value === "true" || attr.value === '' ) : attr.value;
+        }
+        gp.verbose( 'getConfig: config:', config );
+        return config;
+    };
+
+    gp.getDefaultValue = function ( type ) {
+        switch ( type ) {
+            case 'number':
+                return 0;
+            case 'boolean':
+                return false;
+            case 'date':
+            default:
+                return null;
+        }
+    };
+
+    gp.getFormattedValue = function ( row, col, escapeHTML ) {
+        var type = ( col.Type || '' ).toLowerCase();
+        var val = row[col.field];
+
+        if ( /^(date|datestring)$/.test( type ) ) {
+            return gp.formatter.format( val, col.format );
+        }
+        if ( type === 'number' && col.format ) {
+            return gp.formatter.format( val, col.format );
+        }
+        if ( type === 'string' && escapeHTML ) {
+            return gp.escapeHTML( val );
+        }
+        return val;
+    };
+
+    gp.getObjectAtPath = function ( path, root ) {
+        if ( !path ) return;
+
+        path = Array.isArray( path ) ? path : path.match( gp.rexp.splitPath );
+
+        if ( path[0] === 'window' ) path = path.splice( 1 );
+
+        // o is our placeholder
+        var o = root || window,
+            segment;
+
+        for ( var i = 0; i < path.length; i++ ) {
+            // is this segment an array index?
+            segment = path[i];
+            if ( gp.rexp.indexer.test( segment ) ) {
+                // convert to int
+                segment = parseInt( /\d+/.exec( segment ) );
+            }
+            else if ( gp.rexp.quoted.test( segment ) ) {
+                segment = segment.slice( 1, -1 );
+            }
+
+            o = o[segment];
+
+            if ( o === undefined ) return;
+        }
+
+        return o;
+    };
+
+    gp.getRowModel = function ( data, tr ) {
+        var index = parseInt( tr.attributes['data-index'].value );
+        return data[index];
+    };
+
+    gp.getTableRow = function ( data, row, node ) {
+        var index = data.indexOf( row );
+        if ( index == -1 ) return;
+        return node.querySelector( 'tr[data-index="' + index + '"]' );
     };
 
     gp.getType = function ( a ) {
@@ -89,38 +244,42 @@
         return typeof ( a );
     };
 
-    gp.convertClrType = function ( clrType ) {
-        switch ( clrType ) {
-            case 'Decimal':
-            case 'Double':
-            case 'Int16':
-            case 'Int32':
-            case 'Int64':
-            case 'Single':
-            case 'Byte':
-            case 'UInt16':
-            case 'UInt32':
-            case 'UInt64':
-                return 'number';
-            case 'DateTime':
-                return 'date';
-            case 'Boolean':
-                return 'boolean';
-            default:
-                return 'string';
-        }
+    gp.hasClass = function ( el, cn ) {
+        return ( ' ' + el.className + ' ' ).indexOf( ' ' + cn + ' ' ) !== -1;
     };
 
-    gp.getDefaultValue = function ( type ) {
-        switch ( type ) {
-            case 'number':
-                return 0;
-            case 'boolean':
-                return false;
-            case 'date':
-            default:
-                return null;
+    gp.hasPositiveWidth = function ( nodes ) {
+        if ( gp.isNullOrEmpty( nodes ) ) return false;
+        for ( var i = 0; i < nodes.length; i++ ) {
+            if ( nodes[i].offsetWidth > 0 ) return true;
         }
+        return false;
+    };
+
+    gp.hasValue = function ( val ) {
+        return val !== undefined && val !== null;
+    };
+
+    gp.in = function ( elem, selector, parent ) {
+        parent = parent || document;
+        // if elem is a selector, convert it to an element
+        if ( typeof ( elem ) === 'string' ) {
+            elem = parent.querySelector( elem );
+        }
+        // if selector is a string, convert it to a node list
+        if ( typeof ( selector ) === 'string' ) {
+            selector = parent.querySelectorAll( selector );
+        }
+        for ( var i = 0; i < selector.length; i++ ) {
+            if ( selector[i] === elem ) return true;
+        }
+        return false;
+    };
+
+    gp.isNullOrEmpty = function ( val ) {
+        // if a string or array is passed, they'll be tested for both null and zero length
+        // if any other data type is passed (no length property), it'll only be tested for null
+        return gp.hasValue( val ) === false || ( val.length != undefined && val.length === 0 );
     };
 
     var proxyListener = function ( elem, event, targetSelector, listener ) {
@@ -156,6 +315,27 @@
         elem.addEventListener( event, this.handler, false );
     };
 
+    gp.off = function ( elem, event, listener ) {
+        // check for a matching listener store on the element
+        var listeners = elem['gp-listeners-' + event];
+        if ( listeners ) {
+            for ( var i = 0; i < listeners.length; i++ ) {
+                if ( listeners[i].pub === listener ) {
+
+                    // remove the event handler
+                    listeners[i].priv.remove();
+
+                    // remove it from the listener store
+                    listeners.splice( i, 1 );
+                    return;
+                }
+            }
+        }
+        else {
+            elem.removeEventListener( event, listener );
+        }
+    };
+
     // this allows us to attach an event handler to the document
     // and handle events that match a selector
     gp.on = function ( elem, event, targetSelector, listener ) {
@@ -187,153 +367,58 @@
         return elem;
     };
 
-    gp.off = function ( elem, event, listener ) {
-        // check for a matching listener store on the element
-        var listeners = elem['gp-listeners-' + event];
-        if ( listeners ) {
-            for ( var i = 0; i < listeners.length; i++ ) {
-                if ( listeners[i].pub === listener ) {
+    gp.prependChild = function ( node, child ) {
+        if ( typeof node === 'string' ) node = document.querySelector( node );
+        if ( !node.firstChild ) {
+            node.appendChild( child );
+        }
+        else {
+            node.insertBefore( child, node.firstChild );
+        }
+        return child;
+    };
 
-                    // remove the event handler
-                    listeners[i].priv.remove();
+    gp.processBodyTemplate = function ( template, row, col ) {
+        return gp.supplant( template, row, [row, col] );
+    };
 
-                    // remove it from the listener store
-                    listeners.splice( i, 1 );
-                    return;
-                }
+    gp.processFooterTemplate = function ( template, col, data ) {
+        return gp.supplant( template, col, [col, data] )
+    };
+
+    gp.processHeaderTemplate = function ( template, col ) {
+        return gp.supplant(template, col, [col] )
+    };
+
+    gp.raiseCustomEvent = function ( node, name, detail ) {
+        var event = new CustomEvent( name, { bubbles: true, detail: detail, cancelable: true } );
+        node.dispatchEvent( event );
+        gp.info( 'raiseCustomEvent: name', name );
+        return event;
+    };
+
+    gp.removeBusy = function ( evt ) {
+        var tblContainer = evt.target.querySelector( 'div.table-container' );
+        tblContainer = tblContainer || document.querySelector( 'div.table-container.busy' )
+            || gp.closest( evt.target, 'div.table-container' );
+
+        if ( tblContainer ) {
+            gp.removeClass( tblContainer, 'busy' );
+        }
+        else {
+            gp.warn( 'could not remove busy class' );
+        }
+    };
+
+    gp.removeClass = function ( el, cn ) {
+        if ( el instanceof NodeList ) {
+            for ( var i = 0; i < el.length; i++ ) {
+                el[i].className = gp.trim(( ' ' + el[i].className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
             }
         }
         else {
-            elem.removeEventListener( event, listener );
+            el.className = gp.trim(( ' ' + el.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
         }
-    };
-
-    gp.closest = function ( elem, selector, parentNode ) {
-        var e, potentials, j;
-        parentNode = parentNode || document;
-        // if elem is a selector, convert it to an element
-        if ( typeof ( elem ) === 'string' ) {
-            elem = document.querySelector( elem );
-        }
-        gp.info( 'closest: elem:' );
-        gp.info( elem );
-
-        if ( elem ) {
-            // start with elem's immediate parent
-            e = elem.parentElement;
-
-            potentials = parentNode.querySelectorAll( selector );
-
-            while ( e ) {
-                for ( j = 0; j < potentials.length; j++ ) {
-                    if ( e == potentials[j] ) {
-                        gp.info( 'closest: e:' );
-                        gp.info( e );
-                        return e;
-                    }
-                }
-                e = e.parentElement;
-            }
-        }
-    };
-
-    gp.in = function ( elem, selector, parent ) {
-        parent = parent || document;
-        // if elem is a selector, convert it to an element
-        if ( typeof ( elem ) === 'string' ) {
-            elem = parent.querySelector( elem );
-        }
-        // if selector is a string, convert it to a node list
-        if ( typeof ( selector ) === 'string' ) {
-            selector = parent.querySelectorAll( selector );
-        }
-        for ( var i = 0; i < selector.length; i++ ) {
-            if ( selector[i] === elem ) return true;
-        }
-        return false;
-    };
-
-    gp.hasValue = function ( val ) {
-        return val !== undefined && val !== null;
-    };
-
-    gp.isNullOrEmpty = function ( val ) {
-        // if a string or array is passed, they'll be tested for both null and zero length
-        // if any other data type is passed (no length property), it'll only be tested for null
-        return gp.hasValue( val ) === false || ( val.length != undefined && val.length === 0 );
-    };
-
-    gp.coalesce = function ( array ) {
-        if ( gp.isNullOrEmpty( array ) ) return array;
-
-        for ( var i = 0; i < array.length; i++ ) {
-            if ( gp.hasValue( array[i] ) ) {
-                return array[i];
-            }
-        }
-
-        return array[array.length - 1];
-    };
-
-    gp.getObjectAtPath = function ( path, root ) {
-        if ( !path ) return;
-
-        path = Array.isArray( path ) ? path : path.match( gp.rexp.splitPath );
-
-        if ( path[0] === 'window' ) path = path.splice( 1 );
-
-        // o is our placeholder
-        var o = root || window,
-            segment;
-
-        for ( var i = 0; i < path.length; i++ ) {
-            // is this segment an array index?
-            segment = path[i];
-            if ( gp.rexp.indexer.test( segment ) ) {
-                // convert to int
-                segment = parseInt( /\d+/.exec( segment ) );
-            }
-            else if ( gp.rexp.quoted.test( segment ) ) {
-                segment = segment.slice( 1, -1 );
-            }
-
-            o = o[segment];
-
-            if ( o === undefined ) return;
-        }
-
-        return o;
-    };
-
-    var FP = Function.prototype;
-
-    var callbind = FP.bind
-       ? FP.bind.bind( FP.call )
-       : ( function ( call ) {
-           return function ( func ) {
-               return function () {
-                   return call.apply( func, arguments );
-               };
-           };
-       }( FP.call ) );
-
-    var uids = {};
-    var slice = callbind( ''.slice );
-    var zero = 0;
-    var numberToString = callbind( zero.toString );
-
-    gp.createUID = function () {
-        // id's can't begin with a number
-        var key = 'gp' + slice( numberToString( Math.random(), 36 ), 2 );
-        return key in uids ? createUID() : uids[key] = key;
-    };
-
-    gp.hasPositiveWidth = function ( nodes ) {
-        if ( gp.isNullOrEmpty( nodes ) ) return false;
-        for ( var i = 0; i < nodes.length; i++ ) {
-            if ( nodes[i].offsetWidth > 0 ) return true;
-        }
-        return false;
     };
 
     gp.resolveTemplate = function ( template ) {
@@ -354,22 +439,24 @@
         return null;
     };
 
-    gp.formatter = new gp.Formatter();
+    gp.rexp = {
+        splitPath: /[^\[\]\.\s]+|\[\d+\]/g,
+        indexer: /\[\d+\]/,
+        iso8601: /^[012][0-9]{3}-[01][0-9]-[0123][0-9]/,
+        quoted: /^['"].+['"]$/,
+        trueFalse: /true|false/i,
+        braces: /{{.+?}}/g,
+        json: /^\{.*\}$|^\[.*\]$/
+    };
 
-    gp.getFormattedValue = function ( row, col, escapeHTML ) {
-        var type = ( col.Type || '' ).toLowerCase();
-        var val = row[col.field];
-
-        if ( /^(date|datestring)$/.test( type ) ) {
-            return gp.formatter.format( val, col.format );
-        }
-        if ( type === 'number' && col.format ) {
-            return gp.formatter.format( val, col.format );
-        }
-        if ( type === 'string' && escapeHTML ) {
-            return gp.escapeHTML( val );
-        }
-        return val;
+    gp.shallowCopy = function ( from, to, camelize ) {
+        to = to || {};
+        var p, props = Object.getOwnPropertyNames( from );
+        props.forEach( function ( prop ) {
+            p = camelize ? gp.camelize( prop ) : prop;
+            to[p] = from[prop];
+        } );
+        return to;
     };
 
     gp.supplant = function ( str, o, args ) {
@@ -385,120 +472,9 @@
         );
     };
 
-    gp.processBodyTemplate = function ( template, row, col ) {
-        return gp.supplant( template, row, [row, col] );
-    };
-
-    gp.processHeaderTemplate = function ( template, col ) {
-        return gp.supplant(template, col, [col] )
-    };
-
-    gp.processFooterTemplate = function ( template, col, data ) {
-        return gp.supplant( template, col, [col, data] )
-    };
-
     gp.trim = function ( str ) {
         if ( gp.isNullOrEmpty( str ) ) return str;
         return str.trim ? str.trim() : str.replace( /^\s+|\s+$/g, '' );
-    };
-
-    gp.hasClass = function ( el, cn ) {
-        return ( ' ' + el.className + ' ' ).indexOf( ' ' + cn + ' ' ) !== -1;
-    };
-
-    gp.addClass = function ( el, cn ) {
-        if ( el instanceof NodeList ) {
-            for (var i = 0; i < el.length; i++) {
-                if ( !gp.hasClass( el[i], cn ) ) {
-                    el[i].className = ( el[i].className === '' ) ? cn : el[i].className + ' ' + cn;
-                }
-            }
-        }
-        else if ( !gp.hasClass( el, cn ) ) {
-            el.className = ( el.className === '' ) ? cn : el.className + ' ' + cn;
-        }
-    };
-
-    gp.removeClass = function ( el, cn ) {
-        if ( el instanceof NodeList ) {
-            for ( var i = 0; i < el.length; i++ ) {
-                el[i].className = gp.trim(( ' ' + el[i].className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
-            }
-        }
-        else {
-            el.className = gp.trim(( ' ' + el.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
-        }
-    };
-
-    gp.prependChild = function ( node, child ) {
-        if ( typeof node === 'string' ) node = document.querySelector( node );
-        if ( !node.firstChild ) {
-            node.appendChild( child );
-        }
-        else {
-            node.insertBefore( child, node.firstChild );
-        }
-        return child;
-    };
-
-    gp.getRowModel = function ( data, tr ) {
-        var index = parseInt( tr.attributes['data-index'].value );
-        return data[index];
-    };
-
-    gp.getTableRow = function ( data, row, node ) {
-        var index = data.indexOf( row );
-        if ( index == -1 ) return;
-        return node.querySelector( 'tr[data-index="' + index + '"]' );
-    };
-
-    gp.raiseCustomEvent = function ( node, name, detail ) {
-        var event = new CustomEvent( name, { bubbles: true, detail: detail, cancelable: true } );
-        node.dispatchEvent( event );
-        gp.info( 'raiseCustomEvent: name', name );
-        return event;
-    };
-
-    gp.addBusy = function( evt ) {
-        var tblContainer = evt.target.querySelector( 'div.table-container' )
-            || gp.closest( evt.target, 'div.table-container' );
-
-        if ( tblContainer ) {
-            gp.addClass( tblContainer, 'busy' );
-        }
-    };
-
-    gp.removeBusy = function ( evt ) {
-        var tblContainer = evt.target.querySelector( 'div.table-container' );
-        tblContainer = tblContainer || document.querySelector( 'div.table-container.busy' )
-            || gp.closest( evt.target, 'div.table-container' );
-
-        if ( tblContainer ) {
-            gp.removeClass( tblContainer, 'busy' );
-        }
-        else {
-            gp.warn( 'could not remove busy class' );
-        }
-    };
-
-    gp.applyFunc = function ( callback, context, args, error ) {
-        if ( typeof callback !== 'function' ) return;
-        // anytime there's the possibility of executing 
-        // user-supplied code, wrap it with a try-catch block
-        // so it doesn't affect my component
-        try {
-            if ( args == undefined ) {
-                return callback.call( context );
-            }
-            else {
-                args = Array.isArray( args ) ? args : [args];
-                return callback.apply( context, args );
-            }
-        }
-        catch ( e ) {
-            error = error || gp.error;
-            gp.applyFunc( error, context, e );
-        }
     };
 
     gp.tryFunc = function(callback, arg) {
@@ -509,5 +485,17 @@
             gp.error( e );
         }
     };
+
+    // logging
+    gp.logging = 'info';
+    gp.log = ( window.console ? window.console.log.bind( window.console ) : function () { } );
+    gp.error = function ( e ) {
+        if ( console && console.error ) {
+            console.error( e );
+        }
+    };
+    gp.verbose = /verbose/.test( gp.logging ) ? gp.log : function () { };
+    gp.info = /verbose|info/.test( gp.logging ) ? gp.log : function () { };
+    gp.warn = /verbose|info|warn/.test( gp.logging ) ? gp.log : function () { };
 
 } )( gridponent );

@@ -60,6 +60,8 @@
     <Content Include="spec\OutSource.txt" />
     <Content Include="spec\styles\bootstrap-theme.css" />
     <Content Include="spec\styles\bootstrap-theme.min.css" />
+    <Content Include="src\bootstrap-modal.js" />
+    <Content Include="src\templates\bootstrap-modal.html" />
     <Content Include="src\z-webcomponent.js" />
     <Content Include="src\gridponent.css">
       <DependentUpon>gridponent.less</DependentUpon>

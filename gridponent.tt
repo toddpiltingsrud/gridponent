@@ -8,7 +8,7 @@
 <#@ output extension=".js" #>
 <#
 var stripLogging = true;
-var coverage = true;
+var coverage = false;
 var useMocks = true;
 
 if (coverage)

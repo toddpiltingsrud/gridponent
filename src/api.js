@@ -39,6 +39,18 @@ gp.api = function ( controller ) {
 
 gp.api.prototype = {
 
+    find: function(selector) {
+        return this.controller.config.node.querySelector( selector );
+    },
+
+    findAll: function ( selector ) {
+        return this.controller.config.node.querySelectorAll( selector );
+    },
+
+    getConfig: function() {
+        return this.controller.config;
+    },
+
     ready: function(callback) {
         this.controller.ready( callback );
     },
@@ -77,24 +89,29 @@ gp.api.prototype = {
         this.controller.read( requestModel, callback );
     },
 
-    create: function ( row, callback ) {
-        var model = this.controller.addRow( row );
-        if ( model != null ) this.controller.createRow( row, model.tableRow, callback );
+    create: function ( dataItem, callback ) {
+        var model = this.controller.addRow( dataItem );
+        if ( model != null ) this.controller.createRow( dataItem, model.tableRow, callback );
         else callback( null );
     },
 
-    // This would have to be called after having retrieved the row from the table with getData().
-    // The controller will attempt to figure out which tr it is by first calling indexOf(row) on the data.
-    // So the original row object reference has to be preserved.
+    // This would have to be called after having retrieved the dataItem from the table with getData().
+    // The controller will attempt to figure out which tr it is by first calling indexOf(dataItem) on the data.
+    // So the original dataItem object reference has to be preserved.
     // this function is mainly for testing
-    update: function ( row, callback ) {
-        var tr = gp.getTableRow( this.controller.config.pageModel.data, row, this.controller.config.node );
+    update: function ( dataItem, callback ) {
+        var tr = gp.getTableRow( this.controller.config.pageModel.data, dataItem, this.controller.config.node );
 
-        this.controller.updateRow( row, tr, callback );
+        this.controller.updateRow( dataItem, tr, callback );
     },
 
-    'destroy': function ( row, callback ) {
-        this.controller.deleteRow( row, callback, true );
+    saveChanges: function ( dataItem, done ) {
+        var tr = this.getTableRow( dataItem );
+        this.controller.updateRow( dataItem, tr, done );
+    },
+
+    'destroy': function ( dataItem, callback ) {
+        this.controller.deleteRow( dataItem, callback, true );
     },
 
     cancel: function ( arg ) { },

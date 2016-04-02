@@ -34,22 +34,22 @@ fns.checkbox = function ( col ) {
     return '<input type="checkbox" name="test" />';
 };
 
-fns.getButtonIcon = function ( row, col ) {
-    if ( row.MakeFlag ) {
+fns.getButtonIcon = function ( dataItem, col ) {
+    if ( dataItem.MakeFlag ) {
         return 'glyphicon-edit';
     }
     return 'glyphicon-remove';
 };
 
-fns.getButtonText = function ( row, col ) {
-    if ( row.MakeFlag ) {
+fns.getButtonText = function ( dataItem, col ) {
+    if ( dataItem.MakeFlag ) {
         return 'edit';
     }
     return 'Remove';
 };
 
-fns.searchFilter = function ( row, search ) {
-    return row.ProductNumber == search;
+fns.searchFilter = function ( dataItem, search ) {
+    return dataItem.ProductNumber == search;
 };
 
 fns.getHeaderText = function ( col ) {
@@ -193,7 +193,77 @@ var getValidationErrors = function () {
     ];
 };
 
+QUnit.test( 'camelize', function ( assert ) {
 
+    var camelize = function ( str ) {
+        if ( gp.isNullOrEmpty( str ) ) return str;
+        return str
+            .replace( /[A-Z]([A-Z]+)/g, function ( _, c ) {
+                return _ ? _.substr( 0, 1 ) + c.toLowerCase() : '';
+            } )
+            .replace( /[-_](\w)/g, function ( _, c ) {
+                return c ? c.toUpperCase() : '';
+            } )
+            .replace( /^([A-Z])/g, function ( _, c ) {
+                return c ? c.toLowerCase() : '';
+            } );
+
+        //return str.toLowerCase().replace( '-', '' );
+    };
+
+    var dict = {
+        updateModel: 'updateModel',
+        'header-template': 'headerTemplate',
+        ALLCAPS: 'allcaps',
+        TableRow: 'tableRow',
+    };
+
+    Object.getOwnPropertyNames( dict ).forEach( function ( prop ) {
+
+        assert.equal( camelize( prop ), dict[prop] );
+
+    } );
+
+} );
+
+QUnit.test( 'api.saveChanges', function ( assert ) {
+
+    var done1 = assert.async();
+
+    getTableConfig( configOptions, function ( api ) {
+
+        // grab a row and modify it
+        var dataItem = api.getData( 0 );
+
+        var cell = api.find( '.table-body tr:first-child td:nth-child(2)' );
+
+        assert.ok( cell != null, 'should find a table cell' );
+
+        var text = $( cell ).text();
+
+        assert.equal( dataItem.Name, text, 'make sure we found the Name column' );
+
+        dataItem.Name = 'Todd Piltingsrud';
+
+        api.saveChanges( dataItem, function ( response ) {
+
+            assert.ok( response != null, '' );
+
+            console.log( response );
+
+            text = $( cell ).text();
+
+            assert.equal( dataItem.Name, text, 'saveChanges should update the row and the table cells' );
+
+            assert.equal( text, 'Todd Piltingsrud', 'saveChanges should update the row and the table cells' );
+
+            done1();
+
+        } );
+
+    } );
+
+} );
 
 QUnit.test( 'options', function ( assert ) {
 
@@ -274,7 +344,6 @@ QUnit.test( 'options', function ( assert ) {
 
 } );
 
-
 QUnit.test( 'read', function ( assert ) {
 
     var done1 = assert.async();
@@ -285,17 +354,11 @@ QUnit.test( 'read', function ( assert ) {
 
     options.read = '/Products/read?page={{page}}';
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
-        console.log( config );
+        assert.ok( true, 'read can be a template' )
 
-        config.node.api.ready( function () {
-
-            assert.ok(true, 'read can be a template')
-
-            done1();
-
-        } );
+        done1();
 
     } );
 
@@ -311,21 +374,17 @@ QUnit.test( 'read', function ( assert ) {
 
     options.read = 'fns.read';
 
-    getTableConfig( options, function ( config ) {} );
+    getTableConfig( options, function ( api ) {} );
 
 
     // read with an array
     options.read = 'data.products';
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
-        config.node.api.ready( function () {
+        assert.ok( true, 'read can be an array' )
 
-            assert.ok( true, 'read can be an array' )
-
-            done3();
-
-        } );
+        done3();
 
     } );
 
@@ -337,17 +396,19 @@ QUnit.test( 'commandHandler', function ( assert ) {
 
     var options = gp.shallowCopy( configOptions );
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
-        var controller = config.node.api.controller;
+        var config = api.getConfig();
 
-        var addBtn = config.node.querySelector('[value=AddRow]');
+        var controller = api.controller;
+
+        var addBtn = api.find('[value=AddRow]');
 
         clickButton( addBtn );
 
-        var editRow = config.node.querySelector( 'tr.create-mode' );
+        var editRow = api.find( 'tr.create-mode' );
 
-        assert.ok( editRow != null, 'clicking the addrow button should create a row in create mode' );
+        assert.ok( editRow != null, 'clicking the addrow button should create a dataItem in create mode' );
 
         var createBtn = editRow.querySelector( '[value=create]' );
 
@@ -355,19 +416,19 @@ QUnit.test( 'commandHandler', function ( assert ) {
 
         clickButton( addBtn );
 
-        editRow = config.node.querySelector( 'tr.create-mode' );
+        editRow = api.find( 'tr.create-mode' );
 
-        assert.ok( editRow != null, 'clicking the addrow button should create a row in create mode' );
+        assert.ok( editRow != null, 'clicking the addrow button should create a dataItem in create mode' );
 
         var cancelBtn = editRow.querySelector( '[value=Cancel]' );
 
         clickButton( cancelBtn );
 
-        editRow = config.node.querySelector( 'tr.create-mode' );
+        editRow = api.find( 'tr.create-mode' );
 
-        assert.ok( editRow == null, 'clicking cancel should remove the row' );
+        assert.ok( editRow == null, 'clicking cancel should remove the dataItem' );
 
-        var destroyBtn = config.node.querySelector('[value=destroy]')
+        var destroyBtn = api.find('[value=destroy]')
 
         clickButton( destroyBtn );
 
@@ -383,7 +444,9 @@ QUnit.test( 'ChangeMonitor.handleEnterKey', function ( assert ) {
 
     var options = gp.shallowCopy( configOptions );
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
+
+        var config = api.getConfig();
 
         var controller = config.node.api.controller;
 
@@ -413,9 +476,9 @@ QUnit.test( 'ChangeMonitor boolean', function ( assert ) {
 
     var options = gp.shallowCopy( configOptions );
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
-        var controller = config.node.api.controller;
+        var controller = api.controller;
 
         var monitor = controller.monitor;
 
@@ -451,13 +514,13 @@ QUnit.test( 'api.getTableRow', function ( assert ) {
 
     var options = gp.shallowCopy( configOptions );
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
-        var row = data.products[0];
+        var dataItem = data.products[0];
 
-        var tr = config.node.api.getTableRow( row );
+        var tr = api.getTableRow( dataItem );
 
-        assert.ok( tr != null, 'getTableRow should find a table row for a data row' );
+        assert.ok( tr != null, 'getTableRow should find a table dataItem for a data dataItem' );
 
         done1();
 
@@ -469,86 +532,84 @@ QUnit.test( 'gp.ClientPager', function ( assert ) {
 
     var done = assert.async();
 
-    getTableConfig( null, function ( config ) {
+    getTableConfig( null, function ( api ) {
 
-        config.node.api.ready( function () {
+        var config = api.getConfig();
 
-            var pager = new gp.ClientPager( config );
+        var pager = new gp.ClientPager( config );
 
-            pager.data = data.products;
+        pager.data = data.products;
 
-            var model = new gp.PagingModel();
+        var model = new gp.PagingModel();
 
-            // turn paging off
-            model.top = -1;
+        // turn paging off
+        model.top = -1;
 
-            pager.read( model, function ( response ) {
-                assert.ok( response != null );
-                assert.equal( response.data.length, data.products.length, 'should return all rows' );
-            } );
-
-            // turn paging on
-            model.top = 10;
-
-            pager.read( model, function ( response ) {
-                assert.equal( response.data.length, 10, 'should return a subset of rows' );
-            } );
-
-            model.search = 'BA-8327';
-
-            pager.read( model, function ( response ) {
-                assert.equal( response.data.length, 1, 'should return a single row' );
-            } );
-
-            model.search = null;
-
-            model.sort = 'MakeFlag';
-
-            pager.read( model, function ( response ) {
-                assert.equal( response.data[0].MakeFlag, false, 'ascending sort should put false values at the top' );
-            } );
-
-            model.desc = true;
-
-            pager.read( model, function ( response ) {
-                assert.equal( response.data[0].MakeFlag, true, 'descending sort should put true values at the top' );
-            } );
-
-            // descending string sort 
-            model.sort = 'Color';
-            model.top = -1;
-
-            model.desc = true;
-
-            pager.read( model, function ( response ) {
-                assert.ok( gp.hasValue( response.data[0].Color ), 'descending string sort should put non-null values at the top ' );
-                assert.ok( response.data[response.data.length - 1].Color == null, 'descending string sort should put null values at the bottom ' );
-            } );
-
-            // ascending string sort
-            model.desc = false;
-
-            pager.read( model, function ( response ) {
-                assert.ok( response.data[0].Color == null, 'ascending string sort should put null values at the top ' );
-                assert.ok( response.data[response.data.length - 1].Color != null, 'ascending string sort should put non-null values at the bottom ' );
-            } );
-
-            // page range checks
-            model.top = 25;
-            model.page = 0;
-
-            pager.getSkip( model );
-
-            assert.equal( model.page, 1, 'getSkip should correct values outside of the page range' );
-
-            model.page = model.pagecount + 1;
-            pager.getSkip( model );
-
-            assert.equal( model.page, model.pagecount, 'getSkip should correct values outside of the page range' );
-
-            done();
-
+        pager.read( model, function ( response ) {
+            assert.ok( response != null );
+            assert.equal( response.data.length, data.products.length, 'should return all rows' );
         } );
+
+        // turn paging on
+        model.top = 10;
+
+        pager.read( model, function ( response ) {
+            assert.equal( response.data.length, 10, 'should return a subset of rows' );
+        } );
+
+        model.search = 'BA-8327';
+
+        pager.read( model, function ( response ) {
+            assert.equal( response.data.length, 1, 'should return a single dataItem' );
+        } );
+
+        model.search = null;
+
+        model.sort = 'MakeFlag';
+
+        pager.read( model, function ( response ) {
+            assert.equal( response.data[0].MakeFlag, false, 'ascending sort should put false values at the top' );
+        } );
+
+        model.desc = true;
+
+        pager.read( model, function ( response ) {
+            assert.equal( response.data[0].MakeFlag, true, 'descending sort should put true values at the top' );
+        } );
+
+        // descending string sort 
+        model.sort = 'Color';
+        model.top = -1;
+
+        model.desc = true;
+
+        pager.read( model, function ( response ) {
+            assert.ok( gp.hasValue( response.data[0].Color ), 'descending string sort should put non-null values at the top ' );
+            assert.ok( response.data[response.data.length - 1].Color == null, 'descending string sort should put null values at the bottom ' );
+        } );
+
+        // ascending string sort
+        model.desc = false;
+
+        pager.read( model, function ( response ) {
+            assert.ok( response.data[0].Color == null, 'ascending string sort should put null values at the top ' );
+            assert.ok( response.data[response.data.length - 1].Color != null, 'ascending string sort should put non-null values at the bottom ' );
+        } );
+
+        // page range checks
+        model.top = 25;
+        model.page = 0;
+
+        pager.getSkip( model );
+
+        assert.equal( model.page, 1, 'getSkip should correct values outside of the page range' );
+
+        model.page = model.pagecount + 1;
+        pager.getSkip( model );
+
+        assert.equal( model.page, model.pagecount, 'getSkip should correct values outside of the page range' );
+
+        done();
 
     } );
 
@@ -562,17 +623,15 @@ QUnit.test( 'toolbartemplate', function ( assert ) {
 
     options.toolbartemplate = true;
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
-        config.node.api.ready( function () {
+        var config = api.getConfig();
 
-            var btn = $( config.node ).find( 'div.table-toolbar button[value=xyz]' );
+        var btn = $( config.node ).find( 'div.table-toolbar button[value=xyz]' );
 
-            assert.equal( btn.length, 1, 'should create a custom toolbar' );
+        assert.equal( btn.length, 1, 'should create a custom toolbar' );
 
-            done();
-
-        } );
+        done();
 
     } );
 
@@ -582,19 +641,18 @@ QUnit.test( 'api.search', function ( assert ) {
 
     var done = assert.async();
 
-    getTableConfig( null, function ( config ) {
+    getTableConfig( null, function ( api ) {
 
-        config.node.api.ready( function () {
+        var config = api.getConfig();
 
-            config.node.api.search( 'Bearing' );
+        config.node.api.search( 'Bearing' );
 
-            // take note of the content of the column before sorting
-            var rows = config.node.querySelectorAll( 'div.table-body tbody tr' );
+        // take note of the content of the column before sorting
+        var rows = config.node.querySelectorAll( 'div.table-body tbody tr' );
 
-            assert.strictEqual( rows.length, 3, 'Should yield 3 rows' );
+        assert.strictEqual( rows.length, 3, 'Should yield 3 rows' );
 
-            done();
-        } );
+        done();
 
     } );
 
@@ -604,26 +662,24 @@ QUnit.test( 'api.refresh', function ( assert ) {
 
     var done = assert.async();
 
-    getTableConfig( configOptions, function ( config ) {
+    getTableConfig( configOptions, function ( api ) {
 
-        config.node.api.ready( function () {
+        var config = api.getConfig();
 
-            var firstRow = data.products[0];
+        var firstRow = data.products[0];
 
-            data.products.splice( 0, 1 );
+        data.products.splice( 0, 1 );
 
-            config.node.api.refresh( function () {
-                // firstRow should be gone
+        config.node.api.refresh( function () {
+            // firstRow should be gone
 
-                var productNumber = $( config.node ).find( 'tr[data-index=0] > td.body-cell:nth-child(10)' ).text();
+            var productNumber = $( config.node ).find( 'tr[data-index=0] > td.body-cell:nth-child(10)' ).text();
 
-                assert.equal( productNumber, data.products[0].ProductNumber, 'product number should equal the second row in the table' );
+            assert.equal( productNumber, data.products[0].ProductNumber, 'product number should equal the second dataItem in the table' );
 
-                data.products.push(firstRow);
+            data.products.push(firstRow);
 
-                done();
-
-            } );
+            done();
 
         } );
 
@@ -645,9 +701,9 @@ QUnit.test( 'supplant', function ( assert ) {
 
     var template = 'http://products/{{ProductID}}?MakeFlag={{MakeFlag}}&Color={{Color}}';
 
-    var row = { "ProductID": 1, "Name": "Adjustable Race", "ProductNumber": "AR-5381", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": null, "SafetyStockLevel": 1000, "ReorderPoint": 750, "StandardCost": 0.0000, "ListPrice": 0.0000, "Size": null, "SizeUnitMeasureCode": null, "WeightUnitMeasureCode": null, "Weight": null, "DaysToManufacture": 0, "ProductLine": null, "Class": null, "Style": null, "ProductSubcategoryID": null, "ProductModelID": null, "SellStartDate": "2002-06-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "694215b7-08f7-4c0d-acb1-d734ba44c0c8", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": "<p>Product's name: \"Adjustable Race\"</p>" };
+    var dataItem = { "ProductID": 1, "Name": "Adjustable Race", "ProductNumber": "AR-5381", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": null, "SafetyStockLevel": 1000, "ReorderPoint": 750, "StandardCost": 0.0000, "ListPrice": 0.0000, "Size": null, "SizeUnitMeasureCode": null, "WeightUnitMeasureCode": null, "Weight": null, "DaysToManufacture": 0, "ProductLine": null, "Class": null, "Style": null, "ProductSubcategoryID": null, "ProductModelID": null, "SellStartDate": "2002-06-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "694215b7-08f7-4c0d-acb1-d734ba44c0c8", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": "<p>Product's name: \"Adjustable Race\"</p>" };
 
-    var url = supplant( template, row );
+    var url = supplant( template, dataItem );
 
     assert.equal( url, 'http://products/1?MakeFlag=false&Color=' );
 
@@ -682,8 +738,8 @@ QUnit.test( 'refresh-event', function ( assert ) {
         }
     };
 
-    getTableConfig( options, function ( c ) {
-        config = c;
+    getTableConfig( options, function ( api ) {
+        config = api.getConfig();
         $( '#table .box' ).append( config.node );
     } );
 
@@ -693,18 +749,20 @@ QUnit.test( 'api.create 1', function ( assert ) {
 
     var done = assert.async();
 
-    var row = { "ProductID": 0, "Name": "test", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": null, "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0.0000, "ListPrice": 0.0000, "Size": null, "SizeUnitMeasureCode": null, "WeightUnitMeasureCode": null, "Weight": null, "DaysToManufacture": 0, "ProductLine": null, "Class": null, "Style": null, "ProductSubcategoryID": null, "ProductModelID": null, "SellStartDate": new Date(), "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "694215b7-70dd-4c0d-acb1-d734ba44c0c8", "ModifiedDate": null, "Markup": "" };
+    var dataItem = { "ProductID": 0, "Name": "test", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": null, "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0.0000, "ListPrice": 0.0000, "Size": null, "SizeUnitMeasureCode": null, "WeightUnitMeasureCode": null, "Weight": null, "DaysToManufacture": 0, "ProductLine": null, "Class": null, "Style": null, "ProductSubcategoryID": null, "ProductModelID": null, "SellStartDate": new Date(), "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "694215b7-70dd-4c0d-acb1-d734ba44c0c8", "ModifiedDate": null, "Markup": "" };
 
-    getTableConfig( configOptions, function ( config ) {
+    getTableConfig( configOptions, function ( api ) {
+
+        var config = api.getConfig();
 
         var cellCount1 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
 
-        config.node.api.create( row, function ( updateModel ) {
+        config.node.api.create( dataItem, function ( updateModel ) {
             var cellCount2 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
-            assert.ok( gp.hasValue( updateModel.Row ), 'api should return an UpdateModel' );
+            assert.ok( gp.hasValue( updateModel.dataItem ), 'api should return an UpdateModel' );
             assert.strictEqual( cellCount1, cellCount2, 'should create the same number of cells' );
-            assert.ok( data.products.indexOf( row ) != -1, 'the row should have been added to the source' );
-            config.node.api.dispose();
+            assert.ok( data.products.indexOf( dataItem ) != -1, 'the dataItem should have been added to the source' );
+            api.dispose();
             done();
         } );
 
@@ -716,17 +774,13 @@ QUnit.test( 'api.create 2', function ( assert ) {
 
     var done = assert.async();
 
-    getTableConfig( configOptions, function ( config ) {
+    getTableConfig( configOptions, function ( api ) {
 
-        config.node.api.ready( function () {
+        api.create( null, function ( updateModel ) {
+            assert.ok( updateModel.dataItem != null, 'calling api.create with no dataItem should create a default one' );
 
-            config.node.api.create( null, function ( updateModel ) {
-                assert.ok( updateModel.Row != null, 'calling api.create with no row should create a default one' );
-
-                config.node.api.dispose();
-                done();
-            } );
-
+            api.dispose();
+            done();
         } );
 
     } );
@@ -740,16 +794,12 @@ QUnit.test( 'api.create 3', function ( assert ) {
     var options = gp.shallowCopy( configOptions );
     options.create = null;
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
-        config.node.api.ready( function () {
-
-            config.node.api.create( null, function ( updateModel ) {
-                assert.ok( updateModel == null, 'calling api.create with no create configuration should return null' );
-                config.node.api.dispose();
-                done();
-            } );
-
+        api.create( null, function ( updateModel ) {
+            assert.ok( updateModel == null, 'calling api.create with no create configuration should return null' );
+            api.dispose();
+            done();
         } );
 
     } );
@@ -760,11 +810,11 @@ QUnit.test( 'api.ready', function ( assert ) {
 
     var done = assert.async();
 
-    getTableConfig( configOptions, function ( config ) {
+    getTableConfig( configOptions, function ( api ) {
 
-        config.node.api.ready( function () {
+        api.ready( function () {
 
-            config.node.api.ready( function () {
+            api.ready( function () {
 
                 assert.ok( true, 'calls to api.ready should execute even if ready state has already occurred' );
 
@@ -784,21 +834,21 @@ QUnit.test( 'api.update', function ( assert ) {
     var done2 = assert.async();
     var done3 = assert.async();
 
-    // this would be called instead of posting the row to a URL
-    updateFn = function ( row, callback ) {
+    // this would be called instead of posting the dataItem to a URL
+    updateFn = function ( dataItem, callback ) {
         // simulate some validation errors
-        var updateModel = new gp.UpdateModel( row );
-        updateModel.ValidationErrors = getValidationErrors();
+        var updateModel = new gp.UpdateModel( dataItem );
+        updateModel.errors = getValidationErrors();
         callback( updateModel );
     };
 
     showValidationErrors = function ( tr, updateModel ) {
         // find the input
-        updateModel.ValidationErrors.forEach( function ( v ) {
+        updateModel.errors.forEach( function ( v ) {
             var input = tr.querySelector( '[name="' + v.Key + '"]' );
             if ( input ) {
                 // extract the error message
-                var msg = v.Value.Errors.map( function ( e ) { return e.ErrorMessage; } ).join( '<br/>' );
+                var msg = v.Value.errors.map( function ( e ) { return e.ErrorMessage; } ).join( '<br/>' );
                 gp.info( 'validation.msg', msg );
                 gp.addClass( input, 'input-validation-error' );
                 $( input ).tooltip( {
@@ -815,20 +865,16 @@ QUnit.test( 'api.update', function ( assert ) {
     options.update = 'updateFn';
     options.validate = 'showValidationErrors';
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
-        config.node.api.ready( function () {
+        var dataItem = api.getData( 0 );
 
-            var row = config.node.api.getData( 0 );
+        dataItem.Name = 'test';
 
-            row.Name = 'test';
-
-            config.node.api.update( row, function ( updateModel ) {
-                assert.strictEqual( updateModel.Row.Name, 'test', 'update should support functions' );
-                config.node.api.dispose();
-                done1();
-            } );
-
+        api.update( dataItem, function ( updateModel ) {
+            assert.strictEqual( updateModel.dataItem.Name, 'test', 'update should support functions' );
+            api.dispose();
+            done1();
         } );
 
     } );
@@ -837,18 +883,14 @@ QUnit.test( 'api.update', function ( assert ) {
     options.update = '/Products/update';
 
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
-        config.node.api.ready( function () {
+        var dataItem = api.getData( 0 );
 
-            var row = config.node.api.getData( 0 );
-
-            config.node.api.update( row, function ( updateModel ) {
-                assert.strictEqual( updateModel.Row.Name, 'test', 'update should support functions that use a URL' );
-                config.node.api.dispose();
-                done2();
-            } );
-
+        api.update( dataItem, function ( updateModel ) {
+            assert.strictEqual( updateModel.dataItem.Name, 'test', 'update should support functions that use a URL' );
+            api.dispose();
+            done2();
         } );
 
     } );
@@ -856,13 +898,13 @@ QUnit.test( 'api.update', function ( assert ) {
     // now try it with a null update setting
     options.update = null;
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
         config.node.api.ready( function () {
 
-            var row = config.node.api.getData( 0 );
+            var dataItem = config.node.api.getData( 0 );
 
-            config.node.api.update( row, function ( updateModel ) {
+            config.node.api.update( dataItem, function ( updateModel ) {
                 assert.ok( updateModel == undefined, 'empty update setting should execute the callback with no arguments' );
                 config.node.api.dispose();
                 done3();
@@ -883,9 +925,9 @@ QUnit.test( 'api.sort', function ( assert ) {
 
     var done = assert.async();
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
-        config.node.api.ready( function () {
+        var config = api.getConfig();
 
             $( '#table .box' ).append( config.node );
 
@@ -909,26 +951,24 @@ QUnit.test( 'api.sort', function ( assert ) {
             config.node.api.sort( 'Name', false );
 
             // take note of the content of the column before sorting
-            var content1 = config.node.querySelector( 'tr[data-index="0"] td:nth-child(2)' ).innerHTML;
+            var content1 = api.find( 'tr[data-index="0"] td:nth-child(2)' ).innerHTML;
 
             // trigger another sort
             config.node.api.sort( 'Name', true );
 
             // take note of the content of the column after sorting
-            var content2 = config.node.querySelector( 'tr[data-index="0"] td:nth-child(2)' ).innerHTML;
+            var content2 = api.find( 'tr[data-index="0"] td:nth-child(2)' ).innerHTML;
 
             assert.notStrictEqual( content1, content2, 'sorting should change the order' );
 
             config.node.api.sort( 'Name', false );
 
             // take note of the content of the column after sorting
-            content2 = config.node.querySelector( 'tr[data-index="0"] td:nth-child(2)' ).innerHTML;
+            content2 = api.find( 'tr[data-index="0"] td:nth-child(2)' ).innerHTML;
 
             assert.strictEqual( content1, content2, 'sorting again should change it back' );
 
             done();
-
-        } );
 
     } );
 
@@ -940,19 +980,15 @@ QUnit.test( 'api.read', function ( assert ) {
     options.paging = true;
     var done = assert.async();
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
         var requestModel = new gp.PagingModel();
         requestModel.top = 25;
         requestModel.page = 2;
 
-        config.node.api.ready( function () {
-
-            config.node.api.read( requestModel, function ( model ) {
-                assert.strictEqual( model.page, 2, 'should be able to set the page' );
-                done();
-            } );
-
+        api.read( requestModel, function ( model ) {
+            assert.strictEqual( model.page, 2, 'should be able to set the page' );
+            done();
         } );
 
     } );
@@ -964,26 +1000,22 @@ QUnit.test( 'api.destroy', function ( assert ) {
     var options = gp.shallowCopy( configOptions );
     var done1 = assert.async();
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
-        config.node.api.ready( function () {
+        var dataItem = api.getData( 0 );
 
-            var row = config.pageModel.data[0];
-
-            config.node.api.destroy( row, function ( row ) {
-                var index = config.pageModel.data.indexOf( row );
-                assert.strictEqual( index, -1, 'destroy should remove the row' );
-                done1();
-            } );
-
+        api.destroy( dataItem, function ( dataItem ) {
+            var index = api.getData().indexOf( dataItem );
+            assert.strictEqual( index, -1, 'destroy should remove the dataItem' );
+            done1();
         } );
 
     } );
 
     // test it with a function
     fns = fns || {};
-    fns.destroy = function ( row, callback ) {
-        var index = data.products.indexOf( row );
+    fns.destroy = function ( dataItem, callback ) {
+        var index = data.products.indexOf( dataItem );
         data.products.splice( index, 1 );
         callback( {
             Success: true,
@@ -995,18 +1027,14 @@ QUnit.test( 'api.destroy', function ( assert ) {
     options.destroy = 'fns.destroy';
     var done2 = assert.async();
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
-        config.node.api.ready( function () {
+        dataItem = api.getData(0);
 
-            row = config.pageModel.data[0];
-
-            config.node.api.destroy( row, function ( row ) {
-                var index = config.pageModel.data.indexOf( row );
-                assert.strictEqual( index, -1, 'destroy should remove the row' );
-                done2();
-            } );
-
+        api.destroy( dataItem, function ( dataItem ) {
+            var index = api.getData().indexOf( dataItem );
+            assert.strictEqual( index, -1, 'destroy should remove the dataItem' );
+            done2();
         } );
 
     } );
@@ -1016,18 +1044,14 @@ QUnit.test( 'api.destroy', function ( assert ) {
     options.destroy = null;
     var done3 = assert.async();
 
-    getTableConfig( options, function (config) {
+    getTableConfig( options, function (api) {
 
-        config.node.api.ready( function () {
+        dataItem = api.getData( 0 );
 
-            row = config.pageModel.data[1];
-
-            config.node.api.destroy( row, function (response) {
-                var index = config.pageModel.data.indexOf( row );
-                assert.ok( index > -1, 'destroy should do nothing' );
-                done3();
-            } );
-
+        api.destroy( dataItem, function ( response ) {
+            var index = api.getData().indexOf( dataItem );
+            assert.ok( index > -1, 'destroy should do nothing' );
+            done3();
         } );
 
     } );
@@ -1038,34 +1062,32 @@ QUnit.test( 'ChangeMonitor.beforeSync', function ( assert ) {
 
     var done = assert.async();
 
-    getTableConfig( configOptions, function ( config ) {
+    getTableConfig( configOptions, function ( api ) {
 
-        config.node.api.ready( function () {
+        var config = api.getConfig();
 
-            //$( '#table .box' ).empty().append( config.node );
+        //$( '#table .box' ).empty().append( config.node );
 
-            // set one of the radio buttons a couple of times
-            var sortInput = config.node.querySelector( 'input[name=sort]' );
+        // set one of the radio buttons a couple of times
+        var sortInput = api.find( 'input[name=sort]' );
 
-            sortInput.checked = true;
+        sortInput.checked = true;
 
-            gp.raiseCustomEvent( sortInput, 'change' );
+        gp.raiseCustomEvent( sortInput, 'change' );
 
-            assert.equal( config.pageModel.desc, false );
+        assert.equal( config.pageModel.desc, false );
 
-            // Need a fresh reference to the input or the second change event won't do anything.
-            // That's probably because the header gets recreated. If so, is that necessary?
-            sortInput = config.node.querySelector( 'input[name=sort]' );
+        // Need a fresh reference to the input or the second change event won't do anything.
+        // That's probably because the header gets recreated. If so, is that necessary?
+        sortInput = api.find( 'input[name=sort]' );
 
-            sortInput.checked = true;
+        sortInput.checked = true;
 
-            gp.raiseCustomEvent( sortInput, 'change' );
+        gp.raiseCustomEvent( sortInput, 'change' );
 
-            assert.equal( config.pageModel.desc, true );
+        assert.equal( config.pageModel.desc, true );
 
-            done();
-
-        } );
+        done();
 
     } );
 
@@ -1077,18 +1099,18 @@ QUnit.test( 'custom command', function ( assert ) {
 
     var options = gp.shallowCopy( configOptions );
 
-    fns.Assert = function ( row, tr ) {
+    fns.Assert = function ( dataItem, tr ) {
         assert.ok( true, 'custom commands work' );
         done1();
     };
 
     options.customCommand = 'does not exist';
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
-        config.node.api.ready( function () {
+        api.ready( function () {
 
-            var btn = config.node.querySelector( 'button[value="does not exist"]' );
+            var btn = api.find( 'button[value="does not exist"]' );
 
             $( btn ).click();
 
@@ -1099,20 +1121,18 @@ QUnit.test( 'custom command', function ( assert ) {
 
     options.customCommand = 'fns.Assert';
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
-        config.node.api.ready( function () {
+        var btn = api.find( 'button[value="fns.Assert"]' );
 
-            var btn = config.node.querySelector( 'button[value="fns.Assert"]' );
+        $( btn ).click();
 
-            $( btn ).click();
-        } );
 
     } );
 
 } );
 
-QUnit.test( 'row selection', function ( assert ) {
+QUnit.test( 'dataItem selection', function ( assert ) {
 
     var done = assert.async();
 
@@ -1125,17 +1145,15 @@ QUnit.test( 'row selection', function ( assert ) {
         done();
     };
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
-        config.node.api.ready( function () {
+        var config = api.getConfig();
 
-            assert.equal( config.onrowselect, onrowselect, 'onrowselect can be a function' );
+        assert.equal( config.onrowselect, onrowselect, 'onrowselect can be a function' );
 
-            var btn = config.node.querySelector( 'td.body-cell' );
+        var btn = api.find( 'td.body-cell' );
 
-            $( btn ).click();
-
-        } );
+        $( btn ).click();
 
     } );
 
@@ -1154,17 +1172,15 @@ QUnit.test( 'events.rowselected', function ( assert ) {
         done();
     };
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
-        config.node.api.ready( function () {
+        var config = api.getConfig();
 
-            assert.equal( config.onrowselect, onrowselect, 'onrowselect can be a function' );
+        assert.equal( config.onrowselect, onrowselect, 'onrowselect can be a function' );
 
-            var btn = config.node.querySelector( 'td.body-cell' );
+        var btn = api.find( 'td.body-cell' );
 
-            $( btn ).click();
-
-        } );
+        $( btn ).click();
 
     } );
 
@@ -1373,168 +1389,166 @@ QUnit.test( 'gp.Model', function ( assert ) {
         done12 = assert.async(),
         done13 = assert.async();
 
-    getTableConfig( null, function ( config ) {
+    getTableConfig( null, function ( api ) {
 
-        config.node.api.ready( function () {
+        var config = api.getConfig();
 
-            var model = new gp.Model( config );
+        var model = new gp.Model( config );
 
-            var request = new gp.PagingModel();
+        var request = new gp.PagingModel();
 
-            gridponent.logging = null;
+        gridponent.logging = null;
 
-            model.read( request, function ( response ) {
-                assert.equal( response.data.length, data.products.length, 'should return all rows' );
-                done1();
-            } );
+        model.read( request, function ( response ) {
+            assert.equal( response.data.length, data.products.length, 'should return all rows' );
+            done1();
+        } );
 
-            // turn paging on
-            request.top = 10;
+        // turn paging on
+        request.top = 10;
 
-            model.read( request, function ( response ) {
-                assert.equal( response.data.length, 10, 'should return a subset of rows' );
-                done2();
-            } );
+        model.read( request, function ( response ) {
+            assert.equal( response.data.length, 10, 'should return a subset of rows' );
+            done2();
+        } );
 
-            request.search = data.products[1].ProductNumber;
+        request.search = data.products[1].ProductNumber;
 
-            model.read( request, function ( response ) {
-                assert.equal( response.data.length, 1, 'should return a single row' );
-                done3();
-            } );
+        model.read( request, function ( response ) {
+            assert.equal( response.data.length, 1, 'should return a single dataItem' );
+            done3();
+        } );
 
-            request.search = null;
+        request.search = null;
 
-            request.sort = 'MakeFlag';
+        request.sort = 'MakeFlag';
 
-            model.read( request, function ( response ) {
-                assert.equal( response.data[0].MakeFlag, false, 'ascending sort should put false values at the top' );
-                done4();
-            } );
+        model.read( request, function ( response ) {
+            assert.equal( response.data[0].MakeFlag, false, 'ascending sort should put false values at the top' );
+            done4();
+        } );
 
-            request.desc = true;
+        request.desc = true;
 
-            model.read( request, function ( response ) {
-                assert.equal( response.data[0].MakeFlag, true, 'descending sort should put true values at the top' );
-                done5();
-            } );
-
-
-            // test read as function
-            // the read function can use a callback
-            // or return a URL, array or PagingModel object
-
-            // test function with callback
-
-            config.read = function ( m, callback ) {
-                assert.ok( true, 'calling read should execute this function' );
-                callback();
-                done6();
-            };
-
-            // create a new model
-            model = new gp.Model( config );
-
-            model.read( request, function ( response ) {
-                assert.ok( true, 'calling read should execute this function' );
-                done7();
-            } );
+        model.read( request, function ( response ) {
+            assert.equal( response.data[0].MakeFlag, true, 'descending sort should put true values at the top' );
+            done5();
+        } );
 
 
+        // test read as function
+        // the read function can use a callback
+        // or return a URL, array or PagingModel object
 
-            //// test function with URL return value
+        // test function with callback
 
-            //config.read = function ( m ) {
-            //    return '/Products/read/5';
-            //};
+        config.read = function ( m, callback ) {
+            assert.ok( true, 'calling read should execute this function' );
+            callback();
+            done6();
+        };
 
-            //model = new gp.Model( config );
+        // create a new model
+        model = new gp.Model( config );
 
-            //model.read( request, function ( response ) {
-            //    assert.ok( true, 'calling read should execute this function' );
-            //    done2();
-            //} );
-
-            // test function with array return value
-
-            config.read = function ( m ) {
-                return data.products;
-            };
-
-            model = new gp.Model( config );
-
-            model.read( request, function ( response ) {
-                assert.ok( true, 'calling read should execute this function' );
-                done8();
-            } );
-
-            // test function with object return value
-
-            config.read = function ( m ) {
-                return new gp.PagingModel( data.products );
-            };
-
-            model = new gp.Model( config );
-
-            model.read( request, function ( response ) {
-                assert.ok( true, 'calling read should execute this function' );
-                done9();
-            } );
-
-            // test function with unsupported return value
-
-            config.read = function ( m ) {
-                return false;
-            };
-
-            model = new gp.Model( config );
-
-            model.read( request, function ( response ) {
-                assert.ok( false, 'calling read should NOT execute this function' );
-                done10();
-            },
-            function ( response ) {
-                assert.ok( true, 'calling read should execute this function' );
-                done10();
-            } );
+        model.read( request, function ( response ) {
+            assert.ok( true, 'calling read should execute this function' );
+            done7();
+        } );
 
 
 
-            // test read as url
+        //// test function with URL return value
 
-            config.read = '/Products/read';
+        //config.read = function ( m ) {
+        //    return '/Products/read/5';
+        //};
 
-            model = new gp.Model( config );
+        //model = new gp.Model( config );
 
-            request = new gp.PagingModel();
+        //model.read( request, function ( response ) {
+        //    assert.ok( true, 'calling read should execute this function' );
+        //    done2();
+        //} );
 
-            request.search = data.products[2].ProductNumber;
+        // test function with array return value
 
-            model.read( request, function ( response ) {
-                assert.equal( response.data.length, 1, 'should return a single record' );
-                done11();
-            } );
+        config.read = function ( m ) {
+            return data.products;
+        };
+
+        model = new gp.Model( config );
+
+        model.read( request, function ( response ) {
+            assert.ok( true, 'calling read should execute this function' );
+            done8();
+        } );
+
+        // test function with object return value
+
+        config.read = function ( m ) {
+            return new gp.PagingModel( data.products );
+        };
+
+        model = new gp.Model( config );
+
+        model.read( request, function ( response ) {
+            assert.ok( true, 'calling read should execute this function' );
+            done9();
+        } );
+
+        // test function with unsupported return value
+
+        config.read = function ( m ) {
+            return false;
+        };
+
+        model = new gp.Model( config );
+
+        model.read( request, function ( response ) {
+            assert.ok( false, 'calling read should NOT execute this function' );
+            done10();
+        },
+        function ( response ) {
+            assert.ok( true, 'calling read should execute this function' );
+            done10();
+        } );
 
 
-            // update
-            var row = data.products[0];
-            row.Name = 'Test';
 
-            model.update( row, function ( updateModel ) {
-                assert.equal( updateModel.Row.Name, 'Test', 'should return the updated record' );
-                done12();
-            } );
+        // test read as url
+
+        config.read = '/Products/read';
+
+        model = new gp.Model( config );
+
+        request = new gp.PagingModel();
+
+        request.search = data.products[2].ProductNumber;
+
+        model.read( request, function ( response ) {
+            assert.equal( response.data.length, 1, 'should return a single record' );
+            done11();
+        } );
 
 
-            // 'destroy'
-            request = data.products[0];
-            model = new gp.Model( config );
+        // update
+        var dataItem = data.products[0];
+        dataItem.Name = 'Test';
 
-            model.destroy( request, function ( response ) {
-                assert.equal( response.Success, true, 'destroy should return true if the record was found and deleted' );
-                done13();
-            } );
+        model.update( dataItem, function ( updateModel ) {
+            assert.equal( updateModel.dataItem.Name, 'Test', 'should return the updated record' );
+            done12();
+        } );
 
+
+        // 'destroy'
+        request = data.products[0];
+        model = new gp.Model( config );
+
+        model.destroy( request, function ( response ) {
+            assert.equal( response.Success, true, 'destroy should return true if the record was found and deleted' );
+            done13();
         } );
 
     } );
@@ -1553,22 +1567,21 @@ QUnit.test( 'gp.Table.getConfig', function ( assert ) {
     options.fixedheaders = true;
     options.sorting = true;
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
-        config.node.api.ready( function () {
+        var config = api.getConfig();
 
-            assert.equal( config.sorting, true );
+        assert.equal( config.sorting, true );
 
-            assert.equal( config.fixedheaders, true );
+        assert.equal( config.fixedheaders, true );
 
-            assert.equal( config.sorting, true );
+        assert.equal( config.sorting, true );
 
-            assert.equal( config.columns.length, 11 );
+        assert.equal( config.columns.length, 11 );
 
-            assert.equal( config.columns[1].header, 'ID' );
+        assert.equal( config.columns[1].header, 'ID' );
 
-            done1();
-        } );
+        done1();
 
     } );
 
@@ -1578,14 +1591,13 @@ QUnit.test( 'gp.Table.getConfig', function ( assert ) {
 
     options.read = '/Products/read';
 
-    getTableConfig( options, function ( config ) {
-        config.node.api.ready( function () {
+    getTableConfig( options, function ( api ) {
+        var config = api.getConfig();
 
-            assert.strictEqual( config.read, '/Products/read', 'read can be a URL' );
+        assert.strictEqual( config.read, '/Products/read', 'read can be a URL' );
 
-            done2();
+        done2();
 
-        } );
     } );
 
 
@@ -1601,16 +1613,14 @@ QUnit.test( 'gp.Table.getConfig', function ( assert ) {
 
     options.read = 'model.read';
 
-    getTableConfig( options, function ( config ) {
-        config.node.api.ready( function () {
+    getTableConfig( options, function ( api ) {
+        var config = api.getConfig();
 
-            assert.strictEqual( config.read, model.read, 'read can be a function' );
+        assert.strictEqual( config.read, model.read, 'read can be a function' );
 
-            assert.strictEqual( config.pageModel.data.length, data.products.length );
+        assert.strictEqual( config.pageModel.data.length, data.products.length );
 
-            done3();
-
-        } );
+        done3();
     } );
 
 
@@ -1620,17 +1630,14 @@ QUnit.test( 'gp.Table.getConfig', function ( assert ) {
 
     options.read = 'data.products';
 
-    getTableConfig( options, function ( config ) {
-        config.node.api.ready( function () {
+    getTableConfig( options, function ( api ) {
 
-            assert.strictEqual( config.read, data.products, 'read can be an array' );
+        var config = api.getConfig();
 
-            done4();
+        assert.strictEqual( config.read, data.products, 'read can be an array' );
 
-        } );
+        done4();
     } );
-
-
 
 } );
 
@@ -1655,19 +1662,17 @@ QUnit.test( 'gp.helpers.thead', function ( assert ) {
     options.fixedheaders = true;
     options.sorting = true;
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
+
+        var config = api.getConfig();
 
         var node = config.node;
 
-        node.api.ready( function () {
+        var headers = node.querySelectorAll( 'div.table-header th.header-cell' );
 
-            var headers = node.querySelectorAll( 'div.table-header th.header-cell' );
+        testHeaders( headers );
 
-            testHeaders( headers );
-
-            done2();
-
-        } );
+        done2();
 
     } );
 
@@ -1676,18 +1681,17 @@ QUnit.test( 'gp.helpers.thead', function ( assert ) {
     options = gp.shallowCopy( configOptions );
     options.sorting = true;
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
+
+        var config = api.getConfig();
 
         var node = config.node;
 
-        node.api.ready( function () {
+        headers = node.querySelectorAll( 'div.table-body th.header-cell' );
 
-            headers = node.querySelectorAll( 'div.table-body th.header-cell' );
-            testHeaders( headers );
+        testHeaders( headers );
 
-            done3();
-
-        } );
+        done3();
 
     } );
 
@@ -1696,39 +1700,37 @@ QUnit.test( 'gp.helpers.thead', function ( assert ) {
     options = gp.shallowCopy( configOptions );
     options.sorting = false;
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
+
+        var config = api.getConfig();
 
         var node = config.node;
 
-        node.api.ready( function () {
+        headers = node.querySelectorAll( 'div.table-body th.header-cell' );
 
-            headers = node.querySelectorAll( 'div.table-body th.header-cell' );
+        //assert.ok(headers[0].querySelector('input[type=checkbox]') != null, 'functions as templates');
 
-            //assert.ok(headers[0].querySelector('input[type=checkbox]') != null, 'functions as templates');
+        //assert.equal(headers[1].innerHTML, 'ID');
 
-            //assert.equal(headers[1].innerHTML, 'ID');
+        //assert.equal(headers[2].querySelector('label.table-sort'), null);
 
-            //assert.equal(headers[2].querySelector('label.table-sort'), null);
+        //assert.ok(headers[5].querySelector('label.table-sort > input[value=SellStartDate]') != null);
 
-            //assert.ok(headers[5].querySelector('label.table-sort > input[value=SellStartDate]') != null);
+        //assert.equal(headers[5].textContent, 'Sell Start Date');
 
-            //assert.equal(headers[5].textContent, 'Sell Start Date');
+        //assert.ok(headers[6].querySelector('label.table-sort > input[value=Name]') != null);
 
-            //assert.ok(headers[6].querySelector('label.table-sort > input[value=Name]') != null);
+        //assert.equal(headers[6].textContent, 'Markup');
 
-            //assert.equal(headers[6].textContent, 'Markup');
+        //assert.equal(headers[8].textContent, 'Test header');
 
-            //assert.equal(headers[8].textContent, 'Test header');
+        //assert.ok(headers[9].querySelector('input[type=checkbox]') != null);
 
-            //assert.ok(headers[9].querySelector('input[type=checkbox]') != null);
+        //assert.equal(headers[10].textContent, 'Test header');
 
-            //assert.equal(headers[10].textContent, 'Test header');
+        //assert.ok(headers[10].querySelector('input[type=checkbox]') != null);
 
-            //assert.ok(headers[10].querySelector('input[type=checkbox]') != null);
-
-            done1();
-
-        } );
+        done1();
 
     } );
 
@@ -1754,31 +1756,30 @@ QUnit.test( 'gp.helpers.bodyCell', function ( assert ) {
     options.fixedheaders = true;
     options.sorting = true;
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
-        config.node.api.ready( function () {
+        var config = api.getConfig();
 
-            var node = config.node;
+        var node = config.node;
 
-            var cells = node.querySelectorAll( 'div.table-body tbody > tr:nth-child(3) td.body-cell' );
+        var cells = node.querySelectorAll( 'div.table-body tbody > tr:nth-child(3) td.body-cell' );
 
-            testCells( cells );
+        testCells( cells );
 
-            var rows = node.querySelectorAll( 'div.table-body tbody > tr' );
+        var rows = node.querySelectorAll( 'div.table-body tbody > tr' );
 
-            for ( var i = 0; i < rows.length; i++ ) {
-                var make = data.products[i].MakeFlag;
-                if ( make ) {
-                    assert.ok( rows[i].querySelector( 'td:nth-child(9) span.glyphicon-edit' ) != null, 'template should create an edit button' );
-                    assert.ok( rows[i].querySelector( 'td:nth-child(3) span.glyphicon-ok' ) != null, 'there should be a checkmark' );
-                }
-                else {
-                    assert.ok( rows[i].querySelector( 'td:nth-child(9) span.glyphicon-remove' ) != null, 'template should create a remove button' );
-                }
+        for ( var i = 0; i < rows.length; i++ ) {
+            var make = data.products[i].MakeFlag;
+            if ( make ) {
+                assert.ok( rows[i].querySelector( 'td:nth-child(9) span.glyphicon-edit' ) != null, 'template should create an edit button' );
+                assert.ok( rows[i].querySelector( 'td:nth-child(3) span.glyphicon-ok' ) != null, 'there should be a checkmark' );
             }
+            else {
+                assert.ok( rows[i].querySelector( 'td:nth-child(9) span.glyphicon-remove' ) != null, 'template should create a remove button' );
+            }
+        }
 
-            done();
-        } );
+        done();
 
     } );
 
@@ -1793,45 +1794,37 @@ QUnit.test( 'gp.helpers.footerCell', function ( assert ) {
     options.fixedheaders = true;
     options.sorting = true;
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
-        config.node.api.ready( function () {
+        var cell = api.find( '.table-body tfoot tr:first-child td.footer-cell:nth-child(1)' );
 
-            var cell = config.node.querySelector( '.table-body tfoot tr:first-child td.footer-cell:nth-child(1)' );
+        assert.ok( cell.querySelector( 'input[type=checkbox]' ) != null )
 
-            assert.ok( cell.querySelector( 'input[type=checkbox]' ) != null )
-
-            done1();
-
-        } );
+        done1();
 
     } );
 
 
     options.fixedFooters = true;
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
-        config.node.api.ready( function () {
+        var config = api.getConfig();
 
-            cell = config.node.querySelector( '.table-footer tr:first-child td.footer-cell:nth-child(4)' );
+        cell = api.find( '.table-footer tr:first-child td.footer-cell:nth-child(4)' );
 
-            assert.equal( isNaN( parseFloat( cell.textContent ) ), false );
+        assert.equal( isNaN( parseFloat( cell.textContent ) ), false );
 
-            // test a string template with a function reference
-            var template = '<b>{{fns.average}}</b>';
+        // test a string template with a function reference
+        var template = '<b>{{fns.average}}</b>';
 
-            var result = gp.processFooterTemplate( template, config.columns[0], data.products );
+        var result = gp.processFooterTemplate( template, config.columns[0], data.products );
 
-            assert.equal(result, '<b>10</b>')
+        assert.equal(result, '<b>10</b>')
 
-            done2();
-
-        } );
+        done2();
 
     } );
-
-
 
 } );
 
@@ -1908,34 +1901,33 @@ QUnit.test( 'custom search filter', function ( assert ) {
     options.sorting = true;
     options.searchFilter = 'fns.searchFilter';
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
-        config.node.api.ready( function () {
+        var config = api.getConfig();
 
-            //$( '#table .box' ).append( config.node );
+        //$( '#table .box' ).append( config.node );
 
-            var productNumber = data.products[1].ProductNumber;
+        var productNumber = data.products[1].ProductNumber;
 
-            // find the search box
-            var searchInput = config.node.querySelector( 'input[name=search]' );
+        // find the search box
+        var searchInput = api.find( 'input[name=search]' );
 
-            console.log( config.node );
+        console.log( config.node );
 
-            searchInput.value = productNumber;
+        searchInput.value = productNumber;
 
-            assert.equal( config.searchfunction, fns.searchFilter );
+        assert.equal( config.searchfunction, fns.searchFilter );
 
-            // listen for the change event
-            config.node.addEventListener( 'change', function ( evt ) {
-                assert.equal( config.pageModel.data.length, 1, 'Should filter a single record' );
-                assert.equal( config.pageModel.data[0].ProductNumber, productNumber, 'Should filter a single record' );
-                done();
-            } );
-
-            // trigger a change event on the input
-            searchInput.dispatchEvent( event );
-
+        // listen for the change event
+        config.node.addEventListener( 'change', function ( evt ) {
+            assert.equal( config.pageModel.data.length, 1, 'Should filter a single record' );
+            assert.equal( config.pageModel.data[0].ProductNumber, productNumber, 'Should filter a single record' );
+            done();
         } );
+
+        // trigger a change event on the input
+        searchInput.dispatchEvent( event );
+
     } );
 
 
@@ -1952,12 +1944,14 @@ QUnit.test( 'editmode event', function ( assert ) {
 
     fns.editmode = function ( evt ) {
         assert.ok( evt != null );
-        assert.ok( evt.row != null );
+        assert.ok( evt.dataItem != null );
         assert.ok( evt.tableRow != null );
         done2();
     };
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
+
+        var config = api.getConfig();
 
         var node = config.node;
 
@@ -1990,18 +1984,6 @@ QUnit.test( 'edit and update', function ( assert ) {
     var colIndex = -1;
     var col = null;
 
-    var clickEvent1 = new CustomEvent( 'click', {
-        'view': window,
-        'bubbles': true,
-        'cancelable': true
-    } );
-
-    var clickEvent2 = new CustomEvent( 'click', {
-        'view': window,
-        'bubbles': true,
-        'cancelable': true
-    } );
-
     var changeEvent = new CustomEvent( 'change', {
         'view': window,
         'bubbles': true,
@@ -2010,33 +1992,35 @@ QUnit.test( 'edit and update', function ( assert ) {
 
     fns.editmode = function ( evt ) {
         assert.ok( evt != null );
-        assert.ok( evt.row != null );
+        assert.ok( evt.dataItem != null );
         assert.ok( evt.tableRow != null );
         // change some of the values
-        var input = this.querySelector( '[name=StandardCost]' )
+        var input = this.find( '[name=StandardCost]' )
         input.value = '5';
         input.dispatchEvent( ChangeEvent() );
         done1();
-        var saveBtn = this.querySelector( 'button[value=update]' );
-        saveBtn.dispatchEvent( clickEvent2 );
+        var saveBtn = this.find( 'button[value=update]' );
+        clickButton( saveBtn );
     };
 
     fns.onupdate = function ( evt ) {
         assert.ok( evt != null );
-        assert.ok( evt.Row != null );
-        assert.strictEqual( evt.Row.StandardCost, 5, 'change monitor should update the model' );
+        assert.ok( evt.model.dataItem != null );
+        assert.strictEqual( evt.model.dataItem.StandardCost, 5, 'change monitor should update the model' );
 
         // make sure the grid is updated with the correct value
-        var updatedCellValue = this.querySelector( 'td:nth-child(' + ( colIndex + 1 ) + ')' ).innerHTML;
+        var updatedCellValue = this.find( 'td:nth-child(' + ( colIndex + 1 ) + ')' ).innerHTML;
 
-        var expectedValue = gp.getFormattedValue( evt.Row, col, true );
+        var expectedValue = gp.getFormattedValue( evt.model.dataItem, col, true );
 
         assert.equal( updatedCellValue, expectedValue, 'grid should be updated with the correct value' );
 
         done2();
     };
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
+
+        var config = api.getConfig();
 
         var node = config.node;
 
@@ -2052,13 +2036,13 @@ QUnit.test( 'edit and update', function ( assert ) {
         // trigger a click event on an edit button
         var btn = node.querySelector( 'button[value=edit]' );
 
-        btn.dispatchEvent( clickEvent1 );
+        clickButton( btn );
 
     } );
 
 } );
 
-QUnit.test( 'Intl.DateTimeFormat', function ( assert ) {
+QUnit.test( 'date formatting', function ( assert ) {
 
     // the polyfill fails half of these tests
     // https://github.com/andyearnshaw/Intl.js/issues
@@ -2097,7 +2081,7 @@ QUnit.test( 'Intl.DateTimeFormat', function ( assert ) {
 
 } );
 
-QUnit.test( 'Intl.NumberFormat', function ( assert ) {
+QUnit.test( 'number formatting', function ( assert ) {
 
     var formatter = new gp.Formatter();
 
@@ -2173,12 +2157,14 @@ QUnit.test( 'readonly fields', function ( assert ) {
     var index;
 
     fns.editmode = function ( evt ) {
-        var input = this.querySelector( 'td:nth-child(' + ( index + 1 ).toString() + ') input' );
+        var input = this.find( 'td:nth-child(' + ( index + 1 ).toString() + ') input' );
         assert.equal( input, null, 'there should not be an input' );
         done();
     };
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
+
+        var config = api.getConfig();
 
         var node = config.node;
 
@@ -2193,7 +2179,7 @@ QUnit.test( 'readonly fields', function ( assert ) {
 
 
         // trigger a click event on an edit button
-        var btn = node.querySelector( 'button[value=edit]' );
+        var btn = api.find( 'button[value=edit]' );
 
         var event = new CustomEvent( 'click', {
             'view': window,
@@ -2251,27 +2237,23 @@ QUnit.test( 'controller.render', function ( assert ) {
     options.responsive = true;
     options.sorting = true;
 
-    getTableConfig( options, function ( config ) {
+    getTableConfig( options, function ( api ) {
 
-        config.node.api.ready( function () {
+        var config = api.getConfig();
 
-            tests( config );
+        tests( config );
 
-            done1();
-
-        } );
+        done1();
 
     } );
 
-    getTableConfig( null, function ( config ) {
+    getTableConfig( null, function ( api ) {
 
-        config.node.api.ready( function () {
+        var config = api.getConfig();
 
-            tests( config );
+        tests( config );
 
-            done2();
-
-        } );
+        done2();
 
     } );
 
@@ -2279,7 +2261,7 @@ QUnit.test( 'controller.render', function ( assert ) {
 
 QUnit.test( 'gp.ObjectProxy', function ( assert ) {
 
-    var row = data.products[0];
+    var dataItem = data.products[0];
 
     var propertyChanged = false;
 
@@ -2290,14 +2272,14 @@ QUnit.test( 'gp.ObjectProxy', function ( assert ) {
         assert.strictEqual( newValue, i, 'propertyChanged: oldValue = ' + oldValue + '  newValue = ' + newValue );
     };
 
-    var proxy = new gp.ObjectProxy( row, propertyChangedCallback );
+    var proxy = new gp.ObjectProxy( dataItem, propertyChangedCallback );
 
-    var props = Object.getOwnPropertyNames( row );
+    var props = Object.getOwnPropertyNames( dataItem );
 
     props.forEach( function ( prop ) {
-        assert.equal( row[prop], proxy[prop], 'object and its proxy should have identical properties' );
-        proxy[prop] = i = !row[prop];
-        assert.notStrictEqual( row[prop], proxy[prop], 'changing proxy should not effect original object' );
+        assert.equal( dataItem[prop], proxy[prop], 'object and its proxy should have identical properties' );
+        proxy[prop] = i = !dataItem[prop];
+        assert.notStrictEqual( dataItem[prop], proxy[prop], 'changing proxy should not effect original object' );
     } );
 
     assert.equal( propertyChanged, true, 'propertyChangedCallback should be called' );

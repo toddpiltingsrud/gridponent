@@ -1,10 +1,10 @@
 ﻿/***************\
    UpdateModel
 \***************/
-gp.UpdateModel = function ( row, validationErrors ) {
+gp.UpdateModel = function ( dataItem, validationErrors ) {
 
-    this.Row = row;
-    this.ValidationErrors = validationErrors;
-    this.Original = gp.shallowCopy( row );
+    this.dataItem = dataItem;
+    this.errors = validationErrors;
+    this.original = gp.shallowCopy( dataItem );
 
 };

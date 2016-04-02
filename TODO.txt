@@ -1,10 +1,12 @@
-﻿We'll need delegate arrays because Initializer and Controller add their own handlers to them.
+﻿Add modal edit feature
 
 All main configuration options should be available through the API:
 gridponent('selector')
 	.model({...})
 	.on('onread', function...)
 	.on('onedit', function...);
+
+Eliminate setting config.dataItem.
 
 What happens if a grid is rendered twice? Make sure the original is disposed if this happens.
 

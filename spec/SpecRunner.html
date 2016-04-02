@@ -27,12 +27,12 @@
         return model;
     };
 
-    fns.getName = function (row) {
-        return row.Name;
+    fns.getName = function (dataItem) {
+        return dataItem.Name;
     };
 
-    fns.dropdown = function (row, column) {
-        var val = row[column.field];
+    fns.dropdown = function (dataItem, column) {
+        var val = dataItem[column.field];
         var data = fns.getData().data;
         var out = [];
         out.push('<select name="MakeFlag" class="form-control">');

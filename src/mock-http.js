@@ -161,7 +161,7 @@
         else {
             model.data = d;
         }
-        model.ValidationErrors = [];
+        model.errors = [];
         setTimeout(function () {
             callback(model);
         });

@@ -28,11 +28,11 @@ gp.Initializer.prototype = {
 
         setTimeout( function () {
             // provides a hook for extensions
-            controller.invokeDelegates( self.config.node, gp.events.beforeinit, self.config );
+            controller.invokeDelegates( self.config.node.api, gp.events.beforeinit, self.config );
 
             // we need both beforeinit and beforeread because beforeread is used after every read in the controller
             // and beforeinit happens just once after the node is created, but before first read
-            controller.invokeDelegates( self.config.node, gp.events.beforeread, self.config.pageModel );
+            controller.invokeDelegates( self.config.node.api, gp.events.beforeread, self.config.pageModel );
 
             dal.read( requestModel,
                 function ( data ) {
@@ -46,10 +46,10 @@ gp.Initializer.prototype = {
                     } catch ( e ) {
                         gp.error( e );
                     }
-                    controller.invokeDelegates( self.config.node, gp.events.onread, self.config.pageModel );
+                    controller.invokeDelegates( self.config.node.api, gp.events.onread, self.config.pageModel );
                 },
                 function ( e ) {
-                    controller.invokeDelegates( self.config.node, gp.events.httpError, e );
+                    controller.invokeDelegates( self.config.node.api, gp.events.httpError, e );
                     alert( 'An error occurred while carrying out your request.' );
                     gp.error( e );
                 }
