@@ -26,7 +26,7 @@ var clickButton = function ( btn ) {
         'cancelable': true
     } );
 
-    btn.dispatchEvent( clickEvent1 );
+    $(btn)[0].dispatchEvent( clickEvent1 );
 
 };
 
@@ -97,7 +97,7 @@ var getTableConfig = function ( options, callback ) {
     if ( options.toolbartemplate )
     out.push( '    <script type="text/html" data-template="toolbar"><button class="btn" value="xyz"></button></script>' );
     out.push( '    <gp-column>' );
-    out.push( '        <script type="text/html" data-template="header body footer"><input type="checkbox" name="test" /></script>' );
+    out.push( '        <script type="text/html" data-template="header body edit footer"><input type="checkbox" name="test" /></script>' );
     out.push( '    </gp-column>' );
     out.push( '    <gp-column header="ID" sort="Name">' );
     out.push( '        <script type="text/html" data-template="body">{{fns.getName}}</script>' );
@@ -193,23 +193,37 @@ var getValidationErrors = function () {
     ];
 };
 
+QUnit.test( 'bootstrap modal', function ( assert ) {
+
+    var done1 = assert.async();
+
+    getTableConfig( configOptions, function ( api ) {
+
+        var config = api.getConfig();
+
+        var dataItem = api.getData( 0 );
+
+        api.edit( dataItem );
+
+        var input = $( '.gp.modal-dialog input[name=StandardCost]' ).val( 234 );
+
+        gp.raiseCustomEvent( input[0], 'change' );
+
+        assert.equal( dataItem.StandardCost, 234 );
+
+        var updateBtn = $( '.gp.modal-dialog button[value=update]' );
+
+        clickButton( updateBtn );
+
+        $( '.modal' ).modal( 'hide' );
+
+        done1();
+
+    } );
+
+} );
+
 QUnit.test( 'camelize', function ( assert ) {
-
-    var camelize = function ( str ) {
-        if ( gp.isNullOrEmpty( str ) ) return str;
-        return str
-            .replace( /[A-Z]([A-Z]+)/g, function ( _, c ) {
-                return _ ? _.substr( 0, 1 ) + c.toLowerCase() : '';
-            } )
-            .replace( /[-_](\w)/g, function ( _, c ) {
-                return c ? c.toUpperCase() : '';
-            } )
-            .replace( /^([A-Z])/g, function ( _, c ) {
-                return c ? c.toLowerCase() : '';
-            } );
-
-        //return str.toLowerCase().replace( '-', '' );
-    };
 
     var dict = {
         updateModel: 'updateModel',
@@ -220,7 +234,7 @@ QUnit.test( 'camelize', function ( assert ) {
 
     Object.getOwnPropertyNames( dict ).forEach( function ( prop ) {
 
-        assert.equal( camelize( prop ), dict[prop] );
+        assert.equal( gp.camelize( prop ), dict[prop] );
 
     } );
 
@@ -1065,8 +1079,6 @@ QUnit.test( 'ChangeMonitor.beforeSync', function ( assert ) {
     getTableConfig( configOptions, function ( api ) {
 
         var config = api.getConfig();
-
-        //$( '#table .box' ).empty().append( config.node );
 
         // set one of the radio buttons a couple of times
         var sortInput = api.find( 'input[name=sort]' );

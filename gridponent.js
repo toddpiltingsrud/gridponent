@@ -119,6 +119,25 @@ gp.api.prototype = {
         else callback( null );
     },
 
+    edit: function(dataItem, mode) {
+
+        var html = gp.helpers.bootstrapModal( config, dataItem, 'update' );
+
+        var modal = $( html ).appendTo( 'body' ).modal( {
+            show: true,
+            keyboard: true
+        } );
+
+        var elem = modal[0];
+
+        elem['gp-change-monitor'] = new gp.ChangeMonitor( elem, '[name]', dataItem ).start();
+
+        modal.one( 'hidden.bs.modal', function () {
+            $( modal ).remove();
+            modal = null;
+        } );
+    },
+
     // This would have to be called after having retrieved the dataItem from the table with getData().
     // The controller will attempt to figure out which tr it is by first calling indexOf(dataItem) on the data.
     // So the original dataItem object reference has to be preserved.
@@ -143,6 +162,18 @@ gp.api.prototype = {
     dispose: function () {
         this.controller.dispose();
     }
+
+};
+
+/***************\
+ bootstrap modal
+\***************/
+
+gp.Modal = function () {
+
+};
+
+gp.Modal.prototype = {
 
 };
 
@@ -448,7 +479,7 @@ gp.Controller.prototype = {
         proceed = this.invokeDelegates( this.config.node.api, gp.events.beforeread, this.config.node.api );
         if ( proceed === false ) return;
         this.model.read( this.config.pageModel, function ( model ) {
-            // models coming from the server should be lower-cased
+            // standardize capitalization of incoming data
             gp.shallowCopy( model, self.config.pageModel, true );
             self.refresh( self.config );
             self.invokeDelegates( self.config.node.api, gp.events.onread, self.config.node.api );
@@ -1374,43 +1405,32 @@ gp.Formatter.prototype = {
 } )( gridponent );
 
 /***************\
-  table helpers
+    helpers
 \***************/
 
 gp.helpers = {
 
-    toolbartemplate: function () {
+    bootstrapModal: function ( config, dataItem, mode ) {
+
+        var model = {
+            title: (mode == 'create') ? 'Add' : 'Edit',
+            body: '',
+            footer: null
+        };
+
         var html = new gp.StringBuilder();
-        if ( typeof ( this.toolbartemplate ) === 'function' ) {
-            html.add( gp.applyFunc( this.toolbartemplate, this ) );
-        }
-        else {
-            html.add( this.toolbartemplate );
-        }
-        return html.toString();
-    },
 
-    thead: function () {
-        var self = this;
-        var html = new gp.StringBuilder();
-        var sort, template, classes;
-        html.add( '<thead>' );
-        html.add( '<tr>' );
-        this.columns.forEach( function ( col ) {
-            sort = '';
-            if ( self.sorting ) {
-                // if sort isn't specified, use the field
-                sort = gp.escapeHTML( gp.coalesce( [col.sort, col.field] ) );
+        html.add( '<form class="form-horizontal">' );
+
+        config.columns.forEach( function ( col ) {
+            if ( col.commands ) {
+                model.footer = gp.helpers.editCellContent( col, dataItem, mode );
+                return;
             }
-            else {
-                // only provide sorting where it is explicitly specified
-                if ( gp.hasValue( col.sort ) ) {
-                    sort = gp.escapeHTML( col.sort );
-                }
-            }
-
-            html.add( '<th class="header-cell ' + ( col.headerclass || '' ) + '" data-sort="' + sort + '">' );
-
+            var canEdit = !col.readonly && ( gp.hasValue( col.field ) || gp.hasValue( col.edittemplate ) );
+            if ( !canEdit ) return;
+            html.add( '<div class="form-group">' )
+                .add( '<label class="col-sm-4 control-label">' );
             // check for a template
             if ( col.headertemplate ) {
                 if ( typeof ( col.headertemplate ) === 'function' ) {
@@ -1420,55 +1440,40 @@ gp.helpers = {
                     html.add( gp.processHeaderTemplate.call( this, col.headertemplate, col ) );
                 }
             }
-            else if ( sort != '' ) {
-                html.add( '<label class="table-sort">' )
-                    .add( '<input type="radio" name="sort" value="' )
-                    .escape( sort )
-                    .add( '" />' )
-                    .escape( gp.coalesce( [col.header, col.field, sort] ) )
-                    .add( '</label>' );
-            }
             else {
                 html.escape( gp.coalesce( [col.header, col.field, ''] ) );
             }
-            html.add( '</th>' );
+            html.add( '</label>' )
+                .add('<div class="col-sm-8">')
+                .add( gp.helpers.editCellContent( col, dataItem, mode ) )
+                .add( '</div>' )
+                .add( '</div>' );
         } );
-        html.add( '</tr>' )
-            .add( '</thead>' );
-        return html.toString();
+
+        html.add( '</form>' );
+
+        model.body = html.toString();
+
+        return gp.templates['bootstrap-modal']( model );
     },
 
-    tableRows: function () {
-        var self = this;
-        var html = new gp.StringBuilder();
-        this.pageModel.data.forEach( function ( row, index ) {
-            self.Row = row;
-            html.add( '<tr data-index="' )
-            .add( index )
-            .add( '">' )
-            .add( gp.templates['gridponent-cells']( self ) )
-            .add( '</tr>' );
-        } );
-        return html.toString();
-    },
-
-    bodyCellContent: function ( col, row ) {
+    bodyCellContent: function ( col, dataItem ) {
         var self = this,
             template,
             format,
             hasDeleteBtn = false,
-            row = row || this.Row,
-            val = gp.getFormattedValue( row, col, true ),
+            dataItem = dataItem || this.Row,
+            val = gp.getFormattedValue( dataItem, col, true ),
             type = ( col.Type || '' ).toLowerCase(),
             html = new gp.StringBuilder();
 
         // check for a template
         if ( col.bodytemplate ) {
             if ( typeof ( col.bodytemplate ) === 'function' ) {
-                html.add( gp.applyFunc( col.bodytemplate, this, [row, col] ) );
+                html.add( gp.applyFunc( col.bodytemplate, this, [dataItem, col] ) );
             }
             else {
-                html.add( gp.processBodyTemplate.call( this, col.bodytemplate, row, col ) );
+                html.add( gp.processBodyTemplate.call( this, col.bodytemplate, dataItem, col ) );
             }
         }
         else if ( col.commands && col.commands.length ) {
@@ -1508,118 +1513,6 @@ gp.helpers = {
             }
             else {
                 html.add( val );
-            }
-        }
-        return html.toString();
-    },
-
-    editCellContent: function ( col, row, mode ) {
-        var template, html = new gp.StringBuilder();
-
-        // check for a template
-        if ( col.edittemplate ) {
-            if ( typeof ( col.edittemplate ) === 'function' ) {
-                html.add( gp.applyFunc( col.edittemplate, this, [row, col] ) );
-            }
-            else {
-                html.add( gp.processBodyTemplate.call( this, col.edittemplate, row, col ) );
-            }
-        }
-        else if ( col.commands ) {
-            html.add( '<div class="btn-group" role="group">' )
-                .add( '<button type="button" class="btn btn-primary btn-xs" value="' )
-                .add( mode == 'create' ? 'create' : 'update' )
-                .add( '">' )
-                .add( '<span class="glyphicon glyphicon-save"></span>Save' )
-                .add( '</button>' )
-                .add( '<button type="button" class="btn btn-default btn-xs" value="Cancel">' )
-                .add( '<span class="glyphicon glyphicon-remove"></span>Cancel' )
-                .add( '</button>' )
-                .add( '</div>' );
-        }
-        else {
-            var val = row[col.field];
-            // render empty cell if this field doesn't exist in the data
-            if ( val === undefined ) return '';
-            // render null as empty string
-            if ( val === null ) val = '';
-            html.add( '<input class="form-control" name="' + col.field + '" type="' );
-            switch ( col.Type ) {
-                case 'date':
-                case 'dateString':
-                    // Don't bother with date input type.
-                    // Indicate the type using data-type attribute so a custom date picker can be used.
-                    // This sidesteps the problem of polyfilling browsers that don't support date input type
-                    // and makes for a more consistent experience across browsers.
-                    html.add( 'text" data-type="date" value="' + gp.escapeHTML( val ) + '" />' );
-                    break;
-                case 'number':
-                    html.add( 'number" value="' + gp.escapeHTML( val ) + '" />' );
-                    break;
-                case 'boolean':
-                    html.add( 'checkbox" value="true"' );
-                    if ( val ) {
-                        html.add( ' checked="checked"' );
-                    }
-                    html.add( ' />' );
-                    break;
-                default:
-                    html.add( 'text" value="' + gp.escapeHTML( val ) + '" />' );
-                    break;
-            }
-        }
-        return html.toString();
-    },
-
-    validation: function ( tr, validationErrors ) {
-        var builder = new gp.StringBuilder(), input, msg;
-        builder.add( 'Please correct the following errors:\r\n' );
-        // remove error class from inputs
-        gp.removeClass( tr.querySelectorAll( '[name].error' ), 'error' );
-        validationErrors.forEach( function ( v ) {
-            input = tr.querySelector( '[name="' + v.Key + '"]' );
-            if ( input ) {
-                gp.addClass( input, 'error' );
-            }
-            builder.add( v.Key + ':\r\n' );
-            // extract the error message
-            msg = v.Value.Errors.map( function ( e ) { return '    - ' + e.ErrorMessage + '\r\n'; } ).join( '' );
-            builder.add( msg );
-        } );
-        alert( builder.toString() );
-    },
-
-    footerCell: function ( col ) {
-        var html = new gp.StringBuilder();
-        if ( col.footertemplate ) {
-            if ( typeof ( col.footertemplate ) === 'function' ) {
-                html.add( gp.applyFunc( col.footertemplate, this, [col, this.pageModel.data] ) );
-            }
-            else {
-                html.add( gp.processFooterTemplate.call( this, col.footertemplate, col, this.pageModel.data ) );
-            }
-        }
-        return html.toString();
-    },
-
-    setPagerFlags: function () {
-        this.pageModel.IsFirstPage = this.pageModel.page === 1;
-        this.pageModel.IsLastPage = this.pageModel.page === this.pageModel.pagecount;
-        this.pageModel.HasPages = this.pageModel.pagecount > 1;
-        this.pageModel.PreviousPage = this.pageModel.page === 1 ? 1 : this.pageModel.page - 1;
-        this.pageModel.NextPage = this.pageModel.page === this.pageModel.pagecount ? this.pageModel.pagecount : this.pageModel.page + 1;
-    },
-
-    sortStyle: function () {
-        var html = new gp.StringBuilder();
-        if ( gp.isNullOrEmpty( this.pageModel.sort ) === false ) {
-            html.add( '#' + this.ID + ' thead th.header-cell[data-sort="' + gp.escapeHTML( this.pageModel.sort ) + '"] > label:after' )
-                .add( '{ content: ' );
-            if ( this.pageModel.desc ) {
-                html.add( '"\\e114"; }' );
-            }
-            else {
-                html.add( '"\\e113"; }' );
             }
         }
         return html.toString();
@@ -1682,8 +1575,192 @@ gp.helpers = {
             html.add( ' selectable' );
         }
         return html.toString();
-    }
+    },
 
+    editCellContent: function ( col, dataItem, mode ) {
+        var template, html = new gp.StringBuilder();
+
+        // check for a template
+        if ( col.edittemplate ) {
+            if ( typeof ( col.edittemplate ) === 'function' ) {
+                html.add( gp.applyFunc( col.edittemplate, this, [dataItem, col] ) );
+            }
+            else {
+                html.add( gp.processBodyTemplate.call( this, col.edittemplate, dataItem, col ) );
+            }
+        }
+        else if ( col.commands ) {
+            html.add( '<div class="btn-group" role="group">' )
+                .add( '<button type="button" class="btn btn-primary btn-xs" value="' )
+                .add( mode == 'create' ? 'create' : 'update' )
+                .add( '">' )
+                .add( '<span class="glyphicon glyphicon-save"></span>Save' )
+                .add( '</button>' )
+                .add( '<button type="button" class="btn btn-default btn-xs" value="Cancel">' )
+                .add( '<span class="glyphicon glyphicon-remove"></span>Cancel' )
+                .add( '</button>' )
+                .add( '</div>' );
+        }
+        else {
+            var val = dataItem[col.field];
+            // render empty cell if this field doesn't exist in the data
+            if ( val === undefined ) return '';
+            // render null as empty string
+            if ( val === null ) val = '';
+            html.add( '<input class="form-control" name="' + col.field + '" type="' );
+            switch ( col.Type ) {
+                case 'date':
+                case 'dateString':
+                    // Don't bother with date input type.
+                    // Indicate the type using data-type attribute so a custom date picker can be used.
+                    // This sidesteps the problem of polyfilling browsers that don't support date input type
+                    // and provides a more consistent experience across browsers.
+                    html.add( 'text" data-type="date" value="' + gp.escapeHTML( val ) + '" />' );
+                    break;
+                case 'number':
+                    html.add( 'number" value="' + gp.escapeHTML( val ) + '" />' );
+                    break;
+                case 'boolean':
+                    html.add( 'checkbox" value="true"' );
+                    if ( val ) {
+                        html.add( ' checked="checked"' );
+                    }
+                    html.add( ' />' );
+                    break;
+                default:
+                    html.add( 'text" value="' + gp.escapeHTML( val ) + '" />' );
+                    break;
+            }
+        }
+        return html.toString();
+    },
+
+    footerCell: function ( col ) {
+        var html = new gp.StringBuilder();
+        if ( col.footertemplate ) {
+            if ( typeof ( col.footertemplate ) === 'function' ) {
+                html.add( gp.applyFunc( col.footertemplate, this, [col, this.pageModel.data] ) );
+            }
+            else {
+                html.add( gp.processFooterTemplate.call( this, col.footertemplate, col, this.pageModel.data ) );
+            }
+        }
+        return html.toString();
+    },
+
+    setPagerFlags: function () {
+        this.pageModel.IsFirstPage = this.pageModel.page === 1;
+        this.pageModel.IsLastPage = this.pageModel.page === this.pageModel.pagecount;
+        this.pageModel.HasPages = this.pageModel.pagecount > 1;
+        this.pageModel.PreviousPage = this.pageModel.page === 1 ? 1 : this.pageModel.page - 1;
+        this.pageModel.NextPage = this.pageModel.page === this.pageModel.pagecount ? this.pageModel.pagecount : this.pageModel.page + 1;
+    },
+
+    sortStyle: function () {
+        var html = new gp.StringBuilder();
+        if ( gp.isNullOrEmpty( this.pageModel.sort ) === false ) {
+            html.add( '#' + this.ID + ' thead th.header-cell[data-sort="' + gp.escapeHTML( this.pageModel.sort ) + '"] > label:after' )
+                .add( '{ content: ' );
+            if ( this.pageModel.desc ) {
+                html.add( '"\\e114"; }' );
+            }
+            else {
+                html.add( '"\\e113"; }' );
+            }
+        }
+        return html.toString();
+    },
+
+    tableRows: function () {
+        var self = this;
+        var html = new gp.StringBuilder();
+        this.pageModel.data.forEach( function ( dataItem, index ) {
+            self.Row = dataItem;
+            html.add( '<tr data-index="' )
+            .add( index )
+            .add( '">' )
+            .add( gp.templates['gridponent-cells']( self ) )
+            .add( '</tr>' );
+        } );
+        return html.toString();
+    },
+
+    thead: function () {
+        var self = this;
+        var html = new gp.StringBuilder();
+        var sort, template, classes;
+        html.add( '<thead>' );
+        html.add( '<tr>' );
+        this.columns.forEach( function ( col ) {
+            sort = '';
+            if ( self.sorting ) {
+                // if sort isn't specified, use the field
+                sort = gp.escapeHTML( gp.coalesce( [col.sort, col.field] ) );
+            }
+            else {
+                // only provide sorting where it is explicitly specified
+                if ( gp.hasValue( col.sort ) ) {
+                    sort = gp.escapeHTML( col.sort );
+                }
+            }
+
+            html.add( '<th class="header-cell ' + ( col.headerclass || '' ) + '" data-sort="' + sort + '">' );
+
+            // check for a template
+            if ( col.headertemplate ) {
+                if ( typeof ( col.headertemplate ) === 'function' ) {
+                    html.add( gp.applyFunc( col.headertemplate, self, [col] ) );
+                }
+                else {
+                    html.add( gp.processHeaderTemplate.call( this, col.headertemplate, col ) );
+                }
+            }
+            else if ( sort != '' ) {
+                html.add( '<label class="table-sort">' )
+                    .add( '<input type="radio" name="sort" value="' )
+                    .escape( sort )
+                    .add( '" />' )
+                    .escape( gp.coalesce( [col.header, col.field, sort] ) )
+                    .add( '</label>' );
+            }
+            else {
+                html.escape( gp.coalesce( [col.header, col.field, ''] ) );
+            }
+            html.add( '</th>' );
+        } );
+        html.add( '</tr>' )
+            .add( '</thead>' );
+        return html.toString();
+    },
+
+    toolbartemplate: function () {
+        var html = new gp.StringBuilder();
+        if ( typeof ( this.toolbartemplate ) === 'function' ) {
+            html.add( gp.applyFunc( this.toolbartemplate, this ) );
+        }
+        else {
+            html.add( this.toolbartemplate );
+        }
+        return html.toString();
+    },
+
+    validation: function ( tr, validationErrors ) {
+        var builder = new gp.StringBuilder(), input, msg;
+        builder.add( 'Please correct the following errors:\r\n' );
+        // remove error class from inputs
+        gp.removeClass( tr.querySelectorAll( '[name].error' ), 'error' );
+        validationErrors.forEach( function ( v ) {
+            input = tr.querySelector( '[name="' + v.Key + '"]' );
+            if ( input ) {
+                gp.addClass( input, 'error' );
+            }
+            builder.add( v.Key + ':\r\n' );
+            // extract the error message
+            msg = v.Value.Errors.map( function ( e ) { return '    - ' + e.ErrorMessage + '\r\n'; } ).join( '' );
+            builder.add( msg );
+        } );
+        alert( builder.toString() );
+    },
 };
 
 
@@ -2711,6 +2788,39 @@ gp.StringBuilder.prototype = {
     templates
 \***************/
 gp.templates = gp.templates || {};
+gp.templates['bootstrap-modal'] = function(model, arg) {
+    var out = [];
+    out.push('<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">');
+    out.push('<div class="gp modal-dialog" role="document">');
+    out.push('<div class="gp modal-content">');
+    out.push('<div class="modal-header">');
+    out.push('<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>');
+    out.push('                <h4 class="modal-title">');
+    out.push(model.title);
+    out.push('</h4>');
+    out.push('</div>');
+    out.push('<div class="modal-body">');
+                        out.push(model.body);
+        out.push('</div>');
+    out.push('<div class="modal-footer">');
+                        if (model.footer) {
+                                out.push(model.footer);
+                            } else {
+        out.push('<div class="btn-group">');
+    out.push('<button type="button" class="btn btn-default" data-dismiss="modal">');
+    out.push('<span class="glyphicon glyphicon-remove"></span>Close');
+    out.push('</button>');
+    out.push('<button type="button" class="btn btn-primary">');
+    out.push('<span class="glyphicon glyphicon-save"></span>Save changes');
+    out.push('</button>');
+    out.push('</div>');
+                        }
+        out.push('</div>');
+    out.push('</div>');
+    out.push('</div>');
+    out.push('</div>');
+    return out.join('');
+};
 gp.templates['gridponent-body'] = function(model, arg) {
     var out = [];
     out.push('<table class="table" cellpadding="0" cellspacing="0">');

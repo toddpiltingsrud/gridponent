@@ -1,6 +1,5 @@
 ﻿.gp {
   position: relative;
-  width: 100%;
 }
 .gp.pager-bottom-left {
   padding-bottom: 50px;
@@ -256,4 +255,8 @@
 .gp tr.edit-mode td.body-cell [name].error,
 .gp tr.create-mode td.body-cell [name].error {
   border-color: red;
+}
+.gp.modal-dialog input[type=checkbox],
+.gp.modal-dialog input[type=radio] {
+  width: 34px;
 }

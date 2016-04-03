@@ -95,6 +95,25 @@ gp.api.prototype = {
         else callback( null );
     },
 
+    edit: function(dataItem) {
+
+        var html = gp.helpers.bootstrapModal( config, dataItem, 'update' );
+
+        var modal = $( html ).appendTo( 'body' ).modal( {
+            show: true,
+            keyboard: true
+        } );
+
+        var elem = modal[0];
+
+        elem['gp-change-monitor'] = new gp.ChangeMonitor( elem, '[name]', dataItem ).start();
+
+        modal.one( 'hidden.bs.modal', function () {
+            $( modal ).remove();
+            modal = null;
+        } );
+    },
+
     // This would have to be called after having retrieved the dataItem from the table with getData().
     // The controller will attempt to figure out which tr it is by first calling indexOf(dataItem) on the data.
     // So the original dataItem object reference has to be preserved.
