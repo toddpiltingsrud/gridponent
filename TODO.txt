@@ -8,6 +8,8 @@ gridponent('selector')
 
 Eliminate setting config.dataItem.
 
+Test radio buttons in edit mode.
+
 What happens if a grid is rendered twice? Make sure the original is disposed if this happens.
 
 Add a change event to a column:

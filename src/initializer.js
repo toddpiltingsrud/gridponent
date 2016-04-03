@@ -81,6 +81,9 @@ gp.Initializer.prototype = {
             config = gp.getAttributes( node ),
             gpColumns = config.node.querySelectorAll( 'gp-column' );
 
+        // modal or inline
+        config.editmode = config.editmode || 'inline';
+
         config.columns = [];
 
         // create the column configurations

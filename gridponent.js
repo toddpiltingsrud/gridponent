@@ -115,27 +115,31 @@ gp.api.prototype = {
 
     create: function ( dataItem, callback ) {
         var model = this.controller.addRow( dataItem );
-        if ( model != null ) this.controller.createRow( dataItem, model.tableRow, callback );
+        if ( model != null ) this.controller.createRow( dataItem, model.elem, callback );
         else callback( null );
     },
 
-    edit: function(dataItem, mode) {
+    edit: function ( dataItem ) {
 
-        var html = gp.helpers.bootstrapModal( config, dataItem, 'update' );
+        if ( $.fn.modal ) {
 
-        var modal = $( html ).appendTo( 'body' ).modal( {
-            show: true,
-            keyboard: true
-        } );
+            var html = gp.helpers.bootstrapModal( config, dataItem, 'update' );
 
-        var elem = modal[0];
+            var modal = $( html ).appendTo( 'body' ).modal( {
+                show: true,
+                keyboard: true
+            } );
 
-        elem['gp-change-monitor'] = new gp.ChangeMonitor( elem, '[name]', dataItem ).start();
+            var monitor = new gp.ChangeMonitor( modal[0], '[name]', dataItem ).start();
 
-        modal.one( 'hidden.bs.modal', function () {
-            $( modal ).remove();
-            modal = null;
-        } );
+            modal.one( 'hidden.bs.modal', function () {
+                $( modal ).remove();
+                monitor.stop();
+                modal = null;
+            } );
+
+        }
+
     },
 
     // This would have to be called after having retrieved the dataItem from the table with getData().
@@ -432,7 +436,7 @@ gp.Controller.prototype = {
 
         proceed = this.invokeDelegates( this.config.node.api, gp.events.rowselected, {
             dataItem: dataItem,
-            tableRow: tr
+            elem: tr
         } );
 
         if ( proceed === false ) return;
@@ -493,17 +497,15 @@ gp.Controller.prototype = {
             bodyCellContent,
             editCellContent,
             builder,
-            tr,
+            elem,
             html,
             field;
 
         try {
 
-            if ( !gp.hasValue( this.config.create ) ) {
-                return;
-            }
+            if ( !gp.hasValue( this.config.create ) ) return;
 
-            if ( dataItem == undefined ) {
+            if ( !gp.hasValue( dataItem ) ) {
                 dataItem = {};
 
                 // set defaults
@@ -528,32 +530,43 @@ gp.Controller.prototype = {
             // add the new dataItem to the internal data array
             this.config.pageModel.data.push( dataItem );
 
-            tbody = this.config.node.querySelector( 'div.table-body > table > tbody' );
-            rowIndex = this.config.pageModel.data.indexOf( dataItem );
-            bodyCellContent = gp.helpers['bodyCellContent'];
-            editCellContent = gp.helpers['editCellContent'];
+            if ( this.config.editmode == 'modal' ) {
 
-            // use a NodeBuilder to create a tr[data-index=rowIndex].create-mode
-            builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', rowIndex ).addClass( 'create-mode' );
+                elem = this.modalEdit( dataItem, 'create' );
 
-            // add td.body-cell elements to the tr
-            this.config.columns.forEach( function ( col ) {
-                html = col.readonly ?
-                    bodyCellContent.call( this.config, col, dataItem ) :
-                    editCellContent.call( this.config, col, dataItem, 'create' );
-                builder.startElem( 'td' ).addClass( 'body-cell' ).addClass( col.BodyCell ).html( html ).endElem();
-            } );
+            }
+            else {
+                // inline
 
-            tr = builder.close();
+                elem = this.inlineEdit( dataItem, 'create' );
 
-            gp.prependChild( tbody, tr );
+                //tbody = this.config.node.querySelector( 'div.table-body > table > tbody' );
+                //rowIndex = this.config.pageModel.data.indexOf( dataItem );
+                //bodyCellContent = gp.helpers['bodyCellContent'];
+                //editCellContent = gp.helpers['editCellContent'];
 
-            tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', dataItem ).start();
+                //// use a NodeBuilder to create a tr[data-index=rowIndex].create-mode
+                //builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', rowIndex ).addClass( 'create-mode' );
+
+                //// add td.body-cell elements to the tr
+                //this.config.columns.forEach( function ( col ) {
+                //    html = col.readonly ?
+                //        bodyCellContent.call( this.config, col, dataItem ) :
+                //        editCellContent.call( this.config, col, dataItem, 'create' );
+                //    builder.startElem( 'td' ).addClass( 'body-cell' ).addClass( col.BodyCell ).html( html ).endElem();
+                //} );
+
+                //elem = builder.close();
+
+                //gp.prependChild( tbody, elem );
+
+                //elem['gp-change-monitor'] = new gp.ChangeMonitor( elem, '[name]', dataItem ).start();
+            }
 
             // gives external code the opportunity to initialize UI elements (e.g. datepickers)
             this.invokeDelegates( this.config.node.api, gp.events.editmode, {
                 dataItem: dataItem,
-                tableRow: tr
+                elem: elem
             } );
         }
         catch ( ex ) {
@@ -562,7 +575,7 @@ gp.Controller.prototype = {
 
         return {
             dataItem: dataItem,
-            tableRow: tr
+            elem: elem
         };
     },
 
@@ -614,7 +627,7 @@ gp.Controller.prototype = {
                     gp.error( err );
                 }
 
-                self.invokeDelegates( self.config.node.api, gp.events.oncreate, { tableRow: tr, model: updateModel } );
+                self.invokeDelegates( self.config.node.api, gp.events.oncreate, { elem: tr, model: updateModel } );
                 self.invokeDelegates( self.config.node.api, gp.events.onedit, self.config.pageModel );
 
                 gp.applyFunc( callback, self.config.node, updateModel );
@@ -628,25 +641,37 @@ gp.Controller.prototype = {
 
     editRow: function (dataItem, tr) {
         try {
-            // put the dataItem in edit mode
 
-            // IE9 can't set innerHTML of tr, so iterate through each cell
-            // besides, that way we can just skip readonly cells
-            var editCellContent = gp.helpers['editCellContent'];
-            var col, cells = tr.querySelectorAll( 'td.body-cell' );
-            for ( var i = 0; i < cells.length; i++ ) {
-                col = this.config.columns[i];
-                if ( !col.readonly ) {
-                    cells[i].innerHTML = editCellContent.call( this.config, col, dataItem, 'edit' );
-                }
+            if ( this.config.editmode == 'modal' ) {
+
+                elem = this.modalEdit( dataItem, 'edit' );
+
             }
-            gp.addClass( tr, 'edit-mode' );
-            tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', dataItem ).start();
+            else {
+                // inline
+
+                elem = this.inlineEdit( dataItem, 'edit', tr );
+            }
+
+            //// put the dataItem in edit mode
+
+            //// IE9 can't set innerHTML of tr, so iterate through each cell
+            //// besides, that way we can just skip readonly cells
+            //var editCellContent = gp.helpers['editCellContent'];
+            //var col, cells = tr.querySelectorAll( 'td.body-cell' );
+            //for ( var i = 0; i < cells.length; i++ ) {
+            //    col = this.config.columns[i];
+            //    if ( !col.readonly ) {
+            //        cells[i].innerHTML = editCellContent.call( this.config, col, dataItem, 'edit' );
+            //    }
+            //}
+            //gp.addClass( tr, 'edit-mode' );
+            //tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', dataItem ).start();
 
             // gives external code the opportunity to initialize UI elements (e.g. datepickers)
             this.invokeDelegates( this.config.node.api, gp.events.editmode, {
                 dataItem: dataItem,
-                tableRow: tr
+                elem: elem
             } );
         }
         catch (ex) {
@@ -670,7 +695,7 @@ gp.Controller.prototype = {
 
             this.invokeDelegates( this.config.node.api, gp.events.beforeupdate, {
                 dataItem: dataItem,
-                tableRow: tr
+                elem: tr
             } );
 
             // call the data layer with just the dataItem
@@ -711,8 +736,8 @@ gp.Controller.prototype = {
                     gp.error( err );
                 }
 
-                self.invokeDelegates( self.config.node.api, gp.events.onupdate, { tableRow: tr, model: updateModel } );
-                self.invokeDelegates( self.config.node.api, gp.events.onedit, { tableRow: tr, model: updateModel } );
+                self.invokeDelegates( self.config.node.api, gp.events.onupdate, { elem: tr, model: updateModel } );
+                self.invokeDelegates( self.config.node.api, gp.events.onedit, { elem: tr, model: updateModel } );
 
                 gp.applyFunc( callback, self.config.node, updateModel );
             },
@@ -791,12 +816,88 @@ gp.Controller.prototype = {
 
             this.invokeDelegates( this.config.node.api, 'cancelEdit', {
                 dataItem: dataItem,
-                tableRow: tr
+                elem: tr
             } );
         }
         catch ( ex ) {
             gp.error( ex );
         }
+    },
+
+    inlineEdit: function ( dataItem, mode, tr ) {
+
+        var elem,
+            editCellContent = gp.helpers['editCellContent'];
+
+        if ( mode == 'edit' ) {
+
+            // replace the cell contents of the table row with edit controls
+
+            // IE9 can't set innerHTML of tr, so iterate through each cell
+            // besides, that way we can just skip readonly cells
+            var col, cells = tr.querySelectorAll( 'td.body-cell' );
+            for ( var i = 0; i < cells.length; i++ ) {
+                col = this.config.columns[i];
+                if ( !col.readonly ) {
+                    cells[i].innerHTML = editCellContent.call( this.config, col, dataItem, 'edit' );
+                }
+            }
+            gp.addClass( tr, 'edit-mode' );
+            tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', dataItem ).start();
+
+            elem = tr;
+
+        }
+        else {
+
+            // prepend a new table row
+
+            var tbody = this.config.node.querySelector( 'div.table-body > table > tbody' ),
+                rowIndex = this.config.pageModel.data.indexOf( dataItem ),
+                bodyCellContent = gp.helpers['bodyCellContent'],
+                builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', rowIndex ).addClass( 'create-mode' ),
+                cellContent;
+
+            // add td.body-cell elements to the tr
+            this.config.columns.forEach( function ( col ) {
+                cellContent = col.readonly ?
+                    bodyCellContent.call( this.config, col, dataItem ) :
+                    editCellContent.call( this.config, col, dataItem, 'create' );
+                builder.startElem( 'td' ).addClass( 'body-cell' ).addClass( col.BodyCell ).html( cellContent ).endElem();
+            } );
+
+            elem = builder.close();
+
+            gp.prependChild( tbody, elem );
+        }
+
+        elem['gp-change-monitor'] = new gp.ChangeMonitor( elem, '[name]', dataItem ).start();
+
+        return elem;
+    },
+
+    modalEdit: function ( dataItem, mode ) {
+
+        // mode: create or update
+        var html = gp.helpers.bootstrapModal( config, dataItem, mode );
+
+        // append the modal to the body to avoid CSS conflicts
+        var modal = $( html ).appendTo( 'body' ).modal( {
+            show: true,
+            keyboard: true
+        } );
+
+        var monitor = new gp.ChangeMonitor( modal[0], '[name]', dataItem ).start();
+
+        modal.one( 'hidden.bs.modal', function () {
+            $( modal ).remove();
+            monitor.stop();
+            modal = null;
+        } );
+
+        // return the htmlElement instead of the modal object
+        // so the return type is consistent with inlineEdit
+        return modal[0];
     },
 
     refresh: function ( config ) {
@@ -1311,6 +1412,7 @@ gp.Formatter.prototype = {
             gp.removeClass( tblContainer, 'busy' );
         }
         else {
+            gp.log( 'could not remove busy class' );
         }
     };
 
@@ -1391,16 +1493,12 @@ gp.Formatter.prototype = {
     };
 
     // logging
-    gp.logging = 'info';
     gp.log = ( window.console ? window.console.log.bind( window.console ) : function () { } );
     gp.error = function ( e ) {
         if ( console && console.error ) {
             console.error( e );
         }
     };
-    gp.verbose = /verbose/.test( gp.logging ) ? gp.log : function () { };
-    gp.info = /verbose|info/.test( gp.logging ) ? gp.log : function () { };
-    gp.warn = /verbose|info|warn/.test( gp.logging ) ? gp.log : function () { };
 
 } )( gridponent );
 
@@ -1550,7 +1648,6 @@ gp.helpers = {
             index++;
         } );
 
-
         return html.toString();
     },
 
@@ -1607,30 +1704,7 @@ gp.helpers = {
             if ( val === undefined ) return '';
             // render null as empty string
             if ( val === null ) val = '';
-            html.add( '<input class="form-control" name="' + col.field + '" type="' );
-            switch ( col.Type ) {
-                case 'date':
-                case 'dateString':
-                    // Don't bother with date input type.
-                    // Indicate the type using data-type attribute so a custom date picker can be used.
-                    // This sidesteps the problem of polyfilling browsers that don't support date input type
-                    // and provides a more consistent experience across browsers.
-                    html.add( 'text" data-type="date" value="' + gp.escapeHTML( val ) + '" />' );
-                    break;
-                case 'number':
-                    html.add( 'number" value="' + gp.escapeHTML( val ) + '" />' );
-                    break;
-                case 'boolean':
-                    html.add( 'checkbox" value="true"' );
-                    if ( val ) {
-                        html.add( ' checked="checked"' );
-                    }
-                    html.add( ' />' );
-                    break;
-                default:
-                    html.add( 'text" value="' + gp.escapeHTML( val ) + '" />' );
-                    break;
-            }
+            html.add( gp.helpers.input( col.Type, col.field, val ) );
         }
         return html.toString();
     },
@@ -1646,6 +1720,22 @@ gp.helpers = {
             }
         }
         return html.toString();
+    },
+
+    input: function ( type, name, value ) {
+        var obj = {
+            type: ( type == 'boolean' ? 'checkbox' : ( type == 'number' ? 'number' : 'text' ) ),
+            name: name,
+            value: ( type == 'boolean' ? 'true' : ( type == 'date' ? gp.formatter.format( value, 'YYYY-MM-DD' ) : gp.escapeHTML( value ) ) ),
+            checked: ( type == 'boolean' && value ? ' checked' : '' ),
+            // Don't bother with the date input type.
+            // Indicate the type using data-type attribute so a custom date picker can be used.
+            // This sidesteps the problem of polyfilling browsers that don't support the date input type
+            // and provides a more consistent experience across browsers.
+            dataType: ( /^date/.test( type ) ? ' data-type="date"' : '' )
+        };
+
+        return gp.supplant( '<input type="{{type}}" name="{{name}}" value="{{value}}" class="form-control"{{dataType}}{{checked}} />', obj );
     },
 
     setPagerFlags: function () {
@@ -1846,6 +1936,9 @@ gp.Initializer.prototype = {
             templates,
             config = gp.getAttributes( node ),
             gpColumns = config.node.querySelectorAll( 'gp-column' );
+
+        // modal or inline
+        config.editmode = config.editmode || 'inline';
 
         config.columns = [];
 

@@ -91,27 +91,31 @@ gp.api.prototype = {
 
     create: function ( dataItem, callback ) {
         var model = this.controller.addRow( dataItem );
-        if ( model != null ) this.controller.createRow( dataItem, model.tableRow, callback );
+        if ( model != null ) this.controller.createRow( dataItem, model.elem, callback );
         else callback( null );
     },
 
-    edit: function(dataItem) {
+    edit: function ( dataItem ) {
 
-        var html = gp.helpers.bootstrapModal( config, dataItem, 'update' );
+        if ( $.fn.modal ) {
 
-        var modal = $( html ).appendTo( 'body' ).modal( {
-            show: true,
-            keyboard: true
-        } );
+            var html = gp.helpers.bootstrapModal( config, dataItem, 'update' );
 
-        var elem = modal[0];
+            var modal = $( html ).appendTo( 'body' ).modal( {
+                show: true,
+                keyboard: true
+            } );
 
-        elem['gp-change-monitor'] = new gp.ChangeMonitor( elem, '[name]', dataItem ).start();
+            var monitor = new gp.ChangeMonitor( modal[0], '[name]', dataItem ).start();
 
-        modal.one( 'hidden.bs.modal', function () {
-            $( modal ).remove();
-            modal = null;
-        } );
+            modal.one( 'hidden.bs.modal', function () {
+                $( modal ).remove();
+                monitor.stop();
+                modal = null;
+            } );
+
+        }
+
     },
 
     // This would have to be called after having retrieved the dataItem from the table with getData().

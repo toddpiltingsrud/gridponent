@@ -144,9 +144,6 @@ gp.helpers = {
             index++;
         } );
 
-        gp.verbose( 'columnWidthStyle: html:' );
-        gp.verbose( html.toString() );
-
         return html.toString();
     },
 
@@ -203,30 +200,7 @@ gp.helpers = {
             if ( val === undefined ) return '';
             // render null as empty string
             if ( val === null ) val = '';
-            html.add( '<input class="form-control" name="' + col.field + '" type="' );
-            switch ( col.Type ) {
-                case 'date':
-                case 'dateString':
-                    // Don't bother with date input type.
-                    // Indicate the type using data-type attribute so a custom date picker can be used.
-                    // This sidesteps the problem of polyfilling browsers that don't support date input type
-                    // and provides a more consistent experience across browsers.
-                    html.add( 'text" data-type="date" value="' + gp.escapeHTML( val ) + '" />' );
-                    break;
-                case 'number':
-                    html.add( 'number" value="' + gp.escapeHTML( val ) + '" />' );
-                    break;
-                case 'boolean':
-                    html.add( 'checkbox" value="true"' );
-                    if ( val ) {
-                        html.add( ' checked="checked"' );
-                    }
-                    html.add( ' />' );
-                    break;
-                default:
-                    html.add( 'text" value="' + gp.escapeHTML( val ) + '" />' );
-                    break;
-            }
+            html.add( gp.helpers.input( col.Type, col.field, val ) );
         }
         return html.toString();
     },
@@ -242,6 +216,22 @@ gp.helpers = {
             }
         }
         return html.toString();
+    },
+
+    input: function ( type, name, value ) {
+        var obj = {
+            type: ( type == 'boolean' ? 'checkbox' : ( type == 'number' ? 'number' : 'text' ) ),
+            name: name,
+            value: ( type == 'boolean' ? 'true' : ( type == 'date' ? gp.formatter.format( value, 'YYYY-MM-DD' ) : gp.escapeHTML( value ) ) ),
+            checked: ( type == 'boolean' && value ? ' checked' : '' ),
+            // Don't bother with the date input type.
+            // Indicate the type using data-type attribute so a custom date picker can be used.
+            // This sidesteps the problem of polyfilling browsers that don't support the date input type
+            // and provides a more consistent experience across browsers.
+            dataType: ( /^date/.test( type ) ? ' data-type="date"' : '' )
+        };
+
+        return gp.supplant( '<input type="{{type}}" name="{{name}}" value="{{value}}" class="form-control"{{dataType}}{{checked}} />', obj );
     },
 
     setPagerFlags: function () {

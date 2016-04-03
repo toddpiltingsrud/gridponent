@@ -17,7 +17,6 @@ gp.Controller = function (config, model, requestModel) {
         httpErrorHandler: self.httpErrorHandler.bind(self)
     };
     this.done = false;
-    //this.callbacks = [];
     this.eventDelegates = {};
 };
 
@@ -71,7 +70,6 @@ gp.Controller.prototype = {
             }
         } );
         this.monitor.beforeSync = function ( name, value, model ) {
-            gp.info( 'beforeSync called' );
             // the sort property requires special handling
             if (name === 'sort') {
                 if (model[name] === value) {
@@ -172,7 +170,7 @@ gp.Controller.prototype = {
 
         proceed = this.invokeDelegates( this.config.node.api, gp.events.rowselected, {
             dataItem: dataItem,
-            tableRow: tr
+            elem: tr
         } );
 
         if ( proceed === false ) return;
@@ -218,7 +216,6 @@ gp.Controller.prototype = {
         }
         proceed = this.invokeDelegates( this.config.node.api, gp.events.beforeread, this.config.node.api );
         if ( proceed === false ) return;
-        gp.info( 'read.pageModel:', this.config.pageModel );
         this.model.read( this.config.pageModel, function ( model ) {
             // standardize capitalization of incoming data
             gp.shallowCopy( model, self.config.pageModel, true );
@@ -234,17 +231,15 @@ gp.Controller.prototype = {
             bodyCellContent,
             editCellContent,
             builder,
-            tr,
+            elem,
             html,
             field;
 
         try {
 
-            if ( !gp.hasValue( this.config.create ) ) {
-                return;
-            }
+            if ( !gp.hasValue( this.config.create ) ) return;
 
-            if ( dataItem == undefined ) {
+            if ( !gp.hasValue( dataItem ) ) {
                 dataItem = {};
 
                 // set defaults
@@ -269,32 +264,43 @@ gp.Controller.prototype = {
             // add the new dataItem to the internal data array
             this.config.pageModel.data.push( dataItem );
 
-            tbody = this.config.node.querySelector( 'div.table-body > table > tbody' );
-            rowIndex = this.config.pageModel.data.indexOf( dataItem );
-            bodyCellContent = gp.helpers['bodyCellContent'];
-            editCellContent = gp.helpers['editCellContent'];
+            if ( this.config.editmode == 'modal' ) {
 
-            // use a NodeBuilder to create a tr[data-index=rowIndex].create-mode
-            builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', rowIndex ).addClass( 'create-mode' );
+                elem = this.modalEdit( dataItem, 'create' );
 
-            // add td.body-cell elements to the tr
-            this.config.columns.forEach( function ( col ) {
-                html = col.readonly ?
-                    bodyCellContent.call( this.config, col, dataItem ) :
-                    editCellContent.call( this.config, col, dataItem, 'create' );
-                builder.startElem( 'td' ).addClass( 'body-cell' ).addClass( col.BodyCell ).html( html ).endElem();
-            } );
+            }
+            else {
+                // inline
 
-            tr = builder.close();
+                elem = this.inlineEdit( dataItem, 'create' );
 
-            gp.prependChild( tbody, tr );
+                //tbody = this.config.node.querySelector( 'div.table-body > table > tbody' );
+                //rowIndex = this.config.pageModel.data.indexOf( dataItem );
+                //bodyCellContent = gp.helpers['bodyCellContent'];
+                //editCellContent = gp.helpers['editCellContent'];
 
-            tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', dataItem ).start();
+                //// use a NodeBuilder to create a tr[data-index=rowIndex].create-mode
+                //builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', rowIndex ).addClass( 'create-mode' );
+
+                //// add td.body-cell elements to the tr
+                //this.config.columns.forEach( function ( col ) {
+                //    html = col.readonly ?
+                //        bodyCellContent.call( this.config, col, dataItem ) :
+                //        editCellContent.call( this.config, col, dataItem, 'create' );
+                //    builder.startElem( 'td' ).addClass( 'body-cell' ).addClass( col.BodyCell ).html( html ).endElem();
+                //} );
+
+                //elem = builder.close();
+
+                //gp.prependChild( tbody, elem );
+
+                //elem['gp-change-monitor'] = new gp.ChangeMonitor( elem, '[name]', dataItem ).start();
+            }
 
             // gives external code the opportunity to initialize UI elements (e.g. datepickers)
             this.invokeDelegates( this.config.node.api, gp.events.editmode, {
                 dataItem: dataItem,
-                tableRow: tr
+                elem: elem
             } );
         }
         catch ( ex ) {
@@ -303,7 +309,7 @@ gp.Controller.prototype = {
 
         return {
             dataItem: dataItem,
-            tableRow: tr
+            elem: elem
         };
     },
 
@@ -355,7 +361,7 @@ gp.Controller.prototype = {
                     gp.error( err );
                 }
 
-                self.invokeDelegates( self.config.node.api, gp.events.oncreate, { tableRow: tr, model: updateModel } );
+                self.invokeDelegates( self.config.node.api, gp.events.oncreate, { elem: tr, model: updateModel } );
                 self.invokeDelegates( self.config.node.api, gp.events.onedit, self.config.pageModel );
 
                 gp.applyFunc( callback, self.config.node, updateModel );
@@ -369,25 +375,37 @@ gp.Controller.prototype = {
 
     editRow: function (dataItem, tr) {
         try {
-            // put the dataItem in edit mode
 
-            // IE9 can't set innerHTML of tr, so iterate through each cell
-            // besides, that way we can just skip readonly cells
-            var editCellContent = gp.helpers['editCellContent'];
-            var col, cells = tr.querySelectorAll( 'td.body-cell' );
-            for ( var i = 0; i < cells.length; i++ ) {
-                col = this.config.columns[i];
-                if ( !col.readonly ) {
-                    cells[i].innerHTML = editCellContent.call( this.config, col, dataItem, 'edit' );
-                }
+            if ( this.config.editmode == 'modal' ) {
+
+                elem = this.modalEdit( dataItem, 'edit' );
+
             }
-            gp.addClass( tr, 'edit-mode' );
-            tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', dataItem ).start();
+            else {
+                // inline
+
+                elem = this.inlineEdit( dataItem, 'edit', tr );
+            }
+
+            //// put the dataItem in edit mode
+
+            //// IE9 can't set innerHTML of tr, so iterate through each cell
+            //// besides, that way we can just skip readonly cells
+            //var editCellContent = gp.helpers['editCellContent'];
+            //var col, cells = tr.querySelectorAll( 'td.body-cell' );
+            //for ( var i = 0; i < cells.length; i++ ) {
+            //    col = this.config.columns[i];
+            //    if ( !col.readonly ) {
+            //        cells[i].innerHTML = editCellContent.call( this.config, col, dataItem, 'edit' );
+            //    }
+            //}
+            //gp.addClass( tr, 'edit-mode' );
+            //tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', dataItem ).start();
 
             // gives external code the opportunity to initialize UI elements (e.g. datepickers)
             this.invokeDelegates( this.config.node.api, gp.events.editmode, {
                 dataItem: dataItem,
-                tableRow: tr
+                elem: elem
             } );
         }
         catch (ex) {
@@ -411,7 +429,7 @@ gp.Controller.prototype = {
 
             this.invokeDelegates( this.config.node.api, gp.events.beforeupdate, {
                 dataItem: dataItem,
-                tableRow: tr
+                elem: tr
             } );
 
             // call the data layer with just the dataItem
@@ -452,8 +470,8 @@ gp.Controller.prototype = {
                     gp.error( err );
                 }
 
-                self.invokeDelegates( self.config.node.api, gp.events.onupdate, { tableRow: tr, model: updateModel } );
-                self.invokeDelegates( self.config.node.api, gp.events.onedit, { tableRow: tr, model: updateModel } );
+                self.invokeDelegates( self.config.node.api, gp.events.onupdate, { elem: tr, model: updateModel } );
+                self.invokeDelegates( self.config.node.api, gp.events.onedit, { elem: tr, model: updateModel } );
 
                 gp.applyFunc( callback, self.config.node, updateModel );
             },
@@ -532,12 +550,88 @@ gp.Controller.prototype = {
 
             this.invokeDelegates( this.config.node.api, 'cancelEdit', {
                 dataItem: dataItem,
-                tableRow: tr
+                elem: tr
             } );
         }
         catch ( ex ) {
             gp.error( ex );
         }
+    },
+
+    inlineEdit: function ( dataItem, mode, tr ) {
+
+        var elem,
+            editCellContent = gp.helpers['editCellContent'];
+
+        if ( mode == 'edit' ) {
+
+            // replace the cell contents of the table row with edit controls
+
+            // IE9 can't set innerHTML of tr, so iterate through each cell
+            // besides, that way we can just skip readonly cells
+            var col, cells = tr.querySelectorAll( 'td.body-cell' );
+            for ( var i = 0; i < cells.length; i++ ) {
+                col = this.config.columns[i];
+                if ( !col.readonly ) {
+                    cells[i].innerHTML = editCellContent.call( this.config, col, dataItem, 'edit' );
+                }
+            }
+            gp.addClass( tr, 'edit-mode' );
+            tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', dataItem ).start();
+
+            elem = tr;
+
+        }
+        else {
+
+            // prepend a new table row
+
+            var tbody = this.config.node.querySelector( 'div.table-body > table > tbody' ),
+                rowIndex = this.config.pageModel.data.indexOf( dataItem ),
+                bodyCellContent = gp.helpers['bodyCellContent'],
+                builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', rowIndex ).addClass( 'create-mode' ),
+                cellContent;
+
+            // add td.body-cell elements to the tr
+            this.config.columns.forEach( function ( col ) {
+                cellContent = col.readonly ?
+                    bodyCellContent.call( this.config, col, dataItem ) :
+                    editCellContent.call( this.config, col, dataItem, 'create' );
+                builder.startElem( 'td' ).addClass( 'body-cell' ).addClass( col.BodyCell ).html( cellContent ).endElem();
+            } );
+
+            elem = builder.close();
+
+            gp.prependChild( tbody, elem );
+        }
+
+        elem['gp-change-monitor'] = new gp.ChangeMonitor( elem, '[name]', dataItem ).start();
+
+        return elem;
+    },
+
+    modalEdit: function ( dataItem, mode ) {
+
+        // mode: create or update
+        var html = gp.helpers.bootstrapModal( config, dataItem, mode );
+
+        // append the modal to the body to avoid CSS conflicts
+        var modal = $( html ).appendTo( 'body' ).modal( {
+            show: true,
+            keyboard: true
+        } );
+
+        var monitor = new gp.ChangeMonitor( modal[0], '[name]', dataItem ).start();
+
+        modal.one( 'hidden.bs.modal', function () {
+            $( modal ).remove();
+            monitor.stop();
+            modal = null;
+        } );
+
+        // return the htmlElement instead of the modal object
+        // so the return type is consistent with inlineEdit
+        return modal[0];
     },
 
     refresh: function ( config ) {

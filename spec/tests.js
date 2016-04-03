@@ -193,6 +193,36 @@ var getValidationErrors = function () {
     ];
 };
 
+QUnit.test( 'helpers.input', function ( assert ) {
+
+    var input = gp.helpers.input( 'boolean', 'IsSelected', false );
+
+    assert.equal( input, '<input type="checkbox" name="IsSelected" value="true" class="form-control" />' );
+
+    input = gp.helpers.input( 'boolean', 'IsSelected', true );
+
+    assert.equal( input, '<input type="checkbox" name="IsSelected" value="true" class="form-control" checked />' );
+
+    input = gp.helpers.input( 'number', 'Total', 123.5 );
+
+    assert.equal( input, '<input type="number" name="Total" value="123.5" class="form-control" />' );
+
+    var d = new Date();
+    var s = moment( d ).format( 'YYYY-MM-DD' );
+
+    input = gp.helpers.input( 'date', 'Date', d );
+
+    assert.equal( input, '<input type="text" name="Date" value="'+s+'" class="form-control" data-type="date" />' );
+
+    input = gp.helpers.input( 'dateString', 'Date', '2016-04-03' );
+
+    assert.equal( input, '<input type="text" name="Date" value="2016-04-03" class="form-control" data-type="date" />' );
+
+    input = gp.helpers.input( 'string', 'FirstName', 'Todd' );
+
+    assert.equal( input, '<input type="text" name="FirstName" value="Todd" class="form-control" />' );
+} );
+
 QUnit.test( 'bootstrap modal', function ( assert ) {
 
     var done1 = assert.async();
@@ -863,7 +893,6 @@ QUnit.test( 'api.update', function ( assert ) {
             if ( input ) {
                 // extract the error message
                 var msg = v.Value.errors.map( function ( e ) { return e.ErrorMessage; } ).join( '<br/>' );
-                gp.info( 'validation.msg', msg );
                 gp.addClass( input, 'input-validation-error' );
                 $( input ).tooltip( {
                     html: true,
@@ -1408,8 +1437,6 @@ QUnit.test( 'gp.Model', function ( assert ) {
         var model = new gp.Model( config );
 
         var request = new gp.PagingModel();
-
-        gridponent.logging = null;
 
         model.read( request, function ( response ) {
             assert.equal( response.data.length, data.products.length, 'should return all rows' );
@@ -1957,7 +1984,7 @@ QUnit.test( 'editmode event', function ( assert ) {
     fns.editmode = function ( evt ) {
         assert.ok( evt != null );
         assert.ok( evt.dataItem != null );
-        assert.ok( evt.tableRow != null );
+        assert.ok( evt.elem != null );
         done2();
     };
 
@@ -2005,7 +2032,7 @@ QUnit.test( 'edit and update', function ( assert ) {
     fns.editmode = function ( evt ) {
         assert.ok( evt != null );
         assert.ok( evt.dataItem != null );
-        assert.ok( evt.tableRow != null );
+        assert.ok( evt.elem != null );
         // change some of the values
         var input = this.find( '[name=StandardCost]' )
         input.value = '5';

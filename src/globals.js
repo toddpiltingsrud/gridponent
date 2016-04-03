@@ -66,8 +66,6 @@
         if ( typeof ( elem ) === 'string' ) {
             elem = document.querySelector( elem );
         }
-        gp.info( 'closest: elem:' );
-        gp.info( elem );
 
         if ( elem ) {
             // start with elem's immediate parent
@@ -78,8 +76,6 @@
             while ( e ) {
                 for ( j = 0; j < potentials.length; j++ ) {
                     if ( e == potentials[j] ) {
-                        gp.info( 'closest: e:' );
-                        gp.info( e );
                         return e;
                     }
                 }
@@ -144,7 +140,6 @@
     gp.formatter = new gp.Formatter();
 
     gp.getAttributes = function ( node ) {
-        gp.verbose( 'getConfig: node:', node );
         var config = {}, name, attr, attrs = node.attributes;
         config.node = node;
         for ( var i = attrs.length - 1; i >= 0; i-- ) {
@@ -154,7 +149,6 @@
             config[name] = gp.rexp.trueFalse.test( attr.value ) || attr.value === '' ?
                 ( attr.value === "true" || attr.value === '' ) : attr.value;
         }
-        gp.verbose( 'getConfig: config:', config );
         return config;
     };
 
@@ -393,7 +387,6 @@
     gp.raiseCustomEvent = function ( node, name, detail ) {
         var event = new CustomEvent( name, { bubbles: true, detail: detail, cancelable: true } );
         node.dispatchEvent( event );
-        gp.info( 'raiseCustomEvent: name', name );
         return event;
     };
 
@@ -406,7 +399,7 @@
             gp.removeClass( tblContainer, 'busy' );
         }
         else {
-            gp.warn( 'could not remove busy class' );
+            gp.log( 'could not remove busy class' );
         }
     };
 
@@ -487,15 +480,11 @@
     };
 
     // logging
-    gp.logging = 'info';
     gp.log = ( window.console ? window.console.log.bind( window.console ) : function () { } );
     gp.error = function ( e ) {
         if ( console && console.error ) {
             console.error( e );
         }
     };
-    gp.verbose = /verbose/.test( gp.logging ) ? gp.log : function () { };
-    gp.info = /verbose|info/.test( gp.logging ) ? gp.log : function () { };
-    gp.warn = /verbose|info|warn/.test( gp.logging ) ? gp.log : function () { };
 
 } )( gridponent );
