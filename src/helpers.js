@@ -189,7 +189,7 @@ gp.helpers = {
                 .add( '">' )
                 .add( '<span class="glyphicon glyphicon-save"></span>Save' )
                 .add( '</button>' )
-                .add( '<button type="button" class="btn btn-default btn-xs" value="Cancel">' )
+                .add( '<button type="button" class="btn btn-default btn-xs" data-dismiss="modal" value="cancel">' )
                 .add( '<span class="glyphicon glyphicon-remove"></span>Cancel' )
                 .add( '</button>' )
                 .add( '</div>' );

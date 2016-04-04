@@ -60,7 +60,7 @@
     <Content Include="spec\OutSource.txt" />
     <Content Include="spec\styles\bootstrap-theme.css" />
     <Content Include="spec\styles\bootstrap-theme.min.css" />
-    <Content Include="src\bootstrap-modal.js" />
+    <Content Include="src\editors.js" />
     <Content Include="src\templates\bootstrap-modal.html" />
     <Content Include="src\z-webcomponent.js" />
     <Content Include="src\gridponent.css">
@@ -83,7 +83,7 @@
     <Content Include="spec\styles\bootstrap.min.css" />
     <Content Include="spec\styles\qunit-1.20.0.css" />
     <Content Include="spec\styles\styles.css" />
-    <Content Include="src\object-proxy.js" />
+    <Content Include="src\x-object-proxy.js" />
     <Content Include="src\x-format.js" />
     <Content Include="src\custom-event-polyfill.js" />
     <Content Include="src\mock-http.js" />

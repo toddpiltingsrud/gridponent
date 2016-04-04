@@ -1,4 +1,10 @@
-﻿Add modal edit feature
+﻿Add modal edit feature.
+Add validation elements to the modal.
+Add a required attribute.
+
+Change config.node to the top table container.
+Since we have the ability to use the gridponent function to inject a grid anywhere,
+we should account for the possibility that the user will try to inject two grids into the same element.
 
 All main configuration options should be available through the API:
 gridponent('selector')

@@ -193,6 +193,94 @@ var getValidationErrors = function () {
     ];
 };
 
+var configuration = {
+    read: '/products/read?page={{page}}',
+    create: '/products/create',
+    update: '/products/update',
+    destroy: '/products/delete',
+    search: 'top-left',
+    pager: 'bottom-left',
+    columns: [
+        {
+            headertemplate: '<input type="checkbox" name="test" />',
+            bodytemplate: '<input type="checkbox" name="test" />',
+            footertemplate: '<input type="checkbox" name="test" />'
+        },
+        {
+            sort: 'Name',
+            header: 'ID',
+            bodytemplate: fns.getname,
+            edittemplate: fns.dropdown
+        },
+        {
+            width: '75px',
+            header: 'Make',
+            field: 'MakeFlag'
+        },
+        {
+            header: 'Safety Stock Level',
+            field: 'SafetyStockLevel',
+            bodytemplate: '<button class="btn"><span class="glyphicon glyphicon-search"></span>{{SafetyStockLevel}}</button>',
+            footertemplate: fns.average
+        },
+        {
+            format: 'c',
+            header: 'Standard Cost',
+            field: 'StandardCost'
+        },
+        {
+            format: 'D MMMM, YYYY',
+            header: 'Sell Start Date',
+            field: 'SellStartDate'
+        },
+        {
+            headerclass: 'hidden-xs',
+            bodyclass: 'hidden-xs',
+            readonly: true,
+            field: 'Markup'
+        },
+        {
+            headertemplate: 'Test Header<input type="checkbox"/>'
+        },
+        {
+            bodystyle: 'border:solid 1px #ccc;',
+            sort: 'Color',
+            headertemplate: '<button class="btn" value="">{{fns.getHeaderText}}</button>',
+            bodytemplate: '<button class="btn" value="{{fns.getButtonText}}"><span class="glyphicon {{fns.getButtonIcon}}"></span>{{fns.getButtonText}}</button>'
+        },
+        {
+            header: 'Product #',
+            field: 'ProductNumber'
+        },
+        {
+            commands: ['edit', 'destroy']
+        }
+    ]
+};
+
+QUnit.test( 'modal edit', function ( assert ) {
+
+    var done = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    options.editmode = 'modal';
+
+    gridponent( '#table .box', options ).ready( function () {
+
+        // find an edit button
+        var btn = this.find( 'button[value=edit]' );
+
+        assert.ok( btn != null );
+
+        //clickButton( btn );
+
+        done();
+
+    } );
+
+} );
+
 QUnit.test( 'helpers.input', function ( assert ) {
 
     var input = gp.helpers.input( 'boolean', 'IsSelected', false );
@@ -327,50 +415,50 @@ QUnit.test( 'options', function ( assert ) {
                 footertemplate: '<input type="checkbox" name="test" />'
             },
             {
-                sort: 'name',
-                header: 'id',
+                sort: 'Name',
+                header: 'ID',
                 bodytemplate: fns.getname,
                 edittemplate: fns.dropdown
             },
             {
                 width: '75px',
-                header: 'make',
-                field: 'makeflag'
+                header: 'Make',
+                field: 'MakeFlag'
             },
             {
-                header: 'safety stock level',
-                field: 'safetystocklevel',
-                bodytemplate: '<button class="btn"><span class="glyphicon glyphicon-search"></span>{{safetystocklevel}}</button>',
+                header: 'Safety Stock Level',
+                field: 'SafetyStockLevel',
+                bodytemplate: '<button class="btn"><span class="glyphicon glyphicon-search"></span>{{SafetyStockLevel}}</button>',
                 footertemplate: fns.average
             },
             {
                 format: 'c',
-                header: 'standard cost',
-                field: 'standardcost'
+                header: 'Standard Cost',
+                field: 'StandardCost'
             },
             {
-                format: 'd mmmm, yyyy',
-                header: 'sell start date',
-                field: 'sellstartdate'
+                format: 'D MMMM, YYYY',
+                header: 'Sell Start Date',
+                field: 'SellStartDate'
             },
             {
                 headerclass: 'hidden-xs',
                 bodyclass: 'hidden-xs',
                 readonly: true,
-                field: 'markup'
+                field: 'Markup'
             },
             {
-                headertemplate: 'test header<input type="checkbox"/>'
+                headertemplate: 'Test Header<input type="checkbox"/>'
             },
             {
                 bodystyle: 'border:solid 1px #ccc;',
-                sort: 'color',
-                headertemplate: '<button class="btn" value="">{{fns.getheadertext}}</button>',
-                bodytemplate: '<button class="btn" value="{{fns.getbuttontext}}"><span class="glyphicon {{fns.getbuttonicon}}"></span>{{fns.getbuttontext}}</button>'
+                sort: 'Color',
+                headertemplate: '<button class="btn" value="">{{fns.getHeaderText}}</button>',
+                bodytemplate: '<button class="btn" value="{{fns.getButtonText}}"><span class="glyphicon {{fns.getButtonIcon}}"></span>{{fns.getButtonText}}</button>'
             },
             {
-                header: 'product #',
-                field: 'productnumber'
+                header: 'Product #',
+                field: 'ProductNumber'
             },
             {
                 commands: ['edit', 'destroy']
@@ -464,7 +552,7 @@ QUnit.test( 'commandHandler', function ( assert ) {
 
         assert.ok( editRow != null, 'clicking the addrow button should create a dataItem in create mode' );
 
-        var cancelBtn = editRow.querySelector( '[value=Cancel]' );
+        var cancelBtn = editRow.querySelector( '[value=cancel]' );
 
         clickButton( cancelBtn );
 

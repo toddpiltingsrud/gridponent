@@ -133,11 +133,9 @@ gp.api.prototype = {
         this.controller.updateRow( dataItem, tr, done );
     },
 
-    'destroy': function ( dataItem, callback ) {
+    destroy: function ( dataItem, callback ) {
         this.controller.deleteRow( dataItem, callback, true );
     },
-
-    cancel: function ( arg ) { },
 
     dispose: function () {
         this.controller.dispose();

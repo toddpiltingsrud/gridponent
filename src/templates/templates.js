@@ -4,11 +4,11 @@
 gp.templates = gp.templates || {};
 gp.templates['bootstrap-modal'] = function(model, arg) {
     var out = [];
-    out.push('<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">');
+    out.push('<div class="modal fade" tabindex="-1" role="dialog">');
     out.push('<div class="gp modal-dialog" role="document">');
-    out.push('<div class="gp modal-content">');
+    out.push('<div class="modal-content">');
     out.push('<div class="modal-header">');
-    out.push('<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>');
+    out.push('<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true" value="cancel">&times;</span></button>');
     out.push('                <h4 class="modal-title">');
     out.push(model.title);
     out.push('</h4>');
@@ -21,10 +21,10 @@ gp.templates['bootstrap-modal'] = function(model, arg) {
                                 out.push(model.footer);
                             } else {
         out.push('<div class="btn-group">');
-    out.push('<button type="button" class="btn btn-default" data-dismiss="modal">');
+    out.push('<button type="button" class="btn btn-default" data-dismiss="modal" value="cancel">');
     out.push('<span class="glyphicon glyphicon-remove"></span>Close');
     out.push('</button>');
-    out.push('<button type="button" class="btn btn-primary">');
+    out.push('<button type="button" class="btn btn-primary" value="save">');
     out.push('<span class="glyphicon glyphicon-save"></span>Save changes');
     out.push('</button>');
     out.push('</div>');
