@@ -61,6 +61,8 @@
     <Content Include="spec\styles\bootstrap-theme.css" />
     <Content Include="spec\styles\bootstrap-theme.min.css" />
     <Content Include="src\editors.js" />
+    <Content Include="src\templates\button.html" />
+    <Content Include="src\templates\form-group.html" />
     <Content Include="src\templates\bootstrap-modal.html" />
     <Content Include="src\z-webcomponent.js" />
     <Content Include="src\gridponent.css">

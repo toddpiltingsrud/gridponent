@@ -3,24 +3,8 @@
 \***************/
 ( function ( gp ) {
 
-    gp.addBusy = function( evt ) {
-        var tblContainer = evt.target.querySelector( 'div.table-container' )
-            || gp.closest( evt.target, 'div.table-container' );
-
-        if ( tblContainer ) {
-            gp.addClass( tblContainer, 'busy' );
-        }
-    };
-
     gp.addClass = function ( el, cn ) {
-        if ( el instanceof NodeList ) {
-            for (var i = 0; i < el.length; i++) {
-                if ( !gp.hasClass( el[i], cn ) ) {
-                    el[i].className = ( el[i].className === '' ) ? cn : el[i].className + ' ' + cn;
-                }
-            }
-        }
-        else if ( !gp.hasClass( el, cn ) ) {
+        if ( !gp.hasClass( el, cn ) ) {
             el.className = ( el.className === '' ) ? cn : el.className + ' ' + cn;
         }
     };
@@ -131,10 +115,6 @@
             obj = obj.replace( chars[i], escaped[i] );
         }
         return obj;
-    };
-
-    gp.extend = function ( to, from ) {
-        return gp.shallowCopy( from, to );
     };
 
     gp.formatter = new gp.Formatter();
@@ -252,22 +232,6 @@
 
     gp.hasValue = function ( val ) {
         return val !== undefined && val !== null;
-    };
-
-    gp.in = function ( elem, selector, parent ) {
-        parent = parent || document;
-        // if elem is a selector, convert it to an element
-        if ( typeof ( elem ) === 'string' ) {
-            elem = parent.querySelector( elem );
-        }
-        // if selector is a string, convert it to a node list
-        if ( typeof ( selector ) === 'string' ) {
-            selector = parent.querySelectorAll( selector );
-        }
-        for ( var i = 0; i < selector.length; i++ ) {
-            if ( selector[i] === elem ) return true;
-        }
-        return false;
     };
 
     gp.isNullOrEmpty = function ( val ) {
@@ -390,19 +354,6 @@
         return event;
     };
 
-    gp.removeBusy = function ( evt ) {
-        var tblContainer = evt.target.querySelector( 'div.table-container' );
-        tblContainer = tblContainer || document.querySelector( 'div.table-container.busy' )
-            || gp.closest( evt.target, 'div.table-container' );
-
-        if ( tblContainer ) {
-            gp.removeClass( tblContainer, 'busy' );
-        }
-        else {
-            gp.log( 'could not remove busy class' );
-        }
-    };
-
     gp.removeClass = function ( el, cn ) {
         if ( el instanceof NodeList ) {
             for ( var i = 0; i < el.length; i++ ) {
@@ -412,24 +363,6 @@
         else {
             el.className = gp.trim(( ' ' + el.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
         }
-    };
-
-    gp.resolveTemplate = function ( template ) {
-        // can be a selector, an inline template, or a function
-        var t = gp.getObjectAtPath( template );
-        if ( typeof ( t ) === 'function' ) {
-            return t;
-        }
-        else if ( gp.rexp.braces.test( template ) ) {
-            return template;
-        }
-        else {
-            t = document.querySelector( template );
-            if ( t ) {
-                return t.innerHTML;
-            }
-        }
-        return null;
     };
 
     gp.rexp = {
@@ -468,15 +401,6 @@
     gp.trim = function ( str ) {
         if ( gp.isNullOrEmpty( str ) ) return str;
         return str.trim ? str.trim() : str.replace( /^\s+|\s+$/g, '' );
-    };
-
-    gp.tryFunc = function(callback, arg) {
-        try {
-            callback( arg );
-        }
-        catch ( e ) {
-            gp.error( e );
-        }
     };
 
     // logging

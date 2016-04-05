@@ -18,6 +18,7 @@ gp.Controller = function (config, model, requestModel) {
     };
     this.done = false;
     this.eventDelegates = {};
+    this.addBusyDelegates();
 };
 
 gp.Controller.prototype = {
@@ -29,7 +30,36 @@ gp.Controller.prototype = {
         this.addRowSelectHandler( this.config );
         this.addRefreshEventHandler( this.config );
         this.done = true;
-        this.invokeDelegates( this.config.node.api, gp.events.ready, this.config.node.api );
+        this.invokeDelegates( gp.events.ready, this.config.node.api );
+    },
+
+    addBusyDelegates: function () {
+        this.addDelegate( gp.events.beforeread, this.addBusy );
+        this.addDelegate( gp.events.onread, this.removeBusy );
+        this.addDelegate( gp.events.beforeedit, this.addBusy );
+        this.addDelegate( gp.events.onedit, this.removeBusy );
+        this.addDelegate( gp.events.httpError, this.removeBusy );
+    },
+
+    addBusy: function () {
+        // this function executes with the api as its context
+        var tblContainer = this.getConfig().node.querySelector( 'div.table-container' );
+
+        if ( tblContainer ) {
+            gp.addClass( tblContainer, 'busy' );
+        }
+    },
+
+    removeBusy: function () {
+        // this function executes with the api as its context
+        var tblContainer = this.getConfig().node.querySelector( 'div.table-container' );
+
+        if ( tblContainer ) {
+            gp.removeClass( tblContainer, 'busy' );
+        }
+        else {
+            gp.log( 'could not remove busy class' );
+        }
     },
 
     ready: function(callback) {
@@ -46,13 +76,14 @@ gp.Controller.prototype = {
         this.eventDelegates[event].push( delegate );
     },
 
-    invokeDelegates: function ( context, event, args ) {
-        var proceed = true,
+    invokeDelegates: function ( event, args ) {
+        var self = this,
+            proceed = true,
             delegates = this.eventDelegates[event];
         if ( Array.isArray(delegates) ) {
             delegates.forEach( function ( delegate ) {
                 if ( proceed === false ) return;
-                proceed = gp.applyFunc( delegate, context, args );
+                proceed = gp.applyFunc( delegate, self.config.node.api, args );
             } );
         }
         return proceed;
@@ -103,19 +134,21 @@ gp.Controller.prototype = {
             command = evt.selectedTarget.attributes['value'].value;
 
         if ( gp.hasValue( command ) ) lower = command.toLowerCase();
-        // the button is inside either a table row or a modal
-        elem = gp.closest( evt.selectedTarget, 'tr[data-index],div.modal', node );
-        dataItem = elem ? gp.getRowModel( this.config.pageModel.data, elem ) : null;
 
         switch ( lower ) {
             case 'addrow':
                 this.addRow();
                 break;
             case 'edit':
-                this.editRow(dataItem, elem);
+                // the button is inside either a table row or a modal
+                elem = gp.closest( evt.selectedTarget, 'tr[data-index],div.modal', node );
+                dataItem = elem ? gp.getRowModel( this.config.pageModel.data, elem ) : null;
+                this.editRow( dataItem, elem );
                 break;
             case 'delete':
             case 'destroy':
+                elem = gp.closest( evt.selectedTarget, 'tr[data-index],div.modal', node );
+                dataItem = elem ? gp.getRowModel( this.config.pageModel.data, elem ) : null;
                 this.deleteRow( dataItem, elem );
                 break;
         }
@@ -132,11 +165,11 @@ gp.Controller.prototype = {
         }
 
         editor.beforeEdit = function ( model ) {
-            self.invokeDelegates( self.config.node.api, gp.events.beforeedit, model );
+            self.invokeDelegates( gp.events.beforeedit, model );
         };
 
         editor.afterEdit = function ( model ) {
-            self.invokeDelegates( self.config.node.api, gp.events.onedit, model );
+            self.invokeDelegates( gp.events.onedit, model );
         };
 
         return editor;
@@ -178,7 +211,7 @@ gp.Controller.prototype = {
         // by making sure the evt target is a body cell
         if ( evt.target != evt.selectedTarget ) return;
 
-        proceed = this.invokeDelegates( this.config.node.api, gp.events.rowselected, {
+        proceed = this.invokeDelegates( gp.events.rowselected, {
             dataItem: dataItem,
             elem: tr
         } );
@@ -224,13 +257,13 @@ gp.Controller.prototype = {
         if ( requestModel ) {
             gp.shallowCopy( requestModel, this.config.pageModel );
         }
-        proceed = this.invokeDelegates( this.config.node.api, gp.events.beforeread, this.config.node.api );
+        proceed = this.invokeDelegates( gp.events.beforeread, this.config.node.api );
         if ( proceed === false ) return;
         this.model.read( this.config.pageModel, function ( model ) {
             // standardize capitalization of incoming data
             gp.shallowCopy( model, self.config.pageModel, true );
             self.refresh( self.config );
-            self.invokeDelegates( self.config.node.api, gp.events.onread, self.config.node.api );
+            self.invokeDelegates( gp.events.onread, self.config.node.api );
             gp.applyFunc( callback, self.config.node, self.config.pageModel );
         }, this.handlers.httpErrorHandler );
     },
@@ -241,7 +274,7 @@ gp.Controller.prototype = {
 
         var model = editor.add();
 
-        this.invokeDelegates( this.config.node.api, gp.events.editmode, model );
+        this.invokeDelegates( gp.events.editmode, model );
 
         return editor;
 
@@ -260,7 +293,7 @@ gp.Controller.prototype = {
                 return;
             }
 
-            this.invokeDelegates( this.config.node.api, gp.events.beforecreate, dataItem );
+            this.invokeDelegates( gp.events.beforecreate, dataItem );
 
             // call the data layer with just the dataItem
             // the data layer should respond with an updateModel
@@ -283,8 +316,8 @@ gp.Controller.prototype = {
                     gp.error( err );
                 }
 
-                self.invokeDelegates( self.config.node.api, gp.events.oncreate, { elem: elem, model: updateModel } );
-                self.invokeDelegates( self.config.node.api, gp.events.onedit, self.config.pageModel );
+                self.invokeDelegates( gp.events.oncreate, { elem: elem, model: updateModel } );
+                self.invokeDelegates( gp.events.onedit, self.config.pageModel );
 
                 gp.applyFunc( callback, self.config.node, updateModel );
             },
@@ -300,7 +333,7 @@ gp.Controller.prototype = {
         var editor = this.getEditor();
         var model = editor.edit( dataItem, elem );
 
-        this.invokeDelegates( this.config.node.api, gp.events.editmode, model );
+        this.invokeDelegates( gp.events.editmode, model );
 
         return editor;
     },
@@ -317,7 +350,7 @@ gp.Controller.prototype = {
                 return;
             }
 
-            this.invokeDelegates( this.config.node.api, gp.events.beforeupdate, {
+            this.invokeDelegates( gp.events.beforeupdate, {
                 dataItem: dataItem
             } );
 
@@ -340,8 +373,8 @@ gp.Controller.prototype = {
                     gp.error( err );
                 }
 
-                self.invokeDelegates( self.config.node.api, gp.events.onupdate, { model: updateModel } );
-                self.invokeDelegates( self.config.node.api, gp.events.onedit, { model: updateModel } );
+                self.invokeDelegates( gp.events.onupdate, { model: updateModel } );
+                self.invokeDelegates( gp.events.onedit, { model: updateModel } );
 
                 gp.applyFunc( callback, self.config.node, updateModel );
             },
@@ -352,16 +385,29 @@ gp.Controller.prototype = {
         }
     },
 
-    deleteRow: function (dataItem, callback) {
+    // we don't require a tr parameter because it may not be in the grid
+    deleteRow: function ( dataItem, callback, skipConfirm ) {
         try {
             if ( !gp.hasValue( this.config.destroy ) ) {
                 gp.applyFunc( callback, this.config.node );
                 return;
             }
 
-            var self = this;
+            var self = this,
+                confirmed = skipConfirm || confirm( 'Are you sure you want to delete this item?' ),
+                message,
+                tr = gp.getTableRow( this.config.pageModel.data, dataItem, this.config.node );
 
-            this.invokeDelegates(this.config.node.api, gp.events.beforedestroy, dataItem );
+            if ( !confirmed ) {
+                gp.applyFunc( callback, this.config.node );
+                return;
+            }
+
+            this.invokeDelegates( gp.events.beforeedit, {
+                type: 'destroy',
+                dataItem: dataItem,
+                elem: tr
+            } );
 
             this.model.destroy( dataItem, function ( response ) {
 
@@ -371,131 +417,30 @@ gp.Controller.prototype = {
                     var index = self.config.pageModel.data.indexOf( dataItem );
                     if ( index != -1 ) {
                         self.config.pageModel.data.splice( index, 1 );
-                        self.refresh( self.config );
+                        // if the dataItem is currently being displayed, refresh the grid
+                        if ( tr ) {
+                            self.refresh( self.config );
+                        }
                     }
                 }
                 catch ( err ) {
                     gp.error( err );
                 }
 
-                self.invokeDelegates( self.config.node.api, gp.events.ondestroy, dataItem );
-                self.invokeDelegates( self.config.node.api, gp.events.onedit, self.config.pageModel );
+                self.invokeDelegates( gp.events.onedit, {
+                    type: 'destroy',
+                    dataItem: dataItem,
+                    elem: tr
+                } );
 
-                gp.applyFunc( callback, self.config.node, response );
+                gp.applyFunc( callback, self.config.node.api, response );
             },
             self.handlers.httpErrorHandler );
         }
-        catch (ex) {
+        catch ( ex ) {
             gp.error( ex );
         }
     },
-
-    //cancelEdit: function (dataItem, elem) {
-    //    try {
-    //        var tbl = gp.closest( elem, 'table', this.config.node ),
-    //            index;
-
-    //        if ( gp.hasClass( elem, 'create-mode' ) ) {
-    //            // remove elem
-    //            if ( elem.rowIndex ) {
-    //                // it's a table row
-    //                tbl.deleteRow( elem.rowIndex );
-    //            }
-
-    //            //index = this.config.pageModel.data.indexOf( dataItem );
-    //            //this.config.pageModel.data.splice( index, 1 );
-    //        }
-    //        else {
-    //            // replace the ObjectProxy with the original dataItem
-    //            this.config.dataItem = dataItem;
-    //            this.restoreCells( this.config, dataItem, elem );
-    //        }
-
-    //        this.invokeDelegates( this.config.node.api, 'cancelEdit', {
-    //            dataItem: dataItem,
-    //            elem: elem
-    //        } );
-    //    }
-    //    catch ( ex ) {
-    //        gp.error( ex );
-    //    }
-    //},
-
-    //inlineEdit: function ( dataItem, mode, tr ) {
-
-    //    var elem,
-    //        editCellContent = gp.helpers['editCellContent'];
-
-    //    if ( mode == 'edit' ) {
-
-    //        // replace the cell contents of the table row with edit controls
-
-    //        // IE9 can't set innerHTML of tr, so iterate through each cell
-    //        // besides, that way we can just skip readonly cells
-    //        var col, cells = tr.querySelectorAll( 'td.body-cell' );
-    //        for ( var i = 0; i < cells.length; i++ ) {
-    //            col = this.config.columns[i];
-    //            if ( !col.readonly ) {
-    //                cells[i].innerHTML = editCellContent.call( this.config, col, dataItem, 'edit' );
-    //            }
-    //        }
-    //        gp.addClass( tr, 'edit-mode' );
-    //        tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', dataItem ).start();
-
-    //        elem = tr;
-
-    //    }
-    //    else {
-
-    //        // prepend a new table row
-
-    //        var tbody = this.config.node.querySelector( 'div.table-body > table > tbody' ),
-    //            rowIndex = this.config.pageModel.data.indexOf( dataItem ),
-    //            bodyCellContent = gp.helpers['bodyCellContent'],
-    //            builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', rowIndex ).addClass( 'create-mode' ),
-    //            cellContent;
-
-    //        // add td.body-cell elements to the tr
-    //        this.config.columns.forEach( function ( col ) {
-    //            cellContent = col.readonly ?
-    //                bodyCellContent.call( this.config, col, dataItem ) :
-    //                editCellContent.call( this.config, col, dataItem, 'create' );
-    //            builder.startElem( 'td' ).addClass( 'body-cell' ).addClass( col.BodyCell ).html( cellContent ).endElem();
-    //        } );
-
-    //        elem = builder.close();
-
-    //        gp.prependChild( tbody, elem );
-    //    }
-
-    //    elem['gp-change-monitor'] = new gp.ChangeMonitor( elem, '[name]', dataItem ).start();
-
-    //    return elem;
-    //},
-
-    //modalEdit: function ( dataItem, mode ) {
-
-    //    // mode: create or update
-    //    var html = gp.helpers.bootstrapModal( this.config, dataItem, mode );
-
-    //    // append the modal to the top node so button clicks will be picked up by commandHandlder
-    //    var modal = $( html ).appendTo( this.config.node ).modal( {
-    //        show: true,
-    //        keyboard: true
-    //    } );
-
-    //    var monitor = new gp.ChangeMonitor( modal[0], '[name]', dataItem ).start();
-
-    //    modal.one( 'hidden.bs.modal', function () {
-    //        $( modal ).remove();
-    //        monitor.stop();
-    //        modal = null;
-    //    } );
-
-    //    // return the htmlElement instead of the modal object
-    //    // so the return type is consistent with inlineEdit
-    //    return modal[0];
-    //},
 
     refresh: function () {
         // inject table rows, footer, pager and header style.
@@ -516,47 +461,17 @@ gp.Controller.prototype = {
         sortStyle.innerHTML = gp.helpers.sortStyle.call( this.config );
     },
 
-    //restoreCells: function ( config, dataItem, tr ) {
-    //    var col,
-    //        i = 0;
-    //    helper = gp.helpers['bodyCellContent'],
-    //    cells = tr.querySelectorAll( 'td.body-cell' );
-    //    for ( ; i < cells.length; i++ ) {
-    //        col = config.columns[i];
-    //        cells[i].innerHTML = helper.call( this.config, col, dataItem );
-    //    }
-    //    gp.removeClass( tr, 'edit-mode' );
-    //    gp.removeClass( tr, 'create-mode' );
-    //},
-
     httpErrorHandler: function ( e ) {
-        this.invokeDelegates( this.config.node.api, gp.events.httpError, e );
+        this.invokeDelegates( gp.events.httpError, e );
         alert( 'An error occurred while carrying out your request.' );
         gp.error( e );
     },
 
-    removeBusyHandlers: function () {
-        gp.off( this.config.node, gp.events.beforeread, gp.addBusy );
-        gp.off( this.config.node, gp.events.onread, gp.removeBusy );
-        gp.off( this.config.node, gp.events.beforeupdate, gp.addBusy );
-        gp.off( this.config.node, gp.events.onupdate, gp.removeBusy );
-        gp.off( this.config.node, gp.events.beforedestroy, gp.addBusy );
-        gp.off( this.config.node, gp.events.ondestroy, gp.removeBusy );
-        gp.off( this.config.node, gp.events.httpError, gp.removeBusy );
-    },
-
     dispose: function () {
         this.removeRefreshEventHandler( this.config );
-        this.removeBusyHandlers();
         this.removeRowSelectHandler();
         this.removeCommandHandlers( this.config.node );
         this.monitor.stop();
-        if ( typeof this.config.onread === 'function' ) {
-            gp.off( this.config.node, gp.events.onread, this.config.onread );
-        }
-        if ( typeof this.config.onedit === 'function' ) {
-            gp.off( this.config.node, gp.events.onedit, this.config.onedit );
-        }
     }
 
 };

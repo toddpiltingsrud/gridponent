@@ -13,16 +13,16 @@
     };
 
     gp.Http.prototype = {
-        serialize: function (obj, props) {
-            // creates a query string from a simple object
-            var self = this;
-            props = props || Object.getOwnPropertyNames(obj);
-            var out = [];
-            props.forEach(function (prop) {
-                out.push(encodeURIComponent(prop) + '=' + encodeURIComponent(obj[prop]));
-            });
-            return out.join('&');
-        },
+        //serialize: function (obj, props) {
+        //    // creates a query string from a simple object
+        //    var self = this;
+        //    props = props || Object.getOwnPropertyNames(obj);
+        //    var out = [];
+        //    props.forEach(function (prop) {
+        //        out.push(encodeURIComponent(prop) + '=' + encodeURIComponent(obj[prop]));
+        //    });
+        //    return out.join('&');
+        //},
         deserialize: function (queryString) {
             var nameValue, split = queryString.split( '&' );
             var obj = {};
@@ -81,7 +81,7 @@
                 throw '404 Not found: ' + url;
             }
         },
-        'destroy': function ( url, model, callback, error ) {
+        destroy: function ( url, model, callback, error ) {
             model = model || {};
             var index = data.products.indexOf( model );
             callback( {

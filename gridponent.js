@@ -30,6 +30,7 @@ gp.events = {
 
     rowselected: 'rowselected',
     beforeinit: 'beforeinit',
+    // turn progress indicator on
     beforeread: 'beforeread',
     // turn progress indicator on
     beforeedit: 'beforeedit',
@@ -231,6 +232,7 @@ gp.Controller = function (config, model, requestModel) {
     };
     this.done = false;
     this.eventDelegates = {};
+    this.addBusyDelegates();
 };
 
 gp.Controller.prototype = {
@@ -242,7 +244,36 @@ gp.Controller.prototype = {
         this.addRowSelectHandler( this.config );
         this.addRefreshEventHandler( this.config );
         this.done = true;
-        this.invokeDelegates( this.config.node.api, gp.events.ready, this.config.node.api );
+        this.invokeDelegates( gp.events.ready, this.config.node.api );
+    },
+
+    addBusyDelegates: function () {
+        this.addDelegate( gp.events.beforeread, this.addBusy );
+        this.addDelegate( gp.events.onread, this.removeBusy );
+        this.addDelegate( gp.events.beforeedit, this.addBusy );
+        this.addDelegate( gp.events.onedit, this.removeBusy );
+        this.addDelegate( gp.events.httpError, this.removeBusy );
+    },
+
+    addBusy: function () {
+        // this function executes with the api as its context
+        var tblContainer = this.getConfig().node.querySelector( 'div.table-container' );
+
+        if ( tblContainer ) {
+            gp.addClass( tblContainer, 'busy' );
+        }
+    },
+
+    removeBusy: function () {
+        // this function executes with the api as its context
+        var tblContainer = this.getConfig().node.querySelector( 'div.table-container' );
+
+        if ( tblContainer ) {
+            gp.removeClass( tblContainer, 'busy' );
+        }
+        else {
+            gp.log( 'could not remove busy class' );
+        }
     },
 
     ready: function(callback) {
@@ -259,13 +290,14 @@ gp.Controller.prototype = {
         this.eventDelegates[event].push( delegate );
     },
 
-    invokeDelegates: function ( context, event, args ) {
-        var proceed = true,
+    invokeDelegates: function ( event, args ) {
+        var self = this,
+            proceed = true,
             delegates = this.eventDelegates[event];
         if ( Array.isArray(delegates) ) {
             delegates.forEach( function ( delegate ) {
                 if ( proceed === false ) return;
-                proceed = gp.applyFunc( delegate, context, args );
+                proceed = gp.applyFunc( delegate, self.config.node.api, args );
             } );
         }
         return proceed;
@@ -316,19 +348,21 @@ gp.Controller.prototype = {
             command = evt.selectedTarget.attributes['value'].value;
 
         if ( gp.hasValue( command ) ) lower = command.toLowerCase();
-        // the button is inside either a table row or a modal
-        elem = gp.closest( evt.selectedTarget, 'tr[data-index],div.modal', node );
-        dataItem = elem ? gp.getRowModel( this.config.pageModel.data, elem ) : null;
 
         switch ( lower ) {
             case 'addrow':
                 this.addRow();
                 break;
             case 'edit':
-                this.editRow(dataItem, elem);
+                // the button is inside either a table row or a modal
+                elem = gp.closest( evt.selectedTarget, 'tr[data-index],div.modal', node );
+                dataItem = elem ? gp.getRowModel( this.config.pageModel.data, elem ) : null;
+                this.editRow( dataItem, elem );
                 break;
             case 'delete':
             case 'destroy':
+                elem = gp.closest( evt.selectedTarget, 'tr[data-index],div.modal', node );
+                dataItem = elem ? gp.getRowModel( this.config.pageModel.data, elem ) : null;
                 this.deleteRow( dataItem, elem );
                 break;
         }
@@ -345,11 +379,11 @@ gp.Controller.prototype = {
         }
 
         editor.beforeEdit = function ( model ) {
-            self.invokeDelegates( self.config.node.api, gp.events.beforeedit, model );
+            self.invokeDelegates( gp.events.beforeedit, model );
         };
 
         editor.afterEdit = function ( model ) {
-            self.invokeDelegates( self.config.node.api, gp.events.onedit, model );
+            self.invokeDelegates( gp.events.onedit, model );
         };
 
         return editor;
@@ -391,7 +425,7 @@ gp.Controller.prototype = {
         // by making sure the evt target is a body cell
         if ( evt.target != evt.selectedTarget ) return;
 
-        proceed = this.invokeDelegates( this.config.node.api, gp.events.rowselected, {
+        proceed = this.invokeDelegates( gp.events.rowselected, {
             dataItem: dataItem,
             elem: tr
         } );
@@ -437,13 +471,13 @@ gp.Controller.prototype = {
         if ( requestModel ) {
             gp.shallowCopy( requestModel, this.config.pageModel );
         }
-        proceed = this.invokeDelegates( this.config.node.api, gp.events.beforeread, this.config.node.api );
+        proceed = this.invokeDelegates( gp.events.beforeread, this.config.node.api );
         if ( proceed === false ) return;
         this.model.read( this.config.pageModel, function ( model ) {
             // standardize capitalization of incoming data
             gp.shallowCopy( model, self.config.pageModel, true );
             self.refresh( self.config );
-            self.invokeDelegates( self.config.node.api, gp.events.onread, self.config.node.api );
+            self.invokeDelegates( gp.events.onread, self.config.node.api );
             gp.applyFunc( callback, self.config.node, self.config.pageModel );
         }, this.handlers.httpErrorHandler );
     },
@@ -454,7 +488,7 @@ gp.Controller.prototype = {
 
         var model = editor.add();
 
-        this.invokeDelegates( this.config.node.api, gp.events.editmode, model );
+        this.invokeDelegates( gp.events.editmode, model );
 
         return editor;
 
@@ -473,7 +507,7 @@ gp.Controller.prototype = {
                 return;
             }
 
-            this.invokeDelegates( this.config.node.api, gp.events.beforecreate, dataItem );
+            this.invokeDelegates( gp.events.beforecreate, dataItem );
 
             // call the data layer with just the dataItem
             // the data layer should respond with an updateModel
@@ -496,8 +530,8 @@ gp.Controller.prototype = {
                     gp.error( err );
                 }
 
-                self.invokeDelegates( self.config.node.api, gp.events.oncreate, { elem: elem, model: updateModel } );
-                self.invokeDelegates( self.config.node.api, gp.events.onedit, self.config.pageModel );
+                self.invokeDelegates( gp.events.oncreate, { elem: elem, model: updateModel } );
+                self.invokeDelegates( gp.events.onedit, self.config.pageModel );
 
                 gp.applyFunc( callback, self.config.node, updateModel );
             },
@@ -513,7 +547,7 @@ gp.Controller.prototype = {
         var editor = this.getEditor();
         var model = editor.edit( dataItem, elem );
 
-        this.invokeDelegates( this.config.node.api, gp.events.editmode, model );
+        this.invokeDelegates( gp.events.editmode, model );
 
         return editor;
     },
@@ -530,7 +564,7 @@ gp.Controller.prototype = {
                 return;
             }
 
-            this.invokeDelegates( this.config.node.api, gp.events.beforeupdate, {
+            this.invokeDelegates( gp.events.beforeupdate, {
                 dataItem: dataItem
             } );
 
@@ -553,8 +587,8 @@ gp.Controller.prototype = {
                     gp.error( err );
                 }
 
-                self.invokeDelegates( self.config.node.api, gp.events.onupdate, { model: updateModel } );
-                self.invokeDelegates( self.config.node.api, gp.events.onedit, { model: updateModel } );
+                self.invokeDelegates( gp.events.onupdate, { model: updateModel } );
+                self.invokeDelegates( gp.events.onedit, { model: updateModel } );
 
                 gp.applyFunc( callback, self.config.node, updateModel );
             },
@@ -565,16 +599,29 @@ gp.Controller.prototype = {
         }
     },
 
-    deleteRow: function (dataItem, callback) {
+    // we don't require a tr parameter because it may not be in the grid
+    deleteRow: function ( dataItem, callback, skipConfirm ) {
         try {
             if ( !gp.hasValue( this.config.destroy ) ) {
                 gp.applyFunc( callback, this.config.node );
                 return;
             }
 
-            var self = this;
+            var self = this,
+                confirmed = skipConfirm || confirm( 'Are you sure you want to delete this item?' ),
+                message,
+                tr = gp.getTableRow( this.config.pageModel.data, dataItem, this.config.node );
 
-            this.invokeDelegates(this.config.node.api, gp.events.beforedestroy, dataItem );
+            if ( !confirmed ) {
+                gp.applyFunc( callback, this.config.node );
+                return;
+            }
+
+            this.invokeDelegates( gp.events.beforeedit, {
+                type: 'destroy',
+                dataItem: dataItem,
+                elem: tr
+            } );
 
             this.model.destroy( dataItem, function ( response ) {
 
@@ -584,131 +631,30 @@ gp.Controller.prototype = {
                     var index = self.config.pageModel.data.indexOf( dataItem );
                     if ( index != -1 ) {
                         self.config.pageModel.data.splice( index, 1 );
-                        self.refresh( self.config );
+                        // if the dataItem is currently being displayed, refresh the grid
+                        if ( tr ) {
+                            self.refresh( self.config );
+                        }
                     }
                 }
                 catch ( err ) {
                     gp.error( err );
                 }
 
-                self.invokeDelegates( self.config.node.api, gp.events.ondestroy, dataItem );
-                self.invokeDelegates( self.config.node.api, gp.events.onedit, self.config.pageModel );
+                self.invokeDelegates( gp.events.onedit, {
+                    type: 'destroy',
+                    dataItem: dataItem,
+                    elem: tr
+                } );
 
-                gp.applyFunc( callback, self.config.node, response );
+                gp.applyFunc( callback, self.config.node.api, response );
             },
             self.handlers.httpErrorHandler );
         }
-        catch (ex) {
+        catch ( ex ) {
             gp.error( ex );
         }
     },
-
-    //cancelEdit: function (dataItem, elem) {
-    //    try {
-    //        var tbl = gp.closest( elem, 'table', this.config.node ),
-    //            index;
-
-    //        if ( gp.hasClass( elem, 'create-mode' ) ) {
-    //            // remove elem
-    //            if ( elem.rowIndex ) {
-    //                // it's a table row
-    //                tbl.deleteRow( elem.rowIndex );
-    //            }
-
-    //            //index = this.config.pageModel.data.indexOf( dataItem );
-    //            //this.config.pageModel.data.splice( index, 1 );
-    //        }
-    //        else {
-    //            // replace the ObjectProxy with the original dataItem
-    //            this.config.dataItem = dataItem;
-    //            this.restoreCells( this.config, dataItem, elem );
-    //        }
-
-    //        this.invokeDelegates( this.config.node.api, 'cancelEdit', {
-    //            dataItem: dataItem,
-    //            elem: elem
-    //        } );
-    //    }
-    //    catch ( ex ) {
-    //        gp.error( ex );
-    //    }
-    //},
-
-    //inlineEdit: function ( dataItem, mode, tr ) {
-
-    //    var elem,
-    //        editCellContent = gp.helpers['editCellContent'];
-
-    //    if ( mode == 'edit' ) {
-
-    //        // replace the cell contents of the table row with edit controls
-
-    //        // IE9 can't set innerHTML of tr, so iterate through each cell
-    //        // besides, that way we can just skip readonly cells
-    //        var col, cells = tr.querySelectorAll( 'td.body-cell' );
-    //        for ( var i = 0; i < cells.length; i++ ) {
-    //            col = this.config.columns[i];
-    //            if ( !col.readonly ) {
-    //                cells[i].innerHTML = editCellContent.call( this.config, col, dataItem, 'edit' );
-    //            }
-    //        }
-    //        gp.addClass( tr, 'edit-mode' );
-    //        tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', dataItem ).start();
-
-    //        elem = tr;
-
-    //    }
-    //    else {
-
-    //        // prepend a new table row
-
-    //        var tbody = this.config.node.querySelector( 'div.table-body > table > tbody' ),
-    //            rowIndex = this.config.pageModel.data.indexOf( dataItem ),
-    //            bodyCellContent = gp.helpers['bodyCellContent'],
-    //            builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', rowIndex ).addClass( 'create-mode' ),
-    //            cellContent;
-
-    //        // add td.body-cell elements to the tr
-    //        this.config.columns.forEach( function ( col ) {
-    //            cellContent = col.readonly ?
-    //                bodyCellContent.call( this.config, col, dataItem ) :
-    //                editCellContent.call( this.config, col, dataItem, 'create' );
-    //            builder.startElem( 'td' ).addClass( 'body-cell' ).addClass( col.BodyCell ).html( cellContent ).endElem();
-    //        } );
-
-    //        elem = builder.close();
-
-    //        gp.prependChild( tbody, elem );
-    //    }
-
-    //    elem['gp-change-monitor'] = new gp.ChangeMonitor( elem, '[name]', dataItem ).start();
-
-    //    return elem;
-    //},
-
-    //modalEdit: function ( dataItem, mode ) {
-
-    //    // mode: create or update
-    //    var html = gp.helpers.bootstrapModal( this.config, dataItem, mode );
-
-    //    // append the modal to the top node so button clicks will be picked up by commandHandlder
-    //    var modal = $( html ).appendTo( this.config.node ).modal( {
-    //        show: true,
-    //        keyboard: true
-    //    } );
-
-    //    var monitor = new gp.ChangeMonitor( modal[0], '[name]', dataItem ).start();
-
-    //    modal.one( 'hidden.bs.modal', function () {
-    //        $( modal ).remove();
-    //        monitor.stop();
-    //        modal = null;
-    //    } );
-
-    //    // return the htmlElement instead of the modal object
-    //    // so the return type is consistent with inlineEdit
-    //    return modal[0];
-    //},
 
     refresh: function () {
         // inject table rows, footer, pager and header style.
@@ -729,47 +675,17 @@ gp.Controller.prototype = {
         sortStyle.innerHTML = gp.helpers.sortStyle.call( this.config );
     },
 
-    //restoreCells: function ( config, dataItem, tr ) {
-    //    var col,
-    //        i = 0;
-    //    helper = gp.helpers['bodyCellContent'],
-    //    cells = tr.querySelectorAll( 'td.body-cell' );
-    //    for ( ; i < cells.length; i++ ) {
-    //        col = config.columns[i];
-    //        cells[i].innerHTML = helper.call( this.config, col, dataItem );
-    //    }
-    //    gp.removeClass( tr, 'edit-mode' );
-    //    gp.removeClass( tr, 'create-mode' );
-    //},
-
     httpErrorHandler: function ( e ) {
-        this.invokeDelegates( this.config.node.api, gp.events.httpError, e );
+        this.invokeDelegates( gp.events.httpError, e );
         alert( 'An error occurred while carrying out your request.' );
         gp.error( e );
     },
 
-    removeBusyHandlers: function () {
-        gp.off( this.config.node, gp.events.beforeread, gp.addBusy );
-        gp.off( this.config.node, gp.events.onread, gp.removeBusy );
-        gp.off( this.config.node, gp.events.beforeupdate, gp.addBusy );
-        gp.off( this.config.node, gp.events.onupdate, gp.removeBusy );
-        gp.off( this.config.node, gp.events.beforedestroy, gp.addBusy );
-        gp.off( this.config.node, gp.events.ondestroy, gp.removeBusy );
-        gp.off( this.config.node, gp.events.httpError, gp.removeBusy );
-    },
-
     dispose: function () {
         this.removeRefreshEventHandler( this.config );
-        this.removeBusyHandlers();
         this.removeRowSelectHandler();
         this.removeCommandHandlers( this.config.node );
         this.monitor.stop();
-        if ( typeof this.config.onread === 'function' ) {
-            gp.off( this.config.node, gp.events.onread, this.config.onread );
-        }
-        if ( typeof this.config.onedit === 'function' ) {
-            gp.off( this.config.node, gp.events.onedit, this.config.onedit );
-        }
     }
 
 };
@@ -948,9 +864,6 @@ gp.TableRowEditor.prototype = {
                     error( err );
                 }
 
-                //self.invokeDelegates( self.config.node.api, gp.events.oncreate, { elem: elem, model: updateModel } );
-                //self.invokeDelegates( self.config.node.api, gp.events.onedit, self.config.pageModel );
-
                 gp.applyFunc( done, self.config.node.api, updateModel );
             },
             fail );
@@ -999,9 +912,6 @@ gp.TableRowEditor.prototype = {
                     gp.error( err );
                 }
 
-                //self.invokeDelegates( self.config.node.api, gp.events.onupdate, { elem: elem, model: updateModel } );
-                //self.invokeDelegates( self.config.node.api, gp.events.onedit, { elem: elem, model: updateModel } );
-
                 gp.applyFunc( done, self.config.node, updateModel );
             },
             fail );
@@ -1032,10 +942,6 @@ gp.TableRowEditor.prototype = {
 
             this.removeCommandHandler();
 
-            //this.invokeDelegates( this.config.node.api, 'cancelEdit', {
-            //    dataItem: dataItem,
-            //    elem: elem
-            //} );
         }
         catch ( ex ) {
             gp.error( ex );
@@ -1043,43 +949,7 @@ gp.TableRowEditor.prototype = {
 
     },
 
-    validate: function (updateModel) {
-
-        if ( typeof this.config.validate === 'function' ) {
-            gp.applyFunc( this.config.validate, this, [this.elem, updateModel] );
-        }
-        else {
-            
-            var self = this,
-                builder = new gp.StringBuilder(), 
-                input, 
-                msg;
-
-            builder.add( 'Please correct the following errors:\r\n' );
-
-            // remove error class from inputs
-            gp.removeClass( self.elem.querySelectorAll( '[name].error' ), 'error' );
-
-            updateModel.errors.forEach( function ( v ) {
-
-                input = self.elem.querySelector( '[name="' + v.Key + '"]' );
-
-                if ( input ) {
-                    gp.addClass( input, 'error' );
-                }
-
-                builder.add( v.Key + ':\r\n' );
-
-                // extract the error message
-                msg = v.Value.Errors.map( function ( e ) { return '    - ' + e.ErrorMessage + '\r\n'; } ).join( '' );
-
-                builder.add( msg );
-            } );
-
-            alert( builder.toString() );
-        }
-
-    },
+    validate: gp.TableRowEditor.prototype.validate,
 
     createDataItem: function () {
         var field,
@@ -1141,7 +1011,7 @@ gp.ModalEditor = function ( config, dal ) {
     this.commandHandler = function ( evt ) {
         // handle save or cancel
         var command = evt.selectedTarget.attributes['value'].value;
-        if ( /^(create|edit)$/i.test( command ) ) self.save();
+        if ( /^(create|update|save)$/i.test( command ) ) self.save();
         else if ( /^cancel$/i.test( command ) ) self.cancel();
     },
     this.beforeEdit = null;
@@ -1172,15 +1042,13 @@ gp.ModalEditor.prototype = {
 
         this.elem = modal[0];
 
+        modal.one( 'hidden.bs.modal', function () {
+            $( modal ).remove();
+        } );
+
         this.addCommandHandler();
 
         this.changeMonitor = new gp.ChangeMonitor( modal[0], '[name]', this.dataItem ).start();
-
-        modal.one( 'hidden.bs.modal', function () {
-            $( modal ).remove();
-            this.changeMonitor.stop();
-            this.changeMonitor = null;
-        } );
 
         return {
             dataItem: this.dataItem,
@@ -1188,7 +1056,7 @@ gp.ModalEditor.prototype = {
         };
     },
 
-    edit: function (dataItem, tr) {
+    edit: function (dataItem) {
 
         var self = this;
         this.dataItem = dataItem;
@@ -1206,13 +1074,13 @@ gp.ModalEditor.prototype = {
 
         this.elem = modal[0];
 
+        modal.one( 'hidden.bs.modal', function () {
+            $( modal ).remove();
+        } );
+
         this.addCommandHandler();
 
         this.changeMonitor = new gp.ChangeMonitor( modal[0], '[name]', dataItem ).start();
-
-        modal.one( 'hidden.bs.modal', function () {
-            self.cancel();
-        } );
 
         return {
             dataItem: dataItem,
@@ -1224,18 +1092,22 @@ gp.ModalEditor.prototype = {
     save: gp.TableRowEditor.prototype.save,
 
     cancel: function () {
-        // restore the dataItem to its original state
-        gp.shallowCopy( this.originalDataItem, this.dataItem );
+        $( this.elem ).modal('hide');
+        //restore the dataItem to its original state
+        if ( this.mode == 'update' && this.originalDataItem ) {
+            gp.shallowCopy( this.originalDataItem, this.dataItem );
+        }
         if ( this.changeMonitor ) {
             this.changeMonitor.stop();
             this.changeMonitor = null;
         }
-        this.restoreUI();
         this.removeCommandHandler();
     },
 
     restoreUI: function () {
-        var tbody = this.config.node.querySelector( 'div.table-body > table > tbody' ),
+
+        var self = this,
+            tbody = this.config.node.querySelector( 'div.table-body > table > tbody' ),
             bodyCellContent = gp.helpers['bodyCellContent'],
             tableRow,
             cells,
@@ -1245,7 +1117,6 @@ gp.ModalEditor.prototype = {
             cellContent;
 
         $( this.elem ).modal( 'hide' );
-        $( this.elem ).remove();
 
         // if we added a row, add a row to the top of the table
         if ( this.mode == 'create' ) {
@@ -1254,7 +1125,7 @@ gp.ModalEditor.prototype = {
 
             // add td.body-cell elements to the tr
             this.config.columns.forEach( function ( col ) {
-                cellContent = bodyCellContent.call( this.config, col, this.dataItem );
+                cellContent = bodyCellContent.call( self.config, col, self.dataItem );
                 builder.startElem( 'td' ).addClass( 'body-cell' ).addClass( col.BodyCell ).html( cellContent ).endElem();
             } );
 
@@ -1275,7 +1146,6 @@ gp.ModalEditor.prototype = {
                 }
             }
         }
-
     },
 
     validate: function (updateModel) {
@@ -1354,24 +1224,8 @@ gp.Formatter.prototype = {
 \***************/
 ( function ( gp ) {
 
-    gp.addBusy = function( evt ) {
-        var tblContainer = evt.target.querySelector( 'div.table-container' )
-            || gp.closest( evt.target, 'div.table-container' );
-
-        if ( tblContainer ) {
-            gp.addClass( tblContainer, 'busy' );
-        }
-    };
-
     gp.addClass = function ( el, cn ) {
-        if ( el instanceof NodeList ) {
-            for (var i = 0; i < el.length; i++) {
-                if ( !gp.hasClass( el[i], cn ) ) {
-                    el[i].className = ( el[i].className === '' ) ? cn : el[i].className + ' ' + cn;
-                }
-            }
-        }
-        else if ( !gp.hasClass( el, cn ) ) {
+        if ( !gp.hasClass( el, cn ) ) {
             el.className = ( el.className === '' ) ? cn : el.className + ' ' + cn;
         }
     };
@@ -1482,10 +1336,6 @@ gp.Formatter.prototype = {
             obj = obj.replace( chars[i], escaped[i] );
         }
         return obj;
-    };
-
-    gp.extend = function ( to, from ) {
-        return gp.shallowCopy( from, to );
     };
 
     gp.formatter = new gp.Formatter();
@@ -1603,22 +1453,6 @@ gp.Formatter.prototype = {
 
     gp.hasValue = function ( val ) {
         return val !== undefined && val !== null;
-    };
-
-    gp.in = function ( elem, selector, parent ) {
-        parent = parent || document;
-        // if elem is a selector, convert it to an element
-        if ( typeof ( elem ) === 'string' ) {
-            elem = parent.querySelector( elem );
-        }
-        // if selector is a string, convert it to a node list
-        if ( typeof ( selector ) === 'string' ) {
-            selector = parent.querySelectorAll( selector );
-        }
-        for ( var i = 0; i < selector.length; i++ ) {
-            if ( selector[i] === elem ) return true;
-        }
-        return false;
     };
 
     gp.isNullOrEmpty = function ( val ) {
@@ -1741,19 +1575,6 @@ gp.Formatter.prototype = {
         return event;
     };
 
-    gp.removeBusy = function ( evt ) {
-        var tblContainer = evt.target.querySelector( 'div.table-container' );
-        tblContainer = tblContainer || document.querySelector( 'div.table-container.busy' )
-            || gp.closest( evt.target, 'div.table-container' );
-
-        if ( tblContainer ) {
-            gp.removeClass( tblContainer, 'busy' );
-        }
-        else {
-            gp.log( 'could not remove busy class' );
-        }
-    };
-
     gp.removeClass = function ( el, cn ) {
         if ( el instanceof NodeList ) {
             for ( var i = 0; i < el.length; i++ ) {
@@ -1763,24 +1584,6 @@ gp.Formatter.prototype = {
         else {
             el.className = gp.trim(( ' ' + el.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
         }
-    };
-
-    gp.resolveTemplate = function ( template ) {
-        // can be a selector, an inline template, or a function
-        var t = gp.getObjectAtPath( template );
-        if ( typeof ( t ) === 'function' ) {
-            return t;
-        }
-        else if ( gp.rexp.braces.test( template ) ) {
-            return template;
-        }
-        else {
-            t = document.querySelector( template );
-            if ( t ) {
-                return t.innerHTML;
-            }
-        }
-        return null;
     };
 
     gp.rexp = {
@@ -1821,15 +1624,6 @@ gp.Formatter.prototype = {
         return str.trim ? str.trim() : str.replace( /^\s+|\s+$/g, '' );
     };
 
-    gp.tryFunc = function(callback, arg) {
-        try {
-            callback( arg );
-        }
-        catch ( e ) {
-            gp.error( e );
-        }
-    };
-
     // logging
     gp.log = ( window.console ? window.console.log.bind( window.console ) : function () { } );
     gp.error = function ( e ) {
@@ -1849,7 +1643,7 @@ gp.helpers = {
     bootstrapModal: function ( config, dataItem, mode ) {
 
         var model = {
-            title: (mode == 'create') ? 'Add' : 'Edit',
+            title: (mode == 'create' ? 'Add' : 'Edit'),
             body: '',
             footer: null
         };
@@ -1865,25 +1659,27 @@ gp.helpers = {
             }
             var canEdit = !col.readonly && ( gp.hasValue( col.field ) || gp.hasValue( col.edittemplate ) );
             if ( !canEdit ) return;
-            html.add( '<div class="form-group">' )
-                .add( '<label class="col-sm-4 control-label">' );
+
+            var formGroupModel = {
+                label: null,
+                input: gp.helpers.editCellContent( col, dataItem, mode )
+            };
+
+            // headers become labels
             // check for a template
             if ( col.headertemplate ) {
                 if ( typeof ( col.headertemplate ) === 'function' ) {
-                    html.add( gp.applyFunc( col.headertemplate, self, [col] ) );
+                    formGroupModel.label = ( gp.applyFunc( col.headertemplate, self, [col] ) );
                 }
                 else {
-                    html.add( gp.processHeaderTemplate.call( this, col.headertemplate, col ) );
+                    formGroupModel.label = ( gp.processHeaderTemplate.call( this, col.headertemplate, col ) );
                 }
             }
             else {
-                html.escape( gp.coalesce( [col.header, col.field, ''] ) );
+                formGroupModel.label = gp.escapeHTML( gp.coalesce( [col.header, col.field, ''] ) );
             }
-            html.add( '</label>' )
-                .add('<div class="col-sm-8">')
-                .add( gp.helpers.editCellContent( col, dataItem, mode ) )
-                .add( '</div>' )
-                .add( '</div>' );
+
+            html.add( gp.templates['form-group']( formGroupModel ) );
         } );
 
         html.add( '</form>' );
@@ -1910,6 +1706,7 @@ gp.helpers = {
         catch ( err ) {
             gp.error( err );
             console.log( col );
+            console.log( dataItem );
         }
 
         // check for a template
@@ -1925,25 +1722,28 @@ gp.helpers = {
             html.add( '<div class="btn-group" role="group">' );
             col.commands.forEach( function ( cmd, index ) {
                 if ( cmd == 'edit' && gp.hasValue( self.update ) ) {
-                    html.add( '<button type="button" class="btn btn-default btn-xs" value="' )
-                        .add( cmd )
-                        .add( '">' )
-                        .add( '<span class="glyphicon glyphicon-edit"></span>' )
-                        .add( 'Edit' )
-                        .add( '</button>' );
+                    html.add( gp.templates.button( {
+                        btnClass: 'btn-default',
+                        value: cmd,
+                        glyphicon: 'glyphicon-edit',
+                        text: 'Edit'
+                    } ) );
                 }
                 else if ( cmd == 'destroy' && gp.hasValue( self.destroy ) ) {
-                    html.add( '<button type="button" class="btn btn-danger btn-xs" value="destroy">' )
-                        .add( '<span class="glyphicon glyphicon-remove"></span>Delete' )
-                        .add( '</button>' );
+                    html.add( gp.templates.button( {
+                        btnClass: 'btn-danger',
+                        value: 'destroy',
+                        glyphicon: 'glyphicon-remove',
+                        text: 'Delete'
+                    } ) );
                 }
                 else {
-                    html.add( '<button type="button" class="btn btn-default btn-xs" value="' )
-                        .add( cmd )
-                        .add( '">' )
-                        .add( '<span class="glyphicon glyphicon-cog"></span>' )
-                        .add( cmd )
-                        .add( '</button>' );
+                    html.add( gp.templates.button( {
+                        btnClass: 'btn-default',
+                        value: cmd,
+                        glyphicon: 'glyphicon-cog',
+                        text: cmd
+                    } ) );
                 }
             } );
 
@@ -2034,13 +1834,14 @@ gp.helpers = {
             }
         }
         else if ( col.commands ) {
-            html.add( '<div class="btn-group" role="group">' )
-                .add( '<button type="button" class="btn btn-primary btn-xs" value="' )
-                .add( mode == 'create' ? 'create' : 'update' )
-                .add( '">' )
-                .add( '<span class="glyphicon glyphicon-save"></span>Save' )
-                .add( '</button>' )
-                .add( '<button type="button" class="btn btn-default btn-xs" data-dismiss="modal" value="cancel">' )
+            html.add( gp.templates.button( {
+                btnClass: 'btn-primary',
+                value: ( mode == 'create' ? 'create' : 'update' ),
+                glyphicon: 'glyphicon-save',
+                text: 'Save'
+            } ) );
+
+            html.add( '<button type="button" class="btn btn-default btn-xs" data-dismiss="modal" value="cancel">' )
                 .add( '<span class="glyphicon glyphicon-remove"></span>Cancel' )
                 .add( '</button>' )
                 .add( '</div>' );
@@ -2179,27 +1980,60 @@ gp.helpers = {
             html.add( this.toolbartemplate );
         }
         return html.toString();
-    },
+    }
 
-    validation: function ( tr, validationErrors ) {
-        var builder = new gp.StringBuilder(), input, msg;
-        builder.add( 'Please correct the following errors:\r\n' );
-        // remove error class from inputs
-        gp.removeClass( tr.querySelectorAll( '[name].error' ), 'error' );
-        validationErrors.forEach( function ( v ) {
-            input = tr.querySelector( '[name="' + v.Key + '"]' );
-            if ( input ) {
-                gp.addClass( input, 'error' );
-            }
-            builder.add( v.Key + ':\r\n' );
-            // extract the error message
-            msg = v.Value.Errors.map( function ( e ) { return '    - ' + e.ErrorMessage + '\r\n'; } ).join( '' );
-            builder.add( msg );
-        } );
-        alert( builder.toString() );
-    },
 };
 
+
+/***************\
+     http        
+\***************/
+gp.Http = function () { };
+
+gp.Http.prototype = {
+    serialize: function ( obj ) {
+        // creates a query string from a simple object
+        var props = Object.getOwnPropertyNames( obj );
+        var out = [];
+        props.forEach( function ( prop ) {
+            out.push( encodeURIComponent( prop ) + '=' + ( gp.isNullOrEmpty( obj[prop] ) ? '' : encodeURIComponent( obj[prop] ) ) );
+        } );
+        return out.join( '&' );
+    },
+    createXhr: function ( type, url, callback, error ) {
+        var xhr = new XMLHttpRequest();
+        xhr.open(type.toUpperCase(), url, true);
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.onload = function () {
+            var response = ( gp.rexp.json.test( xhr.responseText ) ? JSON.parse( xhr.responseText ) : xhr.responseText );
+            if ( xhr.status == 200 ) {
+                callback( response, xhr );
+            }
+            else {
+                gp.applyFunc( error, xhr, response );
+            }
+        }
+        xhr.onerror = error;
+        return xhr;
+    },
+    get: function (url, callback, error) {
+        var xhr = this.createXhr('GET', url, callback, error);
+        xhr.send();
+    },
+    post: function ( url, data, callback, error ) {
+        var s = this.serialize( data );
+        var xhr = this.createXhr( 'POST', url, callback, error );
+        xhr.setRequestHeader( 'Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8' );
+        xhr.send( s );
+    },
+    destroy: function ( url, data, callback, error ) {
+        var s = this.serialize( data );
+        var xhr = this.createXhr( 'DELETE', url, callback, error );
+        xhr.setRequestHeader( 'Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8' );
+        xhr.send( s );
+    }
+
+};
 
 /***************\
    Initializer
@@ -2226,16 +2060,17 @@ gp.Initializer.prototype = {
         var controller = new gp.Controller( self.config, dal, requestModel );
         this.addEventDelegates( this.config, controller );
         this.node.api = new gp.api( controller );
+        this.config.footer = this.resolveFooter( this.config );
         this.renderLayout( this.config );
-        this.addBusyHandlers();
+
 
         setTimeout( function () {
             // provides a hook for extensions
-            controller.invokeDelegates( self.config.node.api, gp.events.beforeinit, self.config );
+            controller.invokeDelegates( gp.events.beforeinit, self.config );
 
             // we need both beforeinit and beforeread because beforeread is used after every read in the controller
             // and beforeinit happens just once after the node is created, but before first read
-            controller.invokeDelegates( self.config.node.api, gp.events.beforeread, self.config.pageModel );
+            controller.invokeDelegates( gp.events.beforeread, self.config.pageModel );
 
             dal.read( requestModel,
                 function ( data ) {
@@ -2249,10 +2084,10 @@ gp.Initializer.prototype = {
                     } catch ( e ) {
                         gp.error( e );
                     }
-                    controller.invokeDelegates( self.config.node.api, gp.events.onread, self.config.pageModel );
+                    controller.invokeDelegates( gp.events.onread, self.config.pageModel );
                 },
                 function ( e ) {
-                    controller.invokeDelegates( self.config.node.api, gp.events.httpError, e );
+                    controller.invokeDelegates( gp.events.httpError, e );
                     alert( 'An error occurred while carrying out your request.' );
                     gp.error( e );
                 }
@@ -2261,18 +2096,6 @@ gp.Initializer.prototype = {
         } );
 
         return this.config;
-    },
-
-    addBusyHandlers: function () {
-        gp.on( this.config.node, gp.events.beforeread, gp.addBusy );
-        gp.on( this.config.node, gp.events.onread, gp.removeBusy );
-        gp.on( this.config.node, gp.events.beforecreate, gp.addBusy );
-        gp.on( this.config.node, gp.events.oncreate, gp.removeBusy );
-        gp.on( this.config.node, gp.events.beforeupdate, gp.addBusy );
-        gp.on( this.config.node, gp.events.onupdate, gp.removeBusy );
-        gp.on( this.config.node, gp.events.beforedestroy, gp.addBusy );
-        gp.on( this.config.node, gp.events.ondestroy, gp.removeBusy );
-        gp.on( this.config.node, gp.events.httpError, gp.removeBusy );
     },
 
     getConfig: function (node) {
@@ -2299,7 +2122,6 @@ gp.Initializer.prototype = {
             this.resolveTemplates( templates, colConfig, colNode );
         }
 
-        config.Footer = this.resolveFooter( config );
 
         // resolve the top level configurations
         var options = 'onrowselect searchfunction read create update destroy validate model'.split(' ');
@@ -2455,178 +2277,6 @@ gp.Initializer.prototype = {
 };
 
 /***************\
-   mock-http
-\***************/
-(function (gp) {
-    gp.Http = function () { };
-
-    // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
-    var routes = {
-        read: /read/i,
-        update: /update/i,
-        create: /create/i,
-        destroy: /Delete/i
-    };
-
-    gp.Http.prototype = {
-        serialize: function (obj, props) {
-            // creates a query string from a simple object
-            var self = this;
-            props = props || Object.getOwnPropertyNames(obj);
-            var out = [];
-            props.forEach(function (prop) {
-                out.push(encodeURIComponent(prop) + '=' + encodeURIComponent(obj[prop]));
-            });
-            return out.join('&');
-        },
-        deserialize: function (queryString) {
-            var nameValue, split = queryString.split( '&' );
-            var obj = {};
-            if ( !queryString ) return obj;
-            split.forEach( function ( s ) {
-                nameValue = s.split( '=' );
-                var val = nameValue[1];
-                if ( !val ) {
-                    obj[nameValue[0]] = null;
-                }
-                else if ( /true|false/i.test( val ) ) {
-                    obj[nameValue[0]] = ( /true/i.test( val ) );
-                }
-                else if ( parseFloat( val ).toString() === val ) {
-                    obj[nameValue[0]] = parseFloat( val );
-                }
-                else {
-                    obj[nameValue[0]] = val;
-                }
-            } );
-            return obj;
-        },
-        get: function (url, callback, error) {
-            if (routes.read.test(url)) {
-                var index = url.substring(url.indexOf('?'));
-                if (index !== -1) {
-                    var queryString = url.substring(index + 1);
-                    var model = this.deserialize(queryString);
-                    this.post(url.substring(0, index), model, callback, error);
-                }
-                else {
-                    this.post(url, null, callback, error);
-                }
-            }
-            else if (routes.create.test(url)) {
-                var result = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
-                callback(result);
-            }
-            else {
-                throw 'Not found: ' + url;
-            }
-        },
-        post: function (url, model, callback, error) {
-            model = model || {};
-            if (routes.read.test(url)) {
-                getData(model, callback);
-            }
-            else if ( routes.create.test( url ) ) {
-                data.products.push( model );
-                callback( new gp.UpdateModel( model ) );
-            }
-            else if ( routes.update.test( url ) ) {
-                callback( new gp.UpdateModel(model) );
-            }
-            else {
-                throw '404 Not found: ' + url;
-            }
-        },
-        'destroy': function ( url, model, callback, error ) {
-            model = model || {};
-            var index = data.products.indexOf( model );
-            callback( {
-                Success: true,
-                Message: ''
-            } );
-        }
-    };
-
-    var getData = function (model, callback) {
-        var count, d = data.products.slice( 0, this.data.length );
-
-        if (!gp.isNullOrEmpty(model.search)) {
-            var props = Object.getOwnPropertyNames(d[0]);
-            var search = model.search.toLowerCase();
-            d = d.filter(function (row) {
-                for (var i = 0; i < props.length; i++) {
-                    if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
-                        return true;
-                    }
-                }
-                return false;
-            });
-        }
-        if (!gp.isNullOrEmpty(model.sort)) {
-            if (model.desc) {
-                d.sort(function (row1, row2) {
-                    var a = row1[model.sort];
-                    var b = row2[model.sort];
-                    if (a === null) {
-                        if (b != null) {
-                            return 1;
-                        }
-                    }
-                    else if (b === null) {
-                        // we already know a isn't null
-                        return -1;
-                    }
-                    if (a > b) {
-                        return -1;
-                    }
-                    if (a < b) {
-                        return 1;
-                    }
-
-                    return 0;
-                });
-            }
-            else {
-                d.sort(function (row1, row2) {
-                    var a = row1[model.sort];
-                    var b = row2[model.sort];
-                    if (a === null) {
-                        if (b != null) {
-                            return -1;
-                        }
-                    }
-                    else if (b === null) {
-                        // we already know a isn't null
-                        return 1;
-                    }
-                    if (a > b) {
-                        return 1;
-                    }
-                    if (a < b) {
-                        return -1;
-                    }
-
-                    return 0;
-                });
-            }
-        }
-        count = d.length;
-        if (model.top !== -1) {
-            model.data = d.slice(model.skip).slice(0, model.top);
-        }
-        else {
-            model.data = d;
-        }
-        model.errors = [];
-        setTimeout(function () {
-            callback(model);
-        });
-
-    };
-
-})(gridponent);
-
-/***************\
      model
 \***************/
 gp.Model = function ( config ) {
@@ -2710,7 +2360,7 @@ gp.Model.prototype = {
         }
     },
 
-    'destroy': function (dataItem, done, fail) {
+    destroy: function (dataItem, done, fail) {
         var self = this, url;
         if ( typeof this.config.destroy === 'function' ) {
             gp.applyFunc(this.config.destroy, this.config.node.api, [dataItem, done, fail], fail);
@@ -3205,7 +2855,7 @@ gp.templates['bootstrap-modal'] = function(model, arg) {
     out.push('<div class="gp modal-dialog" role="document">');
     out.push('<div class="modal-content">');
     out.push('<div class="modal-header">');
-    out.push('<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true" value="cancel">&times;</span></button>');
+    out.push('<button type="button" class="close" aria-label="Close" value="cancel"><span aria-hidden="true">&times;</span></button>');
     out.push('                <h4 class="modal-title">');
     out.push(model.title);
     out.push('</h4>');
@@ -3218,7 +2868,7 @@ gp.templates['bootstrap-modal'] = function(model, arg) {
                                 out.push(model.footer);
                             } else {
         out.push('<div class="btn-group">');
-    out.push('<button type="button" class="btn btn-default" data-dismiss="modal" value="cancel">');
+    out.push('<button type="button" class="btn btn-default" value="cancel">');
     out.push('<span class="glyphicon glyphicon-remove"></span>Close');
     out.push('</button>');
     out.push('<button type="button" class="btn btn-primary" value="save">');
@@ -3232,6 +2882,32 @@ gp.templates['bootstrap-modal'] = function(model, arg) {
     out.push('</div>');
     return out.join('');
 };
+gp.templates['button'] = function(model, arg) {
+    var out = [];
+    out.push('<button type="button" class="btn ');
+    out.push(model.btnClass);
+    out.push(' btn-xs" value="');
+    out.push(model.value);
+    out.push('">');
+    out.push('    <span class="glyphicon ');
+    out.push(model.glyphicon);
+    out.push('"></span>');
+    out.push(model.text);
+        out.push('</button>');
+    return out.join('');
+};
+gp.templates['form-group'] = function(model, arg) {
+    var out = [];
+    out.push('<div class="form-group">');
+    out.push('    <label class="col-sm-4 control-label">');
+    out.push(model.label);
+    out.push('</label>');
+    out.push('    <div class="col-sm-8">');
+    out.push(model.input);
+    out.push('</div>');
+    out.push('</div>');
+    return out.join('');
+};
 gp.templates['gridponent-body'] = function(model, arg) {
     var out = [];
     out.push('<table class="table" cellpadding="0" cellspacing="0">');
@@ -3241,7 +2917,7 @@ gp.templates['gridponent-body'] = function(model, arg) {
         out.push('<tbody>');
                 out.push(gp.helpers['tableRows'].call(model));
         out.push('</tbody>');
-            if (model.Footer && !model.fixedfooters) {
+            if (model.footer && !model.fixedfooters) {
                     out.push(gp.templates['gridponent-tfoot'](model));
                 }
         out.push('</table>');

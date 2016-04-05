@@ -7,7 +7,7 @@ gp.helpers = {
     bootstrapModal: function ( config, dataItem, mode ) {
 
         var model = {
-            title: (mode == 'create') ? 'Add' : 'Edit',
+            title: (mode == 'create' ? 'Add' : 'Edit'),
             body: '',
             footer: null
         };
@@ -23,25 +23,27 @@ gp.helpers = {
             }
             var canEdit = !col.readonly && ( gp.hasValue( col.field ) || gp.hasValue( col.edittemplate ) );
             if ( !canEdit ) return;
-            html.add( '<div class="form-group">' )
-                .add( '<label class="col-sm-4 control-label">' );
+
+            var formGroupModel = {
+                label: null,
+                input: gp.helpers.editCellContent( col, dataItem, mode )
+            };
+
+            // headers become labels
             // check for a template
             if ( col.headertemplate ) {
                 if ( typeof ( col.headertemplate ) === 'function' ) {
-                    html.add( gp.applyFunc( col.headertemplate, self, [col] ) );
+                    formGroupModel.label = ( gp.applyFunc( col.headertemplate, self, [col] ) );
                 }
                 else {
-                    html.add( gp.processHeaderTemplate.call( this, col.headertemplate, col ) );
+                    formGroupModel.label = ( gp.processHeaderTemplate.call( this, col.headertemplate, col ) );
                 }
             }
             else {
-                html.escape( gp.coalesce( [col.header, col.field, ''] ) );
+                formGroupModel.label = gp.escapeHTML( gp.coalesce( [col.header, col.field, ''] ) );
             }
-            html.add( '</label>' )
-                .add('<div class="col-sm-8">')
-                .add( gp.helpers.editCellContent( col, dataItem, mode ) )
-                .add( '</div>' )
-                .add( '</div>' );
+
+            html.add( gp.templates['form-group']( formGroupModel ) );
         } );
 
         html.add( '</form>' );
@@ -84,25 +86,28 @@ gp.helpers = {
             html.add( '<div class="btn-group" role="group">' );
             col.commands.forEach( function ( cmd, index ) {
                 if ( cmd == 'edit' && gp.hasValue( self.update ) ) {
-                    html.add( '<button type="button" class="btn btn-default btn-xs" value="' )
-                        .add( cmd )
-                        .add( '">' )
-                        .add( '<span class="glyphicon glyphicon-edit"></span>' )
-                        .add( 'Edit' )
-                        .add( '</button>' );
+                    html.add( gp.templates.button( {
+                        btnClass: 'btn-default',
+                        value: cmd,
+                        glyphicon: 'glyphicon-edit',
+                        text: 'Edit'
+                    } ) );
                 }
                 else if ( cmd == 'destroy' && gp.hasValue( self.destroy ) ) {
-                    html.add( '<button type="button" class="btn btn-danger btn-xs" value="destroy">' )
-                        .add( '<span class="glyphicon glyphicon-remove"></span>Delete' )
-                        .add( '</button>' );
+                    html.add( gp.templates.button( {
+                        btnClass: 'btn-danger',
+                        value: 'destroy',
+                        glyphicon: 'glyphicon-remove',
+                        text: 'Delete'
+                    } ) );
                 }
                 else {
-                    html.add( '<button type="button" class="btn btn-default btn-xs" value="' )
-                        .add( cmd )
-                        .add( '">' )
-                        .add( '<span class="glyphicon glyphicon-cog"></span>' )
-                        .add( cmd )
-                        .add( '</button>' );
+                    html.add( gp.templates.button( {
+                        btnClass: 'btn-default',
+                        value: cmd,
+                        glyphicon: 'glyphicon-cog',
+                        text: cmd
+                    } ) );
                 }
             } );
 
@@ -193,13 +198,14 @@ gp.helpers = {
             }
         }
         else if ( col.commands ) {
-            html.add( '<div class="btn-group" role="group">' )
-                .add( '<button type="button" class="btn btn-primary btn-xs" value="' )
-                .add( mode == 'create' ? 'create' : 'update' )
-                .add( '">' )
-                .add( '<span class="glyphicon glyphicon-save"></span>Save' )
-                .add( '</button>' )
-                .add( '<button type="button" class="btn btn-default btn-xs" data-dismiss="modal" value="cancel">' )
+            html.add( gp.templates.button( {
+                btnClass: 'btn-primary',
+                value: ( mode == 'create' ? 'create' : 'update' ),
+                glyphicon: 'glyphicon-save',
+                text: 'Save'
+            } ) );
+
+            html.add( '<button type="button" class="btn btn-default btn-xs" data-dismiss="modal" value="cancel">' )
                 .add( '<span class="glyphicon glyphicon-remove"></span>Cancel' )
                 .add( '</button>' )
                 .add( '</div>' );
@@ -338,24 +344,7 @@ gp.helpers = {
             html.add( this.toolbartemplate );
         }
         return html.toString();
-    },
+    }
 
-    validation: function ( tr, validationErrors ) {
-        var builder = new gp.StringBuilder(), input, msg;
-        builder.add( 'Please correct the following errors:\r\n' );
-        // remove error class from inputs
-        gp.removeClass( tr.querySelectorAll( '[name].error' ), 'error' );
-        validationErrors.forEach( function ( v ) {
-            input = tr.querySelector( '[name="' + v.Key + '"]' );
-            if ( input ) {
-                gp.addClass( input, 'error' );
-            }
-            builder.add( v.Key + ':\r\n' );
-            // extract the error message
-            msg = v.Value.Errors.map( function ( e ) { return '    - ' + e.ErrorMessage + '\r\n'; } ).join( '' );
-            builder.add( msg );
-        } );
-        alert( builder.toString() );
-    },
 };
 

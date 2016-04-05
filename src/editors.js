@@ -154,9 +154,6 @@ gp.TableRowEditor.prototype = {
                     error( err );
                 }
 
-                //self.invokeDelegates( self.config.node.api, gp.events.oncreate, { elem: elem, model: updateModel } );
-                //self.invokeDelegates( self.config.node.api, gp.events.onedit, self.config.pageModel );
-
                 gp.applyFunc( done, self.config.node.api, updateModel );
             },
             fail );
@@ -205,9 +202,6 @@ gp.TableRowEditor.prototype = {
                     gp.error( err );
                 }
 
-                //self.invokeDelegates( self.config.node.api, gp.events.onupdate, { elem: elem, model: updateModel } );
-                //self.invokeDelegates( self.config.node.api, gp.events.onedit, { elem: elem, model: updateModel } );
-
                 gp.applyFunc( done, self.config.node, updateModel );
             },
             fail );
@@ -238,10 +232,6 @@ gp.TableRowEditor.prototype = {
 
             this.removeCommandHandler();
 
-            //this.invokeDelegates( this.config.node.api, 'cancelEdit', {
-            //    dataItem: dataItem,
-            //    elem: elem
-            //} );
         }
         catch ( ex ) {
             gp.error( ex );
@@ -249,43 +239,7 @@ gp.TableRowEditor.prototype = {
 
     },
 
-    validate: function (updateModel) {
-
-        if ( typeof this.config.validate === 'function' ) {
-            gp.applyFunc( this.config.validate, this, [this.elem, updateModel] );
-        }
-        else {
-            
-            var self = this,
-                builder = new gp.StringBuilder(), 
-                input, 
-                msg;
-
-            builder.add( 'Please correct the following errors:\r\n' );
-
-            // remove error class from inputs
-            gp.removeClass( self.elem.querySelectorAll( '[name].error' ), 'error' );
-
-            updateModel.errors.forEach( function ( v ) {
-
-                input = self.elem.querySelector( '[name="' + v.Key + '"]' );
-
-                if ( input ) {
-                    gp.addClass( input, 'error' );
-                }
-
-                builder.add( v.Key + ':\r\n' );
-
-                // extract the error message
-                msg = v.Value.Errors.map( function ( e ) { return '    - ' + e.ErrorMessage + '\r\n'; } ).join( '' );
-
-                builder.add( msg );
-            } );
-
-            alert( builder.toString() );
-        }
-
-    },
+    validate: gp.TableRowEditor.prototype.validate,
 
     createDataItem: function () {
         var field,
@@ -347,7 +301,7 @@ gp.ModalEditor = function ( config, dal ) {
     this.commandHandler = function ( evt ) {
         // handle save or cancel
         var command = evt.selectedTarget.attributes['value'].value;
-        if ( /^(create|edit)$/i.test( command ) ) self.save();
+        if ( /^(create|update|save)$/i.test( command ) ) self.save();
         else if ( /^cancel$/i.test( command ) ) self.cancel();
     },
     this.beforeEdit = null;
@@ -378,15 +332,13 @@ gp.ModalEditor.prototype = {
 
         this.elem = modal[0];
 
+        modal.one( 'hidden.bs.modal', function () {
+            $( modal ).remove();
+        } );
+
         this.addCommandHandler();
 
         this.changeMonitor = new gp.ChangeMonitor( modal[0], '[name]', this.dataItem ).start();
-
-        modal.one( 'hidden.bs.modal', function () {
-            $( modal ).remove();
-            this.changeMonitor.stop();
-            this.changeMonitor = null;
-        } );
 
         return {
             dataItem: this.dataItem,
@@ -394,7 +346,7 @@ gp.ModalEditor.prototype = {
         };
     },
 
-    edit: function (dataItem, tr) {
+    edit: function (dataItem) {
 
         var self = this;
         this.dataItem = dataItem;
@@ -412,13 +364,13 @@ gp.ModalEditor.prototype = {
 
         this.elem = modal[0];
 
+        modal.one( 'hidden.bs.modal', function () {
+            $( modal ).remove();
+        } );
+
         this.addCommandHandler();
 
         this.changeMonitor = new gp.ChangeMonitor( modal[0], '[name]', dataItem ).start();
-
-        modal.one( 'hidden.bs.modal', function () {
-            self.cancel();
-        } );
 
         return {
             dataItem: dataItem,
@@ -430,18 +382,22 @@ gp.ModalEditor.prototype = {
     save: gp.TableRowEditor.prototype.save,
 
     cancel: function () {
-        // restore the dataItem to its original state
-        gp.shallowCopy( this.originalDataItem, this.dataItem );
+        $( this.elem ).modal('hide');
+        //restore the dataItem to its original state
+        if ( this.mode == 'update' && this.originalDataItem ) {
+            gp.shallowCopy( this.originalDataItem, this.dataItem );
+        }
         if ( this.changeMonitor ) {
             this.changeMonitor.stop();
             this.changeMonitor = null;
         }
-        this.restoreUI();
         this.removeCommandHandler();
     },
 
     restoreUI: function () {
-        var tbody = this.config.node.querySelector( 'div.table-body > table > tbody' ),
+
+        var self = this,
+            tbody = this.config.node.querySelector( 'div.table-body > table > tbody' ),
             bodyCellContent = gp.helpers['bodyCellContent'],
             tableRow,
             cells,
@@ -451,7 +407,6 @@ gp.ModalEditor.prototype = {
             cellContent;
 
         $( this.elem ).modal( 'hide' );
-        $( this.elem ).remove();
 
         // if we added a row, add a row to the top of the table
         if ( this.mode == 'create' ) {
@@ -460,7 +415,7 @@ gp.ModalEditor.prototype = {
 
             // add td.body-cell elements to the tr
             this.config.columns.forEach( function ( col ) {
-                cellContent = bodyCellContent.call( this.config, col, this.dataItem );
+                cellContent = bodyCellContent.call( self.config, col, self.dataItem );
                 builder.startElem( 'td' ).addClass( 'body-cell' ).addClass( col.BodyCell ).html( cellContent ).endElem();
             } );
 
@@ -481,7 +436,6 @@ gp.ModalEditor.prototype = {
                 }
             }
         }
-
     },
 
     validate: function (updateModel) {

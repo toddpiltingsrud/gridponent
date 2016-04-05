@@ -92,6 +92,7 @@ var getTableConfig = function ( options, callback ) {
     if ( options.onread ) out.push( '          onread="' + options.onread + '"' );
     if ( options.editmode ) out.push( '        editmode="' + options.editmode + '"' );
     if ( options.onedit ) out.push( '          onedit="' + options.onedit + '"' );
+    if ( options.model ) out.push( '           model="' + options.model + '"' );
     out.push( '             pager="top-right"' );
     out.push( '             search="top-left">' );
     if ( options.toolbartemplate )
@@ -258,6 +259,134 @@ var configuration = {
     ]
 };
 
+fns.model = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
+
+QUnit.test( 'model', function ( assert ) {
+
+    var done = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    options.model = 'fns.model';
+
+    getTableConfig( options, function ( api ) {
+
+        var config = api.getConfig();
+
+        assert.equal( config.columns[1].Type, 'string' );
+        assert.equal( config.columns[2].Type, 'boolean' );
+        assert.equal( config.columns[4].Type, 'number' );
+        assert.equal( config.columns[5].Type, 'dateString' );
+
+        done();
+
+    } );
+
+} );
+
+QUnit.test( 'api.findAll', function ( assert ) {
+
+    var done = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    gridponent( '#table .box', options ).ready( function () {
+
+        // find all edit buttons
+        var btn = this.findAll( 'button[value=edit]' );
+
+        assert.ok( btn.length > 1 );
+
+        done();
+
+    } );
+
+} );
+
+QUnit.test( 'ModalEditor', function ( assert ) {
+
+    var done1 = assert.async();
+    var done2 = assert.async();
+    var done3 = assert.async();
+
+    var options = gp.shallowCopy( configOptions );
+
+    options.editmode = 'modal';
+
+    getTableConfig( options, function ( api ) {
+
+        var config = api.getConfig();
+
+        var editor = new gp.ModalEditor( config, api.controller.model );
+
+        var model = editor.add();
+
+        assert.ok( model != null, 'add should return a model' );
+        assert.ok( model.dataItem != null, 'model should contain the new data row' );
+        assert.ok( model.elem != null, 'model should contain the modal' );
+
+        editor.cancel();
+
+        var dataItem = api.getData( 0 );
+
+        model = editor.edit( dataItem );
+
+        assert.ok( model != null, 'edit should return a model' );
+        assert.ok( model.dataItem != null, 'model should contain the new data row' );
+        assert.ok( model.elem != null, 'model should contain the modal' );
+
+        editor.cancel();
+
+        editor.add();
+
+        editor.save( function ( updateModel ) {
+
+            assert.ok( updateModel != null, 'save should return an updateModel' );
+            assert.ok( updateModel.dataItem != null, 'model should contain the new data row' );
+
+            done1();
+        } );
+
+        editor.edit(dataItem);
+
+        editor.save( function ( updateModel ) {
+
+            assert.ok( updateModel != null, 'save should return an updateModel' );
+            assert.ok( updateModel.dataItem != null, 'model should contain the new data row' );
+
+            done2();
+        } );
+
+        // validation
+
+        // mock an updateModel with validation errors
+        var updateModel = {
+            dataItem: dataItem,
+            errors: getValidationErrors(),
+            originalItem: dataItem
+        };
+
+        editor.validate( updateModel );
+
+        assert.ok( true, 'validate should not throw errors' );
+
+        // not try it with a custom validate function
+
+        config.validate = function (elem, updateModel) {
+
+            assert.ok( elem != null, 'elem should be the modal' );
+            assert.ok( updateModel != null, 'validate should return an updateModel' );
+
+            done3();
+
+        };
+
+        editor.validate( updateModel );
+
+    } );
+
+} );
+
 QUnit.test( 'modal edit', function ( assert ) {
 
     var done = assert.async();
@@ -266,14 +395,9 @@ QUnit.test( 'modal edit', function ( assert ) {
 
     options.editmode = 'modal';
 
-    gridponent( '#table .box', options ).ready( function () {
+    getTableConfig( options, function ( api ) {
 
-        // find an edit button
-        var btn = this.find( 'button[value=edit]' );
-
-        assert.ok( btn != null );
-
-        //clickButton( btn );
+        assert.ok( true, 'read can be a template' )
 
         done();
 
@@ -310,36 +434,6 @@ QUnit.test( 'helpers.input', function ( assert ) {
 
     assert.equal( input, '<input type="text" name="FirstName" value="Todd" class="form-control" />' );
 } );
-
-//QUnit.test( 'bootstrap modal', function ( assert ) {
-
-//    var done1 = assert.async();
-
-//    getTableConfig( configOptions, function ( api ) {
-
-//        var config = api.getConfig();
-
-//        var dataItem = api.getData( 0 );
-
-//        api.edit( dataItem );
-
-//        var input = $( '.gp.modal-dialog input[name=StandardCost]' ).val( 234 );
-
-//        gp.raiseCustomEvent( input[0], 'change' );
-
-//        assert.equal( dataItem.StandardCost, 234 );
-
-//        var updateBtn = $( '.gp.modal-dialog button[value=update]' );
-
-//        clickButton( updateBtn );
-
-//        $( '.modal' ).modal( 'hide' );
-
-//        done1();
-
-//    } );
-
-//} );
 
 QUnit.test( 'camelize', function ( assert ) {
 
@@ -400,78 +494,78 @@ QUnit.test( 'camelize', function ( assert ) {
 QUnit.test( 'options', function ( assert ) {
 
     var done1 = assert.async();
+    var done2 = assert.async();
 
-    var options = {
-        read: '/products/read?page={{page}}',
-        create: '/products/create',
-        update: '/products/update',
-        destroy: '/products/delete',
-        search: 'top-left',
-        pager: 'bottom-left',
-        columns: [
-            {
-                headertemplate: '<input type="checkbox" name="test" />',
-                bodytemplate: '<input type="checkbox" name="test" />',
-                footertemplate: '<input type="checkbox" name="test" />'
-            },
-            {
-                sort: 'Name',
-                header: 'ID',
-                bodytemplate: fns.getname,
-                edittemplate: fns.dropdown
-            },
-            {
-                width: '75px',
-                header: 'Make',
-                field: 'MakeFlag'
-            },
-            {
-                header: 'Safety Stock Level',
-                field: 'SafetyStockLevel',
-                bodytemplate: '<button class="btn"><span class="glyphicon glyphicon-search"></span>{{SafetyStockLevel}}</button>',
-                footertemplate: fns.average
-            },
-            {
-                format: 'c',
-                header: 'Standard Cost',
-                field: 'StandardCost'
-            },
-            {
-                format: 'D MMMM, YYYY',
-                header: 'Sell Start Date',
-                field: 'SellStartDate'
-            },
-            {
-                headerclass: 'hidden-xs',
-                bodyclass: 'hidden-xs',
-                readonly: true,
-                field: 'Markup'
-            },
-            {
-                headertemplate: 'Test Header<input type="checkbox"/>'
-            },
-            {
-                bodystyle: 'border:solid 1px #ccc;',
-                sort: 'Color',
-                headertemplate: '<button class="btn" value="">{{fns.getHeaderText}}</button>',
-                bodytemplate: '<button class="btn" value="{{fns.getButtonText}}"><span class="glyphicon {{fns.getButtonIcon}}"></span>{{fns.getButtonText}}</button>'
-            },
-            {
-                header: 'Product #',
-                field: 'ProductNumber'
-            },
-            {
-                commands: ['edit', 'destroy']
-            }
-        ]
+    var options = gp.shallowCopy( configuration );
+
+    options.editmode = 'modal';
+
+    options.toolbartemplate = function ( arg ) {
+
+        done1();
+
+        return '<button value="customtoolbarbutton">Custom Toolbar Button</button>';
+
     };
 
+    options.columns[0].headertemplate = function () {
+        return '<span class="custom-header">custom header</span>'
+    };
+    options.columns[0].bodytemplate = function () {
+        return '<span class="body-template">custom body template</span>'
+    };
+    options.columns[0].edittemplate = function () {
+        return '<span class="custom-edit-template">custom edit template</span>'
+    };
+    options.columns[0].footertemplate = function () {
+        return '<span class="custom-footer">custom footer</span>'
+    };
+    options.columns[4].headertemplate = function () {
+        return '<span class="header-template">custom header</span>'
+    };
 
-    gridponent( '#div1', options ).ready( function ( config ) {
+    gridponent( '#div1', options ).ready( function ( api ) {
+
+        var config = api.getConfig();
 
         assert.ok( true, 'initialization with JSON works' );
 
-        done1();
+        // find the toolbar button 
+
+        var btn = api.find( 'button[value=customtoolbarbutton]' );
+
+        assert.ok( btn != null, 'should be able to use a function as the toolbar template' );
+
+        var span = api.find( 'span.custom-header' );
+
+        assert.ok( span != null, 'should be able to use a function as a custom header template' );
+
+        span = api.find( 'span.body-template' );
+
+        assert.ok( span != null, 'should be able to use a function as a body template' );
+
+        span = api.find( 'span.custom-footer' );
+
+        assert.ok( span != null, 'should be able to use a function as a custom footer template' );
+
+        // put one of the rows into edit model
+        var btn = api.find( 'button[value=edit]' );
+
+        clickButton( btn );
+
+        span = api.find( 'span.custom-edit-template' );
+
+        assert.ok( span != null, 'should be able to use a function as a custom edit template' );
+
+        span = api.find( 'span.header-template' );
+
+        assert.ok( span != null, 'should be able to use a function as a custom header template inside a modal' );
+
+        btn = api.find( 'button[value=cancel]' );
+
+        clickButton( btn );
+
+        done2();
     } );
 
 } );
@@ -821,29 +915,49 @@ QUnit.test( 'api.refresh', function ( assert ) {
 
 QUnit.test( 'supplant', function ( assert ) {
 
-    var supplant = function ( str, o ) {
-        var types = /string|number|boolean/;
-        return str.replace( /{{([^{}]*)}}/g,
-            function ( a, b ) {
-                var r = o[b], t = typeof r;
-                return types.test(t) ? r : r == null ? '' : a;
-            }
-        );
-    };
-
     var template = 'http://products/{{ProductID}}?MakeFlag={{MakeFlag}}&Color={{Color}}';
 
     var dataItem = { "ProductID": 1, "Name": "Adjustable Race", "ProductNumber": "AR-5381", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": null, "SafetyStockLevel": 1000, "ReorderPoint": 750, "StandardCost": 0.0000, "ListPrice": 0.0000, "Size": null, "SizeUnitMeasureCode": null, "WeightUnitMeasureCode": null, "Weight": null, "DaysToManufacture": 0, "ProductLine": null, "Class": null, "Style": null, "ProductSubcategoryID": null, "ProductModelID": null, "SellStartDate": "2002-06-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "694215b7-08f7-4c0d-acb1-d734ba44c0c8", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": "<p>Product's name: \"Adjustable Race\"</p>" };
 
-    var url = supplant( template, dataItem );
+    var url = gp.supplant( template, dataItem );
 
     assert.equal( url, 'http://products/1?MakeFlag=false&Color=' );
 
 } );
 
+QUnit.test( 'getDefaultValue', function ( assert ) {
+
+    var type = gp.getType( 5 );
+
+    var defaultVal = gp.getDefaultValue( type );
+
+    assert.strictEqual( defaultVal, 0 );
+    
+    type = gp.getType( new Date() );
+
+    defaultVal = gp.getDefaultValue( type );
+
+    assert.strictEqual( defaultVal, null );
+
+
+    type = gp.getType( '2016-04-05' );
+
+    defaultVal = gp.getDefaultValue( type );
+
+    assert.strictEqual( defaultVal, null );
+
+
+    type = gp.getType( true );
+
+    defaultVal = gp.getDefaultValue( type );
+
+    assert.strictEqual( defaultVal, false );
+
+} );
+
 QUnit.test( 'refresh-event', function ( assert ) {
 
-        var done1 = assert.async();
+    var done1 = assert.async();
 
     var options = gp.shallowCopy( configOptions );
     var config;
@@ -1671,7 +1785,7 @@ QUnit.test( 'gp.Model', function ( assert ) {
         } );
 
 
-        // 'destroy'
+        // destroy
         request = data.products[0];
         model = new gp.Model( config );
 

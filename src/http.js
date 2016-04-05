@@ -39,7 +39,7 @@ gp.Http.prototype = {
         xhr.setRequestHeader( 'Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8' );
         xhr.send( s );
     },
-    'destroy': function ( url, data, callback, error ) {
+    destroy: function ( url, data, callback, error ) {
         var s = this.serialize( data );
         var xhr = this.createXhr( 'DELETE', url, callback, error );
         xhr.setRequestHeader( 'Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8' );

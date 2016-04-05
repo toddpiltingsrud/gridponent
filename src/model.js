@@ -82,7 +82,7 @@ gp.Model.prototype = {
         }
     },
 
-    'destroy': function (dataItem, done, fail) {
+    destroy: function (dataItem, done, fail) {
         var self = this, url;
         if ( typeof this.config.destroy === 'function' ) {
             gp.applyFunc(this.config.destroy, this.config.node.api, [dataItem, done, fail], fail);

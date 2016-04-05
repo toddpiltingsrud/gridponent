@@ -8,7 +8,7 @@ gp.templates['bootstrap-modal'] = function(model, arg) {
     out.push('<div class="gp modal-dialog" role="document">');
     out.push('<div class="modal-content">');
     out.push('<div class="modal-header">');
-    out.push('<button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true" value="cancel">&times;</span></button>');
+    out.push('<button type="button" class="close" aria-label="Close" value="cancel"><span aria-hidden="true">&times;</span></button>');
     out.push('                <h4 class="modal-title">');
     out.push(model.title);
     out.push('</h4>');
@@ -21,7 +21,7 @@ gp.templates['bootstrap-modal'] = function(model, arg) {
                                 out.push(model.footer);
                             } else {
         out.push('<div class="btn-group">');
-    out.push('<button type="button" class="btn btn-default" data-dismiss="modal" value="cancel">');
+    out.push('<button type="button" class="btn btn-default" value="cancel">');
     out.push('<span class="glyphicon glyphicon-remove"></span>Close');
     out.push('</button>');
     out.push('<button type="button" class="btn btn-primary" value="save">');
@@ -35,6 +35,32 @@ gp.templates['bootstrap-modal'] = function(model, arg) {
     out.push('</div>');
     return out.join('');
 };
+gp.templates['button'] = function(model, arg) {
+    var out = [];
+    out.push('<button type="button" class="btn ');
+    out.push(model.btnClass);
+    out.push(' btn-xs" value="');
+    out.push(model.value);
+    out.push('">');
+    out.push('    <span class="glyphicon ');
+    out.push(model.glyphicon);
+    out.push('"></span>');
+    out.push(model.text);
+        out.push('</button>');
+    return out.join('');
+};
+gp.templates['form-group'] = function(model, arg) {
+    var out = [];
+    out.push('<div class="form-group">');
+    out.push('    <label class="col-sm-4 control-label">');
+    out.push(model.label);
+    out.push('</label>');
+    out.push('    <div class="col-sm-8">');
+    out.push(model.input);
+    out.push('</div>');
+    out.push('</div>');
+    return out.join('');
+};
 gp.templates['gridponent-body'] = function(model, arg) {
     var out = [];
     out.push('<table class="table" cellpadding="0" cellspacing="0">');
@@ -44,7 +70,7 @@ gp.templates['gridponent-body'] = function(model, arg) {
         out.push('<tbody>');
                 out.push(gp.helpers['tableRows'].call(model));
         out.push('</tbody>');
-            if (model.Footer && !model.fixedfooters) {
+            if (model.footer && !model.fixedfooters) {
                     out.push(gp.templates['gridponent-tfoot'](model));
                 }
         out.push('</table>');

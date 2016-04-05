@@ -23,16 +23,17 @@ gp.Initializer.prototype = {
         var controller = new gp.Controller( self.config, dal, requestModel );
         this.addEventDelegates( this.config, controller );
         this.node.api = new gp.api( controller );
+        this.config.footer = this.resolveFooter( this.config );
         this.renderLayout( this.config );
-        this.addBusyHandlers();
+
 
         setTimeout( function () {
             // provides a hook for extensions
-            controller.invokeDelegates( self.config.node.api, gp.events.beforeinit, self.config );
+            controller.invokeDelegates( gp.events.beforeinit, self.config );
 
             // we need both beforeinit and beforeread because beforeread is used after every read in the controller
             // and beforeinit happens just once after the node is created, but before first read
-            controller.invokeDelegates( self.config.node.api, gp.events.beforeread, self.config.pageModel );
+            controller.invokeDelegates( gp.events.beforeread, self.config.pageModel );
 
             dal.read( requestModel,
                 function ( data ) {
@@ -46,10 +47,10 @@ gp.Initializer.prototype = {
                     } catch ( e ) {
                         gp.error( e );
                     }
-                    controller.invokeDelegates( self.config.node.api, gp.events.onread, self.config.pageModel );
+                    controller.invokeDelegates( gp.events.onread, self.config.pageModel );
                 },
                 function ( e ) {
-                    controller.invokeDelegates( self.config.node.api, gp.events.httpError, e );
+                    controller.invokeDelegates( gp.events.httpError, e );
                     alert( 'An error occurred while carrying out your request.' );
                     gp.error( e );
                 }
@@ -58,18 +59,6 @@ gp.Initializer.prototype = {
         } );
 
         return this.config;
-    },
-
-    addBusyHandlers: function () {
-        gp.on( this.config.node, gp.events.beforeread, gp.addBusy );
-        gp.on( this.config.node, gp.events.onread, gp.removeBusy );
-        gp.on( this.config.node, gp.events.beforecreate, gp.addBusy );
-        gp.on( this.config.node, gp.events.oncreate, gp.removeBusy );
-        gp.on( this.config.node, gp.events.beforeupdate, gp.addBusy );
-        gp.on( this.config.node, gp.events.onupdate, gp.removeBusy );
-        gp.on( this.config.node, gp.events.beforedestroy, gp.addBusy );
-        gp.on( this.config.node, gp.events.ondestroy, gp.removeBusy );
-        gp.on( this.config.node, gp.events.httpError, gp.removeBusy );
     },
 
     getConfig: function (node) {
@@ -96,7 +85,6 @@ gp.Initializer.prototype = {
             this.resolveTemplates( templates, colConfig, colNode );
         }
 
-        config.Footer = this.resolveFooter( config );
 
         // resolve the top level configurations
         var options = 'onrowselect searchfunction read create update destroy validate model'.split(' ');
