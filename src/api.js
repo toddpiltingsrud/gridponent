@@ -6,22 +6,12 @@ gp.events = {
 
     rowselected: 'rowselected',
     beforeinit: 'beforeinit',
-    // turn progress indicator on
     beforeread: 'beforeread',
     // turn progress indicator on
-    beforecreate: 'beforecreate',
-    // turn progress indicator on
-    beforeupdate: 'beforeupdate',
-    // turn progress indicator on
-    beforedestroy: 'beforedestroy',
+    beforeedit: 'beforeedit',
     // turn progress indicator off
     onread: 'onread',
     // turn progress indicator off
-    oncreate: 'oncreate',
-    // turn progress indicator off
-    onupdate: 'onupdate',
-    // turn progress indicator off
-    ondestroy: 'ondestroy',
     // raised after create, update and delete
     onedit: 'onedit',
     // gives external code the opportunity to initialize UI elements (e.g. datepickers)
@@ -64,10 +54,10 @@ gp.api.prototype = {
         return this.controller.config.pageModel.data;
     },
 
-    getTableRow: function( dataRow ) {
+    getTableRow: function( dataItem ) {
         return gp.getTableRow(
             this.controller.config.pageModel.data,
-            dataRow,
+            dataItem,
             this.controller.config.node
         );
     },
@@ -95,43 +85,15 @@ gp.api.prototype = {
         else callback( null );
     },
 
-    edit: function ( dataItem ) {
-
-        if ( $.fn.modal ) {
-
-            var html = gp.helpers.bootstrapModal( config, dataItem, 'update' );
-
-            var modal = $( html ).appendTo( 'body' ).modal( {
-                show: true,
-                keyboard: true
-            } );
-
-            var monitor = new gp.ChangeMonitor( modal[0], '[name]', dataItem ).start();
-
-            modal.one( 'hidden.bs.modal', function () {
-                $( modal ).remove();
-                monitor.stop();
-                modal = null;
-            } );
-
-        }
-
-    },
-
     // This would have to be called after having retrieved the dataItem from the table with getData().
     // The controller will attempt to figure out which tr it is by first calling indexOf(dataItem) on the data.
     // So the original dataItem object reference has to be preserved.
     // this function is mainly for testing
-    update: function ( dataItem, callback ) {
-        var tr = gp.getTableRow( this.controller.config.pageModel.data, dataItem, this.controller.config.node );
-
-        this.controller.updateRow( dataItem, tr, callback );
+    update: function ( dataItem, done ) {
+        this.controller.updateRow( dataItem, done );
     },
 
-    saveChanges: function ( dataItem, done ) {
-        var tr = this.getTableRow( dataItem );
-        this.controller.updateRow( dataItem, tr, done );
-    },
+    saveChanges: this.update,
 
     destroy: function ( dataItem, callback ) {
         this.controller.deleteRow( dataItem, callback, true );

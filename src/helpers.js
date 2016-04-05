@@ -55,11 +55,21 @@ gp.helpers = {
         var self = this,
             template,
             format,
+            val,
             hasDeleteBtn = false,
             dataItem = dataItem || this.Row,
-            val = gp.getFormattedValue( dataItem, col, true ),
             type = ( col.Type || '' ).toLowerCase(),
             html = new gp.StringBuilder();
+
+        try {
+            if ( dataItem == null ) return;
+            val = gp.getFormattedValue( dataItem, col, true );
+        }
+        catch ( err ) {
+            gp.error( err );
+            console.log( col );
+            console.log( dataItem );
+        }
 
         // check for a template
         if ( col.bodytemplate ) {

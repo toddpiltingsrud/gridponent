@@ -98,8 +98,10 @@ gp.Controller.prototype = {
 
     commandHandler: function ( evt ) {
         // this function handles all the button clicks for the entire grid
-        var command, lower, elem, dataItem, node = this.config.node, editor;
-        command = evt.selectedTarget.attributes['value'].value;
+        var command, lower, elem, dataItem,
+            node = this.config.node,
+            command = evt.selectedTarget.attributes['value'].value;
+
         if ( gp.hasValue( command ) ) lower = command.toLowerCase();
         // the button is inside either a table row or a modal
         elem = gp.closest( evt.selectedTarget, 'tr[data-index],div.modal', node );
@@ -109,39 +111,35 @@ gp.Controller.prototype = {
             case 'addrow':
                 this.addRow();
                 break;
-            //case 'create':
-            //    this.createRow( dataItem, elem );
-            //    break;
             case 'edit':
                 this.editRow(dataItem, elem);
-                //editor = getEditor();
-                //editor.edit( dataItem );
                 break;
-            //case 'update':
-            //    this.updateRow( dataItem, elem );
-            //    break;
-            //case 'cancel':
-            //    this.cancelEdit( dataItem, elem );
-            //    break;
             case 'delete':
             case 'destroy':
                 this.deleteRow( dataItem, elem );
-                break;
-            default:
-                // check for a custom command
-                var cmd = gp.getObjectAtPath( command );
-                if ( typeof cmd === 'function' ) {
-                    gp.applyFunc( cmd, node.api, [dataItem, elem] );
-                }
                 break;
         }
     },
 
     getEditor: function(dataItem) {
+        var self = this, editor;
+
         if ( this.config.editmode == 'modal' ) {
-            return new gp.ModalEditor( this.config );
+            editor = new gp.ModalEditor( this.config, this.model );
         }
-        return new gp.TableRowEditor( this.config );
+        else {
+            editor = new gp.TableRowEditor( this.config, this.model );
+        }
+
+        editor.beforeEdit = function ( model ) {
+            self.invokeDelegates( self.config.node.api, gp.events.beforeedit, model );
+        };
+
+        editor.afterEdit = function ( model ) {
+            self.invokeDelegates( self.config.node.api, gp.events.onedit, model );
+        };
+
+        return editor;
     },
 
     addRowSelectHandler: function ( config ) {
@@ -240,274 +238,128 @@ gp.Controller.prototype = {
     addRow: function ( dataItem ) {
 
         var editor = this.getEditor();
-        editor.add();
+
+        var model = editor.add();
+
+        this.invokeDelegates( this.config.node.api, gp.events.editmode, model );
+
         return editor;
 
-        //var tbody,
-        //    rowIndex,
-        //    bodyCellContent,
-        //    editCellContent,
-        //    builder,
-        //    elem,
-        //    html,
-        //    field;
-
-        //try {
-
-        //    // if there is no create configuration setting, we're done here
-        //    if ( !gp.hasValue( this.config.create ) ) return;
-
-        //    if ( !gp.hasValue( dataItem ) ) {
-        //        dataItem = {};
-
-        //        // set defaults
-        //        this.config.columns.forEach( function ( col ) {
-        //            var field = col.field || col.sort;
-        //            if ( gp.hasValue( field ) ) {
-        //                if ( gp.hasValue( col.Type ) ) {
-        //                    dataItem[field] = gp.getDefaultValue( col.Type );
-        //                }
-        //                else {
-        //                    dataItem[field] = '';
-        //                }
-        //            }
-        //        } );
-
-        //        // overwrite defaults with a model if specified
-        //        if ( typeof this.config.model == 'object' ) {
-        //            gp.shallowCopy( this.config.model, dataItem );
-        //        }
-        //    }
-
-        //    //this.config.pageModel.data.push( dataItem );
-
-        //    if ( this.config.editmode == 'modal' ) {
-        //        elem = this.modalEdit( dataItem, 'create' );
-        //    }
-        //    else {
-        //        // inline
-        //        elem = this.inlineEdit( dataItem, 'create' );
-        //    }
-
-        //    // gives external code the opportunity to initialize UI elements (e.g. datepickers)
-        //    this.invokeDelegates( this.config.node.api, gp.events.editmode, {
-        //        dataItem: dataItem,
-        //        elem: elem
-        //    } );
-        //}
-        //catch ( ex ) {
-        //    gp.error( ex );
-        //}
-
-        //return {
-        //    dataItem: dataItem,
-        //    elem: elem
-        //};
     },
 
-    //// elem is either a tabel row or a modal
-    //createRow: function (dataItem, elem, callback) {
-    //    try {
-    //        var monitor,
-    //            self = this,
-    //            returnedRow;
+    // elem is either a tabel row or a modal
+    createRow: function (dataItem, elem, callback) {
+        try {
+            var monitor,
+                self = this,
+                returnedRow;
 
-    //        // if there is no create configuration setting, we're done here
-    //        if ( !gp.hasValue( this.config.create ) ) {
-    //            gp.applyFunc( callback, self.config.node );
-    //            return;
-    //        }
+            // if there is no create configuration setting, we're done here
+            if ( !gp.hasValue( this.config.create ) ) {
+                gp.applyFunc( callback, self.config.node );
+                return;
+            }
 
-    //        this.invokeDelegates( this.config.node.api, gp.events.beforecreate, dataItem );
+            this.invokeDelegates( this.config.node.api, gp.events.beforecreate, dataItem );
 
-    //        // call the data layer with just the dataItem
-    //        // the data layer should respond with an updateModel
-    //        this.model.create( dataItem, function ( updateModel ) {
+            // call the data layer with just the dataItem
+            // the data layer should respond with an updateModel
+            this.model.create( dataItem, function ( updateModel ) {
 
-    //            try {
-    //                // standardize capitalization of incoming data
-    //                updateModel = gp.shallowCopy( updateModel, null, true );
+                try {
+                    // standardize capitalization of incoming data
+                    updateModel = gp.shallowCopy( updateModel, null, true );
 
-    //                if ( updateModel.errors && updateModel.errors.length ) {
-    //                    if ( typeof self.config.validate === 'function' ) {
-    //                        gp.applyFunc( self.config.validate, this, [elem, updateModel] );
-    //                    }
-    //                    else {
-    //                        gp.helpers['validation'].call( this, elem, updateModel.errors );
-    //                    }
-    //                }
-    //                else {
-    //                    // copy the returned dataItem back to the internal data array
-    //                    returnedRow = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem : ( updateModel.Data && updateModel.Data.length ) ? updateModel.Data[0] : dataItem;
-    //                    gp.shallowCopy( returnedRow, dataItem );
+                    // copy the returned dataItem back to the internal data array
+                    returnedRow = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem : ( updateModel.Data && updateModel.Data.length ) ? updateModel.Data[0] : dataItem;
+                    gp.shallowCopy( returnedRow, dataItem );
 
-    //                    // add the new dataItem to the internal data array
-    //                    self.config.pageModel.data.push( dataItem );
+                    // add the new dataItem to the internal data array
+                    self.config.pageModel.data.push( dataItem );
 
-    //                    // refresh the UI
-    //                    if ( elem instanceof HTMLTableRowElement ) {
-    //                        self.restoreCells( self.config, dataItem, elem );
-    //                    }
-    //                    else {
-    //                        // close the modal and refresh the grid
-    //                        $( elem ).modal( 'hide' );
-    //                    }
+                    self.refresh();
+                }
+                catch ( err ) {
+                    gp.error( err );
+                }
 
-    //                    // dispose of the ChangeMonitor
-    //                    monitor = elem['gp-change-monitor'];
-    //                    if ( monitor ) {
-    //                        monitor.stop();
-    //                        monitor = null;
-    //                    }
-    //                }
-    //            }
-    //            catch ( err ) {
-    //                gp.error( err );
-    //            }
+                self.invokeDelegates( self.config.node.api, gp.events.oncreate, { elem: elem, model: updateModel } );
+                self.invokeDelegates( self.config.node.api, gp.events.onedit, self.config.pageModel );
 
-    //            self.invokeDelegates( self.config.node.api, gp.events.oncreate, { elem: elem, model: updateModel } );
-    //            self.invokeDelegates( self.config.node.api, gp.events.onedit, self.config.pageModel );
-
-    //            gp.applyFunc( callback, self.config.node, updateModel );
-    //        },
-    //        this.handlers.httpErrorHandler );
-    //    }
-    //    catch ( ex ) {
-    //        gp.error( ex );
-    //    }
-    //},
+                gp.applyFunc( callback, self.config.node, updateModel );
+            },
+            this.handlers.httpErrorHandler );
+        }
+        catch ( ex ) {
+            gp.error( ex );
+        }
+    },
 
     editRow: function ( dataItem, elem ) {
 
         var editor = this.getEditor();
-        editor.edit( dataItem, elem );
+        var model = editor.edit( dataItem, elem );
+
+        this.invokeDelegates( this.config.node.api, gp.events.editmode, model );
+
         return editor;
-
-        //try {
-
-        //    if ( this.config.editmode == 'modal' ) {
-
-        //        elem = this.modalEdit( dataItem, 'edit' );
-
-        //    }
-        //    else {
-        //        // inline
-
-        //        elem = this.inlineEdit( dataItem, 'edit', elem );
-        //    }
-
-        //    //// put the dataItem in edit mode
-
-        //    //// IE9 can't set innerHTML of elem, so iterate through each cell
-        //    //// besides, that way we can just skip readonly cells
-        //    //var editCellContent = gp.helpers['editCellContent'];
-        //    //var col, cells = tr.querySelectorAll( 'td.body-cell' );
-        //    //for ( var i = 0; i < cells.length; i++ ) {
-        //    //    col = this.config.columns[i];
-        //    //    if ( !col.readonly ) {
-        //    //        cells[i].innerHTML = editCellContent.call( this.config, col, dataItem, 'edit' );
-        //    //    }
-        //    //}
-        //    //gp.addClass( tr, 'edit-mode' );
-        //    //tr['gp-change-monitor'] = new gp.ChangeMonitor( tr, '[name]', dataItem ).start();
-
-        //    // gives external code the opportunity to initialize UI elements (e.g. datepickers)
-        //    this.invokeDelegates( this.config.node.api, gp.events.editmode, {
-        //        dataItem: dataItem,
-        //        elem: elem
-        //    } );
-        //}
-        //catch (ex) {
-        //    gp.error( ex );
-        //}
     },
 
-    //updateRow: function (dataItem, elem, callback) {
-    //    // save the dataItem and return it to read mode
+    updateRow: function (dataItem, callback) {
 
-    //    try {
-    //        var monitor,
-    //            self = this,
-    //            updatedRow;
+        try {
+            var self = this,
+                updatedRow;
 
-    //        // if there is no update configuration setting, we're done here
-    //        if ( !gp.hasValue( this.config.update ) ) {
-    //            gp.applyFunc( callback, self.config.node );
-    //            return;
-    //        }
+            // if there is no update configuration setting, we're done here
+            if ( !gp.hasValue( this.config.update ) ) {
+                gp.applyFunc( callback, self.config.node );
+                return;
+            }
 
-    //        this.invokeDelegates( this.config.node.api, gp.events.beforeupdate, {
-    //            dataItem: dataItem,
-    //            elem: elem
-    //        } );
+            this.invokeDelegates( this.config.node.api, gp.events.beforeupdate, {
+                dataItem: dataItem
+            } );
 
-    //        // call the data layer with just the dataItem
-    //        // the data layer should respond with an updateModel
-    //        this.model.update( dataItem, function ( updateModel ) {
+            // call the data layer with just the dataItem
+            // the data layer should respond with an updateModel
+            this.model.update( dataItem, function ( updateModel ) {
 
-    //            try {
-    //                // standardize capitalization of incoming data
-    //                updateModel = gp.shallowCopy( updateModel, null, true );
+                try {
+                    // standardize capitalization of incoming data
+                    updateModel = gp.shallowCopy( updateModel, null, true );
 
-    //                if ( updateModel.errors && updateModel.errors.length ) {
-    //                    if ( typeof self.config.validate === 'function' ) {
-    //                        gp.applyFunc( self.config.validate, this, [elem, updateModel] );
-    //                    }
-    //                    else {
-    //                        gp.helpers['validation'].call( this, elem, updateModel.errors );
-    //                    }
-    //                }
-    //                else {
-    //                    // copy the returned dataItem back to the internal data array
-    //                    returnedRow = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem :
-    //                        ( updateModel.Data && updateModel.Data.length ) ? updateModel.Data[0] : dataItem;
-    //                    gp.shallowCopy( returnedRow, dataItem );
+                    // copy the returned dataItem back to the internal data array
+                    returnedRow = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem :
+                        ( updateModel.Data && updateModel.Data.length ) ? updateModel.Data[0] : dataItem;
+                    gp.shallowCopy( returnedRow, dataItem );
 
-    //                    if ( elem ) {
-    //                        // refresh the UI
-    //                        self.restoreCells( self.config, dataItem, elem );
-    //                        // dispose of the ChangeMonitor
-    //                        monitor = elem['gp-change-monitor'];
-    //                        if ( monitor ) {
-    //                            monitor.stop();
-    //                            monitor = null;
-    //                        }
-    //                    }
-    //                }
-    //            }
-    //            catch (err) {
-    //                gp.error( err );
-    //            }
+                    self.refresh();
+                }
+                catch (err) {
+                    gp.error( err );
+                }
 
-    //            self.invokeDelegates( self.config.node.api, gp.events.onupdate, { elem: elem, model: updateModel } );
-    //            self.invokeDelegates( self.config.node.api, gp.events.onedit, { elem: elem, model: updateModel } );
+                self.invokeDelegates( self.config.node.api, gp.events.onupdate, { model: updateModel } );
+                self.invokeDelegates( self.config.node.api, gp.events.onedit, { model: updateModel } );
 
-    //            gp.applyFunc( callback, self.config.node, updateModel );
-    //        },
-    //        this.handlers.httpErrorHandler );
-    //    }
-    //    catch (ex) {
-    //        gp.error( ex );
-    //    }
-    //},
+                gp.applyFunc( callback, self.config.node, updateModel );
+            },
+            this.handlers.httpErrorHandler );
+        }
+        catch (ex) {
+            gp.error( ex );
+        }
+    },
 
-    // we don't require a elem parameter because it may not be in the grid
-    deleteRow: function (dataItem, callback, skipConfirm) {
+    deleteRow: function (dataItem, callback) {
         try {
             if ( !gp.hasValue( this.config.destroy ) ) {
                 gp.applyFunc( callback, this.config.node );
                 return;
             }
 
-            var self = this,
-                confirmed = skipConfirm || confirm( 'Are you sure you want to delete this item?' ),
-                message,
-                tr = gp.getTableRow(this.config.pageModel.data, dataItem, this.config.node);
-
-            if ( !confirmed ) {
-                gp.applyFunc( callback, this.config.node );
-                return;
-            }
+            var self = this;
 
             this.invokeDelegates(this.config.node.api, gp.events.beforedestroy, dataItem );
 
@@ -519,10 +371,7 @@ gp.Controller.prototype = {
                     var index = self.config.pageModel.data.indexOf( dataItem );
                     if ( index != -1 ) {
                         self.config.pageModel.data.splice( index, 1 );
-                        // if the dataItem is currently being displayed, refresh the grid
-                        if ( tr ) {
-                            self.refresh( self.config );
-                        }
+                        self.refresh( self.config );
                     }
                 }
                 catch ( err ) {
@@ -648,23 +497,23 @@ gp.Controller.prototype = {
     //    return modal[0];
     //},
 
-    refresh: function ( config ) {
+    refresh: function () {
         // inject table rows, footer, pager and header style.
-        var node = config.node;
+        var node = this.config.node;
 
         var body = node.querySelector( 'div.table-body' );
         var footer = node.querySelector( 'div.table-footer' );
         var pager = node.querySelector( 'div.table-pager' );
         var sortStyle = node.querySelector( 'style.sort-style' );
 
-        body.innerHTML = gp.templates['gridponent-body']( config );
+        body.innerHTML = gp.templates['gridponent-body']( this.config );
         if ( footer ) {
-            footer.innerHTML = gp.templates['gridponent-table-footer']( config );
+            footer.innerHTML = gp.templates['gridponent-table-footer']( this.config );
         }
         if ( pager ) {
-            pager.innerHTML = gp.templates['gridponent-pager']( config );
+            pager.innerHTML = gp.templates['gridponent-pager']( this.config );
         }
-        sortStyle.innerHTML = gp.helpers.sortStyle.call( config );
+        sortStyle.innerHTML = gp.helpers.sortStyle.call( this.config );
     },
 
     //restoreCells: function ( config, dataItem, tr ) {
