@@ -94,7 +94,9 @@ gp.api.prototype = {
         this.controller.updateRow( dataItem, done );
     },
 
-    saveChanges: this.update,
+    saveChanges: function ( dataItem, done ) {
+        this.controller.updateRow( dataItem, done );
+    },
 
     destroy: function ( dataItem, callback ) {
         this.controller.deleteRow( dataItem, callback, true );

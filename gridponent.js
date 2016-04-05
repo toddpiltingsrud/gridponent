@@ -118,7 +118,9 @@ gp.api.prototype = {
         this.controller.updateRow( dataItem, done );
     },
 
-    saveChanges: this.update,
+    saveChanges: function ( dataItem, done ) {
+        this.controller.updateRow( dataItem, done );
+    },
 
     destroy: function ( dataItem, callback ) {
         this.controller.deleteRow( dataItem, callback, true );
@@ -578,7 +580,7 @@ gp.Controller.prototype = {
 
                     // copy the returned dataItem back to the internal data array
                     returnedRow = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem :
-                        ( updateModel.Data && updateModel.Data.length ) ? updateModel.Data[0] : dataItem;
+                        ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] : dataItem;
                     gp.shallowCopy( returnedRow, dataItem );
 
                     self.refresh();
@@ -885,7 +887,7 @@ gp.TableRowEditor.prototype = {
                     else {
                         // copy the returned dataItem back to the internal data array
                         returnedDataItem = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem :
-                            ( updateModel.Data && updateModel.Data.length ) ? updateModel.Data[0] : self.dataItem;
+                            ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] : self.dataItem;
                         gp.shallowCopy( returnedDataItem, self.dataItem );
 
                         if ( self.elem ) {

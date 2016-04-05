@@ -364,7 +364,7 @@ gp.Controller.prototype = {
 
                     // copy the returned dataItem back to the internal data array
                     returnedRow = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem :
-                        ( updateModel.Data && updateModel.Data.length ) ? updateModel.Data[0] : dataItem;
+                        ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] : dataItem;
                     gp.shallowCopy( returnedRow, dataItem );
 
                     self.refresh();

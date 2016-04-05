@@ -175,7 +175,7 @@ gp.TableRowEditor.prototype = {
                     else {
                         // copy the returned dataItem back to the internal data array
                         returnedDataItem = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem :
-                            ( updateModel.Data && updateModel.Data.length ) ? updateModel.Data[0] : self.dataItem;
+                            ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] : self.dataItem;
                         gp.shallowCopy( returnedDataItem, self.dataItem );
 
                         if ( self.elem ) {
