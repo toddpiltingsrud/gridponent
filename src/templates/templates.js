@@ -105,7 +105,7 @@ gp.templates['gridponent-pager'] = function(model, arg) {
     out.push('" title="First page">');
     out.push('<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>');
                     if (model.pageModel.IsFirstPage == false) {
-        out.push('<input type="radio" name="Page" value="1" />');
+        out.push('<input type="radio" name="page" value="1" />');
                     }
         out.push('</label>');
         out.push('        <label class="ms-page-index btn btn-default ');
@@ -115,14 +115,14 @@ gp.templates['gridponent-pager'] = function(model, arg) {
     out.push('" title="Previous page">');
     out.push('<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>');
                     if (model.pageModel.IsFirstPage == false) {
-        out.push('                <input type="radio" name="Page" value="');
+        out.push('                <input type="radio" name="page" value="');
     out.push(model.pageModel.PreviousPage);
     out.push('" />');
                     }
         out.push('</label>');
     out.push('</div>');
-    out.push('    <input type="number" name="Page" value="');
-    out.push(model.pageModel.Page);
+    out.push('    <input type="number" name="page" value="');
+    out.push(model.pageModel.page);
     out.push('" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />');
     out.push('<span class="page-count">');
     out.push('        of ');
@@ -136,7 +136,7 @@ gp.templates['gridponent-pager'] = function(model, arg) {
     out.push('" title="Next page">');
     out.push('<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>');
                     if (model.pageModel.IsLastPage == false) {
-        out.push('            <input type="radio" name="Page" value="');
+        out.push('            <input type="radio" name="page" value="');
     out.push(model.pageModel.NextPage);
     out.push('" />');
                     }
@@ -148,7 +148,7 @@ gp.templates['gridponent-pager'] = function(model, arg) {
     out.push('" title="Last page">');
     out.push('<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>');
                     if (model.pageModel.IsLastPage == false) {
-        out.push('            <input type="radio" name="Page" value="');
+        out.push('            <input type="radio" name="page" value="');
     out.push(model.pageModel.pagecount);
     out.push('" />');
                     }

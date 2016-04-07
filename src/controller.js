@@ -43,7 +43,7 @@ gp.Controller.prototype = {
 
     addBusy: function () {
         // this function executes with the api as its context
-        var tblContainer = this.getConfig().node.querySelector( 'div.table-container' );
+        var tblContainer = this.config.node.querySelector( 'div.table-container' );
 
         if ( tblContainer ) {
             gp.addClass( tblContainer, 'busy' );
@@ -52,7 +52,7 @@ gp.Controller.prototype = {
 
     removeBusy: function () {
         // this function executes with the api as its context
-        var tblContainer = this.getConfig().node.querySelector( 'div.table-container' );
+        var tblContainer = this.config.node.querySelector( 'div.table-container' );
 
         if ( tblContainer ) {
             gp.removeClass( tblContainer, 'busy' );
@@ -141,14 +141,15 @@ gp.Controller.prototype = {
                 break;
             case 'edit':
                 // the button is inside either a table row or a modal
-                elem = gp.closest( evt.selectedTarget, 'tr[data-index],div.modal', node );
-                dataItem = elem ? gp.getRowModel( this.config.pageModel.data, elem ) : null;
+                elem = gp.closest( evt.selectedTarget, 'tr[data-uid],div.modal', node );
+                dataItem = elem ? this.config.map.get( elem ) : null;
+                dataItem = this.config.map.get( elem );
                 this.editRow( dataItem, elem );
                 break;
             case 'delete':
             case 'destroy':
-                elem = gp.closest( evt.selectedTarget, 'tr[data-index],div.modal', node );
-                dataItem = elem ? gp.getRowModel( this.config.pageModel.data, elem ) : null;
+                elem = gp.closest( evt.selectedTarget, 'tr[data-uid],div.modal', node );
+                dataItem = elem ? this.config.map.get( elem ) : null;
                 this.deleteRow( dataItem, elem );
                 break;
         }
@@ -205,7 +206,7 @@ gp.Controller.prototype = {
         // add selected class
         gp.addClass( tr, 'selected' );
         // get the dataItem for this tr
-        dataItem = gp.getRowModel( config.pageModel.data, tr );
+        dataItem = config.map.get( tr );
 
         // ensure dataItem selection doesn't interfere with button clicks in the dataItem
         // by making sure the evt target is a body cell
@@ -262,6 +263,7 @@ gp.Controller.prototype = {
         this.model.read( this.config.pageModel, function ( model ) {
             // standardize capitalization of incoming data
             gp.shallowCopy( model, self.config.pageModel, true );
+            self.config.map.clear();
             self.refresh( self.config );
             self.invokeDelegates( gp.events.onread, self.config.node.api );
             gp.applyFunc( callback, self.config.node, self.config.pageModel );
@@ -324,7 +326,8 @@ gp.Controller.prototype = {
             this.handlers.httpErrorHandler );
         }
         catch ( ex ) {
-            gp.error( ex );
+            this.removeBusy();
+            this.httpErrorHandler( e );
         }
     },
 
@@ -381,7 +384,8 @@ gp.Controller.prototype = {
             this.handlers.httpErrorHandler );
         }
         catch (ex) {
-            gp.error( ex );
+            this.removeBusy();
+            this.httpErrorHandler( e );
         }
     },
 
@@ -396,7 +400,7 @@ gp.Controller.prototype = {
             var self = this,
                 confirmed = skipConfirm || confirm( 'Are you sure you want to delete this item?' ),
                 message,
-                tr = gp.getTableRow( this.config.pageModel.data, dataItem, this.config.node );
+                tr = gp.getTableRow( this.config.map, dataItem, this.config.node );
 
             if ( !confirmed ) {
                 gp.applyFunc( callback, this.config.node );
@@ -412,14 +416,16 @@ gp.Controller.prototype = {
             this.model.destroy( dataItem, function ( response ) {
 
                 try {
-                    // if it didn't error out, we'll assume it succeeded
-                    // remove the dataItem from the model
-                    var index = self.config.pageModel.data.indexOf( dataItem );
-                    if ( index != -1 ) {
-                        self.config.pageModel.data.splice( index, 1 );
-                        // if the dataItem is currently being displayed, refresh the grid
-                        if ( tr ) {
-                            self.refresh( self.config );
+                    if ( !response || !response.errors ) {
+                        // if it didn't error out, we'll assume it succeeded
+                        // remove the dataItem from the model
+                        var index = self.config.pageModel.data.indexOf( dataItem );
+                        if ( index != -1 ) {
+                            self.config.pageModel.data.splice( index, 1 );
+                            // if the dataItem is currently being displayed, refresh the grid
+                            if ( tr ) {
+                                self.refresh( self.config );
+                            }
                         }
                     }
                 }
@@ -437,19 +443,21 @@ gp.Controller.prototype = {
             },
             self.handlers.httpErrorHandler );
         }
-        catch ( ex ) {
-            gp.error( ex );
+        catch ( e ) {
+            this.removeBusy();
+            this.httpErrorHandler( e );
         }
     },
 
     refresh: function () {
         // inject table rows, footer, pager and header style.
-        var node = this.config.node;
+        var node = this.config.node,
+            body = node.querySelector( 'div.table-body' ),
+            footer = node.querySelector( 'div.table-footer' ),
+            pager = node.querySelector( 'div.table-pager' ),
+            sortStyle = node.querySelector( 'style.sort-style' );
 
-        var body = node.querySelector( 'div.table-body' );
-        var footer = node.querySelector( 'div.table-footer' );
-        var pager = node.querySelector( 'div.table-pager' );
-        var sortStyle = node.querySelector( 'style.sort-style' );
+        this.config.map.clear();
 
         body.innerHTML = gp.templates['gridponent-body']( this.config );
         if ( footer ) {

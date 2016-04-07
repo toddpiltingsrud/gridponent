@@ -4,18 +4,18 @@
         <label class="ms-page-index btn btn-default {{#if model.pageModel.IsFirstPage}} disabled {{/if}}" title="First page">
             <span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>
             {{#if model.pageModel.IsFirstPage == false}}
-                <input type="radio" name="Page" value="1" />
+                <input type="radio" name="page" value="1" />
             {{/if}}
         </label>
 
         <label class="ms-page-index btn btn-default {{#if model.pageModel.IsFirstPage}} disabled {{/if}}" title="Previous page">
             <span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>
             {{#if model.pageModel.IsFirstPage == false}}
-                <input type="radio" name="Page" value="{{model.pageModel.PreviousPage}}" />
+                <input type="radio" name="page" value="{{model.pageModel.PreviousPage}}" />
             {{/if}}
         </label>
     </div>
-    <input type="number" name="Page" value="{{model.pageModel.Page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />
+    <input type="number" name="page" value="{{model.pageModel.page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />
     <span class="page-count">
         of {{model.pageModel.pagecount}}
     </span>
@@ -23,14 +23,14 @@
         <label class="ms-page-index btn btn-default {{#if model.pageModel.IsLastPage}} disabled {{/if}}" title="Next page">
             <span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>
             {{#if model.pageModel.IsLastPage == false}}
-            <input type="radio" name="Page" value="{{model.pageModel.NextPage}}" />
+            <input type="radio" name="page" value="{{model.pageModel.NextPage}}" />
             {{/if}}
         </label>
 
         <label class="ms-page-index btn btn-default {{#if model.pageModel.IsLastPage}} disabled {{/if}}" title="Last page">
             <span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>
             {{#if model.pageModel.IsLastPage == false}}
-            <input type="radio" name="Page" value="{{model.pageModel.pagecount}}" />
+            <input type="radio" name="page" value="{{model.pageModel.pagecount}}" />
             {{/if}}
         </label>
     </div>

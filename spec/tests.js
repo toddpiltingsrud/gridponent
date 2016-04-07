@@ -20,13 +20,25 @@ var fns = fns || {};
 
 var clickButton = function ( btn ) {
 
-    var clickEvent1 = new CustomEvent( 'click', {
+    var evt = new CustomEvent( 'click', {
         'view': window,
         'bubbles': true,
         'cancelable': true
     } );
 
-    $(btn)[0].dispatchEvent( clickEvent1 );
+    $(btn)[0].dispatchEvent( evt );
+
+};
+
+var changeInput = function ( input ) {
+
+    var evt = new CustomEvent( 'change', {
+        'view': window,
+        'bubbles': true,
+        'cancelable': true
+    } );
+
+    $( input )[0].dispatchEvent( evt );
 
 };
 
@@ -81,6 +93,7 @@ var getTableConfig = function ( options, callback ) {
     if ( options.fixedFooters ) out.push( '    fixed-footers="true"' );
     if ( options.responsive ) out.push( '      responsive="true"' );
     if ( options.sorting ) out.push( '         sorting ' );
+    if ( options.pager ) out.push( '           pager ' );
     if ( options.onrowselect ) out.push( '     onrowselect="' + options.onrowselect + '"' );
     if ( options.searchFilter ) out.push( '    search-function="' + options.searchFilter + '"' );
     if ( options.read ) out.push( '            read="' + options.read + '"' );
@@ -261,6 +274,35 @@ var configuration = {
 
 fns.model = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
 
+
+QUnit.test( 'paging', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configOptions );
+
+    options.paging = true;
+
+    getTableConfig( options, function ( api ) {
+
+        // find the ProductNumber column
+        var productNumber1 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).innerHTML;
+
+        var btn = api.find( '[title="Next page"]' );
+
+        clickButton( btn );
+
+        var productNumber2 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).innerHTML;
+
+        assert.notStrictEqual( productNumber1, productNumber2, 'paging should change the contents of the grid to the next set' );
+
+        done1();
+
+    } );
+
+} );
+
+
 QUnit.test( 'model', function ( assert ) {
 
     var done = assert.async();
@@ -271,7 +313,7 @@ QUnit.test( 'model', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         assert.equal( config.columns[1].Type, 'string' );
         assert.equal( config.columns[2].Type, 'boolean' );
@@ -315,7 +357,7 @@ QUnit.test( 'ModalEditor', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         var editor = new gp.ModalEditor( config, api.controller.model );
 
@@ -526,7 +568,7 @@ QUnit.test( 'options', function ( assert ) {
 
     gridponent( '#div1', options ).ready( function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         assert.ok( true, 'initialization with JSON works' );
 
@@ -624,7 +666,7 @@ QUnit.test( 'commandHandler', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         var controller = api.controller;
 
@@ -672,7 +714,7 @@ QUnit.test( 'ChangeMonitor.handleEnterKey', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         var controller = config.node.api.controller;
 
@@ -760,7 +802,7 @@ QUnit.test( 'gp.ClientPager', function ( assert ) {
 
     getTableConfig( null, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         var pager = new gp.ClientPager( config );
 
@@ -851,7 +893,7 @@ QUnit.test( 'toolbartemplate', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         var btn = $( config.node ).find( 'div.table-toolbar button[value=xyz]' );
 
@@ -869,7 +911,7 @@ QUnit.test( 'api.search', function ( assert ) {
 
     getTableConfig( null, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         config.node.api.search( 'Bearing' );
 
@@ -890,7 +932,7 @@ QUnit.test( 'api.refresh', function ( assert ) {
 
     getTableConfig( configOptions, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         var firstRow = data.products[0];
 
@@ -899,7 +941,7 @@ QUnit.test( 'api.refresh', function ( assert ) {
         config.node.api.refresh( function () {
             // firstRow should be gone
 
-            var productNumber = $( config.node ).find( 'tr[data-index=0] > td.body-cell:nth-child(10)' ).text();
+            var productNumber = $( config.node ).find( 'tr[data-uid]:first-child > td.body-cell:nth-child(10)' ).text();
 
             assert.equal( productNumber, data.products[0].ProductNumber, 'product number should equal the second dataItem in the table' );
 
@@ -985,7 +1027,7 @@ QUnit.test( 'refresh-event', function ( assert ) {
     };
 
     getTableConfig( options, function ( api ) {
-        config = api.getConfig();
+        config = api.config;
         $( '#table .box' ).append( config.node );
     } );
 
@@ -999,7 +1041,7 @@ QUnit.test( 'api.create 1', function ( assert ) {
 
     getTableConfig( configOptions, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         var cellCount1 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
 
@@ -1174,7 +1216,7 @@ QUnit.test( 'api.sort', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
             $( '#table .box' ).append( config.node );
 
@@ -1198,20 +1240,20 @@ QUnit.test( 'api.sort', function ( assert ) {
             config.node.api.sort( 'Name', false );
 
             // take note of the content of the column before sorting
-            var content1 = api.find( 'tr[data-index="0"] td:nth-child(2)' ).innerHTML;
+            var content1 = api.find( 'tr[data-uid]:first-child td:nth-child(2)' ).innerHTML;
 
             // trigger another sort
             config.node.api.sort( 'Name', true );
 
             // take note of the content of the column after sorting
-            var content2 = api.find( 'tr[data-index="0"] td:nth-child(2)' ).innerHTML;
+            var content2 = api.find( 'tr[data-uid]:first-child td:nth-child(2)' ).innerHTML;
 
             assert.notStrictEqual( content1, content2, 'sorting should change the order' );
 
             config.node.api.sort( 'Name', false );
 
             // take note of the content of the column after sorting
-            content2 = api.find( 'tr[data-index="0"] td:nth-child(2)' ).innerHTML;
+            content2 = api.find( 'tr[data-uid]:first-child td:nth-child(2)' ).innerHTML;
 
             assert.strictEqual( content1, content2, 'sorting again should change it back' );
 
@@ -1311,7 +1353,7 @@ QUnit.test( 'ChangeMonitor.beforeSync', function ( assert ) {
 
     getTableConfig( configOptions, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         // set one of the radio buttons a couple of times
         var sortInput = api.find( 'input[name=sort]' );
@@ -1392,7 +1434,7 @@ QUnit.test( 'dataItem selection', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         assert.equal( config.onrowselect, onrowselect, 'onrowselect can be a function' );
 
@@ -1419,7 +1461,7 @@ QUnit.test( 'events.rowselected', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         assert.equal( config.onrowselect, onrowselect, 'onrowselect can be a function' );
 
@@ -1636,7 +1678,7 @@ QUnit.test( 'gp.Model', function ( assert ) {
 
     getTableConfig( null, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         var model = new gp.Model( config );
 
@@ -1812,7 +1854,7 @@ QUnit.test( 'gp.Table.getConfig', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         assert.equal( config.sorting, true );
 
@@ -1835,7 +1877,7 @@ QUnit.test( 'gp.Table.getConfig', function ( assert ) {
     options.read = '/Products/read';
 
     getTableConfig( options, function ( api ) {
-        var config = api.getConfig();
+        var config = api.config;
 
         assert.strictEqual( config.read, '/Products/read', 'read can be a URL' );
 
@@ -1857,7 +1899,7 @@ QUnit.test( 'gp.Table.getConfig', function ( assert ) {
     options.read = 'model.read';
 
     getTableConfig( options, function ( api ) {
-        var config = api.getConfig();
+        var config = api.config;
 
         assert.strictEqual( config.read, model.read, 'read can be a function' );
 
@@ -1875,7 +1917,7 @@ QUnit.test( 'gp.Table.getConfig', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         assert.strictEqual( config.read, data.products, 'read can be an array' );
 
@@ -1907,7 +1949,7 @@ QUnit.test( 'gp.helpers.thead', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         var node = config.node;
 
@@ -1926,7 +1968,7 @@ QUnit.test( 'gp.helpers.thead', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         var node = config.node;
 
@@ -1945,7 +1987,7 @@ QUnit.test( 'gp.helpers.thead', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         var node = config.node;
 
@@ -2001,7 +2043,7 @@ QUnit.test( 'gp.helpers.bodyCell', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         var node = config.node;
 
@@ -2052,7 +2094,7 @@ QUnit.test( 'gp.helpers.footerCell', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         cell = api.find( '.table-footer tr:first-child td.footer-cell:nth-child(4)' );
 
@@ -2147,7 +2189,7 @@ QUnit.test( 'custom search filter', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         //$( '#table .box' ).append( config.node );
 
@@ -2195,7 +2237,7 @@ QUnit.test( 'editmode event', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         var node = config.node;
 
@@ -2257,7 +2299,7 @@ QUnit.test( 'edit and update', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         var node = config.node;
 
@@ -2401,7 +2443,7 @@ QUnit.test( 'readonly fields', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         var node = config.node;
 
@@ -2476,7 +2518,7 @@ QUnit.test( 'controller.render', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         tests( config );
 
@@ -2486,7 +2528,7 @@ QUnit.test( 'controller.render', function ( assert ) {
 
     getTableConfig( null, function ( api ) {
 
-        var config = api.getConfig();
+        var config = api.config;
 
         tests( config );
 

@@ -60,6 +60,7 @@
     <Content Include="spec\OutSource.txt" />
     <Content Include="spec\styles\bootstrap-theme.css" />
     <Content Include="spec\styles\bootstrap-theme.min.css" />
+    <Content Include="src\datamap.js" />
     <Content Include="src\editors.js" />
     <Content Include="src\templates\button.html" />
     <Content Include="src\templates\form-group.html" />

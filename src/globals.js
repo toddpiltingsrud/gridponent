@@ -190,15 +190,10 @@
         return o;
     };
 
-    gp.getRowModel = function ( data, tr ) {
-        var index = parseInt( tr.attributes['data-index'].value );
-        return data[index];
-    };
-
-    gp.getTableRow = function ( data, row, node ) {
-        var index = data.indexOf( row );
-        if ( index == -1 ) return;
-        return node.querySelector( 'tr[data-index="' + index + '"]' );
+    gp.getTableRow = function ( map, dataItem, node ) {
+        var uid = map.getUid( dataItem );
+        if ( uid == -1 ) return;
+        return node.querySelector( 'tr[data-uid="' + uid + '"]' );
     };
 
     gp.getType = function ( a ) {

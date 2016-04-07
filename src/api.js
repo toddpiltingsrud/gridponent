@@ -26,6 +26,7 @@ gp.events = {
 
 gp.api = function ( controller ) {
     this.controller = controller;
+    this.config = controller.config;
 };
 
 gp.api.prototype = {
@@ -36,10 +37,6 @@ gp.api.prototype = {
 
     findAll: function ( selector ) {
         return this.controller.config.node.querySelectorAll( selector );
-    },
-
-    getConfig: function() {
-        return this.controller.config;
     },
 
     ready: function(callback) {
@@ -57,7 +54,7 @@ gp.api.prototype = {
 
     getTableRow: function( dataItem ) {
         return gp.getTableRow(
-            this.controller.config.pageModel.data,
+            this.controller.config.map,
             dataItem,
             this.controller.config.node
         );

@@ -50,6 +50,7 @@ gp.events = {
 
 gp.api = function ( controller ) {
     this.controller = controller;
+    this.config = controller.config;
 };
 
 gp.api.prototype = {
@@ -60,10 +61,6 @@ gp.api.prototype = {
 
     findAll: function ( selector ) {
         return this.controller.config.node.querySelectorAll( selector );
-    },
-
-    getConfig: function() {
-        return this.controller.config;
     },
 
     ready: function(callback) {
@@ -81,7 +78,7 @@ gp.api.prototype = {
 
     getTableRow: function( dataItem ) {
         return gp.getTableRow(
-            this.controller.config.pageModel.data,
+            this.controller.config.map,
             dataItem,
             this.controller.config.node
         );
@@ -259,7 +256,7 @@ gp.Controller.prototype = {
 
     addBusy: function () {
         // this function executes with the api as its context
-        var tblContainer = this.getConfig().node.querySelector( 'div.table-container' );
+        var tblContainer = this.config.node.querySelector( 'div.table-container' );
 
         if ( tblContainer ) {
             gp.addClass( tblContainer, 'busy' );
@@ -268,7 +265,7 @@ gp.Controller.prototype = {
 
     removeBusy: function () {
         // this function executes with the api as its context
-        var tblContainer = this.getConfig().node.querySelector( 'div.table-container' );
+        var tblContainer = this.config.node.querySelector( 'div.table-container' );
 
         if ( tblContainer ) {
             gp.removeClass( tblContainer, 'busy' );
@@ -357,14 +354,15 @@ gp.Controller.prototype = {
                 break;
             case 'edit':
                 // the button is inside either a table row or a modal
-                elem = gp.closest( evt.selectedTarget, 'tr[data-index],div.modal', node );
-                dataItem = elem ? gp.getRowModel( this.config.pageModel.data, elem ) : null;
+                elem = gp.closest( evt.selectedTarget, 'tr[data-uid],div.modal', node );
+                dataItem = elem ? this.config.map.get( elem ) : null;
+                dataItem = this.config.map.get( elem );
                 this.editRow( dataItem, elem );
                 break;
             case 'delete':
             case 'destroy':
-                elem = gp.closest( evt.selectedTarget, 'tr[data-index],div.modal', node );
-                dataItem = elem ? gp.getRowModel( this.config.pageModel.data, elem ) : null;
+                elem = gp.closest( evt.selectedTarget, 'tr[data-uid],div.modal', node );
+                dataItem = elem ? this.config.map.get( elem ) : null;
                 this.deleteRow( dataItem, elem );
                 break;
         }
@@ -421,7 +419,7 @@ gp.Controller.prototype = {
         // add selected class
         gp.addClass( tr, 'selected' );
         // get the dataItem for this tr
-        dataItem = gp.getRowModel( config.pageModel.data, tr );
+        dataItem = config.map.get( tr );
 
         // ensure dataItem selection doesn't interfere with button clicks in the dataItem
         // by making sure the evt target is a body cell
@@ -478,6 +476,7 @@ gp.Controller.prototype = {
         this.model.read( this.config.pageModel, function ( model ) {
             // standardize capitalization of incoming data
             gp.shallowCopy( model, self.config.pageModel, true );
+            self.config.map.clear();
             self.refresh( self.config );
             self.invokeDelegates( gp.events.onread, self.config.node.api );
             gp.applyFunc( callback, self.config.node, self.config.pageModel );
@@ -540,7 +539,8 @@ gp.Controller.prototype = {
             this.handlers.httpErrorHandler );
         }
         catch ( ex ) {
-            gp.error( ex );
+            this.removeBusy();
+            this.httpErrorHandler( e );
         }
     },
 
@@ -597,7 +597,8 @@ gp.Controller.prototype = {
             this.handlers.httpErrorHandler );
         }
         catch (ex) {
-            gp.error( ex );
+            this.removeBusy();
+            this.httpErrorHandler( e );
         }
     },
 
@@ -612,7 +613,7 @@ gp.Controller.prototype = {
             var self = this,
                 confirmed = skipConfirm || confirm( 'Are you sure you want to delete this item?' ),
                 message,
-                tr = gp.getTableRow( this.config.pageModel.data, dataItem, this.config.node );
+                tr = gp.getTableRow( this.config.map, dataItem, this.config.node );
 
             if ( !confirmed ) {
                 gp.applyFunc( callback, this.config.node );
@@ -628,14 +629,16 @@ gp.Controller.prototype = {
             this.model.destroy( dataItem, function ( response ) {
 
                 try {
-                    // if it didn't error out, we'll assume it succeeded
-                    // remove the dataItem from the model
-                    var index = self.config.pageModel.data.indexOf( dataItem );
-                    if ( index != -1 ) {
-                        self.config.pageModel.data.splice( index, 1 );
-                        // if the dataItem is currently being displayed, refresh the grid
-                        if ( tr ) {
-                            self.refresh( self.config );
+                    if ( !response || !response.errors ) {
+                        // if it didn't error out, we'll assume it succeeded
+                        // remove the dataItem from the model
+                        var index = self.config.pageModel.data.indexOf( dataItem );
+                        if ( index != -1 ) {
+                            self.config.pageModel.data.splice( index, 1 );
+                            // if the dataItem is currently being displayed, refresh the grid
+                            if ( tr ) {
+                                self.refresh( self.config );
+                            }
                         }
                     }
                 }
@@ -653,19 +656,21 @@ gp.Controller.prototype = {
             },
             self.handlers.httpErrorHandler );
         }
-        catch ( ex ) {
-            gp.error( ex );
+        catch ( e ) {
+            this.removeBusy();
+            this.httpErrorHandler( e );
         }
     },
 
     refresh: function () {
         // inject table rows, footer, pager and header style.
-        var node = this.config.node;
+        var node = this.config.node,
+            body = node.querySelector( 'div.table-body' ),
+            footer = node.querySelector( 'div.table-footer' ),
+            pager = node.querySelector( 'div.table-pager' ),
+            sortStyle = node.querySelector( 'style.sort-style' );
 
-        var body = node.querySelector( 'div.table-body' );
-        var footer = node.querySelector( 'div.table-footer' );
-        var pager = node.querySelector( 'div.table-pager' );
-        var sortStyle = node.querySelector( 'style.sort-style' );
+        this.config.map.clear();
 
         body.innerHTML = gp.templates['gridponent-body']( this.config );
         if ( footer ) {
@@ -711,6 +716,78 @@ gp.Controller.prototype = {
 })();
 
 /***************\
+    datamap
+\***************/
+gp.DataMap = function () {
+
+    this.uid = 0;
+    this.map = {};
+
+};
+
+gp.DataMap.prototype = {
+
+    assign: function ( dataItem, elem ) {
+        var i = ++this.uid;
+
+        this.map[i] = dataItem;
+
+        if ( elem && elem.setAttribute ) {
+            elem.setAttribute( 'data-uid', i.toString() );
+        }
+
+        return i;
+    },
+
+    get: function ( uidOrElem ) {
+
+        var uid = this.resolveUid(uidOrElem);
+
+        return this.map[uid];
+    },
+
+    getUid: function ( dataItem ) {
+        var uid, 
+            uids = Object.getOwnPropertyNames(this.map);
+
+        for (var i = 0; i < uids.length; i++) {
+            uid = uids[i];
+            if (this.map[uid] === dataItem) return uid;
+        }
+
+        return -1;
+    },
+
+    resolveUid: function ( uidOrElem ) {
+
+        var uid;
+
+        if ( uidOrElem.attributes ) {
+            uid = parseInt( uidOrElem.attributes['data-uid'].value );
+        }
+        else {
+            uid = parseInt( uidOrElem );
+        }
+
+        return uid;
+    },
+
+    remove: function ( uidOrElem ) {
+        var uid = this.resolveUid( uidOrElem );
+
+        if ( uid in this.map ) {
+            delete this.map[uid];
+        }
+    },
+
+    clear: function () {
+        this.uid = 0;
+        this.map = {};
+    }
+
+};
+
+/***************\
  TableRowEditor
 \***************/
 
@@ -749,11 +826,12 @@ gp.TableRowEditor.prototype = {
             tbody = this.config.node.querySelector( 'div.table-body > table > tbody' ),
             bodyCellContent = gp.helpers['bodyCellContent'],
             editCellContent = gp.helpers['editCellContent'],
-            builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', -1 ).addClass( 'create-mode' ),
+            builder = new gp.NodeBuilder(),
             cellContent;
 
         this.dataItem = this.createDataItem();
         this.mode = 'create';
+        builder.startElem( 'tr' ).addClass( 'create-mode' ),
 
         // add td.body-cell elements to the tr
         this.config.columns.forEach( function ( col ) {
@@ -783,7 +861,8 @@ gp.TableRowEditor.prototype = {
 
         var col,
             editCellContent = gp.helpers['editCellContent'],
-            cells = tr.querySelectorAll( 'td.body-cell' );
+            cells = tr.querySelectorAll( 'td.body-cell' ),
+            uid;
 
         this.dataItem = dataItem;
         this.originalDataItem = gp.shallowCopy( dataItem );
@@ -840,6 +919,10 @@ gp.TableRowEditor.prototype = {
                         returnedDataItem = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem : ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] : self.dataItem;
 
                         self.config.pageModel.data.push( returnedDataItem );
+
+                        // It's important to map the dataItem after it's saved because user could cancel.
+                        // Also the returned dataItem will likely have additional information added by the server.
+                        uid = self.config.map.assign( returnedDataItem, self.elem );
 
                         self.restoreUI( self.config, self.dataItem, self.elem );
 
@@ -1114,7 +1197,7 @@ gp.ModalEditor.prototype = {
             tableRow,
             cells,
             col,
-            rowIndex,
+            uid = this.config.map.resolveUid( this.elem ), // the save method will have added a uid attr to the modal if creating a dataItem
             builder,
             cellContent;
 
@@ -1122,8 +1205,13 @@ gp.ModalEditor.prototype = {
 
         // if we added a row, add a row to the top of the table
         if ( this.mode == 'create' ) {
-            rowIndex = this.config.pageModel.data.indexOf( this.dataItem );
-            builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', rowIndex );
+            
+            // make sure we have a uid
+            if ( uid == -1 ) {
+                uid = this.config.map.assign( this.dataItem );
+            }
+            
+            builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-uid', uid );
 
             // add td.body-cell elements to the tr
             this.config.columns.forEach( function ( col ) {
@@ -1137,7 +1225,7 @@ gp.ModalEditor.prototype = {
 
         }
         else {
-            tableRow = gp.getTableRow( this.config.pageModel.data, this.dataItem, this.config.node );
+            tableRow = gp.getTableRow( this.config.map, this.dataItem, this.config.node );
     
             if ( tableRow ) {
                 cells = tableRow.querySelectorAll( 'td.body-cell' );
@@ -1413,15 +1501,10 @@ gp.Formatter.prototype = {
         return o;
     };
 
-    gp.getRowModel = function ( data, tr ) {
-        var index = parseInt( tr.attributes['data-index'].value );
-        return data[index];
-    };
-
-    gp.getTableRow = function ( data, row, node ) {
-        var index = data.indexOf( row );
-        if ( index == -1 ) return;
-        return node.querySelector( 'tr[data-index="' + index + '"]' );
+    gp.getTableRow = function ( map, dataItem, node ) {
+        var uid = map.getUid( dataItem );
+        if ( uid == -1 ) return;
+        return node.querySelector( 'tr[data-uid="' + uid + '"]' );
     };
 
     gp.getType = function ( a ) {
@@ -1652,7 +1735,9 @@ gp.helpers = {
 
         var html = new gp.StringBuilder();
 
-        html.add( '<form class="form-horizontal">' );
+        // not using a form element here because the modal is added as a child node of the grid component
+        // this will cause problems if the grid is inside another form (e.g. jQuery.validate will behave unexpectedly)
+        html.add( '<div class="form-horizontal">' );
 
         config.columns.forEach( function ( col ) {
             if ( col.commands ) {
@@ -1684,7 +1769,7 @@ gp.helpers = {
             html.add( gp.templates['form-group']( formGroupModel ) );
         } );
 
-        html.add( '</form>' );
+        html.add( '</div>' );
 
         model.body = html.toString();
 
@@ -1912,12 +1997,18 @@ gp.helpers = {
     },
 
     tableRows: function () {
-        var self = this;
-        var html = new gp.StringBuilder();
+        var self = this,
+            html = new gp.StringBuilder(),
+            map = this.map,
+            uid;
+        if ( !map ) {
+            map = this.map = new gp.DataMap();
+        }
         this.pageModel.data.forEach( function ( dataItem, index ) {
+            uid = map.assign( dataItem );
             self.Row = dataItem;
-            html.add( '<tr data-index="' )
-            .add( index )
+            html.add( '<tr data-uid="' )
+            .add( uid )
             .add( '">' )
             .add( gp.templates['gridponent-cells']( self ) )
             .add( '</tr>' );
@@ -2057,16 +2148,17 @@ gp.Initializer.prototype = {
         options.ID = gp.createUID();
         this.config = options;
         this.config.node = this.node;
+        this.config.map = new gp.DataMap();
         var dal = new gp.Model( this.config );
         var requestModel = new gp.PagingModel();
         var controller = new gp.Controller( self.config, dal, requestModel );
-        this.addEventDelegates( this.config, controller );
         this.node.api = new gp.api( controller );
         this.config.footer = this.resolveFooter( this.config );
         this.renderLayout( this.config );
 
-
         setTimeout( function () {
+            self.addEventDelegates( self.config, controller );
+
             // provides a hook for extensions
             controller.invokeDelegates( gp.events.beforeinit, self.config );
 
@@ -2954,7 +3046,7 @@ gp.templates['gridponent-pager'] = function(model, arg) {
     out.push('" title="First page">');
     out.push('<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>');
                     if (model.pageModel.IsFirstPage == false) {
-        out.push('<input type="radio" name="Page" value="1" />');
+        out.push('<input type="radio" name="page" value="1" />');
                     }
         out.push('</label>');
         out.push('        <label class="ms-page-index btn btn-default ');
@@ -2964,14 +3056,14 @@ gp.templates['gridponent-pager'] = function(model, arg) {
     out.push('" title="Previous page">');
     out.push('<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>');
                     if (model.pageModel.IsFirstPage == false) {
-        out.push('                <input type="radio" name="Page" value="');
+        out.push('                <input type="radio" name="page" value="');
     out.push(model.pageModel.PreviousPage);
     out.push('" />');
                     }
         out.push('</label>');
     out.push('</div>');
-    out.push('    <input type="number" name="Page" value="');
-    out.push(model.pageModel.Page);
+    out.push('    <input type="number" name="page" value="');
+    out.push(model.pageModel.page);
     out.push('" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />');
     out.push('<span class="page-count">');
     out.push('        of ');
@@ -2985,7 +3077,7 @@ gp.templates['gridponent-pager'] = function(model, arg) {
     out.push('" title="Next page">');
     out.push('<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>');
                     if (model.pageModel.IsLastPage == false) {
-        out.push('            <input type="radio" name="Page" value="');
+        out.push('            <input type="radio" name="page" value="');
     out.push(model.pageModel.NextPage);
     out.push('" />');
                     }
@@ -2997,7 +3089,7 @@ gp.templates['gridponent-pager'] = function(model, arg) {
     out.push('" title="Last page">');
     out.push('<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>');
                     if (model.pageModel.IsLastPage == false) {
-        out.push('            <input type="radio" name="Page" value="');
+        out.push('            <input type="radio" name="page" value="');
     out.push(model.pageModel.pagecount);
     out.push('" />');
                     }

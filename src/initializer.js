@@ -18,16 +18,17 @@ gp.Initializer.prototype = {
         options.ID = gp.createUID();
         this.config = options;
         this.config.node = this.node;
+        this.config.map = new gp.DataMap();
         var dal = new gp.Model( this.config );
         var requestModel = new gp.PagingModel();
         var controller = new gp.Controller( self.config, dal, requestModel );
-        this.addEventDelegates( this.config, controller );
         this.node.api = new gp.api( controller );
         this.config.footer = this.resolveFooter( this.config );
         this.renderLayout( this.config );
 
-
         setTimeout( function () {
+            self.addEventDelegates( self.config, controller );
+
             // provides a hook for extensions
             controller.invokeDelegates( gp.events.beforeinit, self.config );
 

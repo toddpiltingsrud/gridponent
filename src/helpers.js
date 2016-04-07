@@ -14,7 +14,9 @@ gp.helpers = {
 
         var html = new gp.StringBuilder();
 
-        html.add( '<form class="form-horizontal">' );
+        // not using a form element here because the modal is added as a child node of the grid component
+        // this will cause problems if the grid is inside another form (e.g. jQuery.validate will behave unexpectedly)
+        html.add( '<div class="form-horizontal">' );
 
         config.columns.forEach( function ( col ) {
             if ( col.commands ) {
@@ -46,7 +48,7 @@ gp.helpers = {
             html.add( gp.templates['form-group']( formGroupModel ) );
         } );
 
-        html.add( '</form>' );
+        html.add( '</div>' );
 
         model.body = html.toString();
 
@@ -274,12 +276,18 @@ gp.helpers = {
     },
 
     tableRows: function () {
-        var self = this;
-        var html = new gp.StringBuilder();
+        var self = this,
+            html = new gp.StringBuilder(),
+            map = this.map,
+            uid;
+        if ( !map ) {
+            map = this.map = new gp.DataMap();
+        }
         this.pageModel.data.forEach( function ( dataItem, index ) {
+            uid = map.assign( dataItem );
             self.Row = dataItem;
-            html.add( '<tr data-index="' )
-            .add( index )
+            html.add( '<tr data-uid="' )
+            .add( uid )
             .add( '">' )
             .add( gp.templates['gridponent-cells']( self ) )
             .add( '</tr>' );

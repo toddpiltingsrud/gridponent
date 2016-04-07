@@ -1,6 +1,7 @@
-﻿Add modal edit feature.
-Add validation elements to the modal.
-Add a required attribute.
+﻿Add validation elements to the modal.
+Add a required attribute?
+
+If we just use buttons for pagers and links for sorting we could get rid of some markup and possibly get rid of the Controller's ChangeMonitor.
 
 Change config.node to the top table container.
 Since we have the ability to use the gridponent function to inject a grid anywhere,

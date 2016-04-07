@@ -37,11 +37,12 @@ gp.TableRowEditor.prototype = {
             tbody = this.config.node.querySelector( 'div.table-body > table > tbody' ),
             bodyCellContent = gp.helpers['bodyCellContent'],
             editCellContent = gp.helpers['editCellContent'],
-            builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', -1 ).addClass( 'create-mode' ),
+            builder = new gp.NodeBuilder(),
             cellContent;
 
         this.dataItem = this.createDataItem();
         this.mode = 'create';
+        builder.startElem( 'tr' ).addClass( 'create-mode' ),
 
         // add td.body-cell elements to the tr
         this.config.columns.forEach( function ( col ) {
@@ -71,7 +72,8 @@ gp.TableRowEditor.prototype = {
 
         var col,
             editCellContent = gp.helpers['editCellContent'],
-            cells = tr.querySelectorAll( 'td.body-cell' );
+            cells = tr.querySelectorAll( 'td.body-cell' ),
+            uid;
 
         this.dataItem = dataItem;
         this.originalDataItem = gp.shallowCopy( dataItem );
@@ -128,6 +130,10 @@ gp.TableRowEditor.prototype = {
                         returnedDataItem = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem : ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] : self.dataItem;
 
                         self.config.pageModel.data.push( returnedDataItem );
+
+                        // It's important to map the dataItem after it's saved because user could cancel.
+                        // Also the returned dataItem will likely have additional information added by the server.
+                        uid = self.config.map.assign( returnedDataItem, self.elem );
 
                         self.restoreUI( self.config, self.dataItem, self.elem );
 
@@ -402,7 +408,7 @@ gp.ModalEditor.prototype = {
             tableRow,
             cells,
             col,
-            rowIndex,
+            uid = this.config.map.resolveUid( this.elem ), // the save method will have added a uid attr to the modal if creating a dataItem
             builder,
             cellContent;
 
@@ -410,8 +416,13 @@ gp.ModalEditor.prototype = {
 
         // if we added a row, add a row to the top of the table
         if ( this.mode == 'create' ) {
-            rowIndex = this.config.pageModel.data.indexOf( this.dataItem );
-            builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-index', rowIndex );
+            
+            // make sure we have a uid
+            if ( uid == -1 ) {
+                uid = this.config.map.assign( this.dataItem );
+            }
+            
+            builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-uid', uid );
 
             // add td.body-cell elements to the tr
             this.config.columns.forEach( function ( col ) {
@@ -425,7 +436,7 @@ gp.ModalEditor.prototype = {
 
         }
         else {
-            tableRow = gp.getTableRow( this.config.pageModel.data, this.dataItem, this.config.node );
+            tableRow = gp.getTableRow( this.config.map, this.dataItem, this.config.node );
     
             if ( tableRow ) {
                 cells = tableRow.querySelectorAll( 'td.body-cell' );
