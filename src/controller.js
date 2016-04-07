@@ -155,10 +155,13 @@ gp.Controller.prototype = {
         }
     },
 
-    getEditor: function(dataItem) {
+    getEditor: function(mode) {
         var self = this, editor;
 
-        if ( this.config.editmode == 'modal' ) {
+        if ( mode == undefined ) {
+            editor = new gp.Editor( this.config, this.model );
+        }
+        else if ( mode == 'modal' ) {
             editor = new gp.ModalEditor( this.config, this.model );
         }
         else {
@@ -272,11 +275,11 @@ gp.Controller.prototype = {
 
     addRow: function ( dataItem ) {
 
-        var editor = this.getEditor();
+        var editor = this.getEditor( this.config.editmode );
 
         var model = editor.add();
 
-        this.invokeDelegates( gp.events.editmode, model );
+        this.invokeDelegates( gp.events.editready, model );
 
         return editor;
 
@@ -285,9 +288,9 @@ gp.Controller.prototype = {
     // elem is either a tabel row or a modal
     createRow: function (dataItem, elem, callback) {
         try {
-            var monitor,
-                self = this,
-                returnedRow;
+            var self = this,
+                returnedRow,
+                editor = this.getEditor();
 
             // if there is no create configuration setting, we're done here
             if ( !gp.hasValue( this.config.create ) ) {
@@ -295,35 +298,9 @@ gp.Controller.prototype = {
                 return;
             }
 
-            this.invokeDelegates( gp.events.beforecreate, dataItem );
+            editor.add( dataItem );
 
-            // call the data layer with just the dataItem
-            // the data layer should respond with an updateModel
-            this.model.create( dataItem, function ( updateModel ) {
-
-                try {
-                    // standardize capitalization of incoming data
-                    updateModel = gp.shallowCopy( updateModel, null, true );
-
-                    // copy the returned dataItem back to the internal data array
-                    returnedRow = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem : ( updateModel.Data && updateModel.Data.length ) ? updateModel.Data[0] : dataItem;
-                    gp.shallowCopy( returnedRow, dataItem );
-
-                    // add the new dataItem to the internal data array
-                    self.config.pageModel.data.push( dataItem );
-
-                    self.refresh();
-                }
-                catch ( err ) {
-                    gp.error( err );
-                }
-
-                self.invokeDelegates( gp.events.oncreate, { elem: elem, model: updateModel } );
-                self.invokeDelegates( gp.events.onedit, self.config.pageModel );
-
-                gp.applyFunc( callback, self.config.node, updateModel );
-            },
-            this.handlers.httpErrorHandler );
+            editor.save( callback, this.httpErrorHandler.bind(this) );
         }
         catch ( ex ) {
             this.removeBusy();
@@ -333,10 +310,10 @@ gp.Controller.prototype = {
 
     editRow: function ( dataItem, elem ) {
 
-        var editor = this.getEditor();
+        var editor = this.getEditor( this.config.editmode );
         var model = editor.edit( dataItem, elem );
 
-        this.invokeDelegates( gp.events.editmode, model );
+        this.invokeDelegates( gp.events.editready, model );
 
         return editor;
     },
@@ -345,7 +322,7 @@ gp.Controller.prototype = {
 
         try {
             var self = this,
-                updatedRow;
+                editor = this.getEditor();
 
             // if there is no update configuration setting, we're done here
             if ( !gp.hasValue( this.config.update ) ) {
@@ -353,35 +330,9 @@ gp.Controller.prototype = {
                 return;
             }
 
-            this.invokeDelegates( gp.events.beforeupdate, {
-                dataItem: dataItem
-            } );
+            editor.edit( dataItem );
 
-            // call the data layer with just the dataItem
-            // the data layer should respond with an updateModel
-            this.model.update( dataItem, function ( updateModel ) {
-
-                try {
-                    // standardize capitalization of incoming data
-                    updateModel = gp.shallowCopy( updateModel, null, true );
-
-                    // copy the returned dataItem back to the internal data array
-                    returnedRow = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem :
-                        ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] : dataItem;
-                    gp.shallowCopy( returnedRow, dataItem );
-
-                    self.refresh();
-                }
-                catch (err) {
-                    gp.error( err );
-                }
-
-                self.invokeDelegates( gp.events.onupdate, { model: updateModel } );
-                self.invokeDelegates( gp.events.onedit, { model: updateModel } );
-
-                gp.applyFunc( callback, self.config.node, updateModel );
-            },
-            this.handlers.httpErrorHandler );
+            editor.save( callback, this.httpErrorHandler.bind(this) );
         }
         catch (ex) {
             this.removeBusy();

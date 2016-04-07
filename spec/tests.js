@@ -103,7 +103,7 @@ var getTableConfig = function ( options, callback ) {
     if ( options.refreshevent ) out.push( '    refresh-event="' + options.refreshevent + '"' );
     if ( options.validate ) out.push( '        validate="' + options.validate + '"' );
     if ( options.onread ) out.push( '          onread="' + options.onread + '"' );
-    if ( options.editmode ) out.push( '        editmode="' + options.editmode + '"' );
+    if ( options.editready ) out.push( '        editready="' + options.editready + '"' );
     if ( options.onedit ) out.push( '          onedit="' + options.onedit + '"' );
     if ( options.model ) out.push( '           model="' + options.model + '"' );
     out.push( '             pager="top-right"' );
@@ -275,6 +275,34 @@ var configuration = {
 fns.model = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
 
 
+QUnit.test( 'sorting', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configOptions );
+
+    options.paging = true;
+    options.sorting = true;
+    options.read = 'products/read';
+
+    getTableConfig( options, function ( api ) {
+
+        var lbl = api.find( 'label.table-sort' );
+
+        clickButton( lbl );
+
+        assert.ok( true, 'sorting works' );
+
+        clickButton( lbl );
+
+        assert.ok( true, 'sorting works' );
+
+        done1();
+
+    } );
+
+} );
+
 QUnit.test( 'paging', function ( assert ) {
 
     var done1 = assert.async();
@@ -307,7 +335,7 @@ QUnit.test( 'model', function ( assert ) {
 
     var done = assert.async();
 
-    var options = gp.shallowCopy( configuration );
+    var options = gp.shallowCopy( configOptions );
 
     options.model = 'fns.model';
 
@@ -330,9 +358,7 @@ QUnit.test( 'api.findAll', function ( assert ) {
 
     var done = assert.async();
 
-    var options = gp.shallowCopy( configuration );
-
-    gridponent( '#table .box', options ).ready( function () {
+    gridponent( '#table .box', configuration ).ready( function () {
 
         // find all edit buttons
         var btn = this.findAll( 'button[value=edit]' );
@@ -1059,8 +1085,6 @@ QUnit.test( 'api.create 1', function ( assert ) {
 } );
 
 QUnit.test( 'api.create 2', function ( assert ) {
-
-    console.log( 'here' );
 
     var done = assert.async();
 
@@ -2219,16 +2243,16 @@ QUnit.test( 'custom search filter', function ( assert ) {
 
 } );
 
-QUnit.test( 'editmode event', function ( assert ) {
+QUnit.test( 'editready event', function ( assert ) {
 
     var done2 = assert.async();
 
     var options = gp.shallowCopy( configOptions );
     options.fixedheaders = true;
     options.sorting = true;
-    options.editmode = 'fns.editmode';
+    options.editready = 'fns.editready';
 
-    fns.editmode = function ( evt ) {
+    fns.editready = function ( evt ) {
         assert.ok( evt != null );
         assert.ok( evt.dataItem != null );
         assert.ok( evt.elem != null );
@@ -2258,7 +2282,7 @@ QUnit.test( 'edit and update', function ( assert ) {
     var options = gp.shallowCopy( configOptions );
     options.fixedheaders = true;
     options.sorting = true;
-    options.editmode = 'fns.editmode';
+    options.editready = 'fns.editready';
     options.onedit = 'fns.onupdate';
     var colIndex = -1;
     var col = null;
@@ -2269,7 +2293,7 @@ QUnit.test( 'edit and update', function ( assert ) {
         'cancelable': true
     } );
 
-    fns.editmode = function ( evt ) {
+    fns.editready = function ( evt ) {
         assert.ok( evt != null );
         assert.ok( evt.dataItem != null );
         assert.ok( evt.elem != null );
@@ -2431,11 +2455,11 @@ QUnit.test( 'readonly fields', function ( assert ) {
     var options = gp.shallowCopy( configOptions );
     options.fixedheaders = true;
     options.sorting = true;
-    options.editmode = 'fns.editmode';
+    options.editready = 'fns.editready';
 
     var index;
 
-    fns.editmode = function ( evt ) {
+    fns.editready = function ( evt ) {
         var input = this.find( 'td:nth-child(' + ( index + 1 ).toString() + ') input' );
         assert.equal( input, null, 'there should not be an input' );
         done();

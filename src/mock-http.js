@@ -23,48 +23,48 @@
         //    });
         //    return out.join('&');
         //},
-        deserialize: function (queryString) {
-            var nameValue, split = queryString.split( '&' );
-            var obj = {};
-            if ( !queryString ) return obj;
-            split.forEach( function ( s ) {
-                nameValue = s.split( '=' );
-                var val = nameValue[1];
-                if ( !val ) {
-                    obj[nameValue[0]] = null;
-                }
-                else if ( /true|false/i.test( val ) ) {
-                    obj[nameValue[0]] = ( /true/i.test( val ) );
-                }
-                else if ( parseFloat( val ).toString() === val ) {
-                    obj[nameValue[0]] = parseFloat( val );
-                }
-                else {
-                    obj[nameValue[0]] = val;
-                }
-            } );
-            return obj;
-        },
-        get: function (url, callback, error) {
-            if (routes.read.test(url)) {
-                var index = url.substring(url.indexOf('?'));
-                if (index !== -1) {
-                    var queryString = url.substring(index + 1);
-                    var model = this.deserialize(queryString);
-                    this.post(url.substring(0, index), model, callback, error);
-                }
-                else {
-                    this.post(url, null, callback, error);
-                }
-            }
-            else if (routes.create.test(url)) {
-                var result = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
-                callback(result);
-            }
-            else {
-                throw 'Not found: ' + url;
-            }
-        },
+        //deserialize: function (queryString) {
+        //    var nameValue, split = queryString.split( '&' );
+        //    var obj = {};
+        //    if ( !queryString ) return obj;
+        //    split.forEach( function ( s ) {
+        //        nameValue = s.split( '=' );
+        //        var val = nameValue[1];
+        //        if ( !val ) {
+        //            obj[nameValue[0]] = null;
+        //        }
+        //        else if ( /true|false/i.test( val ) ) {
+        //            obj[nameValue[0]] = ( /true/i.test( val ) );
+        //        }
+        //        else if ( parseFloat( val ).toString() === val ) {
+        //            obj[nameValue[0]] = parseFloat( val );
+        //        }
+        //        else {
+        //            obj[nameValue[0]] = val;
+        //        }
+        //    } );
+        //    return obj;
+        //},
+        //get: function (url, callback, error) {
+        //    if (routes.read.test(url)) {
+        //        var index = url.substring(url.indexOf('?'));
+        //        if (index !== -1) {
+        //            var queryString = url.substring(index + 1);
+        //            var model = this.deserialize(queryString);
+        //            this.post(url.substring(0, index), model, callback, error);
+        //        }
+        //        else {
+        //            this.post(url, null, callback, error);
+        //        }
+        //    }
+        //    else if (routes.create.test(url)) {
+        //        var result = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
+        //        callback(result);
+        //    }
+        //    else {
+        //        throw 'Not found: ' + url;
+        //    }
+        //},
         post: function (url, model, callback, error) {
             model = model || {};
             if (routes.read.test(url)) {

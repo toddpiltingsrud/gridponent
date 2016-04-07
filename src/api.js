@@ -16,7 +16,7 @@ gp.events = {
     // raised after create, update and delete
     onedit: 'onedit',
     // gives external code the opportunity to initialize UI elements (e.g. datepickers)
-    editmode: 'editmode',
+    editready: 'editready',
     // turn progress indicator off
     httpError: 'httpError',
     // happens once after the grid is fully initialized and databound

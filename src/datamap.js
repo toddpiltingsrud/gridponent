@@ -43,14 +43,18 @@ gp.DataMap.prototype = {
 
     resolveUid: function ( uidOrElem ) {
 
-        var uid;
+        var uid = -1;
 
         if ( uidOrElem.attributes ) {
-            uid = parseInt( uidOrElem.attributes['data-uid'].value );
+            if ( uidOrElem.attributes['data-uid'] && uidOrElem.attributes['data-uid'].value ) {
+                uid = parseInt( uidOrElem.attributes['data-uid'].value );
+            }
         }
         else {
             uid = parseInt( uidOrElem );
         }
+
+        if ( isNaN( uid ) ) return -1;
 
         return uid;
     },
