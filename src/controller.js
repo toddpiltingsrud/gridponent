@@ -34,10 +34,10 @@ gp.Controller.prototype = {
     },
 
     addBusyDelegates: function () {
-        this.addDelegate( gp.events.beforeread, this.addBusy );
-        this.addDelegate( gp.events.onread, this.removeBusy );
-        this.addDelegate( gp.events.beforeedit, this.addBusy );
-        this.addDelegate( gp.events.onedit, this.removeBusy );
+        this.addDelegate( gp.events.beforeRead, this.addBusy );
+        this.addDelegate( gp.events.onRead, this.removeBusy );
+        this.addDelegate( gp.events.beforeEdit, this.addBusy );
+        this.addDelegate( gp.events.onEdit, this.removeBusy );
         this.addDelegate( gp.events.httpError, this.removeBusy );
     },
 
@@ -169,11 +169,11 @@ gp.Controller.prototype = {
         }
 
         editor.beforeEdit = function ( model ) {
-            self.invokeDelegates( gp.events.beforeedit, model );
+            self.invokeDelegates( gp.events.beforeEdit, model );
         };
 
         editor.afterEdit = function ( model ) {
-            self.invokeDelegates( gp.events.onedit, model );
+            self.invokeDelegates( gp.events.onEdit, model );
         };
 
         return editor;
@@ -261,14 +261,14 @@ gp.Controller.prototype = {
         if ( requestModel ) {
             gp.shallowCopy( requestModel, this.config.pageModel );
         }
-        proceed = this.invokeDelegates( gp.events.beforeread, this.config.node.api );
+        proceed = this.invokeDelegates( gp.events.beforeRead, this.config.node.api );
         if ( proceed === false ) return;
         this.model.read( this.config.pageModel, function ( model ) {
             // standardize capitalization of incoming data
             gp.shallowCopy( model, self.config.pageModel, true );
             self.config.map.clear();
             self.refresh( self.config );
-            self.invokeDelegates( gp.events.onread, self.config.node.api );
+            self.invokeDelegates( gp.events.onRead, self.config.node.api );
             gp.applyFunc( callback, self.config.node, self.config.pageModel );
         }, this.handlers.httpErrorHandler );
     },
@@ -279,7 +279,7 @@ gp.Controller.prototype = {
 
         var model = editor.add();
 
-        this.invokeDelegates( gp.events.editready, model );
+        this.invokeDelegates( gp.events.editReady, model );
 
         return editor;
 
@@ -313,7 +313,7 @@ gp.Controller.prototype = {
         var editor = this.getEditor( this.config.editmode );
         var model = editor.edit( dataItem, elem );
 
-        this.invokeDelegates( gp.events.editready, model );
+        this.invokeDelegates( gp.events.editReady, model );
 
         return editor;
     },
@@ -358,7 +358,7 @@ gp.Controller.prototype = {
                 return;
             }
 
-            this.invokeDelegates( gp.events.beforeedit, {
+            this.invokeDelegates( gp.events.beforeEdit, {
                 type: 'destroy',
                 dataItem: dataItem,
                 elem: tr
@@ -384,7 +384,7 @@ gp.Controller.prototype = {
                     gp.error( err );
                 }
 
-                self.invokeDelegates( gp.events.onedit, {
+                self.invokeDelegates( gp.events.onEdit, {
                     type: 'destroy',
                     dataItem: dataItem,
                     elem: tr

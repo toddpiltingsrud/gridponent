@@ -28,19 +28,19 @@ var gridponent = gridponent || function ( elem, options ) {
 
 gp.events = {
 
-    rowselected: 'rowselected',
+    rowSelected: 'rowselected',
     beforeinit: 'beforeinit',
     // turn progress indicator on
-    beforeread: 'beforeread',
+    beforeRead: 'beforeread',
     // turn progress indicator on
-    beforeedit: 'beforeedit',
+    beforeEdit: 'beforeedit',
     // turn progress indicator off
-    onread: 'onread',
+    onRead: 'onread',
     // turn progress indicator off
     // raised after create, update and delete
-    onedit: 'onedit',
+    onEdit: 'onedit',
     // gives external code the opportunity to initialize UI elements (e.g. datepickers)
-    editready: 'editready',
+    editReady: 'editready',
     // turn progress indicator off
     httpError: 'httpError',
     // happens once after the grid is fully initialized and databound
@@ -55,20 +55,46 @@ gp.api = function ( controller ) {
 
 gp.api.prototype = {
 
-    find: function(selector) {
+    beforeEdit: function ( callback ) {
+        this.controller.addDelegate( gp.events.beforeEdit, callback );;
+        return this;
+    },
+
+    beforeInit: function ( callback ) {
+        this.controller.addDelegate( gp.events.beforeInit, callback );;
+        return this;
+    },
+
+    beforeRead: function ( callback ) {
+        this.controller.addDelegate( gp.events.beforeRead, callback );;
+        return this;
+    },
+
+    create: function ( dataItem, callback ) {
+        var model = this.controller.addRow( dataItem );
+        if ( model != null ) this.controller.createRow( dataItem, model.elem, callback );
+        else callback( null );
+    },
+    
+    destroy: function ( dataItem, callback ) {
+        this.controller.deleteRow( dataItem, callback, true );
+    },
+
+    dispose: function () {
+        this.controller.dispose();
+    },
+
+    editReady: function ( callback ) {
+        this.controller.addDelegate( gp.events.editReady, callback );;
+        return this;
+    },
+
+    find: function ( selector ) {
         return this.controller.config.node.querySelector( selector );
     },
 
     findAll: function ( selector ) {
         return this.controller.config.node.querySelectorAll( selector );
-    },
-
-    ready: function(callback) {
-        this.controller.ready( callback );
-    },
-
-    refresh: function ( callback ) {
-        this.controller.read( null, callback );
     },
 
     getData: function ( index ) {
@@ -84,6 +110,38 @@ gp.api.prototype = {
         );
     },
 
+    httpError: function ( callback ) {
+        this.controller.addDelegate( gp.events.httpError, callback );;
+        return this;
+    },
+
+    onEdit: function ( callback ) {
+        this.controller.addDelegate( gp.events.onEdit, callback );;
+        return this;
+    },
+
+    onRead: function ( callback ) {
+        this.controller.addDelegate( gp.events.onRead, callback );;
+        return this;
+    },
+
+    read: function ( requestModel, callback ) {
+        this.controller.read( requestModel, callback );
+    },
+
+    ready: function ( callback ) {
+        this.controller.ready( callback );
+        return this;
+    },
+
+    refresh: function ( callback ) {
+        this.controller.read( null, callback );
+    },
+
+    saveChanges: function ( dataItem, done ) {
+        this.controller.updateRow( dataItem, done );
+    },
+
     search: function ( searchTerm, callback ) {
         // make sure we pass in a string
         searchTerm = gp.isNullOrEmpty( searchTerm ) ? '' : searchTerm.toString();
@@ -97,35 +155,9 @@ gp.api.prototype = {
         this.controller.sort( name, desc, callback );
     },
 
-    read: function ( requestModel, callback ) {
-        this.controller.read( requestModel, callback );
-    },
-
-    create: function ( dataItem, callback ) {
-        var model = this.controller.addRow( dataItem );
-        if ( model != null ) this.controller.createRow( dataItem, model.elem, callback );
-        else callback( null );
-    },
-
-    // This would have to be called after having retrieved the dataItem from the table with getData().
-    // The controller will attempt to figure out which tr it is by first calling indexOf(dataItem) on the data.
-    // So the original dataItem object reference has to be preserved.
-    // this function is mainly for testing
     update: function ( dataItem, done ) {
         this.controller.updateRow( dataItem, done );
     },
-
-    saveChanges: function ( dataItem, done ) {
-        this.controller.updateRow( dataItem, done );
-    },
-
-    destroy: function ( dataItem, callback ) {
-        this.controller.deleteRow( dataItem, callback, true );
-    },
-
-    dispose: function () {
-        this.controller.dispose();
-    }
 
 };
 
@@ -247,10 +279,10 @@ gp.Controller.prototype = {
     },
 
     addBusyDelegates: function () {
-        this.addDelegate( gp.events.beforeread, this.addBusy );
-        this.addDelegate( gp.events.onread, this.removeBusy );
-        this.addDelegate( gp.events.beforeedit, this.addBusy );
-        this.addDelegate( gp.events.onedit, this.removeBusy );
+        this.addDelegate( gp.events.beforeRead, this.addBusy );
+        this.addDelegate( gp.events.onRead, this.removeBusy );
+        this.addDelegate( gp.events.beforeEdit, this.addBusy );
+        this.addDelegate( gp.events.onEdit, this.removeBusy );
         this.addDelegate( gp.events.httpError, this.removeBusy );
     },
 
@@ -382,11 +414,11 @@ gp.Controller.prototype = {
         }
 
         editor.beforeEdit = function ( model ) {
-            self.invokeDelegates( gp.events.beforeedit, model );
+            self.invokeDelegates( gp.events.beforeEdit, model );
         };
 
         editor.afterEdit = function ( model ) {
-            self.invokeDelegates( gp.events.onedit, model );
+            self.invokeDelegates( gp.events.onEdit, model );
         };
 
         return editor;
@@ -474,14 +506,14 @@ gp.Controller.prototype = {
         if ( requestModel ) {
             gp.shallowCopy( requestModel, this.config.pageModel );
         }
-        proceed = this.invokeDelegates( gp.events.beforeread, this.config.node.api );
+        proceed = this.invokeDelegates( gp.events.beforeRead, this.config.node.api );
         if ( proceed === false ) return;
         this.model.read( this.config.pageModel, function ( model ) {
             // standardize capitalization of incoming data
             gp.shallowCopy( model, self.config.pageModel, true );
             self.config.map.clear();
             self.refresh( self.config );
-            self.invokeDelegates( gp.events.onread, self.config.node.api );
+            self.invokeDelegates( gp.events.onRead, self.config.node.api );
             gp.applyFunc( callback, self.config.node, self.config.pageModel );
         }, this.handlers.httpErrorHandler );
     },
@@ -492,7 +524,7 @@ gp.Controller.prototype = {
 
         var model = editor.add();
 
-        this.invokeDelegates( gp.events.editready, model );
+        this.invokeDelegates( gp.events.editReady, model );
 
         return editor;
 
@@ -526,7 +558,7 @@ gp.Controller.prototype = {
         var editor = this.getEditor( this.config.editmode );
         var model = editor.edit( dataItem, elem );
 
-        this.invokeDelegates( gp.events.editready, model );
+        this.invokeDelegates( gp.events.editReady, model );
 
         return editor;
     },
@@ -571,7 +603,7 @@ gp.Controller.prototype = {
                 return;
             }
 
-            this.invokeDelegates( gp.events.beforeedit, {
+            this.invokeDelegates( gp.events.beforeEdit, {
                 type: 'destroy',
                 dataItem: dataItem,
                 elem: tr
@@ -597,7 +629,7 @@ gp.Controller.prototype = {
                     gp.error( err );
                 }
 
-                self.invokeDelegates( gp.events.onedit, {
+                self.invokeDelegates( gp.events.onEdit, {
                     type: 'destroy',
                     dataItem: dataItem,
                     elem: tr
@@ -2158,11 +2190,11 @@ gp.Initializer.prototype = {
             self.addEventDelegates( self.config, controller );
 
             // provides a hook for extensions
-            controller.invokeDelegates( gp.events.beforeinit, self.config );
+            controller.invokeDelegates( gp.events.beforeInit, self.config );
 
             // we need both beforeinit and beforeread because beforeread is used after every read in the controller
             // and beforeinit happens just once after the node is created, but before first read
-            controller.invokeDelegates( gp.events.beforeread, self.config.pageModel );
+            controller.invokeDelegates( gp.events.beforeRead, self.config.pageModel );
 
             dal.read( requestModel,
                 function ( data ) {
@@ -2176,7 +2208,7 @@ gp.Initializer.prototype = {
                     } catch ( e ) {
                         gp.error( e );
                     }
-                    controller.invokeDelegates( gp.events.onread, self.config.pageModel );
+                    controller.invokeDelegates( gp.events.onRead, self.config.pageModel );
                 },
                 function ( e ) {
                     controller.invokeDelegates( gp.events.httpError, e );
@@ -2237,17 +2269,18 @@ gp.Initializer.prototype = {
     },
 
     addEventDelegates: function ( config, controller ) {
-        var self = this, fn, api = config.node.api;
+        var self = this, name, fn, api = config.node.api;
         Object.getOwnPropertyNames( gp.events ).forEach( function ( event ) {
-            fn = config[event];
+            name = gp.events[event];
+            fn = config[name];
             if ( typeof fn === 'string' ) {
                 fn = gp.getObjectAtPath( fn );
             }
 
             // event delegates must point to a function
             if ( typeof fn == 'function' ) {
-                config[event] = fn;
-                controller.addDelegate( event, fn );
+                config[name] = fn;
+                controller.addDelegate( name, fn );
             }
         } );
     },

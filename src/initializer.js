@@ -30,11 +30,11 @@ gp.Initializer.prototype = {
             self.addEventDelegates( self.config, controller );
 
             // provides a hook for extensions
-            controller.invokeDelegates( gp.events.beforeinit, self.config );
+            controller.invokeDelegates( gp.events.beforeInit, self.config );
 
             // we need both beforeinit and beforeread because beforeread is used after every read in the controller
             // and beforeinit happens just once after the node is created, but before first read
-            controller.invokeDelegates( gp.events.beforeread, self.config.pageModel );
+            controller.invokeDelegates( gp.events.beforeRead, self.config.pageModel );
 
             dal.read( requestModel,
                 function ( data ) {
@@ -48,7 +48,7 @@ gp.Initializer.prototype = {
                     } catch ( e ) {
                         gp.error( e );
                     }
-                    controller.invokeDelegates( gp.events.onread, self.config.pageModel );
+                    controller.invokeDelegates( gp.events.onRead, self.config.pageModel );
                 },
                 function ( e ) {
                     controller.invokeDelegates( gp.events.httpError, e );
@@ -109,17 +109,18 @@ gp.Initializer.prototype = {
     },
 
     addEventDelegates: function ( config, controller ) {
-        var self = this, fn, api = config.node.api;
+        var self = this, name, fn, api = config.node.api;
         Object.getOwnPropertyNames( gp.events ).forEach( function ( event ) {
-            fn = config[event];
+            name = gp.events[event];
+            fn = config[name];
             if ( typeof fn === 'string' ) {
                 fn = gp.getObjectAtPath( fn );
             }
 
             // event delegates must point to a function
             if ( typeof fn == 'function' ) {
-                config[event] = fn;
-                controller.addDelegate( event, fn );
+                config[name] = fn;
+                controller.addDelegate( name, fn );
             }
         } );
     },

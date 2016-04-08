@@ -4,19 +4,19 @@
 
 gp.events = {
 
-    rowselected: 'rowselected',
+    rowSelected: 'rowselected',
     beforeinit: 'beforeinit',
     // turn progress indicator on
-    beforeread: 'beforeread',
+    beforeRead: 'beforeread',
     // turn progress indicator on
-    beforeedit: 'beforeedit',
+    beforeEdit: 'beforeedit',
     // turn progress indicator off
-    onread: 'onread',
+    onRead: 'onread',
     // turn progress indicator off
     // raised after create, update and delete
-    onedit: 'onedit',
+    onEdit: 'onedit',
     // gives external code the opportunity to initialize UI elements (e.g. datepickers)
-    editready: 'editready',
+    editReady: 'editready',
     // turn progress indicator off
     httpError: 'httpError',
     // happens once after the grid is fully initialized and databound
@@ -31,20 +31,46 @@ gp.api = function ( controller ) {
 
 gp.api.prototype = {
 
-    find: function(selector) {
+    beforeEdit: function ( callback ) {
+        this.controller.addDelegate( gp.events.beforeEdit, callback );;
+        return this;
+    },
+
+    beforeInit: function ( callback ) {
+        this.controller.addDelegate( gp.events.beforeInit, callback );;
+        return this;
+    },
+
+    beforeRead: function ( callback ) {
+        this.controller.addDelegate( gp.events.beforeRead, callback );;
+        return this;
+    },
+
+    create: function ( dataItem, callback ) {
+        var model = this.controller.addRow( dataItem );
+        if ( model != null ) this.controller.createRow( dataItem, model.elem, callback );
+        else callback( null );
+    },
+    
+    destroy: function ( dataItem, callback ) {
+        this.controller.deleteRow( dataItem, callback, true );
+    },
+
+    dispose: function () {
+        this.controller.dispose();
+    },
+
+    editReady: function ( callback ) {
+        this.controller.addDelegate( gp.events.editReady, callback );;
+        return this;
+    },
+
+    find: function ( selector ) {
         return this.controller.config.node.querySelector( selector );
     },
 
     findAll: function ( selector ) {
         return this.controller.config.node.querySelectorAll( selector );
-    },
-
-    ready: function(callback) {
-        this.controller.ready( callback );
-    },
-
-    refresh: function ( callback ) {
-        this.controller.read( null, callback );
     },
 
     getData: function ( index ) {
@@ -60,6 +86,38 @@ gp.api.prototype = {
         );
     },
 
+    httpError: function ( callback ) {
+        this.controller.addDelegate( gp.events.httpError, callback );;
+        return this;
+    },
+
+    onEdit: function ( callback ) {
+        this.controller.addDelegate( gp.events.onEdit, callback );;
+        return this;
+    },
+
+    onRead: function ( callback ) {
+        this.controller.addDelegate( gp.events.onRead, callback );;
+        return this;
+    },
+
+    read: function ( requestModel, callback ) {
+        this.controller.read( requestModel, callback );
+    },
+
+    ready: function ( callback ) {
+        this.controller.ready( callback );
+        return this;
+    },
+
+    refresh: function ( callback ) {
+        this.controller.read( null, callback );
+    },
+
+    saveChanges: function ( dataItem, done ) {
+        this.controller.updateRow( dataItem, done );
+    },
+
     search: function ( searchTerm, callback ) {
         // make sure we pass in a string
         searchTerm = gp.isNullOrEmpty( searchTerm ) ? '' : searchTerm.toString();
@@ -73,34 +131,8 @@ gp.api.prototype = {
         this.controller.sort( name, desc, callback );
     },
 
-    read: function ( requestModel, callback ) {
-        this.controller.read( requestModel, callback );
-    },
-
-    create: function ( dataItem, callback ) {
-        var model = this.controller.addRow( dataItem );
-        if ( model != null ) this.controller.createRow( dataItem, model.elem, callback );
-        else callback( null );
-    },
-
-    // This would have to be called after having retrieved the dataItem from the table with getData().
-    // The controller will attempt to figure out which tr it is by first calling indexOf(dataItem) on the data.
-    // So the original dataItem object reference has to be preserved.
-    // this function is mainly for testing
     update: function ( dataItem, done ) {
         this.controller.updateRow( dataItem, done );
     },
-
-    saveChanges: function ( dataItem, done ) {
-        this.controller.updateRow( dataItem, done );
-    },
-
-    destroy: function ( dataItem, callback ) {
-        this.controller.deleteRow( dataItem, callback, true );
-    },
-
-    dispose: function () {
-        this.controller.dispose();
-    }
 
 };
