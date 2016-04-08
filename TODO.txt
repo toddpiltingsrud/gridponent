@@ -1,15 +1,5 @@
 ﻿If we use buttons for pagers and links for sorting we could get rid of some markup and possibly get rid of the Controller's ChangeMonitor.
 
-Change config.node to the top table container.
-Since we have the ability to use the gridponent function to inject a grid anywhere,
-we should account for the possibility that the user will try to inject two grids into the same element.
-
-All main configuration options should be available through the API:
-gridponent('selector')
-	.model({...})
-	.on('onread', function...)
-	.on('onedit', function...);
-
 Eliminate setting config.dataItem.
 
 Test radio buttons in edit mode.
@@ -19,20 +9,12 @@ What happens if a grid is rendered twice? Make sure the original is disposed if 
 Add a change event to a column:
 <gp-column field="IsCurrent" change="fns.isCurrentChanged"></gp-column>
 
-Call gridponent function with a grid-ponent element to initialize manually.
-
 Should we resolve JS config objects on demand? That would solve the problem of page ready for some config options but not others.
 
 Footer template
 edit class
 
 Empty table template
-
-Use Promises instead of callbacks for reads and writes.
-<script src="https://www.promisejs.org/polyfills/promise-7.0.4.min.js"></script>
-
-It's best to replace MVC's default JSON serializer with Json.NET:
-http://labs.bjfocus.co.uk/2014/06/using-json-net-as-default-json-serializer-in-mvc/
 
 Eliminate the helpers' dependencies on config.
 

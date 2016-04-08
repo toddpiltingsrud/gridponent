@@ -43,23 +43,12 @@ gp.Controller.prototype = {
 
     addBusy: function () {
         // this function executes with the api as its context
-        var tblContainer = this.config.node.querySelector( 'div.table-container' );
-
-        if ( tblContainer ) {
-            gp.addClass( tblContainer, 'busy' );
-        }
+        gp.addClass( this.config.node, 'busy' );
     },
 
     removeBusy: function () {
         // this function executes with the api as its context
-        var tblContainer = this.config.node.querySelector( 'div.table-container' );
-
-        if ( tblContainer ) {
-            gp.removeClass( tblContainer, 'busy' );
-        }
-        else {
-            gp.log( 'could not remove busy class' );
-        }
+        gp.removeClass( this.config.node, 'busy' );
     },
 
     ready: function(callback) {

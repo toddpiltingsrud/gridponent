@@ -8,13 +8,14 @@ var gridponent = gridponent || function ( elem, options ) {
         elem = document.querySelector( elem );
     }
     if (elem instanceof HTMLElement) {
+        var tblContainer = elem.querySelector('.table-container');
         // has this already been initialized?
-        if ( elem.api ) return elem.api;
+        if ( tblContainer && tblContainer.api ) return tblContainer.api;
 
         if ( options ) {
             var init = new gridponent.Initializer( elem );
-            init.initializeOptions( options );
-            return elem.api;
+            var config = init.initializeOptions( options );
+            return config.node.api;
         }
     }
 };

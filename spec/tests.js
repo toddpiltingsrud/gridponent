@@ -106,6 +106,7 @@ var getTableConfig = function ( options, callback ) {
     if ( options.editready ) out.push( '       editready="' + options.editready + '"' );
     if ( options.onedit ) out.push( '          onedit="' + options.onedit + '"' );
     if ( options.model ) out.push( '           model="' + options.model + '"' );
+    if ( options.beforeread ) out.push( '      beforeread="' + options.beforeread + '"' );
     out.push( '             pager="top-right"' );
     out.push( '             search="top-left">' );
     if ( options.toolbartemplate )
@@ -274,6 +275,31 @@ var configuration = {
 
 fns.model = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
 
+QUnit.test( 'busy class', function ( assert ) {
+
+    var done1 = assert.async();
+    var done2 = assert.async();
+
+    var options = gp.shallowCopy( configOptions );
+
+    options.beforeread = 'fns.beforeRead';
+    options.onread = 'fns.afterRead';
+
+    fns.beforeRead = function () {
+        var hasClass = gp.hasClass( this.config.node, 'busy' );
+        assert.equal( hasClass, true );
+        done1();
+    };
+
+    fns.afterRead = function () {
+        var hasClass = gp.hasClass( this.config.node, 'busy' );
+        assert.equal( hasClass, false );
+        done2();
+    };
+
+    getTableConfig( options, function ( api ) {} );
+
+} );
 
 QUnit.test( 'sorting', function ( assert ) {
 

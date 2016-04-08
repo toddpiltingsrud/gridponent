@@ -9,13 +9,14 @@ var gridponent = gridponent || function ( elem, options ) {
         elem = document.querySelector( elem );
     }
     if (elem instanceof HTMLElement) {
+        var tblContainer = elem.querySelector('.table-container');
         // has this already been initialized?
-        if ( elem.api ) return elem.api;
+        if ( tblContainer && tblContainer.api ) return tblContainer.api;
 
         if ( options ) {
             var init = new gridponent.Initializer( elem );
-            init.initializeOptions( options );
-            return elem.api;
+            var config = init.initializeOptions( options );
+            return config.node.api;
         }
     }
 };
@@ -288,23 +289,12 @@ gp.Controller.prototype = {
 
     addBusy: function () {
         // this function executes with the api as its context
-        var tblContainer = this.config.node.querySelector( 'div.table-container' );
-
-        if ( tblContainer ) {
-            gp.addClass( tblContainer, 'busy' );
-        }
+        gp.addClass( this.config.node, 'busy' );
     },
 
     removeBusy: function () {
         // this function executes with the api as its context
-        var tblContainer = this.config.node.querySelector( 'div.table-container' );
-
-        if ( tblContainer ) {
-            gp.removeClass( tblContainer, 'busy' );
-        }
-        else {
-            gp.log( 'could not remove busy class' );
-        }
+        gp.removeClass( this.config.node, 'busy' );
     },
 
     ready: function(callback) {
@@ -1462,7 +1452,6 @@ gp.Formatter.prototype = {
 
     gp.getAttributes = function ( node ) {
         var config = {}, name, attr, attrs = node.attributes;
-        config.node = node;
         for ( var i = attrs.length - 1; i >= 0; i-- ) {
             attr = attrs[i];
             name = attr.name.toLowerCase().replace('-', '');
@@ -2162,13 +2151,13 @@ gp.Http.prototype = {
    Initializer
 \***************/
 gp.Initializer = function ( node ) {
-    this.node = node;
+    this.parent = node;
 };
 
 gp.Initializer.prototype = {
 
     initialize: function ( callback ) {
-        this.config = this.getConfig( this.node );
+        this.config = this.getConfig( this.parent );
         return this.initializeOptions( this.config, callback );
     },
 
@@ -2177,14 +2166,15 @@ gp.Initializer.prototype = {
         options.pageModel = {};
         options.ID = gp.createUID();
         this.config = options;
-        this.config.node = this.node;
+        this.renderLayout( this.config, this.parent );
+        this.config.node = this.parent.querySelector( '.table-container' );
+
         this.config.map = new gp.DataMap();
         var dal = new gp.Model( this.config );
         var requestModel = new gp.PagingModel();
         var controller = new gp.Controller( self.config, dal, requestModel );
-        this.node.api = new gp.api( controller );
+        this.config.node.api = new gp.api( controller );
         this.config.footer = this.resolveFooter( this.config );
-        this.renderLayout( this.config );
 
         setTimeout( function () {
             self.addEventDelegates( self.config, controller );
@@ -2222,14 +2212,14 @@ gp.Initializer.prototype = {
         return this.config;
     },
 
-    getConfig: function (node) {
+    getConfig: function (parentNode) {
         var self = this,
             obj,
             colNode,
             colConfig,
             templates,
-            config = gp.getAttributes( node ),
-            gpColumns = config.node.querySelectorAll( 'gp-column' );
+            config = gp.getAttributes( parentNode ),
+            gpColumns = parentNode.querySelectorAll( 'gp-column' );
 
         // modal or inline
         config.editmode = config.editmode || 'inline';
@@ -2263,7 +2253,7 @@ gp.Initializer.prototype = {
 
 
         // resolve the various templates
-        this.resolveTemplates( ['toolbar', 'footer'], config, config.node );
+        this.resolveTemplates( ['toolbar', 'footer'], config, parentNode );
 
         return config;
     },
@@ -2285,10 +2275,10 @@ gp.Initializer.prototype = {
         } );
     },
 
-    renderLayout: function ( config ) {
+    renderLayout: function ( config, parentNode ) {
         var self = this;
         try {
-            config.node.innerHTML = gp.templates['gridponent']( config );
+            parentNode.innerHTML = gp.templates['gridponent']( config );
         }
         catch ( ex ) {
             gp.error( ex );
