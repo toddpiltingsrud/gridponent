@@ -38,7 +38,7 @@ gp.helpers = {
                     formGroupModel.label = ( gp.applyFunc( col.headertemplate, self, [col] ) );
                 }
                 else {
-                    formGroupModel.label = ( gp.processHeaderTemplate.call( this, col.headertemplate, col ) );
+                    formGroupModel.label = ( gp.supplant.call( this, col.headertemplate, [col] ) );
                 }
             }
             else {
@@ -81,7 +81,7 @@ gp.helpers = {
                 html.add( gp.applyFunc( col.bodytemplate, this, [dataItem, col] ) );
             }
             else {
-                html.add( gp.processBodyTemplate.call( this, col.bodytemplate, dataItem, col ) );
+                html.add( gp.supplant.call( this, col.bodytemplate, dataItem, [dataItem, col] ) );
             }
         }
         else if ( col.commands && col.commands.length ) {
@@ -123,7 +123,7 @@ gp.helpers = {
                 }
             }
             else {
-                html.add( val );
+                html.add( gp.escapeHTML( val ));
             }
         }
         return html.toString();
@@ -196,7 +196,7 @@ gp.helpers = {
                 html.add( gp.applyFunc( col.edittemplate, this, [dataItem, col] ) );
             }
             else {
-                html.add( gp.processBodyTemplate.call( this, col.edittemplate, dataItem, col ) );
+                html.add( gp.supplant.call( this, col.edittemplate, dataItem, [dataItem, col] ) );
             }
         }
         else if ( col.commands ) {
@@ -214,11 +214,13 @@ gp.helpers = {
         }
         else {
             var val = dataItem[col.field];
-            // render empty cell if this field doesn't exist in the data
-            if ( val === undefined ) return '';
-            // render null as empty string
-            if ( val === null ) val = '';
-            html.add( gp.helpers.input( col.Type, col.field, val ) );
+            //// render empty cell if this field doesn't exist in the data
+            //if ( val === undefined ) return '';
+            //// render null as empty string
+            //if ( val === null ) val = '';
+            // render undefined/null as empty string
+            if ( !gp.hasValue( val ) ) val = '';
+            html.add( gp.helpers.input( col.Type, col.field, gp.escapeHTML( val )) );
         }
         return html.toString();
     },
@@ -230,7 +232,7 @@ gp.helpers = {
                 html.add( gp.applyFunc( col.footertemplate, this, [col, this.pageModel.data] ) );
             }
             else {
-                html.add( gp.processFooterTemplate.call( this, col.footertemplate, col, this.pageModel.data ) );
+                html.add( gp.supplant.call( this, col.footertemplate, col, [col, this.pageModel.data] ) );
             }
         }
         return html.toString();
@@ -249,7 +251,7 @@ gp.helpers = {
             dataType: ( /^date/.test( type ) ? ' data-type="date"' : '' )
         };
 
-        return gp.supplant( '<input type="{{type}}" name="{{name}}" value="{{value}}" class="form-control"{{dataType}}{{checked}} />', obj );
+        return gp.supplant( '<input type="{{type}}" name="{{name}}" value="{{value}}" class="form-control"{{{dataType}}}{{checked}} />', obj );
     },
 
     setPagerFlags: function () {
@@ -322,7 +324,7 @@ gp.helpers = {
                     html.add( gp.applyFunc( col.headertemplate, self, [col] ) );
                 }
                 else {
-                    html.add( gp.processHeaderTemplate.call( this, col.headertemplate, col ) );
+                    html.add( gp.supplant.call( this, col.headertemplate, col, [col] ) );
                 }
             }
             else if ( sort != '' ) {

@@ -1013,9 +1013,39 @@ QUnit.test( 'supplant', function ( assert ) {
 
     var dataItem = { "ProductID": 1, "Name": "Adjustable Race", "ProductNumber": "AR-5381", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": null, "SafetyStockLevel": 1000, "ReorderPoint": 750, "StandardCost": 0.0000, "ListPrice": 0.0000, "Size": null, "SizeUnitMeasureCode": null, "WeightUnitMeasureCode": null, "Weight": null, "DaysToManufacture": 0, "ProductLine": null, "Class": null, "Style": null, "ProductSubcategoryID": null, "ProductModelID": null, "SellStartDate": "2002-06-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "694215b7-08f7-4c0d-acb1-d734ba44c0c8", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": "<p>Product's name: \"Adjustable Race\"</p>" };
 
-    var url = gp.supplant( template, dataItem );
+    var result = gp.supplant( template, dataItem );
 
-    assert.equal( url, 'http://products/1?MakeFlag=false&Color=' );
+    assert.equal( result, 'http://products/1?MakeFlag=false&Color=' );
+
+    var obj = {
+        apos: "I've got an apostrophe",
+        quot: '"I have a dream!"',
+        html: '<button value="save">Save</button>',
+        amp: 'You & me'
+    };
+
+    // apos
+    template = '<div class="the-class">{{apos}}</div>';
+    result = gp.supplant( template, obj );
+    assert.equal( result, '<div class="the-class">I&apos;ve got an apostrophe</div>' );
+
+
+    // quot
+    template = '<div class="the-class">{{quot}}</div>';
+    result = gp.supplant( template, obj );
+    assert.equal( result, '<div class="the-class">&quot;I have a dream!&quot;</div>' );
+
+
+    // html
+    template = '<div class="the-class">{{{html}}}</div>';
+    result = gp.supplant( template, obj );
+    assert.equal( result, '<div class="the-class"><button value="save">Save</button></div>' );
+
+
+    // amp
+    template = '<div class="the-class">{{amp}}</div>';
+    result = gp.supplant( template, obj );
+    assert.equal( result, '<div class="the-class">You &amp; me</div>' );
 
 } );
 
@@ -2153,7 +2183,7 @@ QUnit.test( 'gp.helpers.footerCell', function ( assert ) {
         // test a string template with a function reference
         var template = '<b>{{fns.average}}</b>';
 
-        var result = gp.processFooterTemplate( template, config.columns[0], data.products );
+        var result = gp.supplant( template, config.columns[0], [config.columns[0], data.products] );
 
         assert.equal(result, '<b>10</b>')
 

@@ -221,9 +221,6 @@ gp.TableRowEditor.prototype = {
 
         gp.Editor.prototype.add.call( this );
 
-        //this.dataItem = this.createDataItem();
-        //this.mode = 'create';
-
         builder.startElem( 'tr' ).addClass( 'create-mode' ),
 
         // add td.body-cell elements to the tr
@@ -259,10 +256,7 @@ gp.TableRowEditor.prototype = {
 
         gp.Editor.prototype.edit.call( this, dataItem );
 
-        //this.dataItem = dataItem;
-        //this.originalDataItem = gp.shallowCopy( dataItem );
         this.elem = tr;
-        //this.mode = 'update';
 
         this.addCommandHandler();
 
@@ -397,9 +391,6 @@ gp.ModalEditor.prototype = {
 
         gp.Editor.prototype.add.call( this );
 
-        //this.dataItem = this.createDataItem();
-        //this.mode = 'create';
-
         // mode: create or update
         html = gp.helpers.bootstrapModal( this.config, this.dataItem, 'create' );
 
@@ -428,9 +419,6 @@ gp.ModalEditor.prototype = {
     edit: function (dataItem) {
 
         var self = this;
-        //this.dataItem = dataItem;
-        //this.originalDataItem = gp.shallowCopy( dataItem );
-        //this.mode = 'udpate';
 
         gp.Editor.prototype.edit.call( this, dataItem );
 

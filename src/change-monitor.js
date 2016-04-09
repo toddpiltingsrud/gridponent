@@ -40,6 +40,8 @@ gp.ChangeMonitor.prototype = {
             handled = false,
             type;
 
+        if ( !name in model ) model[name] = null;
+
         try {
             if ( name in model ) {
                 if ( typeof ( this.beforeSync ) === 'function' ) {

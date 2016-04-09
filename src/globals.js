@@ -229,7 +229,7 @@
     };
 
     gp.isNullOrEmpty = function ( val ) {
-        // if a string or array is passed, they'll be tested for both null and zero length
+        // if a string or array is passed, it'll be tested for both null and zero length
         // if any other data type is passed (no length property), it'll only be tested for null
         return gp.hasValue( val ) === false || ( val.length != undefined && val.length === 0 );
     };
@@ -330,18 +330,6 @@
         return child;
     };
 
-    gp.processBodyTemplate = function ( template, row, col ) {
-        return gp.supplant( template, row, [row, col] );
-    };
-
-    gp.processFooterTemplate = function ( template, col, data ) {
-        return gp.supplant( template, col, [col, data] )
-    };
-
-    gp.processHeaderTemplate = function ( template, col ) {
-        return gp.supplant(template, col, [col] )
-    };
-
     gp.raiseCustomEvent = function ( node, name, detail ) {
         var event = new CustomEvent( name, { bubbles: true, detail: detail, cancelable: true } );
         node.dispatchEvent( event );
@@ -380,14 +368,25 @@
     };
 
     gp.supplant = function ( str, o, args ) {
-        var self = this, types = /^(string|number|boolean)$/;
-        return str.replace( /{{([^{}]*)}}/g,
+        var self = this, types = /^(string|number|boolean)$/, r;
+        // raw
+        str = str.replace( /{{{([^{}]*)}}}/g,
             function ( a, b ) {
-                var r = o[b];
+                r = o[b];
                 if ( types.test( typeof r ) ) return r;
                 // it's not in o, so check for a function
                 r = gp.getObjectAtPath( b );
-                return typeof r === 'function' ? gp.applyFunc(r, self, args) : '';
+                return typeof r === 'function' ? gp.applyFunc( r, self, args ) : '';
+            }
+        )
+        // escape HTML
+        return str.replace( /{{([^{}]*)}}/g,
+            function ( a, b ) {
+                r = o[b];
+                if ( types.test( typeof r ) ) return gp.escapeHTML( r );
+                // it's not in o, so check for a function
+                r = gp.getObjectAtPath( b );
+                return typeof r === 'function' ? gp.escapeHTML( gp.applyFunc( r, self, args ) ) : '';
             }
         );
     };

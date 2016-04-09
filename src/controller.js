@@ -216,7 +216,7 @@ gp.Controller.prototype = {
         }
         else {
             // it's a urlTemplate
-            window.location = gp.processBodyTemplate( config.onrowselect, dataItem );
+            window.location = gp.supplant.call( this.config.node.api, config.onrowselect, dataItem );
         }
     },
 

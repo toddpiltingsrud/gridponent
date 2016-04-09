@@ -2,6 +2,8 @@
 
 Eliminate setting config.dataItem.
 
+Helpers line 126: escapeHTML
+
 Test radio buttons in edit mode.
 
 What happens if a grid is rendered twice? Make sure the original is disposed if this happens.

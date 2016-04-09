@@ -204,6 +204,8 @@ gp.ChangeMonitor.prototype = {
             handled = false,
             type;
 
+        if ( !name in model ) model[name] = null;
+
         try {
             if ( name in model ) {
                 if ( typeof ( this.beforeSync ) === 'function' ) {
@@ -462,7 +464,7 @@ gp.Controller.prototype = {
         }
         else {
             // it's a urlTemplate
-            window.location = gp.processBodyTemplate( config.onrowselect, dataItem );
+            window.location = gp.supplant.call( this.config.node.api, config.onrowselect, dataItem );
         }
     },
 
@@ -987,9 +989,6 @@ gp.TableRowEditor.prototype = {
 
         gp.Editor.prototype.add.call( this );
 
-        //this.dataItem = this.createDataItem();
-        //this.mode = 'create';
-
         builder.startElem( 'tr' ).addClass( 'create-mode' ),
 
         // add td.body-cell elements to the tr
@@ -1025,10 +1024,7 @@ gp.TableRowEditor.prototype = {
 
         gp.Editor.prototype.edit.call( this, dataItem );
 
-        //this.dataItem = dataItem;
-        //this.originalDataItem = gp.shallowCopy( dataItem );
         this.elem = tr;
-        //this.mode = 'update';
 
         this.addCommandHandler();
 
@@ -1163,9 +1159,6 @@ gp.ModalEditor.prototype = {
 
         gp.Editor.prototype.add.call( this );
 
-        //this.dataItem = this.createDataItem();
-        //this.mode = 'create';
-
         // mode: create or update
         html = gp.helpers.bootstrapModal( this.config, this.dataItem, 'create' );
 
@@ -1194,9 +1187,6 @@ gp.ModalEditor.prototype = {
     edit: function (dataItem) {
 
         var self = this;
-        //this.dataItem = dataItem;
-        //this.originalDataItem = gp.shallowCopy( dataItem );
-        //this.mode = 'udpate';
 
         gp.Editor.prototype.edit.call( this, dataItem );
 
@@ -1560,7 +1550,7 @@ gp.Formatter.prototype = {
     };
 
     gp.isNullOrEmpty = function ( val ) {
-        // if a string or array is passed, they'll be tested for both null and zero length
+        // if a string or array is passed, it'll be tested for both null and zero length
         // if any other data type is passed (no length property), it'll only be tested for null
         return gp.hasValue( val ) === false || ( val.length != undefined && val.length === 0 );
     };
@@ -1661,18 +1651,6 @@ gp.Formatter.prototype = {
         return child;
     };
 
-    gp.processBodyTemplate = function ( template, row, col ) {
-        return gp.supplant( template, row, [row, col] );
-    };
-
-    gp.processFooterTemplate = function ( template, col, data ) {
-        return gp.supplant( template, col, [col, data] )
-    };
-
-    gp.processHeaderTemplate = function ( template, col ) {
-        return gp.supplant(template, col, [col] )
-    };
-
     gp.raiseCustomEvent = function ( node, name, detail ) {
         var event = new CustomEvent( name, { bubbles: true, detail: detail, cancelable: true } );
         node.dispatchEvent( event );
@@ -1711,14 +1689,25 @@ gp.Formatter.prototype = {
     };
 
     gp.supplant = function ( str, o, args ) {
-        var self = this, types = /^(string|number|boolean)$/;
-        return str.replace( /{{([^{}]*)}}/g,
+        var self = this, types = /^(string|number|boolean)$/, r;
+        // raw
+        str = str.replace( /{{{([^{}]*)}}}/g,
             function ( a, b ) {
-                var r = o[b];
+                r = o[b];
                 if ( types.test( typeof r ) ) return r;
                 // it's not in o, so check for a function
                 r = gp.getObjectAtPath( b );
-                return typeof r === 'function' ? gp.applyFunc(r, self, args) : '';
+                return typeof r === 'function' ? gp.applyFunc( r, self, args ) : '';
+            }
+        )
+        // escape HTML
+        return str.replace( /{{([^{}]*)}}/g,
+            function ( a, b ) {
+                r = o[b];
+                if ( types.test( typeof r ) ) return gp.escapeHTML( r );
+                // it's not in o, so check for a function
+                r = gp.getObjectAtPath( b );
+                return typeof r === 'function' ? gp.escapeHTML( gp.applyFunc( r, self, args ) ) : '';
             }
         );
     };
@@ -1778,7 +1767,7 @@ gp.helpers = {
                     formGroupModel.label = ( gp.applyFunc( col.headertemplate, self, [col] ) );
                 }
                 else {
-                    formGroupModel.label = ( gp.processHeaderTemplate.call( this, col.headertemplate, col ) );
+                    formGroupModel.label = ( gp.supplant.call( this, col.headertemplate, [col] ) );
                 }
             }
             else {
@@ -1821,7 +1810,7 @@ gp.helpers = {
                 html.add( gp.applyFunc( col.bodytemplate, this, [dataItem, col] ) );
             }
             else {
-                html.add( gp.processBodyTemplate.call( this, col.bodytemplate, dataItem, col ) );
+                html.add( gp.supplant.call( this, col.bodytemplate, dataItem, [dataItem, col] ) );
             }
         }
         else if ( col.commands && col.commands.length ) {
@@ -1863,7 +1852,7 @@ gp.helpers = {
                 }
             }
             else {
-                html.add( val );
+                html.add( gp.escapeHTML( val ));
             }
         }
         return html.toString();
@@ -1936,7 +1925,7 @@ gp.helpers = {
                 html.add( gp.applyFunc( col.edittemplate, this, [dataItem, col] ) );
             }
             else {
-                html.add( gp.processBodyTemplate.call( this, col.edittemplate, dataItem, col ) );
+                html.add( gp.supplant.call( this, col.edittemplate, dataItem, [dataItem, col] ) );
             }
         }
         else if ( col.commands ) {
@@ -1954,11 +1943,13 @@ gp.helpers = {
         }
         else {
             var val = dataItem[col.field];
-            // render empty cell if this field doesn't exist in the data
-            if ( val === undefined ) return '';
-            // render null as empty string
-            if ( val === null ) val = '';
-            html.add( gp.helpers.input( col.Type, col.field, val ) );
+            //// render empty cell if this field doesn't exist in the data
+            //if ( val === undefined ) return '';
+            //// render null as empty string
+            //if ( val === null ) val = '';
+            // render undefined/null as empty string
+            if ( !gp.hasValue( val ) ) val = '';
+            html.add( gp.helpers.input( col.Type, col.field, gp.escapeHTML( val )) );
         }
         return html.toString();
     },
@@ -1970,7 +1961,7 @@ gp.helpers = {
                 html.add( gp.applyFunc( col.footertemplate, this, [col, this.pageModel.data] ) );
             }
             else {
-                html.add( gp.processFooterTemplate.call( this, col.footertemplate, col, this.pageModel.data ) );
+                html.add( gp.supplant.call( this, col.footertemplate, col, [col, this.pageModel.data] ) );
             }
         }
         return html.toString();
@@ -1989,7 +1980,7 @@ gp.helpers = {
             dataType: ( /^date/.test( type ) ? ' data-type="date"' : '' )
         };
 
-        return gp.supplant( '<input type="{{type}}" name="{{name}}" value="{{value}}" class="form-control"{{dataType}}{{checked}} />', obj );
+        return gp.supplant( '<input type="{{type}}" name="{{name}}" value="{{value}}" class="form-control"{{{dataType}}}{{checked}} />', obj );
     },
 
     setPagerFlags: function () {
@@ -2062,7 +2053,7 @@ gp.helpers = {
                     html.add( gp.applyFunc( col.headertemplate, self, [col] ) );
                 }
                 else {
-                    html.add( gp.processHeaderTemplate.call( this, col.headertemplate, col ) );
+                    html.add( gp.supplant.call( this, col.headertemplate, col, [col] ) );
                 }
             }
             else if ( sort != '' ) {
