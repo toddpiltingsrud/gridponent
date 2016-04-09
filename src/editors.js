@@ -237,7 +237,7 @@ gp.TableRowEditor.prototype = {
 
         gp.prependChild( tbody, this.elem );
 
-        this.changeMonitor = new gp.ChangeMonitor( this.elem, '[name]', this.dataItem ).start();
+        this.changeMonitor = new gp.ChangeMonitor( this.elem, '[name]', this.dataItem, this.config ).start();
 
         return {
             dataItem: this.dataItem,
@@ -270,7 +270,7 @@ gp.TableRowEditor.prototype = {
         }
         gp.addClass( tr, 'edit-mode' );
 
-        this.changeMonitor = new gp.ChangeMonitor( tr, '[name]', dataItem ).start();
+        this.changeMonitor = new gp.ChangeMonitor( tr, '[name]', dataItem, this.config ).start();
 
         return {
             dataItem: dataItem,
@@ -408,7 +408,7 @@ gp.ModalEditor.prototype = {
 
         this.addCommandHandler();
 
-        this.changeMonitor = new gp.ChangeMonitor( modal[0], '[name]', this.dataItem ).start();
+        this.changeMonitor = new gp.ChangeMonitor( modal[0], '[name]', this.dataItem, this.config ).start();
 
         return {
             dataItem: this.dataItem,
@@ -439,7 +439,7 @@ gp.ModalEditor.prototype = {
 
         this.addCommandHandler();
 
-        this.changeMonitor = new gp.ChangeMonitor( modal[0], '[name]', dataItem ).start();
+        this.changeMonitor = new gp.ChangeMonitor( modal[0], '[name]', dataItem, this.config ).start();
 
         return {
             dataItem: dataItem,

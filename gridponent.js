@@ -165,7 +165,7 @@ gp.api.prototype = {
 /***************\
  change monitor
 \***************/
-gp.ChangeMonitor = function (node, selector, model, afterSync) {
+gp.ChangeMonitor = function ( node, selector, model, config, afterSync ) {
     var self = this;
     this.model = model;
     this.beforeSync = null;
@@ -175,6 +175,7 @@ gp.ChangeMonitor = function (node, selector, model, afterSync) {
         self.syncModel.call(self, evt.target, self.model);
     };
     this.afterSync = afterSync;
+    this.config = config;
 };
 
 gp.ChangeMonitor.prototype = {
@@ -202,35 +203,41 @@ gp.ChangeMonitor.prototype = {
         var name = target.name,
             val = target.value,
             handled = false,
-            type;
+            type,
+            col;
+
+        // attempt to resolve a type by examining the configuration first
+        if ( this.config ) {
+            col = gp.getColumnByField( this.config.columns, name );
+            if ( col ) type = col.Type;
+        }
 
         if ( !name in model ) model[name] = null;
 
         try {
-            if ( name in model ) {
-                if ( typeof ( this.beforeSync ) === 'function' ) {
-                    handled = this.beforeSync( name, val, this.model );
-                }
-                if ( !handled ) {
-                    type = gp.getType( model[name] );
-                    switch ( type ) {
-                        case 'number':
-                            model[name] = parseFloat( val );
-                            break;
-                        case 'boolean':
-                            if ( target.type == 'checkbox' ) {
-                                if ( val.toLowerCase() == 'true' ) val = target.checked;
-                                else if ( val.toLowerCase() == 'false' ) val = !target.checked;
-                                else val = target.checked ? val : null;
-                                model[name] = val;
-                            }
-                            else {
-                                model[name] = ( val.toLowerCase() == 'true' );
-                            }
-                            break;
-                        default:
+            if ( typeof ( this.beforeSync ) === 'function' ) {
+                handled = this.beforeSync( name, val, this.model );
+            }
+            if ( !handled ) {
+                // if there's no type in the columns, get one from the model
+                type = type || gp.getType( model[name] );
+                switch ( type ) {
+                    case 'number':
+                        model[name] = parseFloat( val );
+                        break;
+                    case 'boolean':
+                        if ( target.type == 'checkbox' ) {
+                            if ( val.toLowerCase() == 'true' ) val = target.checked;
+                            else if ( val.toLowerCase() == 'false' ) val = !target.checked;
+                            else val = target.checked ? val : null;
                             model[name] = val;
-                    }
+                        }
+                        else {
+                            model[name] = ( val.toLowerCase() == 'true' );
+                        }
+                        break;
+                    default:
+                        model[name] = val;
                 }
             }
 
@@ -329,7 +336,7 @@ gp.Controller.prototype = {
     monitorToolbars: function (node) {
         var self = this;
         // monitor changes to search, sort, and paging
-        this.monitor = new gp.ChangeMonitor( node, '.table-toolbar [name], thead input, .table-pager input', this.config.pageModel, function ( evt ) {
+        this.monitor = new gp.ChangeMonitor( node, '.table-toolbar [name], thead input, .table-pager input', this.config.pageModel, this.config, function ( evt ) {
             self.read();
             // reset the radio inputs
             var radios = node.querySelectorAll( 'thead input[type=radio], .table-pager input[type=radio]' );
@@ -1005,7 +1012,7 @@ gp.TableRowEditor.prototype = {
 
         gp.prependChild( tbody, this.elem );
 
-        this.changeMonitor = new gp.ChangeMonitor( this.elem, '[name]', this.dataItem ).start();
+        this.changeMonitor = new gp.ChangeMonitor( this.elem, '[name]', this.dataItem, this.config ).start();
 
         return {
             dataItem: this.dataItem,
@@ -1038,7 +1045,7 @@ gp.TableRowEditor.prototype = {
         }
         gp.addClass( tr, 'edit-mode' );
 
-        this.changeMonitor = new gp.ChangeMonitor( tr, '[name]', dataItem ).start();
+        this.changeMonitor = new gp.ChangeMonitor( tr, '[name]', dataItem, this.config ).start();
 
         return {
             dataItem: dataItem,
@@ -1176,7 +1183,7 @@ gp.ModalEditor.prototype = {
 
         this.addCommandHandler();
 
-        this.changeMonitor = new gp.ChangeMonitor( modal[0], '[name]', this.dataItem ).start();
+        this.changeMonitor = new gp.ChangeMonitor( modal[0], '[name]', this.dataItem, this.config ).start();
 
         return {
             dataItem: this.dataItem,
@@ -1207,7 +1214,7 @@ gp.ModalEditor.prototype = {
 
         this.addCommandHandler();
 
-        this.changeMonitor = new gp.ChangeMonitor( modal[0], '[name]', dataItem ).start();
+        this.changeMonitor = new gp.ChangeMonitor( modal[0], '[name]', dataItem, this.config ).start();
 
         return {
             dataItem: dataItem,
@@ -1450,6 +1457,11 @@ gp.Formatter.prototype = {
                 ( attr.value === "true" || attr.value === '' ) : attr.value;
         }
         return config;
+    };
+
+    gp.getColumnByField = function ( columns, field ) {
+        var col = columns.filter( function ( c ) { return c.field === field || c.sort === field } );
+        return col.length ? col[0] : null;
     };
 
     gp.getDefaultValue = function ( type ) {
@@ -2626,7 +2638,7 @@ gp.ClientPager.prototype = {
 
             // then sort
             if (gp.isNullOrEmpty(model.sort) === false) {
-                var col = this.getColumnByField( this.columns, model.sort );
+                var col = gp.getColumnByField( this.columns, model.sort );
                 if (gp.hasValue(col)) {
                     var sortFunction = this.getSortFunction( col, model.desc );
                     model.data.sort( function ( row1, row2 ) {
@@ -2657,10 +2669,6 @@ gp.ClientPager.prototype = {
             return data.page = data.pagecount;
         }
         return ( data.page - 1 ) * data.top;
-    },
-    getColumnByField: function ( columns, field ) {
-        var col = columns.filter(function (c) { return c.field === field || c.sort === field });
-        return col.length ? col[0] : null;
     },
     getSortFunction: function (col, desc) {
         if ( /^(number|date|boolean)$/.test( col.Type ) ) {

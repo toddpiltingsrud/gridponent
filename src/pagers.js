@@ -71,7 +71,7 @@ gp.ClientPager.prototype = {
 
             // then sort
             if (gp.isNullOrEmpty(model.sort) === false) {
-                var col = this.getColumnByField( this.columns, model.sort );
+                var col = gp.getColumnByField( this.columns, model.sort );
                 if (gp.hasValue(col)) {
                     var sortFunction = this.getSortFunction( col, model.desc );
                     model.data.sort( function ( row1, row2 ) {
@@ -102,10 +102,6 @@ gp.ClientPager.prototype = {
             return data.page = data.pagecount;
         }
         return ( data.page - 1 ) * data.top;
-    },
-    getColumnByField: function ( columns, field ) {
-        var col = columns.filter(function (c) { return c.field === field || c.sort === field });
-        return col.length ? col[0] : null;
     },
     getSortFunction: function (col, desc) {
         if ( /^(number|date|boolean)$/.test( col.Type ) ) {

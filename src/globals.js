@@ -131,6 +131,11 @@
         return config;
     };
 
+    gp.getColumnByField = function ( columns, field ) {
+        var col = columns.filter( function ( c ) { return c.field === field || c.sort === field } );
+        return col.length ? col[0] : null;
+    };
+
     gp.getDefaultValue = function ( type ) {
         switch ( type ) {
             case 'number':

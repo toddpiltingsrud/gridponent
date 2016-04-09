@@ -2216,7 +2216,7 @@ QUnit.test( 'gp.ChangeMonitor', function ( assert ) {
     var done3 = assert.async();
     var done4 = assert.async();
 
-    var monitor = new gp.ChangeMonitor( div[0], '[name]', model, function ( target, m ) {
+    var monitor = new gp.ChangeMonitor( div[0], '[name]', model, null, function ( target, m ) {
         assert.equal( model.number, 2 );
         done1();
     } );
@@ -2233,7 +2233,7 @@ QUnit.test( 'gp.ChangeMonitor', function ( assert ) {
     var textInput = div[0].querySelector( '[name=notInModel]' );
     textInput.value = 'more text';
     monitor.syncModel( textInput, model );
-    assert.equal( 'notInModel' in model, false, 'ChangeMonitor should raise call afterSync for values not present in the model.' );
+    assert.equal( 'notInModel' in model, true, 'ChangeMonitor should add properties not present in the model.' );
 
 
     monitor.beforeSync = function ( name, value, model ) {

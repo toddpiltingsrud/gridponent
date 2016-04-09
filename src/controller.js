@@ -81,7 +81,7 @@ gp.Controller.prototype = {
     monitorToolbars: function (node) {
         var self = this;
         // monitor changes to search, sort, and paging
-        this.monitor = new gp.ChangeMonitor( node, '.table-toolbar [name], thead input, .table-pager input', this.config.pageModel, function ( evt ) {
+        this.monitor = new gp.ChangeMonitor( node, '.table-toolbar [name], thead input, .table-pager input', this.config.pageModel, this.config, function ( evt ) {
             self.read();
             // reset the radio inputs
             var radios = node.querySelectorAll( 'thead input[type=radio], .table-pager input[type=radio]' );

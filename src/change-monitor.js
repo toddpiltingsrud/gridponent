@@ -1,7 +1,7 @@
 ﻿/***************\
  change monitor
 \***************/
-gp.ChangeMonitor = function (node, selector, model, afterSync) {
+gp.ChangeMonitor = function ( node, selector, model, config, afterSync ) {
     var self = this;
     this.model = model;
     this.beforeSync = null;
@@ -11,6 +11,7 @@ gp.ChangeMonitor = function (node, selector, model, afterSync) {
         self.syncModel.call(self, evt.target, self.model);
     };
     this.afterSync = afterSync;
+    this.config = config;
 };
 
 gp.ChangeMonitor.prototype = {
@@ -38,35 +39,41 @@ gp.ChangeMonitor.prototype = {
         var name = target.name,
             val = target.value,
             handled = false,
-            type;
+            type,
+            col;
+
+        // attempt to resolve a type by examining the configuration first
+        if ( this.config ) {
+            col = gp.getColumnByField( this.config.columns, name );
+            if ( col ) type = col.Type;
+        }
 
         if ( !name in model ) model[name] = null;
 
         try {
-            if ( name in model ) {
-                if ( typeof ( this.beforeSync ) === 'function' ) {
-                    handled = this.beforeSync( name, val, this.model );
-                }
-                if ( !handled ) {
-                    type = gp.getType( model[name] );
-                    switch ( type ) {
-                        case 'number':
-                            model[name] = parseFloat( val );
-                            break;
-                        case 'boolean':
-                            if ( target.type == 'checkbox' ) {
-                                if ( val.toLowerCase() == 'true' ) val = target.checked;
-                                else if ( val.toLowerCase() == 'false' ) val = !target.checked;
-                                else val = target.checked ? val : null;
-                                model[name] = val;
-                            }
-                            else {
-                                model[name] = ( val.toLowerCase() == 'true' );
-                            }
-                            break;
-                        default:
+            if ( typeof ( this.beforeSync ) === 'function' ) {
+                handled = this.beforeSync( name, val, this.model );
+            }
+            if ( !handled ) {
+                // if there's no type in the columns, get one from the model
+                type = type || gp.getType( model[name] );
+                switch ( type ) {
+                    case 'number':
+                        model[name] = parseFloat( val );
+                        break;
+                    case 'boolean':
+                        if ( target.type == 'checkbox' ) {
+                            if ( val.toLowerCase() == 'true' ) val = target.checked;
+                            else if ( val.toLowerCase() == 'false' ) val = !target.checked;
+                            else val = target.checked ? val : null;
                             model[name] = val;
-                    }
+                        }
+                        else {
+                            model[name] = ( val.toLowerCase() == 'true' );
+                        }
+                        break;
+                    default:
+                        model[name] = val;
                 }
             }
 
