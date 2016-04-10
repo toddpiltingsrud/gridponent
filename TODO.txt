@@ -1,8 +1,8 @@
-﻿If we use buttons for pagers and links for sorting we could get rid of some markup and possibly get rid of the Controller's ChangeMonitor.
+﻿Change search to search-box.
+
+If we use buttons for pagers and links for sorting we could get rid of some markup and possibly get rid of the Controller's ChangeMonitor.
 
 Eliminate setting config.dataItem.
-
-Helpers line 126: escapeHTML
 
 Test radio buttons in edit mode.
 

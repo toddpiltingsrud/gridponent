@@ -93,7 +93,7 @@
     <Content Include="src\ready-check.js" />
     <Content Include="src\pagers.js" />
     <Content Include="src\change-monitor.js" />
-    <Content Include="src\globals.js" />
+    <Content Include="src\utils.js" />
     <Content Include="src\paging-model.js" />
     <Content Include="src\initializer.js" />
     <Content Include="src\a-gridponent.js" />

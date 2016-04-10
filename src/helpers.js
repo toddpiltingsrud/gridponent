@@ -65,15 +65,9 @@ gp.helpers = {
             type = ( col.Type || '' ).toLowerCase(),
             html = new gp.StringBuilder();
 
-        try {
-            if ( dataItem == null ) return;
-            val = gp.getFormattedValue( dataItem, col, true );
-        }
-        catch ( err ) {
-            gp.error( err );
-            console.log( col );
-            console.log( dataItem );
-        }
+        if ( dataItem == null ) return;
+
+        val = gp.getFormattedValue( dataItem, col, true );
 
         // check for a template
         if ( col.bodytemplate ) {
@@ -123,7 +117,8 @@ gp.helpers = {
                 }
             }
             else {
-                html.add( gp.escapeHTML( val ));
+                // getFormattedValue has already escaped html
+                html.add( val );
             }
         }
         return html.toString();

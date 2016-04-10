@@ -116,7 +116,7 @@ var getTableConfig = function ( options, callback ) {
     out.push( '    </gp-column>' );
     out.push( '    <gp-column header="ID" sort="Name">' );
     out.push( '        <script type="text/html" data-template="body">{{fns.getName}}</script>' );
-    out.push( '        <script type="text/html" data-template="edit">{{fns.dropdown}}</script>' );
+    out.push( '        <script type="text/html" data-template="edit">{{{fns.dropdown}}}</script>' );
     out.push( '    </gp-column>' );
     out.push( '    <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>' );
     out.push( '    <gp-column field="SafetyStockLevel" header="Safety Stock Level">' );
@@ -146,7 +146,7 @@ var getTableConfig = function ( options, callback ) {
 
     if ( document.registerElement ) {
         setTimeout( function () {
-            $node[0].api.ready( callback );
+            gridponent( $node[0] ).ready( callback );
         } );
     }
     else {
@@ -339,12 +339,16 @@ QUnit.test( 'paging', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
+        $( '#table .box' ).append( api.config.node );
+
         // find the ProductNumber column
         var productNumber1 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).innerHTML;
 
-        var btn = api.find( '[title="Next page"]' );
+        var btn = api.find( '[title="Next page"] input' );
 
-        clickButton( btn );
+        btn.checked = true;
+
+        changeInput( btn );
 
         var productNumber2 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).innerHTML;
 
@@ -1269,16 +1273,12 @@ QUnit.test( 'api.update', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        config.node.api.ready( function () {
+        var dataItem = api.getData( 0 );
 
-            var dataItem = config.node.api.getData( 0 );
-
-            config.node.api.update( dataItem, function ( updateModel ) {
-                assert.ok( updateModel == undefined, 'empty update setting should execute the callback with no arguments' );
-                config.node.api.dispose();
-                done3();
-            } );
-
+        api.update( dataItem, function ( updateModel ) {
+            assert.ok( updateModel == undefined, 'empty update setting should execute the callback with no arguments' );
+            api.dispose();
+            done3();
         } );
 
     } );
