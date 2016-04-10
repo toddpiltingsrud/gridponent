@@ -12,21 +12,12 @@ gp.PagingModel = function (data) {
     this.desc = false;
     this.search = '';
     this.data = data;
-    this.totalrows = (data != undefined && data.length) ? data.length : 0;
+    this.totalrows = ( data != undefined && data.length ) ? data.length : 0;
+    this.pagecount = 0;
 
     Object.defineProperty(self, 'pageindex', {
         get: function () {
             return self.page - 1;
-        }
-    });
-
-    Object.defineProperty(self, 'pagecount', {
-        get: function () {
-            if ( self.top > 0 ) {
-                return Math.ceil( self.totalrows / self.top );
-            }
-            if ( self.totalrows === 0 ) return 0;
-            return 1;
         }
     });
 

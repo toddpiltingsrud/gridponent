@@ -123,7 +123,7 @@ var getTableConfig = function ( options, callback ) {
     out.push( '        <script type="text/html" data-template="body"><button class="btn"><span class="glyphicon glyphicon-search"></span>{{SafetyStockLevel}}</button></script>' );
     out.push( '        <script type="text/html" data-template="footer">{{fns.average}}</script>' );
     out.push( '    </gp-column>' );
-    out.push( '    <gp-column field="StandardCost" header="Standard Cost" format="C"></gp-column>' );
+    out.push( '    <gp-column field="StandardCost" header="Standard Cost" format="$0"></gp-column>' );
     out.push( '    <gp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, YYYY"></gp-column>' );
     out.push( '    <gp-column field="Markup" readonly body-class="hidden-xs" header-class="hidden-xs"></gp-column>' );
     out.push( '    <gp-column>' );
@@ -353,6 +353,16 @@ QUnit.test( 'paging', function ( assert ) {
         var productNumber2 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).innerHTML;
 
         assert.notStrictEqual( productNumber1, productNumber2, 'paging should change the contents of the grid to the next set' );
+
+
+        // search
+        var pageCount1 = api.find( 'span.page-count' ).innerHTML;
+
+        api.search( '$1' );
+
+        var pageCount2 = api.find( 'span.page-count' ).innerHTML;
+
+        assert.notStrictEqual( pageCount1, pageCount2, 'searching should change the page count' );
 
         done1();
 
