@@ -165,12 +165,15 @@ gp.Controller.prototype = {
             self.invokeDelegates( gp.events.onEdit, model );
         };
 
+        editor.editReady = function (model) {
+            self.invokeDelegates( gp.events.editReady, model );
+        };
+
         return editor;
     },
 
     addRowSelectHandler: function ( config ) {
-        // it's got to be either a function or a URL template
-        if ( typeof config.onrowselect == 'function' || gp.rexp.braces.test( config.onrowselect ) ) {
+        if ( gp.hasClass( config.node, 'selectable' ) ) {
             // add click handler
             gp.on( config.node, 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
         }
@@ -184,11 +187,11 @@ gp.Controller.prototype = {
         var config = this.config,
             tr = gp.closest( evt.selectedTarget, 'tr', config.node ),
             trs = config.node.querySelectorAll( 'div.table-body > table > tbody > tr.selected' ),
-            type = typeof config.onrowselect,
+            type = typeof config.rowselected,
             dataItem,
             proceed;
 
-        if ( type === 'string' && config.onrowselect.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
+        if ( type === 'string' && config.rowselected.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
 
         // remove previously selected class
         for ( var i = 0; i < trs.length; i++ ) {
@@ -212,11 +215,11 @@ gp.Controller.prototype = {
         if ( proceed === false ) return;
 
         if ( type === 'function' ) {
-            gp.applyFunc( config.onrowselect, tr, [dataItem] );
+            gp.applyFunc( config.rowselected, tr, [dataItem] );
         }
         else {
             // it's a urlTemplate
-            window.location = gp.supplant.call( this.config.node.api, config.onrowselect, dataItem );
+            window.location = gp.supplant.call( this.config.node.api, config.rowselected, dataItem );
         }
     },
 
@@ -268,7 +271,7 @@ gp.Controller.prototype = {
 
         var model = editor.add();
 
-        this.invokeDelegates( gp.events.editReady, model );
+        //this.invokeDelegates( gp.events.editReady, model );
 
         return editor;
 
@@ -302,7 +305,7 @@ gp.Controller.prototype = {
         var editor = this.getEditor( this.config.editmode );
         var model = editor.edit( dataItem, elem );
 
-        this.invokeDelegates( gp.events.editReady, model );
+        //this.invokeDelegates( gp.events.editReady, model );
 
         return editor;
     },

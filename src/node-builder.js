@@ -8,7 +8,7 @@ gp.NodeBuilder = function ( parent ) {
 
 gp.NodeBuilder.prototype = {
 
-    startElem: function ( tagName ) {
+    create: function ( tagName ) {
         var n = document.createElement( tagName );
 
         if ( this.node ) {
@@ -45,14 +45,7 @@ gp.NodeBuilder.prototype = {
     },
 
     attr: function ( name, value ) {
-        var attr = document.createAttribute( name );
-
-        if ( value != undefined ) {
-            attr.value = gp.escapeHTML( value );
-        }
-
-        this.node.setAttributeNode( attr );
-
+        this.node.setAttribute( name, value );
         return this;
     },
 

@@ -11,6 +11,8 @@ gp.Editor = function ( config, dal ) {
     this.mode = null;
     this.beforeEdit = null;
     this.afterEdit = null;
+    this.editReady = null;
+    this.button = null;
 
 };
 
@@ -39,6 +41,8 @@ gp.Editor.prototype = {
             returnedDataItem,
             fail = fail || gp.error;
 
+        this.addBusy();
+
         if ( typeof this.beforeEdit == 'function' ) {
             this.beforeEdit( {
                 type: this.mode,
@@ -55,7 +59,7 @@ gp.Editor.prototype = {
                     // standardize capitalization of incoming data
                     updateModel = gp.shallowCopy( updateModel, null, true );
 
-                    if ( updateModel.errors && updateModel.errors.length ) {
+                    if ( gp.hasValue( updateModel.errors )) {
                         self.validate( updateModel );
                     }
                     else {
@@ -68,7 +72,7 @@ gp.Editor.prototype = {
                         // Also the returned dataItem will likely have additional information added by the server.
                         uid = self.config.map.assign( returnedDataItem, self.elem );
 
-                        self.restoreUI( self.config, self.dataItem, self.elem );
+                        self.updateUI( self.config, self.dataItem, self.elem );
 
                         // dispose of the ChangeMonitor
                         if ( self.changeMonitor ) {
@@ -77,20 +81,23 @@ gp.Editor.prototype = {
                         }
 
                         if (self.removeCommandHandler) self.removeCommandHandler();
-
-                        if ( typeof self.afterEdit == 'function' ) {
-                            self.afterEdit( {
-                                type: self.mode,
-                                dataItem: self.dataItem,
-                                elem: self.elem
-                            } );
-                        }
-
                     }
                 }
                 catch ( err ) {
                     var error = fail || gp.error;
                     error( err );
+                }
+
+                if ( self.button instanceof HTMLElement ) gp.enable( self.button );
+
+                self.removeBusy();
+
+                if ( typeof self.afterEdit == 'function' ) {
+                    self.afterEdit( {
+                        type: self.mode,
+                        dataItem: self.dataItem,
+                        elem: self.elem
+                    } );
                 }
 
                 gp.applyFunc( done, self.config.node.api, updateModel );
@@ -108,7 +115,7 @@ gp.Editor.prototype = {
                     // standardize capitalization of incoming data
                     updateModel = gp.shallowCopy( updateModel, null, true );
 
-                    if ( updateModel.errors && updateModel.errors.length ) {
+                    if ( gp.hasValue( updateModel.errors ) ) {
                         self.validate( updateModel );
                     }
                     else {
@@ -120,7 +127,7 @@ gp.Editor.prototype = {
 
                         if ( self.elem ) {
                             // refresh the UI
-                            self.restoreUI( self.config, self.dataItem, self.elem );
+                            self.updateUI( self.config, self.dataItem, self.elem );
                             // dispose of the ChangeMonitor
                             if ( self.changeMonitor ) {
                                 self.changeMonitor.stop();
@@ -128,19 +135,23 @@ gp.Editor.prototype = {
                             }
 
                             if ( self.removeCommandHandler ) self.removeCommandHandler();
-
-                            if ( typeof self.afterEdit == 'function' ) {
-                                self.afterEdit( {
-                                    type: self.mode,
-                                    dataItem: self.dataItem,
-                                    elem: self.elem
-                                } );
-                            }
                         }
                     }
                 }
                 catch ( err ) {
                     fail( err );
+                }
+
+                if ( self.button instanceof HTMLElement ) gp.enable( self.button );
+
+                self.removeBusy();
+
+                if ( typeof self.afterEdit == 'function' ) {
+                    self.afterEdit( {
+                        type: self.mode,
+                        dataItem: self.dataItem,
+                        elem: self.elem
+                    } );
                 }
 
                 gp.applyFunc( done, self.config.node, updateModel );
@@ -150,7 +161,11 @@ gp.Editor.prototype = {
         }
     },
 
-    restoreUI: function () { },
+    addBusy: function () { },
+
+    removeBusy: function () { },
+
+    updateUI: function () { },
 
     validate: function() {},
 
@@ -196,9 +211,16 @@ gp.TableRowEditor = function ( config, dal ) {
     this.commandHandler = function ( evt ) {
         // handle save or cancel
         var command = evt.selectedTarget.attributes['value'].value;
-        if ( /^(create|update|save)$/i.test( command ) ) self.save();
+
+        if ( /^(create|update|save)$/i.test( command ) ) {
+            self.button = evt.selectedTarget;
+            // prevent double clicking
+            gp.disable( self.button, 5 );
+            self.save();
+        }
         else if ( /^cancel$/i.test( command ) ) self.cancel();
     };
+
 };
 
 gp.TableRowEditor.prototype = {
@@ -221,14 +243,14 @@ gp.TableRowEditor.prototype = {
 
         gp.Editor.prototype.add.call( this );
 
-        builder.startElem( 'tr' ).addClass( 'create-mode' ),
+        builder.create( 'tr' ).addClass( 'create-mode' ),
 
         // add td.body-cell elements to the tr
         this.config.columns.forEach( function ( col ) {
             cellContent = col.readonly ?
                 bodyCellContent.call( self.config, col, self.dataItem ) :
                 editCellContent.call( self.config, col, self.dataItem, 'create' );
-            builder.startElem( 'td' ).addClass( 'body-cell' ).addClass( col.BodyCell ).html( cellContent ).endElem();
+            builder.create( 'td' ).addClass( 'body-cell' ).addClass( col.bodyclass ).html( cellContent ).endElem();
         } );
 
         this.elem = builder.close();
@@ -238,6 +260,8 @@ gp.TableRowEditor.prototype = {
         gp.prependChild( tbody, this.elem );
 
         this.changeMonitor = new gp.ChangeMonitor( this.elem, '[name]', this.dataItem, this.config ).start();
+
+        this.invokeEditReady();
 
         return {
             dataItem: this.dataItem,
@@ -272,6 +296,8 @@ gp.TableRowEditor.prototype = {
 
         this.changeMonitor = new gp.ChangeMonitor( tr, '[name]', dataItem, this.config ).start();
 
+        this.invokeEditReady();
+
         return {
             dataItem: dataItem,
             elem: this.elem
@@ -293,7 +319,7 @@ gp.TableRowEditor.prototype = {
             else {
                 // restore the dataItem to its original state
                 gp.shallowCopy( this.originalDataItem, this.dataItem );
-                this.restoreUI();
+                this.updateUI();
             }
 
             if ( this.changeMonitor ) {
@@ -320,6 +346,7 @@ gp.TableRowEditor.prototype = {
             var self = this,
                 builder = new gp.StringBuilder(),
                 input,
+                errors,
                 msg;
 
             builder.add( 'Please correct the following errors:\r\n' );
@@ -327,20 +354,22 @@ gp.TableRowEditor.prototype = {
             // remove error class from inputs
             gp.removeClass( self.elem.querySelectorAll( '[name].error' ), 'error' );
 
-            updateModel.errors.forEach( function ( v ) {
+            Object.getOwnPropertyNames( updateModel.errors ).forEach( function ( e ) {
 
-                input = self.elem.querySelector( '[name="' + v.Key + '"]' );
+                input = self.elem.querySelector( '[name="' + e + '"]' );
+
+                errors = updateModel.errors[e].errors;
 
                 if ( input ) {
                     gp.addClass( input, 'error' );
                 }
 
-                builder.add( v.Key + ':\r\n' );
-
-                // extract the error message
-                msg = v.Value.Errors.map( function ( e ) { return '    - ' + e.ErrorMessage + '\r\n'; } ).join( '' );
-
-                builder.add( msg );
+                builder
+                    .add( e + ':\r\n' )
+                    .add(
+                    // extract the error message
+                    errors.map( function ( m ) { return '    - ' + m + '\r\n'; } ).join( '' )
+                );
             } );
 
             alert( builder.toString() );
@@ -350,7 +379,10 @@ gp.TableRowEditor.prototype = {
 
     createDataItem: gp.Editor.prototype.createDataItem,
 
-    restoreUI: function () {
+    addBusy: function () { },
+    removeBusy: function() {},
+
+    updateUI: function () {
         // take the table row out of edit mode
         var col,
             bodyCellContent = gp.helpers['bodyCellContent'],
@@ -362,7 +394,15 @@ gp.TableRowEditor.prototype = {
         }
         gp.removeClass( this.elem, 'edit-mode' );
         gp.removeClass( this.elem, 'create-mode' );
+    },
 
+    invokeEditReady: function() {
+        if (typeof this.editReady == 'function') {
+            this.editReady({
+                dataItem: this.dataItem,
+                elem: this.elem
+            });
+        }
     }
 
 };
@@ -395,10 +435,14 @@ gp.ModalEditor.prototype = {
         html = gp.helpers.bootstrapModal( this.config, this.dataItem, 'create' );
 
         // append the modal to the top node so button clicks will be picked up by commandHandlder
-        modal = $( html ).appendTo( this.config.node ).modal( {
-            show: true,
-            keyboard: true
-        } );
+        modal = $( html )
+            .appendTo( this.config.node )
+            .one('shown.bs.modal', self.invokeEditReady.bind(self) )
+            .modal( {
+                show: true,
+                keyboard: true
+            }
+        );
 
         this.elem = modal[0];
 
@@ -426,10 +470,14 @@ gp.ModalEditor.prototype = {
         var html = gp.helpers.bootstrapModal( this.config, dataItem, 'udpate' );
 
         // append the modal to the top node so button clicks will be picked up by commandHandlder
-        var modal = $( html ).appendTo( this.config.node ).modal( {
-            show: true,
-            keyboard: true
-        } );
+        var modal = $( html )
+            .appendTo( this.config.node )
+            .one( 'shown.bs.modal', self.invokeEditReady.bind( self ) )
+            .modal( {
+                show: true,
+                keyboard: true
+            }
+        );
 
         this.elem = modal[0];
 
@@ -463,7 +511,15 @@ gp.ModalEditor.prototype = {
         this.removeCommandHandler();
     },
 
-    restoreUI: function () {
+    addBusy: function() {
+        gp.addClass( this.elem, 'busy' );
+    },
+
+    removeBusy: function() {
+        gp.removeClass( this.elem, 'busy' );
+    },
+
+    updateUI: function () {
 
         var self = this,
             tbody = this.config.node.querySelector( 'div.table-body > table > tbody' ),
@@ -488,12 +544,12 @@ gp.ModalEditor.prototype = {
                 uid = this.config.map.assign( this.dataItem );
             }
             
-            builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-uid', uid );
+            builder = new gp.NodeBuilder().create( 'tr' ).attr( 'data-uid', uid );
 
             // add td.body-cell elements to the tr
             this.config.columns.forEach( function ( col ) {
                 cellContent = bodyCellContent.call( self.config, col, self.dataItem );
-                builder.startElem( 'td' ).addClass( 'body-cell' ).addClass( col.BodyCell ).html( cellContent ).endElem();
+                builder.create( 'td' ).addClass( 'body-cell' ).addClass( col.bodyclass ).html( cellContent ).endElem();
             } );
 
             tableRow = builder.close();
@@ -518,6 +574,8 @@ gp.ModalEditor.prototype = {
 
     validate: gp.TableRowEditor.prototype.validate,
 
-    createDataItem: gp.Editor.prototype.createDataItem
+    createDataItem: gp.Editor.prototype.createDataItem,
+
+    invokeEditReady: gp.TableRowEditor.prototype.invokeEditReady
 
 };

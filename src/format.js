@@ -11,7 +11,13 @@ gp.Formatter.prototype = {
         var type = gp.getType( val );
 
         try {
-            if ( /^(date|dateString)$/.test( type ) ) {
+            if ( /^(date|datestring)$/.test( type ) ) {
+                format = format || 'M/D/YYYY H:mm a';
+                return moment( val ).format( format );
+            }
+            if ( type === 'timestamp' ) {
+                format = format || 'M/D/YYYY H:mm a';
+                val = parseInt( val.match( gp.rexp.timestamp )[1] );
                 return moment( val ).format( format );
             }
             if ( type === 'number' ) {

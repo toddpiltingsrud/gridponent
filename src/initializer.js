@@ -89,7 +89,7 @@ gp.Initializer.prototype = {
 
 
         // resolve the top level configurations
-        var options = 'onrowselect searchfunction read create update destroy validate model'.split(' ');
+        var options = 'rowselected searchfunction read create update destroy validate model'.split(' ');
         options.forEach( function ( option ) {
 
             if ( gp.hasValue(config[option]) ) {

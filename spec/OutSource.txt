@@ -4,7 +4,7 @@
                 fixed-headers
                 sorting="true" 
                 responsive="true"
-                onrowselect="/test?productid={{ProductID}}&color={{Color}}"
+                rowselected="/test?productid={{ProductID}}&color={{Color}}"
                 read="data.products"
                 create="/Products/create"
                 update="/Products/update"

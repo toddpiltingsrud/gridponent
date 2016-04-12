@@ -4,21 +4,50 @@
 \***************/
 
 var gridponent = gridponent || function ( elem, options ) {
-    // check for a selector
-    if ( typeof elem == 'string' ) {
-        elem = document.querySelector( elem );
-    }
-    if (elem instanceof HTMLElement) {
-        var tblContainer = elem.querySelector('.table-container');
-        // has this already been initialized?
-        if ( tblContainer && tblContainer.api ) return tblContainer.api;
 
-        if ( options ) {
-            var init = new gridponent.Initializer( elem );
-            var config = init.initializeOptions( options );
-            return config.node.api;
+    var obj = {
+        api: null,
+        callback: function () { },
+        ready: function ( callback ) {
+            if ( obj.api ) {
+                obj.api.ready(callback);
+            }
+            else obj.callback = callback;
         }
-    }
+    };
+
+    gridponent.ready( function () {
+        // check for a selector
+        if ( typeof elem == 'string' ) {
+            elem = document.querySelector( elem );
+        }
+        if ( elem instanceof HTMLElement ) {
+            var tblContainer = elem.querySelector( '.table-container' );
+            // has this already been initialized?
+            if ( tblContainer && tblContainer.api ) {
+                if (obj.callback) {
+                    tblContainer.api.ready(obj.callback);
+                }
+                else {
+                    obj.api = tblContainer.api;
+                }
+            }
+
+            if ( options ) {
+                var init = new gridponent.Initializer( elem );
+                var config = init.initializeOptions( options );
+                if (obj.callback) {
+                    config.node.api.ready(obj.callback);
+                }
+                else {
+                    obj.api = config.node.api;
+                }
+            }
+        }
+    } );
+
+    return obj;
+
 };
 
 (function(gp) { 
@@ -55,6 +84,8 @@ gp.api = function ( controller ) {
 };
 
 gp.api.prototype = {
+
+
 
     beforeEdit: function ( callback ) {
         this.controller.addDelegate( gp.events.beforeEdit, callback );;
@@ -420,12 +451,15 @@ gp.Controller.prototype = {
             self.invokeDelegates( gp.events.onEdit, model );
         };
 
+        editor.editReady = function (model) {
+            self.invokeDelegates( gp.events.editReady, model );
+        };
+
         return editor;
     },
 
     addRowSelectHandler: function ( config ) {
-        // it's got to be either a function or a URL template
-        if ( typeof config.onrowselect == 'function' || gp.rexp.braces.test( config.onrowselect ) ) {
+        if ( gp.hasClass( config.node, 'selectable' ) ) {
             // add click handler
             gp.on( config.node, 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
         }
@@ -439,11 +473,11 @@ gp.Controller.prototype = {
         var config = this.config,
             tr = gp.closest( evt.selectedTarget, 'tr', config.node ),
             trs = config.node.querySelectorAll( 'div.table-body > table > tbody > tr.selected' ),
-            type = typeof config.onrowselect,
+            type = typeof config.rowselected,
             dataItem,
             proceed;
 
-        if ( type === 'string' && config.onrowselect.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
+        if ( type === 'string' && config.rowselected.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
 
         // remove previously selected class
         for ( var i = 0; i < trs.length; i++ ) {
@@ -467,11 +501,11 @@ gp.Controller.prototype = {
         if ( proceed === false ) return;
 
         if ( type === 'function' ) {
-            gp.applyFunc( config.onrowselect, tr, [dataItem] );
+            gp.applyFunc( config.rowselected, tr, [dataItem] );
         }
         else {
             // it's a urlTemplate
-            window.location = gp.supplant.call( this.config.node.api, config.onrowselect, dataItem );
+            window.location = gp.supplant.call( this.config.node.api, config.rowselected, dataItem );
         }
     },
 
@@ -523,7 +557,7 @@ gp.Controller.prototype = {
 
         var model = editor.add();
 
-        this.invokeDelegates( gp.events.editReady, model );
+        //this.invokeDelegates( gp.events.editReady, model );
 
         return editor;
 
@@ -557,7 +591,7 @@ gp.Controller.prototype = {
         var editor = this.getEditor( this.config.editmode );
         var model = editor.edit( dataItem, elem );
 
-        this.invokeDelegates( gp.events.editReady, model );
+        //this.invokeDelegates( gp.events.editReady, model );
 
         return editor;
     },
@@ -786,6 +820,8 @@ gp.Editor = function ( config, dal ) {
     this.mode = null;
     this.beforeEdit = null;
     this.afterEdit = null;
+    this.editReady = null;
+    this.button = null;
 
 };
 
@@ -814,6 +850,8 @@ gp.Editor.prototype = {
             returnedDataItem,
             fail = fail || gp.error;
 
+        this.addBusy();
+
         if ( typeof this.beforeEdit == 'function' ) {
             this.beforeEdit( {
                 type: this.mode,
@@ -830,7 +868,7 @@ gp.Editor.prototype = {
                     // standardize capitalization of incoming data
                     updateModel = gp.shallowCopy( updateModel, null, true );
 
-                    if ( updateModel.errors && updateModel.errors.length ) {
+                    if ( gp.hasValue( updateModel.errors )) {
                         self.validate( updateModel );
                     }
                     else {
@@ -843,7 +881,7 @@ gp.Editor.prototype = {
                         // Also the returned dataItem will likely have additional information added by the server.
                         uid = self.config.map.assign( returnedDataItem, self.elem );
 
-                        self.restoreUI( self.config, self.dataItem, self.elem );
+                        self.updateUI( self.config, self.dataItem, self.elem );
 
                         // dispose of the ChangeMonitor
                         if ( self.changeMonitor ) {
@@ -852,20 +890,23 @@ gp.Editor.prototype = {
                         }
 
                         if (self.removeCommandHandler) self.removeCommandHandler();
-
-                        if ( typeof self.afterEdit == 'function' ) {
-                            self.afterEdit( {
-                                type: self.mode,
-                                dataItem: self.dataItem,
-                                elem: self.elem
-                            } );
-                        }
-
                     }
                 }
                 catch ( err ) {
                     var error = fail || gp.error;
                     error( err );
+                }
+
+                if ( self.button instanceof HTMLElement ) gp.enable( self.button );
+
+                self.removeBusy();
+
+                if ( typeof self.afterEdit == 'function' ) {
+                    self.afterEdit( {
+                        type: self.mode,
+                        dataItem: self.dataItem,
+                        elem: self.elem
+                    } );
                 }
 
                 gp.applyFunc( done, self.config.node.api, updateModel );
@@ -883,7 +924,7 @@ gp.Editor.prototype = {
                     // standardize capitalization of incoming data
                     updateModel = gp.shallowCopy( updateModel, null, true );
 
-                    if ( updateModel.errors && updateModel.errors.length ) {
+                    if ( gp.hasValue( updateModel.errors ) ) {
                         self.validate( updateModel );
                     }
                     else {
@@ -895,7 +936,7 @@ gp.Editor.prototype = {
 
                         if ( self.elem ) {
                             // refresh the UI
-                            self.restoreUI( self.config, self.dataItem, self.elem );
+                            self.updateUI( self.config, self.dataItem, self.elem );
                             // dispose of the ChangeMonitor
                             if ( self.changeMonitor ) {
                                 self.changeMonitor.stop();
@@ -903,19 +944,23 @@ gp.Editor.prototype = {
                             }
 
                             if ( self.removeCommandHandler ) self.removeCommandHandler();
-
-                            if ( typeof self.afterEdit == 'function' ) {
-                                self.afterEdit( {
-                                    type: self.mode,
-                                    dataItem: self.dataItem,
-                                    elem: self.elem
-                                } );
-                            }
                         }
                     }
                 }
                 catch ( err ) {
                     fail( err );
+                }
+
+                if ( self.button instanceof HTMLElement ) gp.enable( self.button );
+
+                self.removeBusy();
+
+                if ( typeof self.afterEdit == 'function' ) {
+                    self.afterEdit( {
+                        type: self.mode,
+                        dataItem: self.dataItem,
+                        elem: self.elem
+                    } );
                 }
 
                 gp.applyFunc( done, self.config.node, updateModel );
@@ -925,7 +970,11 @@ gp.Editor.prototype = {
         }
     },
 
-    restoreUI: function () { },
+    addBusy: function () { },
+
+    removeBusy: function () { },
+
+    updateUI: function () { },
 
     validate: function() {},
 
@@ -971,9 +1020,16 @@ gp.TableRowEditor = function ( config, dal ) {
     this.commandHandler = function ( evt ) {
         // handle save or cancel
         var command = evt.selectedTarget.attributes['value'].value;
-        if ( /^(create|update|save)$/i.test( command ) ) self.save();
+
+        if ( /^(create|update|save)$/i.test( command ) ) {
+            self.button = evt.selectedTarget;
+            // prevent double clicking
+            gp.disable( self.button, 5 );
+            self.save();
+        }
         else if ( /^cancel$/i.test( command ) ) self.cancel();
     };
+
 };
 
 gp.TableRowEditor.prototype = {
@@ -996,14 +1052,14 @@ gp.TableRowEditor.prototype = {
 
         gp.Editor.prototype.add.call( this );
 
-        builder.startElem( 'tr' ).addClass( 'create-mode' ),
+        builder.create( 'tr' ).addClass( 'create-mode' ),
 
         // add td.body-cell elements to the tr
         this.config.columns.forEach( function ( col ) {
             cellContent = col.readonly ?
                 bodyCellContent.call( self.config, col, self.dataItem ) :
                 editCellContent.call( self.config, col, self.dataItem, 'create' );
-            builder.startElem( 'td' ).addClass( 'body-cell' ).addClass( col.BodyCell ).html( cellContent ).endElem();
+            builder.create( 'td' ).addClass( 'body-cell' ).addClass( col.bodyclass ).html( cellContent ).endElem();
         } );
 
         this.elem = builder.close();
@@ -1013,6 +1069,8 @@ gp.TableRowEditor.prototype = {
         gp.prependChild( tbody, this.elem );
 
         this.changeMonitor = new gp.ChangeMonitor( this.elem, '[name]', this.dataItem, this.config ).start();
+
+        this.invokeEditReady();
 
         return {
             dataItem: this.dataItem,
@@ -1047,6 +1105,8 @@ gp.TableRowEditor.prototype = {
 
         this.changeMonitor = new gp.ChangeMonitor( tr, '[name]', dataItem, this.config ).start();
 
+        this.invokeEditReady();
+
         return {
             dataItem: dataItem,
             elem: this.elem
@@ -1068,7 +1128,7 @@ gp.TableRowEditor.prototype = {
             else {
                 // restore the dataItem to its original state
                 gp.shallowCopy( this.originalDataItem, this.dataItem );
-                this.restoreUI();
+                this.updateUI();
             }
 
             if ( this.changeMonitor ) {
@@ -1095,6 +1155,7 @@ gp.TableRowEditor.prototype = {
             var self = this,
                 builder = new gp.StringBuilder(),
                 input,
+                errors,
                 msg;
 
             builder.add( 'Please correct the following errors:\r\n' );
@@ -1102,20 +1163,22 @@ gp.TableRowEditor.prototype = {
             // remove error class from inputs
             gp.removeClass( self.elem.querySelectorAll( '[name].error' ), 'error' );
 
-            updateModel.errors.forEach( function ( v ) {
+            Object.getOwnPropertyNames( updateModel.errors ).forEach( function ( e ) {
 
-                input = self.elem.querySelector( '[name="' + v.Key + '"]' );
+                input = self.elem.querySelector( '[name="' + e + '"]' );
+
+                errors = updateModel.errors[e].errors;
 
                 if ( input ) {
                     gp.addClass( input, 'error' );
                 }
 
-                builder.add( v.Key + ':\r\n' );
-
-                // extract the error message
-                msg = v.Value.Errors.map( function ( e ) { return '    - ' + e.ErrorMessage + '\r\n'; } ).join( '' );
-
-                builder.add( msg );
+                builder
+                    .add( e + ':\r\n' )
+                    .add(
+                    // extract the error message
+                    errors.map( function ( m ) { return '    - ' + m + '\r\n'; } ).join( '' )
+                );
             } );
 
             alert( builder.toString() );
@@ -1125,7 +1188,10 @@ gp.TableRowEditor.prototype = {
 
     createDataItem: gp.Editor.prototype.createDataItem,
 
-    restoreUI: function () {
+    addBusy: function () { },
+    removeBusy: function() {},
+
+    updateUI: function () {
         // take the table row out of edit mode
         var col,
             bodyCellContent = gp.helpers['bodyCellContent'],
@@ -1137,7 +1203,15 @@ gp.TableRowEditor.prototype = {
         }
         gp.removeClass( this.elem, 'edit-mode' );
         gp.removeClass( this.elem, 'create-mode' );
+    },
 
+    invokeEditReady: function() {
+        if (typeof this.editReady == 'function') {
+            this.editReady({
+                dataItem: this.dataItem,
+                elem: this.elem
+            });
+        }
     }
 
 };
@@ -1170,10 +1244,14 @@ gp.ModalEditor.prototype = {
         html = gp.helpers.bootstrapModal( this.config, this.dataItem, 'create' );
 
         // append the modal to the top node so button clicks will be picked up by commandHandlder
-        modal = $( html ).appendTo( this.config.node ).modal( {
-            show: true,
-            keyboard: true
-        } );
+        modal = $( html )
+            .appendTo( this.config.node )
+            .one('shown.bs.modal', self.invokeEditReady.bind(self) )
+            .modal( {
+                show: true,
+                keyboard: true
+            }
+        );
 
         this.elem = modal[0];
 
@@ -1201,10 +1279,14 @@ gp.ModalEditor.prototype = {
         var html = gp.helpers.bootstrapModal( this.config, dataItem, 'udpate' );
 
         // append the modal to the top node so button clicks will be picked up by commandHandlder
-        var modal = $( html ).appendTo( this.config.node ).modal( {
-            show: true,
-            keyboard: true
-        } );
+        var modal = $( html )
+            .appendTo( this.config.node )
+            .one( 'shown.bs.modal', self.invokeEditReady.bind( self ) )
+            .modal( {
+                show: true,
+                keyboard: true
+            }
+        );
 
         this.elem = modal[0];
 
@@ -1238,7 +1320,15 @@ gp.ModalEditor.prototype = {
         this.removeCommandHandler();
     },
 
-    restoreUI: function () {
+    addBusy: function() {
+        gp.addClass( this.elem, 'busy' );
+    },
+
+    removeBusy: function() {
+        gp.removeClass( this.elem, 'busy' );
+    },
+
+    updateUI: function () {
 
         var self = this,
             tbody = this.config.node.querySelector( 'div.table-body > table > tbody' ),
@@ -1263,12 +1353,12 @@ gp.ModalEditor.prototype = {
                 uid = this.config.map.assign( this.dataItem );
             }
             
-            builder = new gp.NodeBuilder().startElem( 'tr' ).attr( 'data-uid', uid );
+            builder = new gp.NodeBuilder().create( 'tr' ).attr( 'data-uid', uid );
 
             // add td.body-cell elements to the tr
             this.config.columns.forEach( function ( col ) {
                 cellContent = bodyCellContent.call( self.config, col, self.dataItem );
-                builder.startElem( 'td' ).addClass( 'body-cell' ).addClass( col.BodyCell ).html( cellContent ).endElem();
+                builder.create( 'td' ).addClass( 'body-cell' ).addClass( col.bodyclass ).html( cellContent ).endElem();
             } );
 
             tableRow = builder.close();
@@ -1293,7 +1383,9 @@ gp.ModalEditor.prototype = {
 
     validate: gp.TableRowEditor.prototype.validate,
 
-    createDataItem: gp.Editor.prototype.createDataItem
+    createDataItem: gp.Editor.prototype.createDataItem,
+
+    invokeEditReady: gp.TableRowEditor.prototype.invokeEditReady
 
 };
 
@@ -1310,7 +1402,13 @@ gp.Formatter.prototype = {
         var type = gp.getType( val );
 
         try {
-            if ( /^(date|dateString)$/.test( type ) ) {
+            if ( /^(date|datestring)$/.test( type ) ) {
+                format = format || 'M/D/YYYY H:mm a';
+                return moment( val ).format( format );
+            }
+            if ( type === 'timestamp' ) {
+                format = format || 'M/D/YYYY H:mm a';
+                val = parseInt( val.match( gp.rexp.timestamp )[1] );
                 return moment( val ).format( format );
             }
             if ( type === 'number' ) {
@@ -1504,7 +1602,7 @@ gp.helpers = {
         if ( this.search ) {
             html.add( ' search-' + this.search );
         }
-        if ( this.onrowselect ) {
+        if ( this.rowselected ) {
             html.add( ' selectable' );
         }
         return html.toString();
@@ -1523,14 +1621,14 @@ gp.helpers = {
             }
         }
         else if ( col.commands ) {
-            html.add( gp.templates.button( {
-                btnClass: 'btn-primary',
-                value: ( mode == 'create' ? 'create' : 'update' ),
-                glyphicon: 'glyphicon-save',
-                text: 'Save'
-            } ) );
-
-            html.add( '<button type="button" class="btn btn-default btn-xs" data-dismiss="modal" value="cancel">' )
+            html.add( '<div class="btn-group">' )
+                .add( gp.templates.button( {
+                    btnClass: 'btn-primary',
+                    value: ( mode == 'create' ? 'create' : 'update' ),
+                    glyphicon: 'glyphicon-save',
+                    text: 'Save'
+                } ) )
+                .add( '<button type="button" class="btn btn-default btn-xs" data-dismiss="modal" value="cancel">' )
                 .add( '<span class="glyphicon glyphicon-remove"></span>Cancel' )
                 .add( '</button>' )
                 .add( '</div>' );
@@ -1639,7 +1737,13 @@ gp.helpers = {
                 }
             }
 
-            html.add( '<th class="header-cell ' + ( col.headerclass || '' ) + '" data-sort="' + sort + '">' );
+            html.add( '<th class="header-cell ' + ( col.headerclass || '' ) + '"' );
+
+            if ( gp.hasValue( sort ) ) {
+                html.add( ' data-sort="' + sort + '"' );
+            }
+
+            html.add( '>' );
 
             // check for a template
             if ( col.headertemplate ) {
@@ -1693,7 +1797,12 @@ gp.Http.prototype = {
         var props = Object.getOwnPropertyNames( obj );
         var out = [];
         props.forEach( function ( prop ) {
-            out.push( encodeURIComponent( prop ) + '=' + ( gp.isNullOrEmpty( obj[prop] ) ? '' : encodeURIComponent( obj[prop] ) ) );
+            // don't send complex objects back to the server
+            // data should be flattened before it leaves the server
+            // editing complex objects is not supported
+            if ( /^(array|function|object)$/.test( gp.getType( obj[prop] ) ) == false ) {
+                out.push( encodeURIComponent( prop ) + '=' + ( gp.isNullOrEmpty( obj[prop] ) ? '' : encodeURIComponent( obj[prop] ) ) );
+            }
         } );
         return out.join( '&' );
     },
@@ -1823,7 +1932,7 @@ gp.Initializer.prototype = {
 
 
         // resolve the top level configurations
-        var options = 'onrowselect searchfunction read create update destroy validate model'.split(' ');
+        var options = 'rowselected searchfunction read create update destroy validate model'.split(' ');
         options.forEach( function ( option ) {
 
             if ( gp.hasValue(config[option]) ) {
@@ -2090,7 +2199,7 @@ gp.NodeBuilder = function ( parent ) {
 
 gp.NodeBuilder.prototype = {
 
-    startElem: function ( tagName ) {
+    create: function ( tagName ) {
         var n = document.createElement( tagName );
 
         if ( this.node ) {
@@ -2127,14 +2236,7 @@ gp.NodeBuilder.prototype = {
     },
 
     attr: function ( name, value ) {
-        var attr = document.createAttribute( name );
-
-        if ( value != undefined ) {
-            attr.value = gp.escapeHTML( value );
-        }
-
-        this.node.setAttributeNode( attr );
-
+        this.node.setAttribute( name, value );
         return this;
     },
 
@@ -2548,7 +2650,7 @@ gp.templates = gp.templates || {};
 gp.templates['bootstrap-modal'] = function(model, arg) {
     var out = [];
     out.push('<div class="modal fade" tabindex="-1" role="dialog">');
-    out.push('<div class="gp modal-dialog" role="document">');
+    out.push('<div class="modal-dialog" role="document">');
     out.push('<div class="modal-content">');
     out.push('<div class="modal-header">');
     out.push('<button type="button" class="close" aria-label="Close" value="cancel"><span aria-hidden="true">&times;</span></button>');
@@ -2573,6 +2675,11 @@ gp.templates['bootstrap-modal'] = function(model, arg) {
     out.push('</div>');
                         }
         out.push('</div>');
+    out.push('</div>');
+    out.push('<div class="gp-progress-overlay">');
+    out.push('<div class="gp-progress gp-progress-container">');
+    out.push('<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>');
+    out.push('</div>');
     out.push('</div>');
     out.push('</div>');
     out.push('</div>');
@@ -2624,13 +2731,7 @@ gp.templates['gridponent-cells'] = function(model, arg) {
     model.columns.forEach(function(col, index) {
             out.push('    <td class="body-cell ');
     out.push(col.bodyclass);
-    out.push('" ');
-    if (col.bodystyle) {
-    out.push(' style="');
-    out.push(col.bodystyle);
-    out.push('"');
-    }
-    out.push('>');
+    out.push('">');
                 out.push(gp.helpers['bodyCellContent'].call(model, col));
         out.push('</td>');
     });
@@ -2805,7 +2906,7 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
 };
 
 /***************\
-     globals
+   utilities
 \***************/
 ( function ( gp ) {
 
@@ -2909,8 +3010,22 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         return key in uids ? createUID() : uids[key] = key;
     };
 
-    var chars = [/&/g, /</g, />/g, /"/g, /'/g, /`/g];
+    gp.disable = function ( elem, seconds ) {
+        elem.setAttribute( 'disabled', 'disabled' );
+        gp.addClass( elem, 'disabled' );
+        if ( typeof seconds == 'number' && seconds > 0 ) {
+            setTimeout( function () {
+                gp.enable( elem );
+            }, seconds * 1000 );
+        }
+    };
 
+    gp.enable = function ( elem ) {
+        elem.removeAttribute( 'disabled' );
+        gp.removeClass( elem, 'disabled' );
+    };
+
+    var chars = [/&/g, /</g, />/g, /"/g, /'/g, /`/g];
     var escaped = ['&amp;', '&lt;', '&gt;', '&quot;', '&apos;', '&#96;'];
 
     gp.escapeHTML = function ( obj ) {
@@ -2958,11 +3073,14 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         var type = ( col.Type || '' ).toLowerCase();
         var val = row[col.field];
 
-        if ( /^(date|datestring)$/.test( type ) ) {
+        if ( /^(date|datestring|timestamp)$/.test( type ) ) {
             return gp.formatter.format( val, col.format );
         }
         if ( type === 'number' && col.format ) {
             return gp.formatter.format( val, col.format );
+        }
+        if ( type === '' && col.format && /^(?:\d*\.)?\d+$/.test( val ) ) {
+            return gp.formatter.format( parseFloat( val ), col.format );
         }
         if ( type === 'string' && escapeHTML ) {
             return gp.escapeHTML( val );
@@ -3013,8 +3131,13 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         if ( a instanceof Date ) {
             return 'date';
         }
-        if ( typeof ( a ) === 'string' && gp.rexp.iso8601.test( a ) ) {
-            return 'dateString';
+        if ( typeof ( a ) === 'string' ) {
+            if ( gp.rexp.iso8601.test( a ) ) {
+                return 'datestring';
+            }
+            if ( gp.rexp.timestamp.test( a ) ) {
+                return 'timestamp';
+            }
         }
         if ( Array.isArray( a ) ) {
             return 'array';
@@ -3162,6 +3285,7 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         splitPath: /[^\[\]\.\s]+|\[\d+\]/g,
         indexer: /\[\d+\]/,
         iso8601: /^[012][0-9]{3}-[01][0-9]-[0123][0-9]/,
+        timestamp: /\/Date\((\d+)\)\//,
         quoted: /^['"].+['"]$/,
         trueFalse: /true|false/i,
         braces: /{{.+?}}/g,

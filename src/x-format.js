@@ -48,7 +48,7 @@
                 }
                 return dtf.format(val).replace(ltr, '');
             }
-            if (type === 'dateString') {
+            if (type === 'datestring') {
                 var parts = val.match( /\d+/g );
                 if ( parts.length >= 6 ) {
                     dt = new Date(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5]);

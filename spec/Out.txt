@@ -6,7 +6,7 @@ out.push('                pager="bottom-right" ');
 out.push('                fixed-headers');
 out.push('                sorting="true" ');
 out.push('                responsive="true"');
-out.push('                onrowselect="/test?productid={{ProductID}}&color={{Color}}"');
+out.push('                rowselected="/test?productid={{ProductID}}&color={{Color}}"');
 out.push('                read="data.products"');
 out.push('                create="/Products/create"');
 out.push('                update="/Products/update"');

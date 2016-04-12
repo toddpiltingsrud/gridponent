@@ -62,6 +62,7 @@
     <Content Include="spec\styles\bootstrap-theme.min.css" />
     <Content Include="src\datamap.js" />
     <Content Include="src\editors.js" />
+    <Content Include="src\x-node.js" />
     <Content Include="src\templates\button.html" />
     <Content Include="src\templates\form-group.html" />
     <Content Include="src\templates\bootstrap-modal.html" />

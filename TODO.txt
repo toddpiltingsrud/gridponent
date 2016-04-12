@@ -1,4 +1,4 @@
-﻿Change search to search-box.
+﻿Remove headerstyle and footerstyle options.
 
 If we use buttons for pagers and links for sorting we could get rid of some markup and possibly get rid of the Controller's ChangeMonitor.
 

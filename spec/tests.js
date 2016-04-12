@@ -94,7 +94,7 @@ var getTableConfig = function ( options, callback ) {
     if ( options.responsive ) out.push( '      responsive="true"' );
     if ( options.sorting ) out.push( '         sorting ' );
     if ( options.pager ) out.push( '           pager ' );
-    if ( options.onrowselect ) out.push( '     onrowselect="' + options.onrowselect + '"' );
+    if ( options.rowselected ) out.push( '     rowselected="' + options.rowselected + '"' );
     if ( options.searchFilter ) out.push( '    search-function="' + options.searchFilter + '"' );
     if ( options.read ) out.push( '            read="' + options.read + '"' );
     if ( options.create ) out.push( '          create="' + options.create + '"' );
@@ -107,6 +107,7 @@ var getTableConfig = function ( options, callback ) {
     if ( options.onedit ) out.push( '          onedit="' + options.onedit + '"' );
     if ( options.model ) out.push( '           model="' + options.model + '"' );
     if ( options.beforeread ) out.push( '      beforeread="' + options.beforeread + '"' );
+    if ( options.editmode ) out.push( '        edit-mode="' + options.editmode + '"' );
     out.push( '             pager="top-right"' );
     out.push( '             search="top-left">' );
     if ( options.toolbartemplate )
@@ -156,56 +157,23 @@ var getTableConfig = function ( options, callback ) {
 };
 
 var getValidationErrors = function () {
-    return [
-        {
-            "Key": "Name",
-            "Value": {
-                "Value": {
-                    "AttemptedValue": "",
-                    "Culture": "en-US",
-                    "RawValue": [""]
-                },
-                "Errors": [
-                {
-                    "Exception": null,
-                    "ErrorMessage": "Required"
-                }
-                ]
-            }
+    return {
+        "Name":{
+            "errors": [
+                "Required"
+            ]
         },
-        {
-            "Key": "ProductNumber",
-            "Value": {
-                "Value": {
-                    "AttemptedValue": "",
-                    "Culture": "en-US",
-                    "RawValue": [""]
-                },
-                "Errors": [
-                {
-                    "Exception": null,
-                    "ErrorMessage": "Required"
-                }
-                ]
-            }
+        "ProductNumber": {
+            "errors": [
+                "Required"
+            ]
         },
-        {
-            "Key": "SafetyStockLevel",
-            "Value": {
-                "Value": {
-                    "AttemptedValue": "non",
-                    "Culture": "en-US",
-                    "RawValue": ["non"]
-                },
-                "Errors": [
-                {
-                    "Exception": null,
-                    "ErrorMessage": "The value 'non' is not valid for Safety Stock Level."
-                }
-                ]
-            }
+        "SafetyStockLevel": {
+            "errors": [
+                "The value 'non' is not valid for Safety Stock Level."
+            ]
         }
-    ];
+    };
 };
 
 var configuration = {
@@ -258,7 +226,6 @@ var configuration = {
             headertemplate: 'Test Header<input type="checkbox"/>'
         },
         {
-            bodystyle: 'border:solid 1px #ccc;',
             sort: 'Color',
             headertemplate: '<button class="btn" value="">{{fns.getHeaderText}}</button>',
             bodytemplate: '<button class="btn" value="{{fns.getButtonText}}"><span class="glyphicon {{fns.getButtonIcon}}"></span>{{fns.getButtonText}}</button>'
@@ -336,6 +303,7 @@ QUnit.test( 'paging', function ( assert ) {
     var options = gp.shallowCopy( configOptions );
 
     options.paging = true;
+    options.editmode = 'modal';
 
     getTableConfig( options, function ( api ) {
 
@@ -386,7 +354,7 @@ QUnit.test( 'model', function ( assert ) {
         assert.equal( config.columns[1].Type, 'string' );
         assert.equal( config.columns[2].Type, 'boolean' );
         assert.equal( config.columns[4].Type, 'number' );
-        assert.equal( config.columns[5].Type, 'dateString' );
+        assert.equal( config.columns[5].Type, 'datestring' );
 
         done();
 
@@ -534,7 +502,7 @@ QUnit.test( 'helpers.input', function ( assert ) {
 
     assert.equal( input, '<input type="text" name="Date" value="'+s+'" class="form-control" data-type="date" />' );
 
-    input = gp.helpers.input( 'dateString', 'Date', '2016-04-03' );
+    input = gp.helpers.input( 'datestring', 'Date', '2016-04-03' );
 
     assert.equal( input, '<input type="text" name="Date" value="2016-04-03" class="form-control" data-type="date" />' );
 
@@ -1515,9 +1483,9 @@ QUnit.test( 'dataItem selection', function ( assert ) {
 
     var options = gp.shallowCopy( configOptions );
 
-    options.onrowselect = 'onrowselect';
+    options.rowselected = 'rowselected';
 
-    onrowselect = function () {
+    rowselected = function () {
         assert.ok( true, 'row selection works' );
         done();
     };
@@ -1526,7 +1494,7 @@ QUnit.test( 'dataItem selection', function ( assert ) {
 
         var config = api.config;
 
-        assert.equal( config.onrowselect, onrowselect, 'onrowselect can be a function' );
+        assert.equal( config.rowselected, rowselected, 'rowselected can be a function' );
 
         var btn = api.find( 'td.body-cell' );
 
@@ -1542,9 +1510,9 @@ QUnit.test( 'events.rowselected', function ( assert ) {
 
     var options = gp.shallowCopy( configOptions );
 
-    options.onrowselect = 'onrowselect';
+    options.rowselected = 'rowselected';
 
-    onrowselect = function () {
+    rowselected = function () {
         assert.ok( true, 'row selection works' );
         done();
     };
@@ -1553,7 +1521,7 @@ QUnit.test( 'events.rowselected', function ( assert ) {
 
         var config = api.config;
 
-        assert.equal( config.onrowselect, onrowselect, 'onrowselect can be a function' );
+        assert.equal( config.rowselected, rowselected, 'rowselected can be a function' );
 
         var btn = api.find( 'td.body-cell' );
 
@@ -1652,7 +1620,7 @@ QUnit.test( 'gp.getType', function ( assert ) {
     assert.equal( gp.getType( true ), 'boolean' );
     assert.equal( gp.getType( null ), null );
     assert.equal( gp.getType( new Date() ), 'date' );
-    assert.equal( gp.getType( '2015-11-24' ), 'dateString' );
+    assert.equal( gp.getType( '2015-11-24' ), 'datestring' );
     assert.equal( gp.getType( '2015-31-24' ), 'string' );
     assert.equal( notDefined, undefined );
     assert.equal( gp.getType( 3.0 ), 'number' );
@@ -2311,7 +2279,10 @@ QUnit.test( 'custom search filter', function ( assert ) {
 
 QUnit.test( 'editready event', function ( assert ) {
 
+    var done1 = assert.async();
     var done2 = assert.async();
+
+    // test TableRowEditor
 
     var options = gp.shallowCopy( configOptions );
     options.fixedheaders = true;
@@ -2322,10 +2293,44 @@ QUnit.test( 'editready event', function ( assert ) {
         assert.ok( evt != null );
         assert.ok( evt.dataItem != null );
         assert.ok( evt.elem != null );
-        done2();
+        done1();
     };
 
     getTableConfig( options, function ( api ) {
+
+        var config = api.config;
+
+        var node = config.node;
+
+        // trigger a click event on an edit button
+        var btn = node.querySelector( 'button[value=edit]' );
+
+        clickButton( btn );
+
+    } );
+
+
+    // test ModalEditor
+
+    var options2 = gp.shallowCopy( configOptions );
+    options2.fixedheaders = true;
+    options2.sorting = true;
+    options2.editready = 'fns.editready2';
+    options2.editmode = 'modal';
+
+    fns.editready2 = function ( model ) {
+        assert.ok( model != null );
+        assert.ok( model.dataItem != null );
+        assert.ok( model.elem != null );
+        done2();
+
+        var btn = model.elem.querySelector( 'button[value=cancel]' );
+
+        clickButton( btn );
+
+    };
+
+    getTableConfig( options2, function ( api ) {
 
         var config = api.config;
 

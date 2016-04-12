@@ -1,5 +1,5 @@
 ﻿/***************\
-     globals
+   utilities
 \***************/
 ( function ( gp ) {
 
@@ -103,8 +103,22 @@
         return key in uids ? createUID() : uids[key] = key;
     };
 
-    var chars = [/&/g, /</g, />/g, /"/g, /'/g, /`/g];
+    gp.disable = function ( elem, seconds ) {
+        elem.setAttribute( 'disabled', 'disabled' );
+        gp.addClass( elem, 'disabled' );
+        if ( typeof seconds == 'number' && seconds > 0 ) {
+            setTimeout( function () {
+                gp.enable( elem );
+            }, seconds * 1000 );
+        }
+    };
 
+    gp.enable = function ( elem ) {
+        elem.removeAttribute( 'disabled' );
+        gp.removeClass( elem, 'disabled' );
+    };
+
+    var chars = [/&/g, /</g, />/g, /"/g, /'/g, /`/g];
     var escaped = ['&amp;', '&lt;', '&gt;', '&quot;', '&apos;', '&#96;'];
 
     gp.escapeHTML = function ( obj ) {
@@ -152,11 +166,14 @@
         var type = ( col.Type || '' ).toLowerCase();
         var val = row[col.field];
 
-        if ( /^(date|datestring)$/.test( type ) ) {
+        if ( /^(date|datestring|timestamp)$/.test( type ) ) {
             return gp.formatter.format( val, col.format );
         }
         if ( type === 'number' && col.format ) {
             return gp.formatter.format( val, col.format );
+        }
+        if ( type === '' && col.format && /^(?:\d*\.)?\d+$/.test( val ) ) {
+            return gp.formatter.format( parseFloat( val ), col.format );
         }
         if ( type === 'string' && escapeHTML ) {
             return gp.escapeHTML( val );
@@ -207,8 +224,13 @@
         if ( a instanceof Date ) {
             return 'date';
         }
-        if ( typeof ( a ) === 'string' && gp.rexp.iso8601.test( a ) ) {
-            return 'dateString';
+        if ( typeof ( a ) === 'string' ) {
+            if ( gp.rexp.iso8601.test( a ) ) {
+                return 'datestring';
+            }
+            if ( gp.rexp.timestamp.test( a ) ) {
+                return 'timestamp';
+            }
         }
         if ( Array.isArray( a ) ) {
             return 'array';
@@ -356,6 +378,7 @@
         splitPath: /[^\[\]\.\s]+|\[\d+\]/g,
         indexer: /\[\d+\]/,
         iso8601: /^[012][0-9]{3}-[01][0-9]-[0123][0-9]/,
+        timestamp: /\/Date\((\d+)\)\//,
         quoted: /^['"].+['"]$/,
         trueFalse: /true|false/i,
         braces: /{{.+?}}/g,

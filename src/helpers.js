@@ -176,7 +176,7 @@ gp.helpers = {
         if ( this.search ) {
             html.add( ' search-' + this.search );
         }
-        if ( this.onrowselect ) {
+        if ( this.rowselected ) {
             html.add( ' selectable' );
         }
         return html.toString();
@@ -195,14 +195,14 @@ gp.helpers = {
             }
         }
         else if ( col.commands ) {
-            html.add( gp.templates.button( {
-                btnClass: 'btn-primary',
-                value: ( mode == 'create' ? 'create' : 'update' ),
-                glyphicon: 'glyphicon-save',
-                text: 'Save'
-            } ) );
-
-            html.add( '<button type="button" class="btn btn-default btn-xs" data-dismiss="modal" value="cancel">' )
+            html.add( '<div class="btn-group">' )
+                .add( gp.templates.button( {
+                    btnClass: 'btn-primary',
+                    value: ( mode == 'create' ? 'create' : 'update' ),
+                    glyphicon: 'glyphicon-save',
+                    text: 'Save'
+                } ) )
+                .add( '<button type="button" class="btn btn-default btn-xs" data-dismiss="modal" value="cancel">' )
                 .add( '<span class="glyphicon glyphicon-remove"></span>Cancel' )
                 .add( '</button>' )
                 .add( '</div>' );
@@ -311,7 +311,13 @@ gp.helpers = {
                 }
             }
 
-            html.add( '<th class="header-cell ' + ( col.headerclass || '' ) + '" data-sort="' + sort + '">' );
+            html.add( '<th class="header-cell ' + ( col.headerclass || '' ) + '"' );
+
+            if ( gp.hasValue( sort ) ) {
+                html.add( ' data-sort="' + sort + '"' );
+            }
+
+            html.add( '>' );
 
             // check for a template
             if ( col.headertemplate ) {

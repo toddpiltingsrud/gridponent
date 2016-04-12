@@ -31,6 +31,8 @@ gp.api = function ( controller ) {
 
 gp.api.prototype = {
 
+
+
     beforeEdit: function ( callback ) {
         this.controller.addDelegate( gp.events.beforeEdit, callback );;
         return this;

@@ -150,11 +150,12 @@
 .gp .gp-progress-overlay {
   z-index: -1;
   opacity: 0;
+  position: absolute;
   width: 100%;
   height: 100%;
-  position: absolute;
   top: 0;
   left: 0;
+  background-color: rgba(255, 255, 255, 0.3);
   transition: opacity linear 0.4s;
 }
 .gp .gp-progress-overlay .gp-progress-container {
@@ -172,8 +173,6 @@
   box-shadow: 0 0 12px 6px #888;
 }
 .gp .gp-progress-overlay .progress-bar {
-  min-width: 150px;
-  max-width: 403px;
   height: 100%;
   width: 100%;
   float: none;
@@ -256,11 +255,11 @@
 .gp tr.create-mode td.body-cell [name].error {
   border-color: red;
 }
-.gp.modal-dialog input[type=checkbox],
-.gp.modal-dialog input[type=radio] {
+.gp .modal-dialog input[type=checkbox],
+.gp .modal-dialog input[type=radio] {
   width: 34px;
 }
-.gp.modal-dialog .form-horizontal .form-group {
+.gp .modal-dialog .form-horizontal .form-group {
   margin-left: 10%;
   margin-right: 20%;
 }

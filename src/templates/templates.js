@@ -5,7 +5,7 @@ gp.templates = gp.templates || {};
 gp.templates['bootstrap-modal'] = function(model, arg) {
     var out = [];
     out.push('<div class="modal fade" tabindex="-1" role="dialog">');
-    out.push('<div class="gp modal-dialog" role="document">');
+    out.push('<div class="modal-dialog" role="document">');
     out.push('<div class="modal-content">');
     out.push('<div class="modal-header">');
     out.push('<button type="button" class="close" aria-label="Close" value="cancel"><span aria-hidden="true">&times;</span></button>');
@@ -30,6 +30,11 @@ gp.templates['bootstrap-modal'] = function(model, arg) {
     out.push('</div>');
                         }
         out.push('</div>');
+    out.push('</div>');
+    out.push('<div class="gp-progress-overlay">');
+    out.push('<div class="gp-progress gp-progress-container">');
+    out.push('<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>');
+    out.push('</div>');
     out.push('</div>');
     out.push('</div>');
     out.push('</div>');
@@ -81,13 +86,7 @@ gp.templates['gridponent-cells'] = function(model, arg) {
     model.columns.forEach(function(col, index) {
             out.push('    <td class="body-cell ');
     out.push(col.bodyclass);
-    out.push('" ');
-    if (col.bodystyle) {
-    out.push(' style="');
-    out.push(col.bodystyle);
-    out.push('"');
-    }
-    out.push('>');
+    out.push('">');
                 out.push(gp.helpers['bodyCellContent'].call(model, col));
         out.push('</td>');
     });
