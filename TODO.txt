@@ -1,4 +1,4 @@
-﻿Remove headerstyle and footerstyle options.
+﻿Allow binding to a simple array.
 
 If we use buttons for pagers and links for sorting we could get rid of some markup and possibly get rid of the Controller's ChangeMonitor.
 
