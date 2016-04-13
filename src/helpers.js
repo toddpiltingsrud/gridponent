@@ -171,7 +171,7 @@ gp.helpers = {
             html.add( ' pager-' + this.pager );
         }
         if ( this.responsive ) {
-            html.add( ' responsive' );
+            html.add( ' table-responsive' );
         }
         if ( this.search ) {
             html.add( ' search-' + this.search );

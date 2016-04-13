@@ -242,6 +242,54 @@ var configuration = {
 
 fns.model = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
 
+QUnit.test( 'gp.node', function ( assert ) {
+
+    var tr = gp.node()
+        .create( 'tr' )
+        .attr( 'data-index', 0 )
+        .create( 'td' )
+        .addClass( 'body-cell' )
+        .html('cell 1')
+        .parent()
+        .create( 'td' )
+        .addClass( 'body-cell' )
+        .html( 'cell 2' )
+        .root();
+
+    assert.ok( tr.elem instanceof HTMLTableRowElement );
+    assert.strictEqual( tr.attr('data-index'), '0');
+    assert.ok( tr.find( 'td:nth-child(1)' ).elem instanceof HTMLTableCellElement );
+    assert.ok( tr.find( 'td:nth-child(1)' ).hasClass('body-cell') );
+    assert.equal( tr.find( 'td:nth-child(1)' ).html(), 'cell 1' );
+    assert.ok( tr.find( 'td:nth-child(2)' ).elem instanceof HTMLTableCellElement );
+    assert.ok( tr.find( 'td:nth-child(2)' ).hasClass( 'body-cell' ) );
+    assert.equal( tr.find( 'td:nth-child(2)' ).html(), 'cell 2' );
+
+    var td = tr.find( 'td' );
+    var td2 = td.create('div').closest( 'td' );
+
+    assert.strictEqual( td.elem, td2.elem );
+
+    var cls = td.disable().hasClass('disabled');
+    assert.ok( cls );
+
+    cls = td.attr( 'disabled' );
+    assert.equal( cls, 'disabled' );
+
+    cls = td.enable().hasClass('disabled');
+
+    assert.ok( cls == false );
+
+    cls = td.attr( 'disabled' );
+
+    assert.ok( cls == undefined );
+
+    var attr = td.disable().attributes();
+
+    assert.ok( attr.disabled === 'disabled' );
+
+} );
+
 QUnit.test( 'busy class', function ( assert ) {
 
     var done1 = assert.async();

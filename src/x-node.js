@@ -58,14 +58,16 @@
                 this.elem.setAttribute( name, value );
                 return this;
             }
-            return this.elem.attributes[name].value
+            if ( this.elem.attributes[name] ) {
+                return this.elem.attributes[name].value
+            }
         },
 
         closest: function ( selector, parentNode ) {
             var e, potentials, j;
 
             if ( this.elem ) {
-                parentNode = parentNode || document;
+                parentNode = parentNode || this.root().elem;
 
                 // start with this.elem's immediate parent
                 e = this.elem.parentElement;
@@ -75,15 +77,14 @@
                 while ( e ) {
                     for ( j = 0; j < potentials.length; j++ ) {
                         if ( e == potentials[j] ) {
-                            this.elem = e;
-                            return this;
+                            return gp.node( e );
                         }
                     }
                     e = e.parentElement;
                 }
             }
 
-            return this;
+            return null;
         },
 
         create: function ( tagName ) {
@@ -93,9 +94,7 @@
                 this.elem.appendChild( n );
             }
 
-            this.elem = n;
-
-            return this;
+            return gp.node( n );
         },
 
         disable: function ( seconds ) {
@@ -122,21 +121,20 @@
         find: function ( selector ) {
             this.elem = this.elem || document;
             var e = this.elem.querySelector( selector );
-            if ( e ) this.elem = e;
-            return this;
+            return gp.node(e);
         },
 
-        getAttributes: function () {
+        attributes: function () {
             if ( !this.elem ) return null;
-            var config = {}, name, attr, attrs = this.elem.attributes;
+            var data = {}, name, attr, attrs = this.elem.attributes;
             for ( var i = attrs.length - 1; i >= 0; i-- ) {
                 attr = attrs[i];
                 name = attr.name.toLowerCase().replace( '-', '' );
                 // convert "true", "false" and empty to boolean
-                config[name] = gp.rexp.trueFalse.test( attr.value ) || attr.value === '' ?
+                data[name] = gp.rexp.trueFalse.test( attr.value ) || attr.value === '' ?
                     ( attr.value === "true" || attr.value === '' ) : attr.value;
             }
-            return config;
+            return data;
         },
 
         hasClass: function ( cn ) {
@@ -205,9 +203,9 @@
 
         parent: function () {
             if ( this.elem && this.elem.parentElement ) {
-                this.elem = this.elem.parentElement;
+                return gp.node( this.elem.parentElement );
             }
-            return this;
+            return null;
         },
 
         prepend: function ( child ) {
@@ -218,8 +216,7 @@
             else {
                 this.elem.insertBefore( child, this.elem.firstChild );
             }
-            this.elem = child;
-            return this;
+            return gp.node( child );
         },
 
         raiseEvent: function ( name, detail ) {
@@ -237,11 +234,12 @@
         },
 
         root: function () {
-            if ( !this.elem ) return this;
-            while ( this.elem.parentElement ) {
-                this.elem = this.elem.parentElement;
+            if ( !this.elem || !this.elem.parentElement ) return this;
+            var e = this.elem.parentElement;
+            while ( e.parentElement ) {
+                e = e.parentElement;
             }
-            return this;
+            return gp.node( e );
         }
     };
 
