@@ -31,12 +31,15 @@ gp.Model.prototype = {
     read: function ( requestModel, done, fail ) {
         var self = this;
 
-        this.reader.read (
+        this.reader.read(
             requestModel,
-            // make sure we explicitly wrap the arg in an array
-            // if arg is an array of data, then applyFunc will end up only grabbing the first dataItem
-            function ( arg ) { gp.applyFunc( done, self, [arg] ); },
-            function ( arg ) { gp.applyFunc( fail, self, [arg] ); }
+            // make sure we wrap result in an array when we return it
+            // if result is an array of data, then applyFunc will end up only grabbing the first dataItem
+            function ( result ) {
+                result = self.resolveResult( result );
+                gp.applyFunc( done, self, [result] );
+            },
+            function ( result ) { gp.applyFunc( fail, self, [result] ); }
         );
     },
 
@@ -98,6 +101,15 @@ gp.Model.prototype = {
                 function ( arg ) { gp.applyFunc( fail, self, arg ); }
             );
         }
+    },
+
+    resolveResult: function ( result ) {
+        if ( gp.hasValue( result ) && Array.isArray( result ) ) {
+            //  wrap the array in a PagingModel
+            return new gp.PagingModel( result );
+        }
+        return result;
     }
+
 
 };

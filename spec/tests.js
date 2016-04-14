@@ -1777,7 +1777,7 @@ QUnit.test( 'gp.Model', function ( assert ) {
         done7 = assert.async(),
         done8 = assert.async(),
         done9 = assert.async(),
-        done10 = assert.async(),
+        //done10 = assert.async(),
         done11 = assert.async(),
         done12 = assert.async(),
         done13 = assert.async();
@@ -1829,7 +1829,7 @@ QUnit.test( 'gp.Model', function ( assert ) {
 
         // test read as function
         // the read function can use a callback
-        // or return a URL, array or PagingModel object
+        // or return an array or PagingModel object
 
         // test function with callback
 
@@ -1847,22 +1847,6 @@ QUnit.test( 'gp.Model', function ( assert ) {
             done7();
         } );
 
-
-
-        //// test function with URL return value
-
-        //config.read = function ( m ) {
-        //    return '/Products/read/5';
-        //};
-
-        //model = new gp.Model( config );
-
-        //model.read( request, function ( response ) {
-        //    assert.ok( true, 'calling read should execute this function' );
-        //    done2();
-        //} );
-
-        // test function with array return value
 
         config.read = function ( m ) {
             return data.products;
@@ -1888,22 +1872,22 @@ QUnit.test( 'gp.Model', function ( assert ) {
             done9();
         } );
 
-        // test function with unsupported return value
+        //// test function with unsupported return value
 
-        config.read = function ( m ) {
-            return false;
-        };
+        //config.read = function ( m ) {
+        //    return false;
+        //};
 
-        model = new gp.Model( config );
+        //model = new gp.Model( config );
 
-        model.read( request, function ( response ) {
-            assert.ok( false, 'calling read should NOT execute this function' );
-            done10();
-        },
-        function ( response ) {
-            assert.ok( true, 'calling read should execute this function' );
-            done10();
-        } );
+        //model.read( request, function ( response ) {
+        //    assert.ok( false, 'calling read should NOT execute this function' );
+        //    done10();
+        //},
+        //function ( response ) {
+        //    assert.ok( true, 'calling read should execute this function' );
+        //    done10();
+        //} );
 
 
 

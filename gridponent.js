@@ -1403,11 +1403,11 @@ gp.Formatter.prototype = {
 
         try {
             if ( /^(date|datestring)$/.test( type ) ) {
-                format = format || 'M/D/YYYY H:mm a';
+                format = format || 'M/D/YYYY h:mm a';
                 return moment( val ).format( format );
             }
             if ( type === 'timestamp' ) {
-                format = format || 'M/D/YYYY H:mm a';
+                format = format || 'M/D/YYYY h:mm a';
                 val = parseInt( val.match( gp.rexp.timestamp )[1] );
                 return moment( val ).format( format );
             }
@@ -2118,12 +2118,15 @@ gp.Model.prototype = {
     read: function ( requestModel, done, fail ) {
         var self = this;
 
-        this.reader.read (
+        this.reader.read(
             requestModel,
-            // make sure we explicitly wrap the arg in an array
-            // if arg is an array of data, then applyFunc will end up only grabbing the first dataItem
-            function ( arg ) { gp.applyFunc( done, self, [arg] ); },
-            function ( arg ) { gp.applyFunc( fail, self, [arg] ); }
+            // make sure we wrap result in an array when we return it
+            // if result is an array of data, then applyFunc will end up only grabbing the first dataItem
+            function ( result ) {
+                result = self.resolveResult( result );
+                gp.applyFunc( done, self, [result] );
+            },
+            function ( result ) { gp.applyFunc( fail, self, [result] ); }
         );
     },
 
@@ -2185,7 +2188,16 @@ gp.Model.prototype = {
                 function ( arg ) { gp.applyFunc( fail, self, arg ); }
             );
         }
+    },
+
+    resolveResult: function ( result ) {
+        if ( gp.hasValue( result ) && Array.isArray( result ) ) {
+            //  wrap the array in a PagingModel
+            return new gp.PagingModel( result );
+        }
+        return result;
     }
+
 
 };
 
@@ -2445,29 +2457,10 @@ gp.FunctionPager.prototype = {
     read: function ( model, callback, error ) {
         try {
             var self = this,
-                result = this.config.read( model, function ( result ) {
-                    if ( gp.hasValue( result ) ) {
-                        result = self.resolveResult( result );
-                        if ( gp.hasValue( result ) ) {
-                            callback( result );
-                        }
-                        else {
-                            error( 'Unsupported return value.' );
-                        }
-                    }
-                    else {
-                        callback();
-                    }
-                } );
+                result = this.config.read( model, callback.bind( this ) );
             // check if the function returned a value instead of using the callback
             if ( gp.hasValue( result ) ) {
-                result = this.resolveResult( result );
-                if ( gp.hasValue( result ) ) {
-                    callback( result );
-                }
-                else {
-                    error( 'Unsupported return value.' );
-                }
+                callback( result );
             }
         }
         catch (ex) {
@@ -2479,20 +2472,6 @@ gp.FunctionPager.prototype = {
             }
             gp.error( ex );
         }
-    },
-    resolveResult: function ( result ) {
-        if ( result != undefined ) {
-            var type = gp.getType( result );
-            if ( type == 'array' ) {
-                //  wrap the array in a PagingModel
-                return new gp.PagingModel( result );
-            }
-            else if ( type == 'object' ) {
-                // assume it's a PagingModel
-                return result;
-            }
-        }
-
     }
 };
 

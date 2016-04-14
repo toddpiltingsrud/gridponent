@@ -194,29 +194,10 @@ gp.FunctionPager.prototype = {
     read: function ( model, callback, error ) {
         try {
             var self = this,
-                result = this.config.read( model, function ( result ) {
-                    if ( gp.hasValue( result ) ) {
-                        result = self.resolveResult( result );
-                        if ( gp.hasValue( result ) ) {
-                            callback( result );
-                        }
-                        else {
-                            error( 'Unsupported return value.' );
-                        }
-                    }
-                    else {
-                        callback();
-                    }
-                } );
+                result = this.config.read( model, callback.bind( this ) );
             // check if the function returned a value instead of using the callback
             if ( gp.hasValue( result ) ) {
-                result = this.resolveResult( result );
-                if ( gp.hasValue( result ) ) {
-                    callback( result );
-                }
-                else {
-                    error( 'Unsupported return value.' );
-                }
+                callback( result );
             }
         }
         catch (ex) {
@@ -228,19 +209,5 @@ gp.FunctionPager.prototype = {
             }
             gp.error( ex );
         }
-    },
-    resolveResult: function ( result ) {
-        if ( result != undefined ) {
-            var type = gp.getType( result );
-            if ( type == 'array' ) {
-                //  wrap the array in a PagingModel
-                return new gp.PagingModel( result );
-            }
-            else if ( type == 'object' ) {
-                // assume it's a PagingModel
-                return result;
-            }
-        }
-
     }
 };
