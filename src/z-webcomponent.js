@@ -9,7 +9,8 @@ if (document.registerElement) {
     };
 
     gp.Gridponent.detachedCallback = function () {
-        this.api.dispose();
+        var tbl = this.querySelector('.table-container');
+        if (tbl && tbl.api) tbl.api.dispose();
     };
 
     document.registerElement('grid-ponent', {

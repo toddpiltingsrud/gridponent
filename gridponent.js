@@ -404,7 +404,9 @@ gp.Controller.prototype = {
 
     commandHandler: function ( evt ) {
         // this function handles all the button clicks for the entire grid
-        var command, lower, elem, dataItem,
+        var lower,
+            elem = gp.closest( evt.selectedTarget, 'tr[data-uid],div.modal', node ),
+            dataItem = elem ? this.config.map.get( elem ) : null,
             node = this.config.node,
             command = evt.selectedTarget.attributes['value'].value;
 
@@ -416,16 +418,18 @@ gp.Controller.prototype = {
                 break;
             case 'edit':
                 // the button is inside either a table row or a modal
-                elem = gp.closest( evt.selectedTarget, 'tr[data-uid],div.modal', node );
-                dataItem = elem ? this.config.map.get( elem ) : null;
-                dataItem = this.config.map.get( elem );
                 this.editRow( dataItem, elem );
                 break;
             case 'delete':
             case 'destroy':
-                elem = gp.closest( evt.selectedTarget, 'tr[data-uid],div.modal', node );
-                dataItem = elem ? this.config.map.get( elem ) : null;
                 this.deleteRow( dataItem, elem );
+                break;
+            default:
+                // look for a custom command
+                var fn = gp.getObjectAtPath( command );
+                if ( typeof fn == 'function' ) {
+                    gp.applyFunc( fn, this.config.node.api, [dataItem] );
+                }
                 break;
         }
     },
@@ -3331,7 +3335,8 @@ if (document.registerElement) {
     };
 
     gp.Gridponent.detachedCallback = function () {
-        this.api.dispose();
+        var tbl = this.querySelector('.table-container');
+        if (tbl && tbl.api) tbl.api.dispose();
     };
 
     document.registerElement('grid-ponent', {
