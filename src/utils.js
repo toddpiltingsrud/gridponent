@@ -419,6 +419,60 @@
         );
     };
 
+    gp.syncChange = function (target, model, columns) {
+        // get name and value of target
+        var name = target.name,
+            val = target.value,
+            type,
+            col;
+
+        // attempt to resolve a type by examining the configuration first
+        if ( this.config ) {
+            col = gp.getColumnByField( columns, name );
+            if ( col ) type = col.Type;
+        }
+
+        if ( !name in model ) model[name] = null;
+
+        try {
+            // if there's no type in the columns, get one from the model
+            type = type || gp.getType( model[name] );
+            switch ( type ) {
+                case 'number':
+                    model[name] = parseFloat( val );
+                    break;
+                case 'boolean':
+                    if ( target.type == 'checkbox' ) {
+                        if ( val.toLowerCase() == 'true' ) val = target.checked;
+                        else if ( val.toLowerCase() == 'false' ) val = !target.checked;
+                        else val = target.checked ? val : null;
+                        model[name] = val;
+                    }
+                    else {
+                        model[name] = ( val.toLowerCase() == 'true' );
+                    }
+                    break;
+                default:
+                    model[name] = val;
+            }
+        }
+        catch ( e ) {
+            gp.error( e );
+        }
+    };
+
+    gp.syncModel = function ( parent, model, columns ) {
+        try {
+            var inputs = parent.querySelectorAll( '[name]' );
+            for ( var i = 0; i < inputs.length; i++ ) {
+                gp.syncChange( inputs[i], model, columns );
+            }
+        }
+        catch ( e ) {
+            gp.error( e );
+        }
+    };
+
     gp.trim = function ( str ) {
         if ( gp.isNullOrEmpty( str ) ) return str;
         return str.trim ? str.trim() : str.replace( /^\s+|\s+$/g, '' );

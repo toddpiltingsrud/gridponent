@@ -1,3 +1,11 @@
+// Don't bother with the date input type.
+// Indicate the type using data-type attribute so a custom date picker can be used.
+// This sidesteps the problem of polyfilling browsers that don't support the date input type
+// and provides a more consistent experience across browsers.
+// We'll use numeral.js and moment.js for formatting instead.
+// This solves the problem of varying implementations of the Intl global object.
+
+
 /***************\
    formatter
 \***************/

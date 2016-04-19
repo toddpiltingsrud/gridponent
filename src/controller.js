@@ -9,12 +9,12 @@ gp.Controller = function (config, model, requestModel) {
     if (config.pager) {
         this.requestModel.top = 25;
     }
-    this.monitor = null;
     this.handlers = {
         readHandler: self.read.bind( self ),
         commandHandler: self.commandHandler.bind( self ),
         rowSelectHandler: self.rowSelectHandler.bind( self ),
-        httpErrorHandler: self.httpErrorHandler.bind(self)
+        httpErrorHandler: self.httpErrorHandler.bind( self ),
+        toolbarChangeHandler: self.toolbarChangeHandler.bind( self )
     };
     this.done = false;
     this.eventDelegates = {};
@@ -25,10 +25,10 @@ gp.Controller.prototype = {
 
     init: function () {
         var self = this;
-        this.monitorToolbars( this.config.node );
         this.addCommandHandlers( this.config.node );
         this.addRowSelectHandler( this.config );
         this.addRefreshEventHandler( this.config );
+        this.addToolbarChangeHandler();
         this.done = true;
         this.invokeDelegates( gp.events.ready, this.config.node.api );
     },
@@ -78,33 +78,49 @@ gp.Controller.prototype = {
         return proceed;
     },
 
-    monitorToolbars: function (node) {
-        var self = this;
+    addToolbarChangeHandler: function () {
         // monitor changes to search, sort, and paging
-        this.monitor = new gp.ChangeMonitor( node, '.table-toolbar [name], thead input, .table-pager input', this.config.pageModel, this.config, function ( evt ) {
-            self.read();
-            // reset the radio inputs
-            var radios = node.querySelectorAll( 'thead input[type=radio], .table-pager input[type=radio]' );
-            for (var i = 0; i < radios.length; i++) {
-                radios[i].checked = false;
+        var selector = '.table-toolbar [name], thead input, .table-pager input';
+        gp.on( this.config.node, 'change', selector, this.handlers.toolbarChangeHandler );
+        gp.on( this.config.node, 'keydown', selector, this.handlers.toolbarChangeHandler );
+    },
+
+    removeToolbarChangeHandler: function () {
+        gp.off( this.config.node, 'change', this.handlers.toolbarChangeHandler );
+        gp.off( this.config.node, 'keydown', this.handlers.toolbarChangeHandler );
+    },
+
+    toolbarChangeHandler: function ( evt ) {
+        // trigger change event
+        if ( evt.keyCode == 13 ) {
+            evt.target.blur();
+            return;
+        }
+
+        var name = evt.target.name,
+            val = evt.target.value,
+            model = this.config.pageModel;
+
+        if ( name === 'sort' ) {
+            if ( model[name] === val ) {
+                model.desc = !model.desc;
             }
-        } );
-        this.monitor.beforeSync = function ( name, value, model ) {
-            // the sort property requires special handling
-            if (name === 'sort') {
-                if (model[name] === value) {
-                    model.desc = !model.desc;
-                }
-                else {
-                    model[name] = value;
-                    model.desc = false;
-                }
-                // let the monitor know that syncing has been handled
-                return true;
+            else {
+                model[name] = val;
+                model.desc = false;
             }
-            return false;
-        };
-        this.monitor.start();
+        }
+        else {
+            gp.syncChange( evt.target, model, this.config.columns );
+        }
+
+        this.read();
+
+        // reset the radio inputs
+        var radios = this.config.node.querySelectorAll( 'thead input[type=radio], .table-pager input[type=radio]' );
+        for ( var i = 0; i < radios.length; i++ ) {
+            radios[i].checked = false;
+        }
     },
 
     addCommandHandlers: function (node) {
@@ -119,9 +135,9 @@ gp.Controller.prototype = {
     commandHandler: function ( evt ) {
         // this function handles all the button clicks for the entire grid
         var lower,
+            node = this.config.node,
             elem = gp.closest( evt.selectedTarget, 'tr[data-uid],div.modal', node ),
             dataItem = elem ? this.config.map.get( elem ) : null,
-            node = this.config.node,
             command = evt.selectedTarget.attributes['value'].value;
 
         if ( gp.hasValue( command ) ) lower = command.toLowerCase();
@@ -426,7 +442,7 @@ gp.Controller.prototype = {
         this.removeRefreshEventHandler( this.config );
         this.removeRowSelectHandler();
         this.removeCommandHandlers( this.config.node );
-        this.monitor.stop();
+        this.removeToolbarChangeHandler();
     }
 
 };

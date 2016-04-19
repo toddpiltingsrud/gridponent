@@ -43,6 +43,10 @@ gp.Editor.prototype = {
 
         this.addBusy();
 
+        if ( this.elem ) {
+            gp.syncModel( this.elem, this.dataItem, this.config.columns );
+        }
+
         if ( typeof this.beforeEdit == 'function' ) {
             this.beforeEdit( {
                 type: this.mode,
@@ -63,22 +67,19 @@ gp.Editor.prototype = {
                         self.validate( updateModel );
                     }
                     else {
-                        // add the new dataItem to the internal data array
                         returnedDataItem = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem : ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] : self.dataItem;
 
+                        // add the new dataItem to the internal data array
                         self.config.pageModel.data.push( returnedDataItem );
+
+                        // copy to local dataItem so updateUI will bind to current data
+                        gp.shallowCopy( returnedDataItem, self.dataItem );
 
                         // It's important to map the dataItem after it's saved because user could cancel.
                         // Also the returned dataItem will likely have additional information added by the server.
                         uid = self.config.map.assign( returnedDataItem, self.elem );
 
                         self.updateUI( self.config, self.dataItem, self.elem );
-
-                        // dispose of the ChangeMonitor
-                        if ( self.changeMonitor ) {
-                            self.changeMonitor.stop();
-                            self.changeMonitor = null;
-                        }
 
                         if (self.removeCommandHandler) self.removeCommandHandler();
                     }
@@ -128,11 +129,6 @@ gp.Editor.prototype = {
                         if ( self.elem ) {
                             // refresh the UI
                             self.updateUI( self.config, self.dataItem, self.elem );
-                            // dispose of the ChangeMonitor
-                            if ( self.changeMonitor ) {
-                                self.changeMonitor.stop();
-                                self.changeMonitor = null;
-                            }
 
                             if ( self.removeCommandHandler ) self.removeCommandHandler();
                         }
@@ -207,7 +203,6 @@ gp.TableRowEditor = function ( config, dal ) {
     gp.Editor.call( this, config, dal );
 
     this.elem = null;
-    this.changeMonitor = null;
     this.commandHandler = function ( evt ) {
         // handle save or cancel
         var command = evt.selectedTarget.attributes['value'].value;
@@ -230,7 +225,7 @@ gp.TableRowEditor.prototype = {
     },
 
     removeCommandHandler: function () {
-        gp.off( this.elem, 'click', 'button[value]', this.commandHandler );
+        gp.off( this.elem, 'click', this.commandHandler );
     },
 
     add: function () {
@@ -258,8 +253,6 @@ gp.TableRowEditor.prototype = {
         this.addCommandHandler();
 
         gp.prependChild( tbody, this.elem );
-
-        this.changeMonitor = new gp.ChangeMonitor( this.elem, '[name]', this.dataItem, this.config ).start();
 
         this.invokeEditReady();
 
@@ -294,8 +287,6 @@ gp.TableRowEditor.prototype = {
         }
         gp.addClass( tr, 'edit-mode' );
 
-        this.changeMonitor = new gp.ChangeMonitor( tr, '[name]', dataItem, this.config ).start();
-
         this.invokeEditReady();
 
         return {
@@ -320,11 +311,6 @@ gp.TableRowEditor.prototype = {
                 // restore the dataItem to its original state
                 gp.shallowCopy( this.originalDataItem, this.dataItem );
                 this.updateUI();
-            }
-
-            if ( this.changeMonitor ) {
-                this.changeMonitor.stop();
-                this.changeMonitor = null;
             }
 
             this.removeCommandHandler();
@@ -452,8 +438,6 @@ gp.ModalEditor.prototype = {
 
         this.addCommandHandler();
 
-        this.changeMonitor = new gp.ChangeMonitor( modal[0], '[name]', this.dataItem, this.config ).start();
-
         return {
             dataItem: this.dataItem,
             elem: this.elem
@@ -487,8 +471,6 @@ gp.ModalEditor.prototype = {
 
         this.addCommandHandler();
 
-        this.changeMonitor = new gp.ChangeMonitor( modal[0], '[name]', dataItem, this.config ).start();
-
         return {
             dataItem: dataItem,
             elem: this.elem
@@ -503,10 +485,6 @@ gp.ModalEditor.prototype = {
         //restore the dataItem to its original state
         if ( this.mode == 'update' && this.originalDataItem ) {
             gp.shallowCopy( this.originalDataItem, this.dataItem );
-        }
-        if ( this.changeMonitor ) {
-            this.changeMonitor.stop();
-            this.changeMonitor = null;
         }
         this.removeCommandHandler();
     },

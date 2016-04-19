@@ -1,4 +1,11 @@
-﻿/***************\
+﻿// There are too many plugins out there that prevent native events from
+// bubbling up the DOM tree (bootstrap-datetimepicker, jquery.maskedinput, etc).
+// Plugins that extend inputs shouldn't be allowed to break native features!
+// Nevertheless, we won't rely on the change event to propagate changes back to the model. 
+// We'll do it manually on save instead.
+
+
+/***************\
  change monitor
 \***************/
 gp.ChangeMonitor = function ( node, selector, model, config, afterSync ) {

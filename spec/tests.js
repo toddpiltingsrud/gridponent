@@ -242,53 +242,57 @@ var configuration = {
 
 fns.model = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
 
-QUnit.test( 'gp.node', function ( assert ) {
+if ( gp.node ) {
 
-    var tr = gp.node()
-        .create( 'tr' )
-        .attr( 'data-index', 0 )
-        .create( 'td' )
-        .addClass( 'body-cell' )
-        .html('cell 1')
-        .parent()
-        .create( 'td' )
-        .addClass( 'body-cell' )
-        .html( 'cell 2' )
-        .root();
+    QUnit.test( 'gp.node', function ( assert ) {
 
-    assert.ok( tr.elem instanceof HTMLTableRowElement );
-    assert.strictEqual( tr.attr('data-index'), '0');
-    assert.ok( tr.find( 'td:nth-child(1)' ).elem instanceof HTMLTableCellElement );
-    assert.ok( tr.find( 'td:nth-child(1)' ).hasClass('body-cell') );
-    assert.equal( tr.find( 'td:nth-child(1)' ).html(), 'cell 1' );
-    assert.ok( tr.find( 'td:nth-child(2)' ).elem instanceof HTMLTableCellElement );
-    assert.ok( tr.find( 'td:nth-child(2)' ).hasClass( 'body-cell' ) );
-    assert.equal( tr.find( 'td:nth-child(2)' ).html(), 'cell 2' );
+        var tr = gp.node()
+            .create( 'tr' )
+            .attr( 'data-index', 0 )
+            .create( 'td' )
+            .addClass( 'body-cell' )
+            .html( 'cell 1' )
+            .parent()
+            .create( 'td' )
+            .addClass( 'body-cell' )
+            .html( 'cell 2' )
+            .root();
 
-    var td = tr.find( 'td' );
-    var td2 = td.create('div').closest( 'td' );
+        assert.ok( tr.elem instanceof HTMLTableRowElement );
+        assert.strictEqual( tr.attr( 'data-index' ), '0' );
+        assert.ok( tr.find( 'td:nth-child(1)' ).elem instanceof HTMLTableCellElement );
+        assert.ok( tr.find( 'td:nth-child(1)' ).hasClass( 'body-cell' ) );
+        assert.equal( tr.find( 'td:nth-child(1)' ).html(), 'cell 1' );
+        assert.ok( tr.find( 'td:nth-child(2)' ).elem instanceof HTMLTableCellElement );
+        assert.ok( tr.find( 'td:nth-child(2)' ).hasClass( 'body-cell' ) );
+        assert.equal( tr.find( 'td:nth-child(2)' ).html(), 'cell 2' );
 
-    assert.strictEqual( td.elem, td2.elem );
+        var td = tr.find( 'td' );
+        var td2 = td.create( 'div' ).closest( 'td' );
 
-    var cls = td.disable().hasClass('disabled');
-    assert.ok( cls );
+        assert.strictEqual( td.elem, td2.elem );
 
-    cls = td.attr( 'disabled' );
-    assert.equal( cls, 'disabled' );
+        var cls = td.disable().hasClass( 'disabled' );
+        assert.ok( cls );
 
-    cls = td.enable().hasClass('disabled');
+        cls = td.attr( 'disabled' );
+        assert.equal( cls, 'disabled' );
 
-    assert.ok( cls == false );
+        cls = td.enable().hasClass( 'disabled' );
 
-    cls = td.attr( 'disabled' );
+        assert.ok( cls == false );
 
-    assert.ok( cls == undefined );
+        cls = td.attr( 'disabled' );
 
-    var attr = td.disable().attributes();
+        assert.ok( cls == undefined );
 
-    assert.ok( attr.disabled === 'disabled' );
+        var attr = td.disable().attributes();
 
-} );
+        assert.ok( attr.disabled === 'disabled' );
+
+    } );
+
+}
 
 QUnit.test( 'busy class', function ( assert ) {
 
@@ -788,7 +792,7 @@ QUnit.test( 'commandHandler', function ( assert ) {
 
 } );
 
-QUnit.test( 'ChangeMonitor.handleEnterKey', function ( assert ) {
+QUnit.test( 'handleEnterKey', function ( assert ) {
 
     var done1 = assert.async();
 
@@ -799,8 +803,6 @@ QUnit.test( 'ChangeMonitor.handleEnterKey', function ( assert ) {
         var config = api.config;
 
         var controller = config.node.api.controller;
-
-        var monitor = controller.monitor;
 
         var evt = {
             keyCode: 13,
@@ -814,7 +816,7 @@ QUnit.test( 'ChangeMonitor.handleEnterKey', function ( assert ) {
             }
         };
 
-        monitor.handleEnterKey( evt );
+        controller.toolbarChangeHandler( evt );
 
     } );
 
@@ -830,8 +832,6 @@ QUnit.test( 'ChangeMonitor boolean', function ( assert ) {
 
         var controller = api.controller;
 
-        var monitor = controller.monitor;
-
         var target = {
             type: 'text',
             value: 'false',
@@ -842,13 +842,13 @@ QUnit.test( 'ChangeMonitor boolean', function ( assert ) {
             test: true
         };
 
-        monitor.syncModel( target, model );
+        gp.syncChange( target, model, api.config.columns );
 
         assert.equal( model.test, false, 'non-checkbox inputs should sync value directly instead of using the checked property' );
 
         target.value = 'true';
 
-        monitor.syncModel( target, model );
+        gp.syncChange( target, model, api.config.columns );
 
         assert.equal( model.test, true, 'non-checkbox inputs should sync value directly instead of using the checked property' );
 
@@ -2204,7 +2204,7 @@ QUnit.test( 'gp.helpers.footerCell', function ( assert ) {
 } );
 
 
-QUnit.test( 'gp.ChangeMonitor', function ( assert ) {
+QUnit.test( 'gp.syncModel', function ( assert ) {
 
     var model = {
         number: 1,
@@ -2212,6 +2212,13 @@ QUnit.test( 'gp.ChangeMonitor', function ( assert ) {
         bool: true,
         name: 'Todd'
     };
+
+    var columns = [
+        { field: 'number', Type: 'number' },
+        { field: 'date', Type: 'dateString' },
+        { sort: 'bool', Type: 'boolean' },
+        { sort: 'name', Type: 'string' },
+    ];
 
     $( div ).empty();
 
@@ -2221,44 +2228,20 @@ QUnit.test( 'gp.ChangeMonitor', function ( assert ) {
     div.append( '<input type="checkbox" name="name" value="Todd" checked="checked" />' );
     div.append( '<input type="text" name="notInModel" value="text" />' );
 
-    var done1 = assert.async();
-    var done2 = assert.async();
-    var done3 = assert.async();
-    var done4 = assert.async();
-
-    var monitor = new gp.ChangeMonitor( div[0], '[name]', model, null, function ( target, m ) {
-        assert.equal( model.number, 2 );
-        done1();
-    } );
-
     var numberInput = div[0].querySelector( '[name=number]' );
     numberInput.value = '2';
-    monitor.syncModel( numberInput, model );
-
-    monitor.afterSync = function ( target, m ) {
-        assert.ok( true, 'ChangeMonitor should call afterSync for values not present in the model.' );
-        done2();
-    };
+    gp.syncModel( div[0], model, columns );
+    assert.strictEqual( model.number, 2 );
 
     var textInput = div[0].querySelector( '[name=notInModel]' );
     textInput.value = 'more text';
-    monitor.syncModel( textInput, model );
-    assert.equal( 'notInModel' in model, true, 'ChangeMonitor should add properties not present in the model.' );
-
-
-    monitor.beforeSync = function ( name, value, model ) {
-        assert.equal( model.bool, true, 'beforeSync should return values before changing them' );
-        done3();
-    };
-
-    monitor.afterSync = function ( target, m ) {
-        assert.equal( model.bool, false, 'afterSync should return values after changing them' );
-        done4();
-    };
+    gp.syncModel( div[0], model, columns );
+    assert.equal( model.notInModel, 'more text', 'should add properties not present in the model' );
 
     var checkbox = div[0].querySelector( '[name=bool]' );
     checkbox.checked = false;
-    monitor.syncModel( checkbox, model );
+    gp.syncModel( div[0], model, columns );
+    assert.equal( model.bool, false, 'afterSync should return values after changing them' );
 
 } );
 

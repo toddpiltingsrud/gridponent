@@ -60,7 +60,7 @@ gp.templates['form-group'] = function(model, arg) {
     out.push('    <label class="col-sm-4 control-label">');
     out.push(model.label);
     out.push('</label>');
-    out.push('    <div class="col-sm-8">');
+    out.push('    <div class="col-sm-6">');
     out.push(model.input);
     out.push('</div>');
     out.push('</div>');

@@ -5,6 +5,22 @@
 
 var gridponent = gridponent || function ( elem, options ) {
 
+    // check for a selector
+    if ( typeof elem == 'string' ) {
+        elem = document.querySelector( elem );
+    }
+    if ( elem instanceof HTMLElement ) {
+        var tblContainer = elem.querySelector( '.table-container' );
+        // has this already been initialized?
+        if ( tblContainer && tblContainer.api ) return tblContainer.api;
+
+        if ( options ) {
+            var init = new gridponent.Initializer( elem );
+            var config = init.initializeOptions( options );
+            return config.node.api;
+        }
+    }
+
     var obj = {
         api: null,
         callback: function () { },
@@ -194,97 +210,6 @@ gp.api.prototype = {
 };
 
 /***************\
- change monitor
-\***************/
-gp.ChangeMonitor = function ( node, selector, model, config, afterSync ) {
-    var self = this;
-    this.model = model;
-    this.beforeSync = null;
-    this.node = node;
-    this.selector = selector;
-    this.listener = function (evt) {
-        self.syncModel.call(self, evt.target, self.model);
-    };
-    this.afterSync = afterSync;
-    this.config = config;
-};
-
-gp.ChangeMonitor.prototype = {
-    start: function () {
-        var self = this;
-        // add change event handler to node
-        gp.on( this.node, 'change', this.selector, this.listener );
-        gp.on( this.node, 'keydown', this.selector, this.handleEnterKey );
-        return this;
-    },
-    handleEnterKey: function ( evt ) {
-        // trigger change event
-        if ( evt.keyCode == 13 ) {
-            evt.target.blur();
-        }
-    },
-    stop: function () {
-        // clean up
-        gp.off( this.node, 'change', this.listener );
-        gp.off( this.node, 'keydown', this.handleEnterKey );
-        return this;
-    },
-    syncModel: function (target, model) {
-        // get name and value of target
-        var name = target.name,
-            val = target.value,
-            handled = false,
-            type,
-            col;
-
-        // attempt to resolve a type by examining the configuration first
-        if ( this.config ) {
-            col = gp.getColumnByField( this.config.columns, name );
-            if ( col ) type = col.Type;
-        }
-
-        if ( !name in model ) model[name] = null;
-
-        try {
-            if ( typeof ( this.beforeSync ) === 'function' ) {
-                handled = this.beforeSync( name, val, this.model );
-            }
-            if ( !handled ) {
-                // if there's no type in the columns, get one from the model
-                type = type || gp.getType( model[name] );
-                switch ( type ) {
-                    case 'number':
-                        model[name] = parseFloat( val );
-                        break;
-                    case 'boolean':
-                        if ( target.type == 'checkbox' ) {
-                            if ( val.toLowerCase() == 'true' ) val = target.checked;
-                            else if ( val.toLowerCase() == 'false' ) val = !target.checked;
-                            else val = target.checked ? val : null;
-                            model[name] = val;
-                        }
-                        else {
-                            model[name] = ( val.toLowerCase() == 'true' );
-                        }
-                        break;
-                    default:
-                        model[name] = val;
-                }
-            }
-
-            // always fire this because the toolbar may contain inputs from a template
-            // which are not represented in the page model (e.g. a custom filter)
-            if ( typeof this.afterSync === 'function' ) {
-                this.afterSync( target, model );
-            }
-
-        } catch ( e ) {
-            gp.error( e );
-        }
-    }
-};
-
-/***************\
    controller
 \***************/
 gp.Controller = function (config, model, requestModel) {
@@ -295,12 +220,12 @@ gp.Controller = function (config, model, requestModel) {
     if (config.pager) {
         this.requestModel.top = 25;
     }
-    this.monitor = null;
     this.handlers = {
         readHandler: self.read.bind( self ),
         commandHandler: self.commandHandler.bind( self ),
         rowSelectHandler: self.rowSelectHandler.bind( self ),
-        httpErrorHandler: self.httpErrorHandler.bind(self)
+        httpErrorHandler: self.httpErrorHandler.bind( self ),
+        toolbarChangeHandler: self.toolbarChangeHandler.bind( self )
     };
     this.done = false;
     this.eventDelegates = {};
@@ -311,10 +236,10 @@ gp.Controller.prototype = {
 
     init: function () {
         var self = this;
-        this.monitorToolbars( this.config.node );
         this.addCommandHandlers( this.config.node );
         this.addRowSelectHandler( this.config );
         this.addRefreshEventHandler( this.config );
+        this.addToolbarChangeHandler();
         this.done = true;
         this.invokeDelegates( gp.events.ready, this.config.node.api );
     },
@@ -364,33 +289,49 @@ gp.Controller.prototype = {
         return proceed;
     },
 
-    monitorToolbars: function (node) {
-        var self = this;
+    addToolbarChangeHandler: function () {
         // monitor changes to search, sort, and paging
-        this.monitor = new gp.ChangeMonitor( node, '.table-toolbar [name], thead input, .table-pager input', this.config.pageModel, this.config, function ( evt ) {
-            self.read();
-            // reset the radio inputs
-            var radios = node.querySelectorAll( 'thead input[type=radio], .table-pager input[type=radio]' );
-            for (var i = 0; i < radios.length; i++) {
-                radios[i].checked = false;
+        var selector = '.table-toolbar [name], thead input, .table-pager input';
+        gp.on( this.config.node, 'change', selector, this.handlers.toolbarChangeHandler );
+        gp.on( this.config.node, 'keydown', selector, this.handlers.toolbarChangeHandler );
+    },
+
+    removeToolbarChangeHandler: function () {
+        gp.off( this.config.node, 'change', this.handlers.toolbarChangeHandler );
+        gp.off( this.config.node, 'keydown', this.handlers.toolbarChangeHandler );
+    },
+
+    toolbarChangeHandler: function ( evt ) {
+        // trigger change event
+        if ( evt.keyCode == 13 ) {
+            evt.target.blur();
+            return;
+        }
+
+        var name = evt.target.name,
+            val = evt.target.value,
+            model = this.config.pageModel;
+
+        if ( name === 'sort' ) {
+            if ( model[name] === val ) {
+                model.desc = !model.desc;
             }
-        } );
-        this.monitor.beforeSync = function ( name, value, model ) {
-            // the sort property requires special handling
-            if (name === 'sort') {
-                if (model[name] === value) {
-                    model.desc = !model.desc;
-                }
-                else {
-                    model[name] = value;
-                    model.desc = false;
-                }
-                // let the monitor know that syncing has been handled
-                return true;
+            else {
+                model[name] = val;
+                model.desc = false;
             }
-            return false;
-        };
-        this.monitor.start();
+        }
+        else {
+            gp.syncChange( evt.target, model, this.config.columns );
+        }
+
+        this.read();
+
+        // reset the radio inputs
+        var radios = this.config.node.querySelectorAll( 'thead input[type=radio], .table-pager input[type=radio]' );
+        for ( var i = 0; i < radios.length; i++ ) {
+            radios[i].checked = false;
+        }
     },
 
     addCommandHandlers: function (node) {
@@ -405,9 +346,9 @@ gp.Controller.prototype = {
     commandHandler: function ( evt ) {
         // this function handles all the button clicks for the entire grid
         var lower,
+            node = this.config.node,
             elem = gp.closest( evt.selectedTarget, 'tr[data-uid],div.modal', node ),
             dataItem = elem ? this.config.map.get( elem ) : null,
-            node = this.config.node,
             command = evt.selectedTarget.attributes['value'].value;
 
         if ( gp.hasValue( command ) ) lower = command.toLowerCase();
@@ -712,7 +653,7 @@ gp.Controller.prototype = {
         this.removeRefreshEventHandler( this.config );
         this.removeRowSelectHandler();
         this.removeCommandHandlers( this.config.node );
-        this.monitor.stop();
+        this.removeToolbarChangeHandler();
     }
 
 };
@@ -856,6 +797,10 @@ gp.Editor.prototype = {
 
         this.addBusy();
 
+        if ( this.elem ) {
+            gp.syncModel( this.elem, this.dataItem, this.config.columns );
+        }
+
         if ( typeof this.beforeEdit == 'function' ) {
             this.beforeEdit( {
                 type: this.mode,
@@ -876,22 +821,19 @@ gp.Editor.prototype = {
                         self.validate( updateModel );
                     }
                     else {
-                        // add the new dataItem to the internal data array
                         returnedDataItem = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem : ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] : self.dataItem;
 
+                        // add the new dataItem to the internal data array
                         self.config.pageModel.data.push( returnedDataItem );
+
+                        // copy to local dataItem so updateUI will bind to current data
+                        gp.shallowCopy( returnedDataItem, self.dataItem );
 
                         // It's important to map the dataItem after it's saved because user could cancel.
                         // Also the returned dataItem will likely have additional information added by the server.
                         uid = self.config.map.assign( returnedDataItem, self.elem );
 
                         self.updateUI( self.config, self.dataItem, self.elem );
-
-                        // dispose of the ChangeMonitor
-                        if ( self.changeMonitor ) {
-                            self.changeMonitor.stop();
-                            self.changeMonitor = null;
-                        }
 
                         if (self.removeCommandHandler) self.removeCommandHandler();
                     }
@@ -941,11 +883,6 @@ gp.Editor.prototype = {
                         if ( self.elem ) {
                             // refresh the UI
                             self.updateUI( self.config, self.dataItem, self.elem );
-                            // dispose of the ChangeMonitor
-                            if ( self.changeMonitor ) {
-                                self.changeMonitor.stop();
-                                self.changeMonitor = null;
-                            }
 
                             if ( self.removeCommandHandler ) self.removeCommandHandler();
                         }
@@ -1020,7 +957,6 @@ gp.TableRowEditor = function ( config, dal ) {
     gp.Editor.call( this, config, dal );
 
     this.elem = null;
-    this.changeMonitor = null;
     this.commandHandler = function ( evt ) {
         // handle save or cancel
         var command = evt.selectedTarget.attributes['value'].value;
@@ -1043,7 +979,7 @@ gp.TableRowEditor.prototype = {
     },
 
     removeCommandHandler: function () {
-        gp.off( this.elem, 'click', 'button[value]', this.commandHandler );
+        gp.off( this.elem, 'click', this.commandHandler );
     },
 
     add: function () {
@@ -1071,8 +1007,6 @@ gp.TableRowEditor.prototype = {
         this.addCommandHandler();
 
         gp.prependChild( tbody, this.elem );
-
-        this.changeMonitor = new gp.ChangeMonitor( this.elem, '[name]', this.dataItem, this.config ).start();
 
         this.invokeEditReady();
 
@@ -1107,8 +1041,6 @@ gp.TableRowEditor.prototype = {
         }
         gp.addClass( tr, 'edit-mode' );
 
-        this.changeMonitor = new gp.ChangeMonitor( tr, '[name]', dataItem, this.config ).start();
-
         this.invokeEditReady();
 
         return {
@@ -1133,11 +1065,6 @@ gp.TableRowEditor.prototype = {
                 // restore the dataItem to its original state
                 gp.shallowCopy( this.originalDataItem, this.dataItem );
                 this.updateUI();
-            }
-
-            if ( this.changeMonitor ) {
-                this.changeMonitor.stop();
-                this.changeMonitor = null;
             }
 
             this.removeCommandHandler();
@@ -1265,8 +1192,6 @@ gp.ModalEditor.prototype = {
 
         this.addCommandHandler();
 
-        this.changeMonitor = new gp.ChangeMonitor( modal[0], '[name]', this.dataItem, this.config ).start();
-
         return {
             dataItem: this.dataItem,
             elem: this.elem
@@ -1300,8 +1225,6 @@ gp.ModalEditor.prototype = {
 
         this.addCommandHandler();
 
-        this.changeMonitor = new gp.ChangeMonitor( modal[0], '[name]', dataItem, this.config ).start();
-
         return {
             dataItem: dataItem,
             elem: this.elem
@@ -1316,10 +1239,6 @@ gp.ModalEditor.prototype = {
         //restore the dataItem to its original state
         if ( this.mode == 'update' && this.originalDataItem ) {
             gp.shallowCopy( this.originalDataItem, this.dataItem );
-        }
-        if ( this.changeMonitor ) {
-            this.changeMonitor.stop();
-            this.changeMonitor = null;
         }
         this.removeCommandHandler();
     },
@@ -2688,7 +2607,7 @@ gp.templates['form-group'] = function(model, arg) {
     out.push('    <label class="col-sm-4 control-label">');
     out.push(model.label);
     out.push('</label>');
-    out.push('    <div class="col-sm-8">');
+    out.push('    <div class="col-sm-6">');
     out.push(model.input);
     out.push('</div>');
     out.push('</div>');
@@ -3307,6 +3226,60 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
                 return typeof r === 'function' ? gp.escapeHTML( gp.applyFunc( r, self, args ) ) : '';
             }
         );
+    };
+
+    gp.syncChange = function (target, model, columns) {
+        // get name and value of target
+        var name = target.name,
+            val = target.value,
+            type,
+            col;
+
+        // attempt to resolve a type by examining the configuration first
+        if ( this.config ) {
+            col = gp.getColumnByField( columns, name );
+            if ( col ) type = col.Type;
+        }
+
+        if ( !name in model ) model[name] = null;
+
+        try {
+            // if there's no type in the columns, get one from the model
+            type = type || gp.getType( model[name] );
+            switch ( type ) {
+                case 'number':
+                    model[name] = parseFloat( val );
+                    break;
+                case 'boolean':
+                    if ( target.type == 'checkbox' ) {
+                        if ( val.toLowerCase() == 'true' ) val = target.checked;
+                        else if ( val.toLowerCase() == 'false' ) val = !target.checked;
+                        else val = target.checked ? val : null;
+                        model[name] = val;
+                    }
+                    else {
+                        model[name] = ( val.toLowerCase() == 'true' );
+                    }
+                    break;
+                default:
+                    model[name] = val;
+            }
+        }
+        catch ( e ) {
+            gp.error( e );
+        }
+    };
+
+    gp.syncModel = function ( parent, model, columns ) {
+        try {
+            var inputs = parent.querySelectorAll( '[name]' );
+            for ( var i = 0; i < inputs.length; i++ ) {
+                gp.syncChange( inputs[i], model, columns );
+            }
+        }
+        catch ( e ) {
+            gp.error( e );
+        }
     };
 
     gp.trim = function ( str ) {
