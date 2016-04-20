@@ -97,6 +97,7 @@ gp.events = {
 gp.api = function ( controller ) {
     this.controller = controller;
     this.config = controller.config;
+    this.$n = $( this.config.node );
 };
 
 gp.api.prototype = {
@@ -217,6 +218,7 @@ gp.Controller = function (config, model, requestModel) {
     this.config = config;
     this.model = model;
     this.requestModel = requestModel;
+    this.$n = $( config.node );
     if (config.pager) {
         this.requestModel.top = 25;
     }
@@ -254,12 +256,12 @@ gp.Controller.prototype = {
 
     addBusy: function () {
         // this function executes with the api as its context
-        gp.addClass( this.config.node, 'busy' );
+        this.$n.addClass( 'busy' );
     },
 
     removeBusy: function () {
         // this function executes with the api as its context
-        gp.removeClass( this.config.node, 'busy' );
+        this.$n.removeClass( 'busy' );
     },
 
     ready: function(callback) {
@@ -292,18 +294,18 @@ gp.Controller.prototype = {
     addToolbarChangeHandler: function () {
         // monitor changes to search, sort, and paging
         var selector = '.table-toolbar [name], thead input, .table-pager input';
-        gp.on( this.config.node, 'change', selector, this.handlers.toolbarChangeHandler );
-        gp.on( this.config.node, 'keydown', selector, this.handlers.toolbarChangeHandler );
+        this.$n.on( 'change', selector, this.handlers.toolbarChangeHandler );
+        this.$n.on( 'keydown', selector, this.handlers.toolbarChangeHandler );
     },
 
     removeToolbarChangeHandler: function () {
-        gp.off( this.config.node, 'change', this.handlers.toolbarChangeHandler );
-        gp.off( this.config.node, 'keydown', this.handlers.toolbarChangeHandler );
+        this.$n.off( 'change', this.handlers.toolbarChangeHandler );
+        this.$n.off( 'keydown', this.handlers.toolbarChangeHandler );
     },
 
     toolbarChangeHandler: function ( evt ) {
         // trigger change event
-        if ( evt.keyCode == 13 ) {
+        if ( evt.which == 13 ) {
             evt.target.blur();
             return;
         }
@@ -328,28 +330,28 @@ gp.Controller.prototype = {
         this.read();
 
         // reset the radio inputs
-        var radios = this.config.node.querySelectorAll( 'thead input[type=radio], .table-pager input[type=radio]' );
-        for ( var i = 0; i < radios.length; i++ ) {
-            radios[i].checked = false;
-        }
+        this.$n.find( 'thead input[type=radio], .table-pager input[type=radio]' ).each( function () {
+            this.checked = false;
+        } );
     },
 
-    addCommandHandlers: function (node) {
+    addCommandHandlers: function () {
         // listen for command button clicks at the grid level
-        gp.on( node, 'click', 'button[value]', this.handlers.commandHandler );
+        this.$n.on( 'click', 'button[value]', this.handlers.commandHandler );
     },
 
-    removeCommandHandlers: function(node) {
-        gp.off( node, 'click', this.handlers.commandHandler );
+    removeCommandHandlers: function() {
+        this.$n.off( 'click', this.handlers.commandHandler );
     },
 
     commandHandler: function ( evt ) {
         // this function handles all the button clicks for the entire grid
         var lower,
             node = this.config.node,
-            elem = gp.closest( evt.selectedTarget, 'tr[data-uid],div.modal', node ),
-            dataItem = elem ? this.config.map.get( elem ) : null,
-            command = evt.selectedTarget.attributes['value'].value;
+            $target = $(evt.target),
+            elem = $target.closest( 'tr[data-uid],div.modal' ),
+            dataItem = elem.length ? this.config.map.get( elem[0] ) : null,
+            command = $target.val();
 
         if ( gp.hasValue( command ) ) lower = command.toLowerCase();
 
@@ -404,19 +406,20 @@ gp.Controller.prototype = {
     },
 
     addRowSelectHandler: function ( config ) {
-        if ( gp.hasClass( config.node, 'selectable' ) ) {
+        if ( this.$n.hasClass( 'selectable' ) ) {
             // add click handler
-            gp.on( config.node, 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
+            this.$n.on( 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
         }
     },
 
     removeRowSelectHandler: function() {
-        gp.off( this.config.node, 'click', this.handlers.rowSelectHandler );
+        this.$n.off( 'click', this.handlers.rowSelectHandler );
     },
 
     rowSelectHandler: function ( evt ) {
         var config = this.config,
-            tr = gp.closest( evt.selectedTarget, 'tr', config.node ),
+            $target = $(evt.target),
+            tr = $target.closest( 'tr' ),
             trs = config.node.querySelectorAll( 'div.table-body > table > tbody > tr.selected' ),
             type = typeof config.rowselected,
             dataItem,
@@ -425,18 +428,18 @@ gp.Controller.prototype = {
         if ( type === 'string' && config.rowselected.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
 
         // remove previously selected class
-        for ( var i = 0; i < trs.length; i++ ) {
-            gp.removeClass( trs[i], 'selected' );
-        }
+        this.$n.find( 'div.table-body > table > tbody > tr.selected' ).each( function () {
+            $(this).removeClass( 'selected' );
+        } );
 
         // add selected class
-        gp.addClass( tr, 'selected' );
+        tr.addClass( 'selected' );
         // get the dataItem for this tr
-        dataItem = config.map.get( tr );
+        dataItem = config.map.get( tr[0] );
 
         // ensure dataItem selection doesn't interfere with button clicks in the dataItem
         // by making sure the evt target is a body cell
-        if ( evt.target != evt.selectedTarget ) return;
+        if ( $(evt.target).is('td') == false ) return;
 
         proceed = this.invokeDelegates( gp.events.rowselected, {
             dataItem: dataItem,
@@ -456,20 +459,20 @@ gp.Controller.prototype = {
 
     addRefreshEventHandler: function ( config ) {
         if ( config.refreshevent ) {
-            gp.on( document, config.refreshevent, this.handlers.readHandler );
+            $(document).on( config.refreshevent, this.handlers.readHandler );
         }
     },
 
     removeRefreshEventHandler: function ( config ) {
         if ( config.refreshevent ) {
-            gp.off( document, config.refreshevent, this.handlers.readHandler );
+            $(document).off( config.refreshevent, this.handlers.readHandler );
         }
     },
 
     search: function(searchTerm, callback) {
         this.config.pageModel.search = searchTerm;
-        var searchBox = this.config.node.querySelector( 'div.table-toolbar input[name=search' );
-        searchBox.value = searchTerm;
+        var searchBox = this.$n.find( 'div.table-toolbar input[name=search]' );
+        searchBox.val( searchTerm );
         this.read(null, callback);
     },
 
@@ -502,8 +505,6 @@ gp.Controller.prototype = {
 
         var model = editor.add();
 
-        //this.invokeDelegates( gp.events.editReady, model );
-
         return editor;
 
     },
@@ -534,9 +535,7 @@ gp.Controller.prototype = {
     editRow: function ( dataItem, elem ) {
 
         var editor = this.getEditor( this.config.editmode );
-        var model = editor.edit( dataItem, elem );
-
-        //this.invokeDelegates( gp.events.editReady, model );
+        var model = editor.edit( dataItem, elem[0] );
 
         return editor;
     },
@@ -625,22 +624,21 @@ gp.Controller.prototype = {
 
     refresh: function () {
         // inject table rows, footer, pager and header style.
-        var node = this.config.node,
-            body = node.querySelector( 'div.table-body' ),
-            footer = node.querySelector( 'div.table-footer' ),
-            pager = node.querySelector( 'div.table-pager' ),
-            sortStyle = node.querySelector( 'style.sort-style' );
+        var body = this.$n.find( 'div.table-body' ),
+            footer = this.$n.find( 'div.table-footer' ),
+            pager = this.$n.find( 'div.table-pager' ),
+            sortStyle = this.$n.find( 'style.sort-style' );
 
         this.config.map.clear();
 
-        body.innerHTML = gp.templates['gridponent-body']( this.config );
+        body.html( gp.templates['gridponent-body']( this.config ) );
         if ( footer ) {
-            footer.innerHTML = gp.templates['gridponent-table-footer']( this.config );
+            footer.html( gp.templates['gridponent-table-footer']( this.config ) );
         }
         if ( pager ) {
-            pager.innerHTML = gp.templates['gridponent-pager']( this.config );
+            pager.html( gp.templates['gridponent-pager']( this.config ) );
         }
-        sortStyle.innerHTML = gp.helpers.sortStyle.call( this.config );
+        sortStyle.html( gp.helpers.sortStyle.call( this.config ) );
     },
 
     httpErrorHandler: function ( e ) {
@@ -1710,61 +1708,6 @@ gp.helpers = {
 
 
 /***************\
-     http        
-\***************/
-gp.Http = function () { };
-
-gp.Http.prototype = {
-    serialize: function ( obj ) {
-        // creates a query string from a simple object
-        var props = Object.getOwnPropertyNames( obj );
-        var out = [];
-        props.forEach( function ( prop ) {
-            // don't send complex objects back to the server
-            // data should be flattened before it leaves the server
-            // editing complex objects is not supported
-            if ( /^(array|function|object)$/.test( gp.getType( obj[prop] ) ) == false ) {
-                out.push( encodeURIComponent( prop ) + '=' + ( gp.isNullOrEmpty( obj[prop] ) ? '' : encodeURIComponent( obj[prop] ) ) );
-            }
-        } );
-        return out.join( '&' );
-    },
-    createXhr: function ( type, url, callback, error ) {
-        var xhr = new XMLHttpRequest();
-        xhr.open(type.toUpperCase(), url, true);
-        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-        xhr.onload = function () {
-            var response = ( gp.rexp.json.test( xhr.responseText ) ? JSON.parse( xhr.responseText ) : xhr.responseText );
-            if ( xhr.status == 200 ) {
-                callback( response, xhr );
-            }
-            else {
-                gp.applyFunc( error, xhr, response );
-            }
-        }
-        xhr.onerror = error;
-        return xhr;
-    },
-    get: function (url, callback, error) {
-        var xhr = this.createXhr('GET', url, callback, error);
-        xhr.send();
-    },
-    post: function ( url, data, callback, error ) {
-        var s = this.serialize( data );
-        var xhr = this.createXhr( 'POST', url, callback, error );
-        xhr.setRequestHeader( 'Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8' );
-        xhr.send( s );
-    },
-    destroy: function ( url, data, callback, error ) {
-        var s = this.serialize( data );
-        var xhr = this.createXhr( 'DELETE', url, callback, error );
-        xhr.setRequestHeader( 'Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8' );
-        xhr.send( s );
-    }
-
-};
-
-/***************\
    Initializer
 \***************/
 gp.Initializer = function ( node ) {
@@ -2007,6 +1950,178 @@ gp.Initializer.prototype = {
     }
 
 };
+
+/***************\
+   mock-http
+\***************/
+(function (gp) {
+    gp.Http = function () { };
+
+    // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
+    var routes = {
+        read: /read/i,
+        update: /update/i,
+        create: /create/i,
+        destroy: /Delete/i
+    };
+
+    gp.Http.prototype = {
+        //serialize: function (obj, props) {
+        //    // creates a query string from a simple object
+        //    var self = this;
+        //    props = props || Object.getOwnPropertyNames(obj);
+        //    var out = [];
+        //    props.forEach(function (prop) {
+        //        out.push(encodeURIComponent(prop) + '=' + encodeURIComponent(obj[prop]));
+        //    });
+        //    return out.join('&');
+        //},
+        //deserialize: function (queryString) {
+        //    var nameValue, split = queryString.split( '&' );
+        //    var obj = {};
+        //    if ( !queryString ) return obj;
+        //    split.forEach( function ( s ) {
+        //        nameValue = s.split( '=' );
+        //        var val = nameValue[1];
+        //        if ( !val ) {
+        //            obj[nameValue[0]] = null;
+        //        }
+        //        else if ( /true|false/i.test( val ) ) {
+        //            obj[nameValue[0]] = ( /true/i.test( val ) );
+        //        }
+        //        else if ( parseFloat( val ).toString() === val ) {
+        //            obj[nameValue[0]] = parseFloat( val );
+        //        }
+        //        else {
+        //            obj[nameValue[0]] = val;
+        //        }
+        //    } );
+        //    return obj;
+        //},
+        //get: function (url, callback, error) {
+        //    if (routes.read.test(url)) {
+        //        var index = url.substring(url.indexOf('?'));
+        //        if (index !== -1) {
+        //            var queryString = url.substring(index + 1);
+        //            var model = this.deserialize(queryString);
+        //            this.post(url.substring(0, index), model, callback, error);
+        //        }
+        //        else {
+        //            this.post(url, null, callback, error);
+        //        }
+        //    }
+        //    else if (routes.create.test(url)) {
+        //        var result = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
+        //        callback(result);
+        //    }
+        //    else {
+        //        throw 'Not found: ' + url;
+        //    }
+        //},
+        post: function (url, model, callback, error) {
+            model = model || {};
+            if (routes.read.test(url)) {
+                getData(model, callback);
+            }
+            else if ( routes.create.test( url ) ) {
+                data.products.push( model );
+                callback( new gp.UpdateModel( model ) );
+            }
+            else if ( routes.update.test( url ) ) {
+                callback( new gp.UpdateModel(model) );
+            }
+            else {
+                throw '404 Not found: ' + url;
+            }
+        },
+        destroy: function ( url, model, callback, error ) {
+            model = model || {};
+            var index = data.products.indexOf( model );
+            callback( {
+                Success: true,
+                Message: ''
+            } );
+        }
+    };
+
+    var getData = function (model, callback) {
+        var count, d = data.products.slice( 0, this.data.length );
+
+        if (!gp.isNullOrEmpty(model.search)) {
+            var props = Object.getOwnPropertyNames(d[0]);
+            var search = model.search.toLowerCase();
+            d = d.filter(function (row) {
+                for (var i = 0; i < props.length; i++) {
+                    if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+        }
+        if (!gp.isNullOrEmpty(model.sort)) {
+            if (model.desc) {
+                d.sort(function (row1, row2) {
+                    var a = row1[model.sort];
+                    var b = row2[model.sort];
+                    if (a === null) {
+                        if (b != null) {
+                            return 1;
+                        }
+                    }
+                    else if (b === null) {
+                        // we already know a isn't null
+                        return -1;
+                    }
+                    if (a > b) {
+                        return -1;
+                    }
+                    if (a < b) {
+                        return 1;
+                    }
+
+                    return 0;
+                });
+            }
+            else {
+                d.sort(function (row1, row2) {
+                    var a = row1[model.sort];
+                    var b = row2[model.sort];
+                    if (a === null) {
+                        if (b != null) {
+                            return -1;
+                        }
+                    }
+                    else if (b === null) {
+                        // we already know a isn't null
+                        return 1;
+                    }
+                    if (a > b) {
+                        return 1;
+                    }
+                    if (a < b) {
+                        return -1;
+                    }
+
+                    return 0;
+                });
+            }
+        }
+        count = d.length;
+        if (model.top !== -1) {
+            model.data = d.slice(model.skip).slice(0, model.top);
+        }
+        else {
+            model.data = d;
+        }
+        model.errors = [];
+        setTimeout(function () {
+            callback(model);
+        });
+
+    };
+
+})(gridponent);
 
 /***************\
      model

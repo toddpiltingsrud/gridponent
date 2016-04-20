@@ -305,13 +305,13 @@ QUnit.test( 'busy class', function ( assert ) {
     options.onread = 'fns.afterRead';
 
     fns.beforeRead = function () {
-        var hasClass = gp.hasClass( this.config.node, 'busy' );
+        var hasClass = $( this.config.node ).hasClass( 'busy' );
         assert.equal( hasClass, true );
         done1();
     };
 
     fns.afterRead = function () {
-        var hasClass = gp.hasClass( this.config.node, 'busy' );
+        var hasClass = $( this.config.node ).hasClass( 'busy' );
         assert.equal( hasClass, false );
         done2();
     };
@@ -805,7 +805,7 @@ QUnit.test( 'handleEnterKey', function ( assert ) {
         var controller = config.node.api.controller;
 
         var evt = {
-            keyCode: 13,
+            which: 13,
             target: {
                 blur: function () {
 

@@ -6,6 +6,7 @@ gp.Controller = function (config, model, requestModel) {
     this.config = config;
     this.model = model;
     this.requestModel = requestModel;
+    this.$n = $( config.node );
     if (config.pager) {
         this.requestModel.top = 25;
     }
@@ -43,12 +44,12 @@ gp.Controller.prototype = {
 
     addBusy: function () {
         // this function executes with the api as its context
-        gp.addClass( this.config.node, 'busy' );
+        this.$n.addClass( 'busy' );
     },
 
     removeBusy: function () {
         // this function executes with the api as its context
-        gp.removeClass( this.config.node, 'busy' );
+        this.$n.removeClass( 'busy' );
     },
 
     ready: function(callback) {
@@ -81,18 +82,18 @@ gp.Controller.prototype = {
     addToolbarChangeHandler: function () {
         // monitor changes to search, sort, and paging
         var selector = '.table-toolbar [name], thead input, .table-pager input';
-        gp.on( this.config.node, 'change', selector, this.handlers.toolbarChangeHandler );
-        gp.on( this.config.node, 'keydown', selector, this.handlers.toolbarChangeHandler );
+        this.$n.on( 'change', selector, this.handlers.toolbarChangeHandler );
+        this.$n.on( 'keydown', selector, this.handlers.toolbarChangeHandler );
     },
 
     removeToolbarChangeHandler: function () {
-        gp.off( this.config.node, 'change', this.handlers.toolbarChangeHandler );
-        gp.off( this.config.node, 'keydown', this.handlers.toolbarChangeHandler );
+        this.$n.off( 'change', this.handlers.toolbarChangeHandler );
+        this.$n.off( 'keydown', this.handlers.toolbarChangeHandler );
     },
 
     toolbarChangeHandler: function ( evt ) {
         // trigger change event
-        if ( evt.keyCode == 13 ) {
+        if ( evt.which == 13 ) {
             evt.target.blur();
             return;
         }
@@ -117,28 +118,28 @@ gp.Controller.prototype = {
         this.read();
 
         // reset the radio inputs
-        var radios = this.config.node.querySelectorAll( 'thead input[type=radio], .table-pager input[type=radio]' );
-        for ( var i = 0; i < radios.length; i++ ) {
-            radios[i].checked = false;
-        }
+        this.$n.find( 'thead input[type=radio], .table-pager input[type=radio]' ).each( function () {
+            this.checked = false;
+        } );
     },
 
-    addCommandHandlers: function (node) {
+    addCommandHandlers: function () {
         // listen for command button clicks at the grid level
-        gp.on( node, 'click', 'button[value]', this.handlers.commandHandler );
+        this.$n.on( 'click', 'button[value]', this.handlers.commandHandler );
     },
 
-    removeCommandHandlers: function(node) {
-        gp.off( node, 'click', this.handlers.commandHandler );
+    removeCommandHandlers: function() {
+        this.$n.off( 'click', this.handlers.commandHandler );
     },
 
     commandHandler: function ( evt ) {
         // this function handles all the button clicks for the entire grid
         var lower,
             node = this.config.node,
-            elem = gp.closest( evt.selectedTarget, 'tr[data-uid],div.modal', node ),
-            dataItem = elem ? this.config.map.get( elem ) : null,
-            command = evt.selectedTarget.attributes['value'].value;
+            $target = $(evt.target),
+            elem = $target.closest( 'tr[data-uid],div.modal' ),
+            dataItem = elem.length ? this.config.map.get( elem[0] ) : null,
+            command = $target.val();
 
         if ( gp.hasValue( command ) ) lower = command.toLowerCase();
 
@@ -193,19 +194,20 @@ gp.Controller.prototype = {
     },
 
     addRowSelectHandler: function ( config ) {
-        if ( gp.hasClass( config.node, 'selectable' ) ) {
+        if ( this.$n.hasClass( 'selectable' ) ) {
             // add click handler
-            gp.on( config.node, 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
+            this.$n.on( 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
         }
     },
 
     removeRowSelectHandler: function() {
-        gp.off( this.config.node, 'click', this.handlers.rowSelectHandler );
+        this.$n.off( 'click', this.handlers.rowSelectHandler );
     },
 
     rowSelectHandler: function ( evt ) {
         var config = this.config,
-            tr = gp.closest( evt.selectedTarget, 'tr', config.node ),
+            $target = $(evt.target),
+            tr = $target.closest( 'tr' ),
             trs = config.node.querySelectorAll( 'div.table-body > table > tbody > tr.selected' ),
             type = typeof config.rowselected,
             dataItem,
@@ -214,18 +216,18 @@ gp.Controller.prototype = {
         if ( type === 'string' && config.rowselected.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
 
         // remove previously selected class
-        for ( var i = 0; i < trs.length; i++ ) {
-            gp.removeClass( trs[i], 'selected' );
-        }
+        this.$n.find( 'div.table-body > table > tbody > tr.selected' ).each( function () {
+            $(this).removeClass( 'selected' );
+        } );
 
         // add selected class
-        gp.addClass( tr, 'selected' );
+        tr.addClass( 'selected' );
         // get the dataItem for this tr
-        dataItem = config.map.get( tr );
+        dataItem = config.map.get( tr[0] );
 
         // ensure dataItem selection doesn't interfere with button clicks in the dataItem
         // by making sure the evt target is a body cell
-        if ( evt.target != evt.selectedTarget ) return;
+        if ( $(evt.target).is('td') == false ) return;
 
         proceed = this.invokeDelegates( gp.events.rowselected, {
             dataItem: dataItem,
@@ -245,20 +247,20 @@ gp.Controller.prototype = {
 
     addRefreshEventHandler: function ( config ) {
         if ( config.refreshevent ) {
-            gp.on( document, config.refreshevent, this.handlers.readHandler );
+            $(document).on( config.refreshevent, this.handlers.readHandler );
         }
     },
 
     removeRefreshEventHandler: function ( config ) {
         if ( config.refreshevent ) {
-            gp.off( document, config.refreshevent, this.handlers.readHandler );
+            $(document).off( config.refreshevent, this.handlers.readHandler );
         }
     },
 
     search: function(searchTerm, callback) {
         this.config.pageModel.search = searchTerm;
-        var searchBox = this.config.node.querySelector( 'div.table-toolbar input[name=search' );
-        searchBox.value = searchTerm;
+        var searchBox = this.$n.find( 'div.table-toolbar input[name=search]' );
+        searchBox.val( searchTerm );
         this.read(null, callback);
     },
 
@@ -291,8 +293,6 @@ gp.Controller.prototype = {
 
         var model = editor.add();
 
-        //this.invokeDelegates( gp.events.editReady, model );
-
         return editor;
 
     },
@@ -323,9 +323,7 @@ gp.Controller.prototype = {
     editRow: function ( dataItem, elem ) {
 
         var editor = this.getEditor( this.config.editmode );
-        var model = editor.edit( dataItem, elem );
-
-        //this.invokeDelegates( gp.events.editReady, model );
+        var model = editor.edit( dataItem, elem[0] );
 
         return editor;
     },
@@ -414,22 +412,21 @@ gp.Controller.prototype = {
 
     refresh: function () {
         // inject table rows, footer, pager and header style.
-        var node = this.config.node,
-            body = node.querySelector( 'div.table-body' ),
-            footer = node.querySelector( 'div.table-footer' ),
-            pager = node.querySelector( 'div.table-pager' ),
-            sortStyle = node.querySelector( 'style.sort-style' );
+        var body = this.$n.find( 'div.table-body' ),
+            footer = this.$n.find( 'div.table-footer' ),
+            pager = this.$n.find( 'div.table-pager' ),
+            sortStyle = this.$n.find( 'style.sort-style' );
 
         this.config.map.clear();
 
-        body.innerHTML = gp.templates['gridponent-body']( this.config );
+        body.html( gp.templates['gridponent-body']( this.config ) );
         if ( footer ) {
-            footer.innerHTML = gp.templates['gridponent-table-footer']( this.config );
+            footer.html( gp.templates['gridponent-table-footer']( this.config ) );
         }
         if ( pager ) {
-            pager.innerHTML = gp.templates['gridponent-pager']( this.config );
+            pager.html( gp.templates['gridponent-pager']( this.config ) );
         }
-        sortStyle.innerHTML = gp.helpers.sortStyle.call( this.config );
+        sortStyle.html( gp.helpers.sortStyle.call( this.config ) );
     },
 
     httpErrorHandler: function ( e ) {
