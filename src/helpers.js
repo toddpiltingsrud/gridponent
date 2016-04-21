@@ -45,7 +45,7 @@ gp.helpers = {
                 formGroupModel.label = gp.escapeHTML( gp.coalesce( [col.header, col.field, ''] ) );
             }
 
-            html.add( gp.templates['form-group']( formGroupModel ) );
+            html.add( gp.helpers.formGroup( formGroupModel ) );
         } );
 
         html.add( '</div>' );
@@ -79,10 +79,10 @@ gp.helpers = {
             }
         }
         else if ( col.commands && col.commands.length ) {
-            html.add( '<div class="btn-group" role="group">' );
+            html.add( '<div class="btn-group btn-group-xs" role="group">' );
             col.commands.forEach( function ( cmd, index ) {
                 if ( cmd == 'edit' && gp.hasValue( self.update ) ) {
-                    html.add( gp.templates.button( {
+                    html.add( gp.helpers.button( {
                         btnClass: 'btn-default',
                         value: cmd,
                         glyphicon: 'glyphicon-edit',
@@ -90,7 +90,7 @@ gp.helpers = {
                     } ) );
                 }
                 else if ( cmd == 'destroy' && gp.hasValue( self.destroy ) ) {
-                    html.add( gp.templates.button( {
+                    html.add( gp.helpers.button( {
                         btnClass: 'btn-danger',
                         value: 'destroy',
                         glyphicon: 'glyphicon-remove',
@@ -98,7 +98,7 @@ gp.helpers = {
                     } ) );
                 }
                 else {
-                    html.add( gp.templates.button( {
+                    html.add( gp.helpers.button( {
                         btnClass: 'btn-default',
                         value: cmd,
                         glyphicon: 'glyphicon-cog',
@@ -123,6 +123,12 @@ gp.helpers = {
         }
         return html.toString();
     },
+
+    button: function ( model, arg ) {
+        var template = '<button type="button" class="btn {{btnClass}}" value="{{value}}"><span class="glyphicon {{glyphicon}}"></span>{{text}}</button>';
+        return gp.supplant( template, model );
+    },
+
 
     columnWidthStyle: function () {
         var self = this,
@@ -195,14 +201,14 @@ gp.helpers = {
             }
         }
         else if ( col.commands ) {
-            html.add( '<div class="btn-group">' )
-                .add( gp.templates.button( {
+            html.add( '<div class="btn-group btn-group-xs">' )
+                .add( gp.helpers.button( {
                     btnClass: 'btn-primary',
                     value: ( mode == 'create' ? 'create' : 'update' ),
                     glyphicon: 'glyphicon-save',
                     text: 'Save'
                 } ) )
-                .add( '<button type="button" class="btn btn-default btn-xs" data-dismiss="modal" value="cancel">' )
+                .add( '<button type="button" class="btn btn-default" data-dismiss="modal" value="cancel">' )
                 .add( '<span class="glyphicon glyphicon-remove"></span>Cancel' )
                 .add( '</button>' )
                 .add( '</div>' );
@@ -231,6 +237,11 @@ gp.helpers = {
             }
         }
         return html.toString();
+    },
+
+    formGroup: function ( model, arg ) {
+        var template = '<div class="form-group"><label class="col-sm-4 control-label">{{label}}</label><div class="col-sm-6">{{{input}}}</div></div>';
+        return gp.supplant( template, model );
     },
 
     input: function ( type, name, value ) {

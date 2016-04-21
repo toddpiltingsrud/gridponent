@@ -40,32 +40,6 @@ gp.templates['bootstrap-modal'] = function(model, arg) {
     out.push('</div>');
     return out.join('');
 };
-gp.templates['button'] = function(model, arg) {
-    var out = [];
-    out.push('<button type="button" class="btn ');
-    out.push(model.btnClass);
-    out.push(' btn-xs" value="');
-    out.push(model.value);
-    out.push('">');
-    out.push('    <span class="glyphicon ');
-    out.push(model.glyphicon);
-    out.push('"></span>');
-    out.push(model.text);
-        out.push('</button>');
-    return out.join('');
-};
-gp.templates['form-group'] = function(model, arg) {
-    var out = [];
-    out.push('<div class="form-group">');
-    out.push('    <label class="col-sm-4 control-label">');
-    out.push(model.label);
-    out.push('</label>');
-    out.push('    <div class="col-sm-6">');
-    out.push(model.input);
-    out.push('</div>');
-    out.push('</div>');
-    return out.join('');
-};
 gp.templates['gridponent-body'] = function(model, arg) {
     var out = [];
     out.push('<table class="table" cellpadding="0" cellspacing="0">');
@@ -192,7 +166,7 @@ gp.templates['gridponent'] = function(model, arg) {
         out.push('<div class="input-group gridponent-searchbox">');
     out.push('<input type="text" name="search" class="form-control" placeholder="Search...">');
     out.push('<span class="input-group-btn">');
-    out.push('<button class="btn btn-default" type="button">');
+    out.push('<button class="btn btn-default" type="button" value="search">');
     out.push('<span class="glyphicon glyphicon-search"></span>');
     out.push('</button>');
     out.push('</span>');

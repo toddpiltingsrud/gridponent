@@ -14,4 +14,12 @@
 
     window.CustomEvent = CustomEvent;
 
-})();
+} )();
+
+
+//gp.raiseCustomEvent = function ( node, name, detail ) {
+//    var event = new CustomEvent( name, { bubbles: true, detail: detail, cancelable: true } );
+//    node.dispatchEvent( event );
+//    return event;
+//};
+
