@@ -15,7 +15,8 @@ gp.Controller = function (config, model, requestModel) {
         commandHandler: self.commandHandler.bind( self ),
         rowSelectHandler: self.rowSelectHandler.bind( self ),
         httpErrorHandler: self.httpErrorHandler.bind( self ),
-        toolbarChangeHandler: self.toolbarChangeHandler.bind( self )
+        toolbarChangeHandler: self.toolbarChangeHandler.bind( self ),
+        toolbarEnterKeyHandler: self.toolbarEnterKeyHandler.bind( self )
     };
     this.done = false;
     this.eventDelegates = {};
@@ -83,21 +84,23 @@ gp.Controller.prototype = {
         // monitor changes to search, sort, and paging
         var selector = '.table-toolbar [name], thead input, .table-pager input';
         this.$n.on( 'change', selector, this.handlers.toolbarChangeHandler );
-        this.$n.on( 'keydown', selector, this.handlers.toolbarChangeHandler );
+        this.$n.on( 'keydown', selector, this.handlers.toolbarEnterKeyHandler );
     },
 
     removeToolbarChangeHandler: function () {
         this.$n.off( 'change', this.handlers.toolbarChangeHandler );
-        this.$n.off( 'keydown', this.handlers.toolbarChangeHandler );
+        this.$n.off( 'keydown', this.handlers.toolbarEnterKeyHandler );
     },
 
-    toolbarChangeHandler: function ( evt ) {
-        // trigger change event
-        if ( evt.which == 13 ) {
+    toolbarEnterKeyHandler: function ( evt ) {
+        if ( evt.keyCode == 13 ) {
+            // trigger change event
             evt.target.blur();
             return;
         }
+    },
 
+    toolbarChangeHandler: function ( evt ) {
         var name = evt.target.name,
             val = evt.target.value,
             model = this.config.pageModel;
@@ -154,6 +157,10 @@ gp.Controller.prototype = {
             case 'delete':
             case 'destroy':
                 this.deleteRow( dataItem, elem );
+                break;
+            case 'search':
+                this.config.pageModel.search = this.config.node.querySelector( '.table-toolbar input[name=search]' ).value;
+                this.read();
                 break;
             default:
                 // look for a custom command
