@@ -235,7 +235,7 @@
         if ( Array.isArray( a ) ) {
             return 'array';
         }
-        // 'number','string','boolean','function','object'
+        // number string boolean function object
         return typeof ( a );
     };
 
@@ -357,12 +357,6 @@
         return child;
     };
 
-    gp.raiseCustomEvent = function ( node, name, detail ) {
-        var event = new CustomEvent( name, { bubbles: true, detail: detail, cancelable: true } );
-        node.dispatchEvent( event );
-        return event;
-    };
-
     gp.removeClass = function ( el, cn ) {
         if ( el instanceof NodeList ) {
             for ( var i = 0; i < el.length; i++ ) {
@@ -381,7 +375,6 @@
         timestamp: /\/Date\((\d+)\)\//,
         quoted: /^['"].+['"]$/,
         trueFalse: /true|false/i,
-        braces: /{{.+?}}/g,
         json: /^\{.*\}$|^\[.*\]$/
     };
 
@@ -402,6 +395,8 @@
             function ( a, b ) {
                 r = o[b];
                 if ( types.test( typeof r ) ) return r;
+                // models can contain functions
+                if ( typeof r === 'function' ) return gp.applyFunc( r, self, args );
                 // it's not in o, so check for a function
                 r = gp.getObjectAtPath( b );
                 return typeof r === 'function' ? gp.applyFunc( r, self, args ) : '';
@@ -412,6 +407,8 @@
             function ( a, b ) {
                 r = o[b];
                 if ( types.test( typeof r ) ) return gp.escapeHTML( r );
+                // models can contain functions
+                if ( typeof r === 'function' ) return gp.escapeHTML( gp.applyFunc( r, self, args ) );
                 // it's not in o, so check for a function
                 r = gp.getObjectAtPath( b );
                 return typeof r === 'function' ? gp.escapeHTML( gp.applyFunc( r, self, args ) ) : '';

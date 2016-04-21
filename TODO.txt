@@ -1,4 +1,19 @@
-﻿Can we isolate the controllers commandHandler from the editors? Don't like relying on differences in command value.
+﻿Add a timeout to the progress bar to make sure it gets turned off.
+
+Now the btn-group in modals is set to small.
+
+Add a colon delimiter to the commands config option so we can specify command value and button text:
+commands="Search:fns.customSearchFunction,Edit,Delete"
+
+Swap out simpler templates with helpers that use the supplant function.
+
+Test supplant against null, undefined and functions.
+
+Sometimes the request goes so fast that the progress bar doesn't really show up.
+
+Sometimes clicking a row doesn't change the style because we're navigating away from the page.
+
+Can we isolate the controllers commandHandler from the editors? Don't like relying on differences in command value.
 
 If we use buttons for pagers and links for sorting we could get rid of some markup and possibly get rid of the Controller's ChangeMonitor.
 

@@ -85,15 +85,6 @@
   background: #333;
   color: #eee;
 }
-.gp.responsive {
-  overflow: hidden;
-}
-.gp.responsive > div.table-body {
-  overflow-y: auto;
-}
-.gp.responsive > div.table-body > table {
-  min-width: 600px;
-}
 .gp.fixed-headers .table-header {
   padding-right: 17px;
 }
@@ -242,6 +233,10 @@
 .gp td input[type=radio] {
   margin-top: 0;
   margin-bottom: 0;
+}
+.gp tr.edit-mode td.body-cell,
+.gp tr.create-mode td.body-cell {
+  vertical-align: middle;
 }
 .gp tr.edit-mode td.body-cell div.btn-group,
 .gp tr.create-mode td.body-cell div.btn-group {

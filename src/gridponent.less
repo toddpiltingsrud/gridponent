@@ -100,18 +100,6 @@
         }
     }
 
-    &.responsive {
-        overflow: hidden;
-
-        & > div.table-body {
-            overflow-y: auto;
-
-            > table {
-                min-width: 600px;
-            }
-        }
-    }
-
     &.fixed-headers {
 
         .table-header {
@@ -306,6 +294,8 @@
     tr.edit-mode, tr.create-mode {
 
         td.body-cell {
+
+            vertical-align:middle;
 
             div.btn-group {
                 white-space:nowrap;
