@@ -29,6 +29,10 @@
         }
     };
 
+    gp.attr = function ( el, name ) {
+        return el.attributes[name].value;
+    };
+
     gp.camelize = function ( str ) {
         if ( gp.isNullOrEmpty( str ) ) return str;
         return str

@@ -71,61 +71,49 @@ gp.templates['gridponent-pager'] = function(model, arg) {
     out.push(gp.helpers['setPagerFlags'].call(model));
             if (model.pageModel.HasPages) {
             out.push('<div class="btn-group">');
-    out.push('        <label class="ms-page-index btn btn-default ');
+    out.push('    <button class="ms-page-index btn btn-default ');
     if (model.pageModel.IsFirstPage) {
     out.push(' disabled ');
     }
-    out.push('" title="First page">');
+    out.push('" title="First page" value="page" data-page="1">');
     out.push('<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>');
-                    if (model.pageModel.IsFirstPage == false) {
-        out.push('<input type="radio" name="page" value="1" />');
-                    }
-        out.push('</label>');
-        out.push('        <label class="ms-page-index btn btn-default ');
+    out.push('</button>');
+        out.push('    <button class="ms-page-index btn btn-default ');
     if (model.pageModel.IsFirstPage) {
     out.push(' disabled ');
     }
-    out.push('" title="Previous page">');
-    out.push('<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>');
-                    if (model.pageModel.IsFirstPage == false) {
-        out.push('                <input type="radio" name="page" value="');
+    out.push('" title="Previous page" value="page" data-page="');
     out.push(model.pageModel.PreviousPage);
-    out.push('" />');
-                    }
-        out.push('</label>');
+    out.push('">');
+    out.push('<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>');
+    out.push('</button>');
     out.push('</div>');
-    out.push('    <input type="number" name="page" value="');
+    out.push('<input type="number" name="page" value="');
     out.push(model.pageModel.page);
     out.push('" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />');
     out.push('<span class="page-count">');
-    out.push('        of ');
+    out.push('    of ');
     out.push(model.pageModel.pagecount);
         out.push('</span>');
     out.push('<div class="btn-group">');
-    out.push('        <label class="ms-page-index btn btn-default ');
+    out.push('    <button class="ms-page-index btn btn-default ');
     if (model.pageModel.IsLastPage) {
     out.push(' disabled ');
     }
-    out.push('" title="Next page">');
-    out.push('<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>');
-                    if (model.pageModel.IsLastPage == false) {
-        out.push('            <input type="radio" name="page" value="');
+    out.push('" title="Next page" value="page" data-page="');
     out.push(model.pageModel.NextPage);
-    out.push('" />');
-                    }
-        out.push('</label>');
-        out.push('        <label class="ms-page-index btn btn-default ');
+    out.push('">');
+    out.push('<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>');
+    out.push('</button>');
+        out.push('    <button class="ms-page-index btn btn-default ');
     if (model.pageModel.IsLastPage) {
     out.push(' disabled ');
     }
-    out.push('" title="Last page">');
-    out.push('<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>');
-                    if (model.pageModel.IsLastPage == false) {
-        out.push('            <input type="radio" name="page" value="');
+    out.push('" title="Last page" value="page" data-page="');
     out.push(model.pageModel.pagecount);
-    out.push('" />');
-                    }
-        out.push('</label>');
+    out.push('">');
+    out.push('<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>');
+    out.push('</button>');
     out.push('</div>');
     }
             return out.join('');

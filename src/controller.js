@@ -147,7 +147,7 @@ gp.Controller.prototype = {
             node = this.config.node,
             elem = gp.closest( evt.selectedTarget, 'tr[data-uid],div.modal', node ),
             dataItem = elem ? this.config.map.get( elem ) : null,
-            command = evt.selectedTarget.attributes['value'].value;
+            command = gp.attr( evt.selectedTarget, 'value');
 
         if ( gp.hasValue( command ) ) lower = command.toLowerCase();
 
@@ -162,6 +162,11 @@ gp.Controller.prototype = {
             case 'delete':
             case 'destroy':
                 this.deleteRow( dataItem, elem );
+                break;
+            case 'page':
+                var page = gp.attr( evt.selectedTarget, 'data-page' );
+                this.config.pageModel.page = parseInt( page );
+                this.read();
                 break;
             case 'search':
                 this.config.pageModel.search = this.config.node.querySelector( '.table-toolbar input[name=search]' ).value;

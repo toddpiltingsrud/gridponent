@@ -58,6 +58,7 @@
       <DependentUpon>Out.tt</DependentUpon>
     </Content>
     <Content Include="spec\OutSource.txt" />
+    <Content Include="spec\scripts\custom-event-polyfill.js" />
     <Content Include="spec\styles\bootstrap-theme.css" />
     <Content Include="spec\styles\bootstrap-theme.min.css" />
     <Content Include="src\datamap.js" />

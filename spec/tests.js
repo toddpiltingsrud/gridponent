@@ -364,15 +364,18 @@ QUnit.test( 'paging', function ( assert ) {
         // find the ProductNumber column
         var productNumber1 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).innerHTML;
 
-        var btn = api.find( '[title="Next page"] input' );
+        var pageNumber1 = api.config.pageModel.page;
 
-        btn.checked = true;
+        var btn = api.find( 'button[title="Next page"]' );
 
-        changeInput( btn );
+        clickButton( btn );
 
         var productNumber2 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).innerHTML;
 
+        var pageNumber2 = api.config.pageModel.page;
+
         assert.notStrictEqual( productNumber1, productNumber2, 'paging should change the contents of the grid to the next set' );
+        assert.notStrictEqual( pageNumber1, pageNumber2, 'paging should change the contents of the grid to the next set' );
 
 
         // search
@@ -1466,7 +1469,7 @@ QUnit.test( 'ChangeMonitor.beforeSync', function ( assert ) {
 
         sortInput.checked = true;
 
-        gp.raiseCustomEvent( sortInput, 'change' );
+        changeInput( sortInput );
 
         assert.equal( config.pageModel.desc, false );
 
@@ -1476,7 +1479,7 @@ QUnit.test( 'ChangeMonitor.beforeSync', function ( assert ) {
 
         sortInput.checked = true;
 
-        gp.raiseCustomEvent( sortInput, 'change' );
+        changeInput( sortInput );
 
         assert.equal( config.pageModel.desc, true );
 
