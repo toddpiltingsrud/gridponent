@@ -242,43 +242,57 @@ var configuration = {
 
 fns.model = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
 
-QUnit.test( 'Initializer.resolveCommands', function ( assert ) {
+if ( gp.node ) {
 
-    var fn = gp.Initializer.prototype.resolveCommands;
+    QUnit.test( 'gp.node', function ( assert ) {
 
-    var col = {
-        commands: 'Search:fns.customSearchFunction,Edit,Delete,Filter:fns.filter:btn-primary,Add:fns.addItem:btn-primary:glyphicon-plus'
-    };
+        var tr = gp.node()
+            .create( 'tr' )
+            .attr( 'data-index', 0 )
+            .create( 'td' )
+            .addClass( 'body-cell' )
+            .html( 'cell 1' )
+            .parent()
+            .create( 'td' )
+            .addClass( 'body-cell' )
+            .html( 'cell 2' )
+            .root();
 
-    fn( [col] );
+        assert.ok( tr.elem instanceof HTMLTableRowElement );
+        assert.strictEqual( tr.attr( 'data-index' ), '0' );
+        assert.ok( tr.find( 'td:nth-child(1)' ).elem instanceof HTMLTableCellElement );
+        assert.ok( tr.find( 'td:nth-child(1)' ).hasClass( 'body-cell' ) );
+        assert.equal( tr.find( 'td:nth-child(1)' ).html(), 'cell 1' );
+        assert.ok( tr.find( 'td:nth-child(2)' ).elem instanceof HTMLTableCellElement );
+        assert.ok( tr.find( 'td:nth-child(2)' ).hasClass( 'body-cell' ) );
+        assert.equal( tr.find( 'td:nth-child(2)' ).html(), 'cell 2' );
 
-    assert.equal( col.commands[0].text, 'Search' );
-    assert.equal( col.commands[0].value, 'fns.customSearchFunction' );
-    assert.equal( col.commands[0].btnClass, 'btn-default' );
-    assert.equal( col.commands[0].glyphicon, 'glyphicon-cog' );
+        var td = tr.find( 'td' );
+        var td2 = td.create( 'div' ).closest( 'td' );
 
-    assert.equal( col.commands[1].text, 'Edit' );
-    assert.equal( col.commands[1].value, 'Edit' );
-    assert.equal( col.commands[1].btnClass, 'btn-default' );
-    assert.equal( col.commands[1].glyphicon, 'glyphicon-edit' );
+        assert.strictEqual( td.elem, td2.elem );
 
-    assert.equal( col.commands[2].text, 'Delete' );
-    assert.equal( col.commands[2].value, 'Delete' );
-    assert.equal( col.commands[2].btnClass, 'btn-danger' );
-    assert.equal( col.commands[2].glyphicon, 'glyphicon-remove' );
+        var cls = td.disable().hasClass( 'disabled' );
+        assert.ok( cls );
 
-    assert.equal( col.commands[3].text, 'Filter' );
-    assert.equal( col.commands[3].value, 'fns.filter' );
-    assert.equal( col.commands[3].btnClass, 'btn-primary' );
-    assert.equal( col.commands[3].glyphicon, 'glyphicon-cog' );
+        cls = td.attr( 'disabled' );
+        assert.equal( cls, 'disabled' );
 
-    assert.equal( col.commands[4].text, 'Add' );
-    assert.equal( col.commands[4].value, 'fns.addItem' );
-    assert.equal( col.commands[4].btnClass, 'btn-primary' );
-    assert.equal( col.commands[4].glyphicon, 'glyphicon-plus' );
+        cls = td.enable().hasClass( 'disabled' );
 
-} );
+        assert.ok( cls == false );
 
+        cls = td.attr( 'disabled' );
+
+        assert.ok( cls == undefined );
+
+        var attr = td.disable().attributes();
+
+        assert.ok( attr.disabled === 'disabled' );
+
+    } );
+
+}
 
 QUnit.test( 'busy class', function ( assert ) {
 

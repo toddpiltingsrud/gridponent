@@ -1396,8 +1396,6 @@ gp.helpers = {
             template,
             format,
             val,
-            glyphicon,
-            btnClass,
             hasDeleteBtn = false,
             dataItem = dataItem || this.Row,
             type = ( col.Type || '' ).toLowerCase(),
@@ -1419,8 +1417,32 @@ gp.helpers = {
         else if ( col.commands && col.commands.length ) {
             html.add( '<div class="btn-group btn-group-xs" role="group">' );
             col.commands.forEach( function ( cmd, index ) {
-                html.add( gp.helpers.button( cmd ) );
+                if ( cmd == 'edit' && gp.hasValue( self.update ) ) {
+                    html.add( gp.helpers.button( {
+                        btnClass: 'btn-default',
+                        value: cmd,
+                        glyphicon: 'glyphicon-edit',
+                        text: 'Edit'
+                    } ) );
+                }
+                else if ( cmd == 'destroy' && gp.hasValue( self.destroy ) ) {
+                    html.add( gp.helpers.button( {
+                        btnClass: 'btn-danger',
+                        value: 'destroy',
+                        glyphicon: 'glyphicon-remove',
+                        text: 'Delete'
+                    } ) );
+                }
+                else {
+                    html.add( gp.helpers.button( {
+                        btnClass: 'btn-default',
+                        value: cmd,
+                        glyphicon: 'glyphicon-cog',
+                        text: cmd
+                    } ) );
+                }
             } );
+
             html.add( '</div>' );
         }
         else if ( gp.hasValue( val ) ) {
@@ -1730,7 +1752,6 @@ gp.Initializer.prototype = {
                         gp.shallowCopy( data, self.config.pageModel, true );
                         //self.config.pageModel = data;
                         self.resolveTypes( self.config );
-                        self.resolveCommands( self.config.columns );
                         self.render( self.config );
                         controller.init();
                         if ( typeof callback === 'function' ) callback( self.config );
@@ -1771,8 +1792,10 @@ gp.Initializer.prototype = {
             colNode = gpColumns[i];
             colConfig = gp.getAttributes(colNode);
             config.columns.push(colConfig);
+            this.resolveCommands(colConfig);
             this.resolveTemplates( templates, colConfig, colNode );
         }
+
 
         // resolve the top level configurations
         var options = 'rowselected searchfunction read create update destroy validate model'.split(' ');
@@ -1895,23 +1918,10 @@ gp.Initializer.prototype = {
         } );
     },
 
-    resolveCommands: function ( columns ) {
-        var match, val, commands;
-        columns.forEach( function ( col ) {
-            if ( typeof col.commands == 'string' ) {
-                commands = [];
-                col.commands.split( ',' ).forEach( function ( cmd ) {
-                    match = cmd.split(':');
-                    commands.push( {
-                        text: match[0],
-                        value: match[1] || match[0],
-                        btnClass: match[2] || (match[0] == 'Delete' ? 'btn-danger' : 'btn-default'),
-                        glyphicon: match[3] || ( match[0] == 'Delete' ? 'glyphicon-remove' : ( match[0] == 'Edit' ? 'glyphicon-edit' : 'glyphicon-cog' ) ),
-                    } );
-                } );
-                col.commands = commands;
-            }
-        } );
+    resolveCommands: function (col) {
+        if ( typeof col.commands == 'string' ) {
+            col.commands = col.commands.split( ',' );
+        }
     },
 
     resolveTypes: function ( config ) {
@@ -3064,7 +3074,7 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
     };
 
     gp.getObjectAtPath = function ( path, root ) {
-        if ( !path ) return path;
+        if ( !path ) return;
 
         path = Array.isArray( path ) ? path : path.match( gp.rexp.splitPath );
 
