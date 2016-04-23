@@ -3079,7 +3079,7 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
     };
 
     gp.getObjectAtPath = function ( path, root ) {
-        if ( !path ) return;
+        if ( !path ) return path;
 
         path = Array.isArray( path ) ? path : path.match( gp.rexp.splitPath );
 
