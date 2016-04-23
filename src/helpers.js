@@ -7,7 +7,7 @@ gp.helpers = {
     bootstrapModal: function ( config, dataItem, mode ) {
 
         var model = {
-            title: (mode == 'create' ? 'Add' : 'Edit'),
+            title: ( mode == 'create' ? 'Add' : 'Edit' ),
             body: '',
             footer: null
         };
@@ -60,6 +60,8 @@ gp.helpers = {
             template,
             format,
             val,
+            glyphicon,
+            btnClass,
             hasDeleteBtn = false,
             dataItem = dataItem || this.Row,
             type = ( col.Type || '' ).toLowerCase(),
@@ -81,32 +83,8 @@ gp.helpers = {
         else if ( col.commands && col.commands.length ) {
             html.add( '<div class="btn-group btn-group-xs" role="group">' );
             col.commands.forEach( function ( cmd, index ) {
-                if ( cmd == 'edit' && gp.hasValue( self.update ) ) {
-                    html.add( gp.helpers.button( {
-                        btnClass: 'btn-default',
-                        value: cmd,
-                        glyphicon: 'glyphicon-edit',
-                        text: 'Edit'
-                    } ) );
-                }
-                else if ( cmd == 'destroy' && gp.hasValue( self.destroy ) ) {
-                    html.add( gp.helpers.button( {
-                        btnClass: 'btn-danger',
-                        value: 'destroy',
-                        glyphicon: 'glyphicon-remove',
-                        text: 'Delete'
-                    } ) );
-                }
-                else {
-                    html.add( gp.helpers.button( {
-                        btnClass: 'btn-default',
-                        value: cmd,
-                        glyphicon: 'glyphicon-cog',
-                        text: cmd
-                    } ) );
-                }
+                html.add( gp.helpers.button( cmd ) );
             } );
-
             html.add( '</div>' );
         }
         else if ( gp.hasValue( val ) ) {
@@ -221,7 +199,7 @@ gp.helpers = {
             //if ( val === null ) val = '';
             // render undefined/null as empty string
             if ( !gp.hasValue( val ) ) val = '';
-            html.add( gp.helpers.input( col.Type, col.field, gp.escapeHTML( val )) );
+            html.add( gp.helpers.input( col.Type, col.field, gp.escapeHTML( val ) ) );
         }
         return html.toString();
     },

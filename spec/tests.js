@@ -26,7 +26,7 @@ var clickButton = function ( btn ) {
         'cancelable': true
     } );
 
-    $(btn)[0].dispatchEvent( evt );
+    $( btn )[0].dispatchEvent( evt );
 
 };
 
@@ -66,7 +66,7 @@ fns.searchFilter = function ( dataItem, search ) {
 
 fns.getHeaderText = function ( col ) {
     return col.toString();
-}; 
+};
 
 var configOptions = {
     fixedheaders: false,
@@ -111,7 +111,7 @@ var getTableConfig = function ( options, callback ) {
     out.push( '             pager="top-right"' );
     out.push( '             search="top-left">' );
     if ( options.toolbartemplate )
-    out.push( '    <script type="text/html" data-template="toolbar"><button class="btn" value="xyz"></button></script>' );
+        out.push( '    <script type="text/html" data-template="toolbar"><button class="btn" value="xyz"></button></script>' );
     out.push( '    <gp-column>' );
     out.push( '        <script type="text/html" data-template="header body edit footer"><input type="checkbox" name="test" /></script>' );
     out.push( '    </gp-column>' );
@@ -158,7 +158,7 @@ var getTableConfig = function ( options, callback ) {
 
 var getValidationErrors = function () {
     return {
-        "Name":{
+        "Name": {
             "errors": [
                 "Required"
             ]
@@ -242,57 +242,43 @@ var configuration = {
 
 fns.model = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
 
-if ( gp.node ) {
+QUnit.test( 'Initializer.resolveCommands', function ( assert ) {
 
-    QUnit.test( 'gp.node', function ( assert ) {
+    var fn = gp.Initializer.prototype.resolveCommands;
 
-        var tr = gp.node()
-            .create( 'tr' )
-            .attr( 'data-index', 0 )
-            .create( 'td' )
-            .addClass( 'body-cell' )
-            .html( 'cell 1' )
-            .parent()
-            .create( 'td' )
-            .addClass( 'body-cell' )
-            .html( 'cell 2' )
-            .root();
+    var col = {
+        commands: 'Search:fns.customSearchFunction,Edit,Delete,Filter:fns.filter:btn-primary,Add:fns.addItem:btn-primary:glyphicon-plus'
+    };
 
-        assert.ok( tr.elem instanceof HTMLTableRowElement );
-        assert.strictEqual( tr.attr( 'data-index' ), '0' );
-        assert.ok( tr.find( 'td:nth-child(1)' ).elem instanceof HTMLTableCellElement );
-        assert.ok( tr.find( 'td:nth-child(1)' ).hasClass( 'body-cell' ) );
-        assert.equal( tr.find( 'td:nth-child(1)' ).html(), 'cell 1' );
-        assert.ok( tr.find( 'td:nth-child(2)' ).elem instanceof HTMLTableCellElement );
-        assert.ok( tr.find( 'td:nth-child(2)' ).hasClass( 'body-cell' ) );
-        assert.equal( tr.find( 'td:nth-child(2)' ).html(), 'cell 2' );
+    fn( [col] );
 
-        var td = tr.find( 'td' );
-        var td2 = td.create( 'div' ).closest( 'td' );
+    assert.equal( col.commands[0].text, 'Search' );
+    assert.equal( col.commands[0].value, 'fns.customSearchFunction' );
+    assert.equal( col.commands[0].btnClass, 'btn-default' );
+    assert.equal( col.commands[0].glyphicon, 'glyphicon-cog' );
 
-        assert.strictEqual( td.elem, td2.elem );
+    assert.equal( col.commands[1].text, 'Edit' );
+    assert.equal( col.commands[1].value, 'Edit' );
+    assert.equal( col.commands[1].btnClass, 'btn-default' );
+    assert.equal( col.commands[1].glyphicon, 'glyphicon-edit' );
 
-        var cls = td.disable().hasClass( 'disabled' );
-        assert.ok( cls );
+    assert.equal( col.commands[2].text, 'Delete' );
+    assert.equal( col.commands[2].value, 'Delete' );
+    assert.equal( col.commands[2].btnClass, 'btn-danger' );
+    assert.equal( col.commands[2].glyphicon, 'glyphicon-remove' );
 
-        cls = td.attr( 'disabled' );
-        assert.equal( cls, 'disabled' );
+    assert.equal( col.commands[3].text, 'Filter' );
+    assert.equal( col.commands[3].value, 'fns.filter' );
+    assert.equal( col.commands[3].btnClass, 'btn-primary' );
+    assert.equal( col.commands[3].glyphicon, 'glyphicon-cog' );
 
-        cls = td.enable().hasClass( 'disabled' );
+    assert.equal( col.commands[4].text, 'Add' );
+    assert.equal( col.commands[4].value, 'fns.addItem' );
+    assert.equal( col.commands[4].btnClass, 'btn-primary' );
+    assert.equal( col.commands[4].glyphicon, 'glyphicon-plus' );
 
-        assert.ok( cls == false );
+} );
 
-        cls = td.attr( 'disabled' );
-
-        assert.ok( cls == undefined );
-
-        var attr = td.disable().attributes();
-
-        assert.ok( attr.disabled === 'disabled' );
-
-    } );
-
-}
 
 QUnit.test( 'busy class', function ( assert ) {
 
@@ -305,18 +291,18 @@ QUnit.test( 'busy class', function ( assert ) {
     options.onread = 'fns.afterRead';
 
     fns.beforeRead = function () {
-        var hasClass = $( this.config.node ).hasClass( 'busy' );
+        var hasClass = gp.hasClass( this.config.node, 'busy' );
         assert.equal( hasClass, true );
         done1();
     };
 
     fns.afterRead = function () {
-        var hasClass = $( this.config.node ).hasClass( 'busy' );
+        var hasClass = gp.hasClass( this.config.node, 'busy' );
         assert.equal( hasClass, false );
         done2();
     };
 
-    getTableConfig( options, function ( api ) {} );
+    getTableConfig( options, function ( api ) { } );
 
 } );
 
@@ -478,7 +464,7 @@ QUnit.test( 'ModalEditor', function ( assert ) {
             done1();
         } );
 
-        editor.edit(dataItem);
+        editor.edit( dataItem );
 
         editor.save( function ( updateModel ) {
 
@@ -503,7 +489,7 @@ QUnit.test( 'ModalEditor', function ( assert ) {
 
         // not try it with a custom validate function
 
-        config.validate = function (elem, updateModel) {
+        config.validate = function ( elem, updateModel ) {
 
             assert.ok( elem != null, 'elem should be the modal' );
             assert.ok( updateModel != null, 'validate should return an updateModel' );
@@ -555,7 +541,7 @@ QUnit.test( 'helpers.input', function ( assert ) {
 
     input = gp.helpers.input( 'date', 'Date', d );
 
-    assert.equal( input, '<input type="text" name="Date" value="'+s+'" class="form-control" data-type="date" />' );
+    assert.equal( input, '<input type="text" name="Date" value="' + s + '" class="form-control" data-type="date" />' );
 
     input = gp.helpers.input( 'datestring', 'Date', '2016-04-03' );
 
@@ -723,7 +709,7 @@ QUnit.test( 'read', function ( assert ) {
 
     // read with a function
 
-    fns.read = function (model, callback) {
+    fns.read = function ( model, callback ) {
         callback( data.products );
         assert.ok( true, 'read can be a function' )
         done2();
@@ -731,7 +717,7 @@ QUnit.test( 'read', function ( assert ) {
 
     options.read = 'fns.read';
 
-    getTableConfig( options, function ( api ) {} );
+    getTableConfig( options, function ( api ) { } );
 
 
     // read with an array
@@ -759,7 +745,7 @@ QUnit.test( 'commandHandler', function ( assert ) {
 
         var controller = api.controller;
 
-        var addBtn = api.find('[value=AddRow]');
+        var addBtn = api.find( '[value=AddRow]' );
 
         clickButton( addBtn );
 
@@ -785,7 +771,7 @@ QUnit.test( 'commandHandler', function ( assert ) {
 
         assert.ok( editRow == null, 'clicking cancel should remove the dataItem' );
 
-        var destroyBtn = api.find('[value=destroy]')
+        var destroyBtn = api.find( '[value=destroy]' )
 
         clickButton( destroyBtn );
 
@@ -808,7 +794,7 @@ QUnit.test( 'handleEnterKey', function ( assert ) {
         var controller = config.node.api.controller;
 
         var evt = {
-            which: 13,
+            keyCode: 13,
             target: {
                 blur: function () {
 
@@ -819,7 +805,7 @@ QUnit.test( 'handleEnterKey', function ( assert ) {
             }
         };
 
-        controller.toolbarChangeHandler( evt );
+        controller.toolbarEnterKeyHandler( evt );
 
     } );
 
@@ -1030,7 +1016,7 @@ QUnit.test( 'api.refresh', function ( assert ) {
 
             assert.equal( productNumber, data.products[0].ProductNumber, 'product number should equal the second dataItem in the table' );
 
-            data.products.push(firstRow);
+            data.products.push( firstRow );
 
             done();
 
@@ -1089,7 +1075,7 @@ QUnit.test( 'getDefaultValue', function ( assert ) {
     var defaultVal = gp.getDefaultValue( type );
 
     assert.strictEqual( defaultVal, 0 );
-    
+
     type = gp.getType( new Date() );
 
     defaultVal = gp.getDefaultValue( type );
@@ -1137,7 +1123,7 @@ QUnit.test( 'refresh-event', function ( assert ) {
             // remove the event handler
             config.node.api.controller.removeRefreshEventHandler( config );
             done1();
-            $( '#table .box' ).empty( );
+            $( '#table .box' ).empty();
         }
     };
 
@@ -1211,7 +1197,7 @@ QUnit.test( 'api.create 3', function ( assert ) {
 
 QUnit.test( 'api.ready', function ( assert ) {
 
-        var done = assert.async();
+    var done = assert.async();
 
     getTableConfig( configOptions, function ( api ) {
 
@@ -1327,46 +1313,46 @@ QUnit.test( 'api.sort', function ( assert ) {
 
         var config = api.config;
 
-            $( '#table .box' ).append( config.node );
+        $( '#table .box' ).append( config.node );
 
-            // since sorting is false, we should have only a couple columns where sorting is enabled
-            // iterate through the columns to find an explicit sort configuration
-            config.columns.forEach( function ( col, index ) {
+        // since sorting is false, we should have only a couple columns where sorting is enabled
+        // iterate through the columns to find an explicit sort configuration
+        config.columns.forEach( function ( col, index ) {
 
-                var sortAttribute = $( config.node ).find( 'thead th[data-sort]:nth-child(' + ( index + 1 ) + ')' ).attr( 'data-sort' );
+            var sortAttribute = $( config.node ).find( 'thead th[data-sort]:nth-child(' + ( index + 1 ) + ')' ).attr( 'data-sort' );
 
-                if ( col.sort ) {
-                    assert.strictEqual( sortAttribute, col.sort, 'there should be a sort header' );
-                }
-                else {
-                    assert.strictEqual( sortAttribute, '', 'there should NOT be a sort header' );
-                }
+            if ( col.sort ) {
+                assert.strictEqual( sortAttribute, col.sort, 'there should be a sort header' );
+            }
+            else {
+                assert.strictEqual( sortAttribute, '', 'there should NOT be a sort header' );
+            }
 
-            } );
+        } );
 
 
-            // trigger an initial sort to make sure this column is sorted 
-            config.node.api.sort( 'Name', false );
+        // trigger an initial sort to make sure this column is sorted 
+        config.node.api.sort( 'Name', false );
 
-            // take note of the content of the column before sorting
-            var content1 = api.find( 'tr[data-uid]:first-child td:nth-child(2)' ).innerHTML;
+        // take note of the content of the column before sorting
+        var content1 = api.find( 'tr[data-uid]:first-child td:nth-child(2)' ).innerHTML;
 
-            // trigger another sort
-            config.node.api.sort( 'Name', true );
+        // trigger another sort
+        config.node.api.sort( 'Name', true );
 
-            // take note of the content of the column after sorting
-            var content2 = api.find( 'tr[data-uid]:first-child td:nth-child(2)' ).innerHTML;
+        // take note of the content of the column after sorting
+        var content2 = api.find( 'tr[data-uid]:first-child td:nth-child(2)' ).innerHTML;
 
-            assert.notStrictEqual( content1, content2, 'sorting should change the order' );
+        assert.notStrictEqual( content1, content2, 'sorting should change the order' );
 
-            config.node.api.sort( 'Name', false );
+        config.node.api.sort( 'Name', false );
 
-            // take note of the content of the column after sorting
-            content2 = api.find( 'tr[data-uid]:first-child td:nth-child(2)' ).innerHTML;
+        // take note of the content of the column after sorting
+        content2 = api.find( 'tr[data-uid]:first-child td:nth-child(2)' ).innerHTML;
 
-            assert.strictEqual( content1, content2, 'sorting again should change it back' );
+        assert.strictEqual( content1, content2, 'sorting again should change it back' );
 
-            done();
+        done();
 
     } );
 
@@ -1427,7 +1413,7 @@ QUnit.test( 'api.destroy', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        dataItem = api.getData(0);
+        dataItem = api.getData( 0 );
 
         api.destroy( dataItem, function ( dataItem ) {
             var index = api.getData().indexOf( dataItem );
@@ -1442,7 +1428,7 @@ QUnit.test( 'api.destroy', function ( assert ) {
     options.destroy = null;
     var done3 = assert.async();
 
-    getTableConfig( options, function (api) {
+    getTableConfig( options, function ( api ) {
 
         dataItem = api.getData( 0 );
 
@@ -2198,7 +2184,7 @@ QUnit.test( 'gp.helpers.footerCell', function ( assert ) {
 
         var result = gp.supplant( template, config.columns[0], [config.columns[0], data.products] );
 
-        assert.equal(result, '<b>10</b>')
+        assert.equal( result, '<b>10</b>' )
 
         done2();
 
@@ -2451,7 +2437,7 @@ QUnit.test( 'date formatting', function ( assert ) {
     assert.equal( formatted, '12/7/2015' );
 
     formatted = formatter.format( date, 'MMMM DD, YY' );
-    assert.equal( formatted, 'December 06, 15');
+    assert.equal( formatted, 'December 06, 15' );
 
     formatted = formatter.format( date, 'MMM D, YY' );
     assert.equal( formatted, 'Dec 6, 15' );
@@ -2531,7 +2517,7 @@ QUnit.test( 'gp.createUID', function ( assert ) {
 
     for ( var i = 0; i < 100; i++ ) {
         id = gp.createUID();
-        assert.ok( !(id in ids) );
+        assert.ok( !( id in ids ) );
         ids[id] = 1;
     }
 

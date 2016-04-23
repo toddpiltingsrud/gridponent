@@ -43,6 +43,7 @@ gp.Initializer.prototype = {
                         gp.shallowCopy( data, self.config.pageModel, true );
                         //self.config.pageModel = data;
                         self.resolveTypes( self.config );
+                        self.resolveCommands( self.config.columns );
                         self.render( self.config );
                         controller.init();
                         if ( typeof callback === 'function' ) callback( self.config );
@@ -63,7 +64,7 @@ gp.Initializer.prototype = {
         return this.config;
     },
 
-    getConfig: function (parentNode) {
+    getConfig: function ( parentNode ) {
         var self = this,
             obj,
             colNode,
@@ -81,18 +82,16 @@ gp.Initializer.prototype = {
         templates = 'header body edit footer'.split( ' ' );
         for ( var i = 0; i < gpColumns.length; i++ ) {
             colNode = gpColumns[i];
-            colConfig = gp.getAttributes(colNode);
-            config.columns.push(colConfig);
-            this.resolveCommands(colConfig);
+            colConfig = gp.getAttributes( colNode );
+            config.columns.push( colConfig );
             this.resolveTemplates( templates, colConfig, colNode );
         }
 
-
         // resolve the top level configurations
-        var options = 'rowselected searchfunction read create update destroy validate model'.split(' ');
+        var options = 'rowselected searchfunction read create update destroy validate model'.split( ' ' );
         options.forEach( function ( option ) {
 
-            if ( gp.hasValue(config[option]) ) {
+            if ( gp.hasValue( config[option] ) ) {
                 // see if this config option points to an object
                 // otherwise it must be a URL
                 obj = gp.getObjectAtPath( config[option] );
@@ -177,14 +176,14 @@ gp.Initializer.prototype = {
         }
     },
 
-    syncColumnWidths: function (config) {
+    syncColumnWidths: function ( config ) {
         var html = gp.helpers.columnWidthStyle.call( config );
         config.node.querySelector( 'style.column-width-style' ).innerHTML = html;
     },
 
-    resolveFooter: function (config) {
-        for (var i = 0; i < config.columns.length; i++) {
-            if (config.columns[i].footertemplate) return true;
+    resolveFooter: function ( config ) {
+        for ( var i = 0; i < config.columns.length; i++ ) {
+            if ( config.columns[i].footertemplate ) return true;
         }
         return false;
     },
@@ -209,10 +208,23 @@ gp.Initializer.prototype = {
         } );
     },
 
-    resolveCommands: function (col) {
-        if ( typeof col.commands == 'string' ) {
-            col.commands = col.commands.split( ',' );
-        }
+    resolveCommands: function ( columns ) {
+        var match, val, commands;
+        columns.forEach( function ( col ) {
+            if ( typeof col.commands == 'string' ) {
+                commands = [];
+                col.commands.split( ',' ).forEach( function ( cmd ) {
+                    match = cmd.split( ':' );
+                    commands.push( {
+                        text: match[0],
+                        value: match[1] || match[0],
+                        btnClass: match[2] || ( match[0] == 'Delete' ? 'btn-danger' : 'btn-default' ),
+                        glyphicon: match[3] || ( match[0] == 'Delete' ? 'glyphicon-remove' : ( match[0] == 'Edit' ? 'glyphicon-edit' : 'glyphicon-cog' ) ),
+                    } );
+                } );
+                col.commands = commands;
+            }
+        } );
     },
 
     resolveTypes: function ( config ) {
