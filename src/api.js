@@ -32,23 +32,6 @@ gp.api = function ( controller ) {
 
 gp.api.prototype = {
 
-
-
-    beforeEdit: function ( callback ) {
-        this.controller.addDelegate( gp.events.beforeEdit, callback );;
-        return this;
-    },
-
-    beforeInit: function ( callback ) {
-        this.controller.addDelegate( gp.events.beforeInit, callback );;
-        return this;
-    },
-
-    beforeRead: function ( callback ) {
-        this.controller.addDelegate( gp.events.beforeRead, callback );;
-        return this;
-    },
-
     create: function ( dataItem, callback ) {
         var model = this.controller.addRow( dataItem );
         if ( model != null ) this.controller.createRow( dataItem, model.elem, callback );
@@ -61,11 +44,6 @@ gp.api.prototype = {
 
     dispose: function () {
         this.controller.dispose();
-    },
-
-    editReady: function ( callback ) {
-        this.controller.addDelegate( gp.events.editReady, callback );;
-        return this;
     },
 
     find: function ( selector ) {
@@ -89,28 +67,8 @@ gp.api.prototype = {
         );
     },
 
-    httpError: function ( callback ) {
-        this.controller.addDelegate( gp.events.httpError, callback );;
-        return this;
-    },
-
-    onEdit: function ( callback ) {
-        this.controller.addDelegate( gp.events.onEdit, callback );;
-        return this;
-    },
-
-    onRead: function ( callback ) {
-        this.controller.addDelegate( gp.events.onRead, callback );;
-        return this;
-    },
-
     read: function ( requestModel, callback ) {
         this.controller.read( requestModel, callback );
-    },
-
-    ready: function ( callback ) {
-        this.controller.ready( callback );
-        return this;
     },
 
     refresh: function ( callback ) {
@@ -136,6 +94,20 @@ gp.api.prototype = {
 
     update: function ( dataItem, done ) {
         this.controller.updateRow( dataItem, done );
-    },
+    }
 
+};
+
+Object.getOwnPropertyNames( gp.events ).forEach( function ( evt ) {
+
+    gp.api.prototype[evt] = function (callback) {
+        this.controller.addDelegate( gp.events[evt], callback );;
+        return this;
+    };
+
+} );
+
+gp.qpi.prototype.ready = function ( callback ) {
+    this.controller.ready( callback );
+    return this;
 };
