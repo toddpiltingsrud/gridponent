@@ -110,6 +110,7 @@
     gp.disable = function ( elem, seconds ) {
         elem.setAttribute( 'disabled', 'disabled' );
         gp.addClass( elem, 'disabled' );
+        gp.addClass( elem, 'busy' );
         if ( typeof seconds == 'number' && seconds > 0 ) {
             setTimeout( function () {
                 gp.enable( elem );
@@ -120,6 +121,7 @@
     gp.enable = function ( elem ) {
         elem.removeAttribute( 'disabled' );
         gp.removeClass( elem, 'disabled' );
+        gp.removeClass( elem, 'busy' );
     };
 
     var chars = [/&/g, /</g, />/g, /"/g, /'/g, /`/g];
@@ -186,7 +188,7 @@
     };
 
     gp.getObjectAtPath = function ( path, root ) {
-        if ( !path ) return;
+        if ( !path ) return path;
 
         path = Array.isArray( path ) ? path : path.match( gp.rexp.splitPath );
 

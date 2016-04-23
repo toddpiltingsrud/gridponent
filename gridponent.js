@@ -227,7 +227,8 @@ gp.Controller = function (config, model, requestModel) {
         commandHandler: self.commandHandler.bind( self ),
         rowSelectHandler: self.rowSelectHandler.bind( self ),
         httpErrorHandler: self.httpErrorHandler.bind( self ),
-        toolbarChangeHandler: self.toolbarChangeHandler.bind( self )
+        toolbarChangeHandler: self.toolbarChangeHandler.bind( self ),
+        toolbarEnterKeyHandler: self.toolbarEnterKeyHandler.bind( self )
     };
     this.done = false;
     this.eventDelegates = {};
@@ -295,21 +296,23 @@ gp.Controller.prototype = {
         // monitor changes to search, sort, and paging
         var selector = '.table-toolbar [name], thead input, .table-pager input';
         this.$n.on( 'change', selector, this.handlers.toolbarChangeHandler );
-        this.$n.on( 'keydown', selector, this.handlers.toolbarChangeHandler );
+        this.$n.on( 'keydown', selector, this.handlers.toolbarEnterKeyHandler );
     },
 
     removeToolbarChangeHandler: function () {
         this.$n.off( 'change', this.handlers.toolbarChangeHandler );
-        this.$n.off( 'keydown', this.handlers.toolbarChangeHandler );
+        this.$n.off( 'keydown', this.handlers.toolbarEnterKeyHandler );
     },
 
-    toolbarChangeHandler: function ( evt ) {
-        // trigger change event
-        if ( evt.which == 13 ) {
+    toolbarEnterKeyHandler: function ( evt ) {
+        if ( evt.keyCode == 13 ) {
+            // trigger change event
             evt.target.blur();
             return;
         }
+    },
 
+    toolbarChangeHandler: function ( evt ) {
         var name = evt.target.name,
             val = evt.target.value,
             model = this.config.pageModel;
@@ -366,6 +369,10 @@ gp.Controller.prototype = {
             case 'delete':
             case 'destroy':
                 this.deleteRow( dataItem, elem );
+                break;
+            case 'search':
+                this.config.pageModel.search = this.config.node.querySelector( '.table-toolbar input[name=search]' ).value;
+                this.read();
                 break;
             default:
                 // look for a custom command
@@ -655,24 +662,6 @@ gp.Controller.prototype = {
     }
 
 };
-
-/***************\
-  CustomEvent
-\***************/
-(function () {
-
-    function CustomEvent(event, params) {
-        params = params || { bubbles: false, cancelable: false, detail: undefined };
-        var evt = document.createEvent('CustomEvent');
-        evt.initCustomEvent(event, params.bubbles, params.cancelable, params.detail);
-        return evt;
-    }
-
-    CustomEvent.prototype = window.Event.prototype;
-
-    window.CustomEvent = CustomEvent;
-
-})();
 
 /***************\
     datamap
@@ -1392,7 +1381,7 @@ gp.helpers = {
                 formGroupModel.label = gp.escapeHTML( gp.coalesce( [col.header, col.field, ''] ) );
             }
 
-            html.add( gp.templates['form-group']( formGroupModel ) );
+            html.add( gp.helpers.formGroup( formGroupModel ) );
         } );
 
         html.add( '</div>' );
@@ -1407,6 +1396,8 @@ gp.helpers = {
             template,
             format,
             val,
+            glyphicon,
+            btnClass,
             hasDeleteBtn = false,
             dataItem = dataItem || this.Row,
             type = ( col.Type || '' ).toLowerCase(),
@@ -1426,34 +1417,10 @@ gp.helpers = {
             }
         }
         else if ( col.commands && col.commands.length ) {
-            html.add( '<div class="btn-group" role="group">' );
+            html.add( '<div class="btn-group btn-group-xs" role="group">' );
             col.commands.forEach( function ( cmd, index ) {
-                if ( cmd == 'edit' && gp.hasValue( self.update ) ) {
-                    html.add( gp.templates.button( {
-                        btnClass: 'btn-default',
-                        value: cmd,
-                        glyphicon: 'glyphicon-edit',
-                        text: 'Edit'
-                    } ) );
-                }
-                else if ( cmd == 'destroy' && gp.hasValue( self.destroy ) ) {
-                    html.add( gp.templates.button( {
-                        btnClass: 'btn-danger',
-                        value: 'destroy',
-                        glyphicon: 'glyphicon-remove',
-                        text: 'Delete'
-                    } ) );
-                }
-                else {
-                    html.add( gp.templates.button( {
-                        btnClass: 'btn-default',
-                        value: cmd,
-                        glyphicon: 'glyphicon-cog',
-                        text: cmd
-                    } ) );
-                }
+                html.add( gp.helpers.button( cmd ) );
             } );
-
             html.add( '</div>' );
         }
         else if ( gp.hasValue( val ) ) {
@@ -1470,6 +1437,12 @@ gp.helpers = {
         }
         return html.toString();
     },
+
+    button: function ( model, arg ) {
+        var template = '<button type="button" class="btn {{btnClass}}" value="{{value}}"><span class="glyphicon {{glyphicon}}"></span>{{text}}</button>';
+        return gp.supplant( template, model );
+    },
+
 
     columnWidthStyle: function () {
         var self = this,
@@ -1542,14 +1515,14 @@ gp.helpers = {
             }
         }
         else if ( col.commands ) {
-            html.add( '<div class="btn-group">' )
-                .add( gp.templates.button( {
+            html.add( '<div class="btn-group btn-group-xs">' )
+                .add( gp.helpers.button( {
                     btnClass: 'btn-primary',
                     value: ( mode == 'create' ? 'create' : 'update' ),
                     glyphicon: 'glyphicon-save',
                     text: 'Save'
                 } ) )
-                .add( '<button type="button" class="btn btn-default btn-xs" data-dismiss="modal" value="cancel">' )
+                .add( '<button type="button" class="btn btn-default" data-dismiss="modal" value="cancel">' )
                 .add( '<span class="glyphicon glyphicon-remove"></span>Cancel' )
                 .add( '</button>' )
                 .add( '</div>' );
@@ -1578,6 +1551,11 @@ gp.helpers = {
             }
         }
         return html.toString();
+    },
+
+    formGroup: function ( model, arg ) {
+        var template = '<div class="form-group"><label class="col-sm-4 control-label">{{label}}</label><div class="col-sm-6">{{{input}}}</div></div>';
+        return gp.supplant( template, model );
     },
 
     input: function ( type, name, value ) {
@@ -1752,6 +1730,7 @@ gp.Initializer.prototype = {
                         gp.shallowCopy( data, self.config.pageModel, true );
                         //self.config.pageModel = data;
                         self.resolveTypes( self.config );
+                        self.resolveCommands( self.config.columns );
                         self.render( self.config );
                         controller.init();
                         if ( typeof callback === 'function' ) callback( self.config );
@@ -1792,10 +1771,8 @@ gp.Initializer.prototype = {
             colNode = gpColumns[i];
             colConfig = gp.getAttributes(colNode);
             config.columns.push(colConfig);
-            this.resolveCommands(colConfig);
             this.resolveTemplates( templates, colConfig, colNode );
         }
-
 
         // resolve the top level configurations
         var options = 'rowselected searchfunction read create update destroy validate model'.split(' ');
@@ -1918,10 +1895,23 @@ gp.Initializer.prototype = {
         } );
     },
 
-    resolveCommands: function (col) {
-        if ( typeof col.commands == 'string' ) {
-            col.commands = col.commands.split( ',' );
-        }
+    resolveCommands: function ( columns ) {
+        var match, val, commands;
+        columns.forEach( function ( col ) {
+            if ( typeof col.commands == 'string' ) {
+                commands = [];
+                col.commands.split( ',' ).forEach( function ( cmd ) {
+                    match = cmd.split(':');
+                    commands.push( {
+                        text: match[0],
+                        value: match[1] || match[0],
+                        btnClass: match[2] || (match[0] == 'Delete' ? 'btn-danger' : 'btn-default'),
+                        glyphicon: match[3] || ( match[0] == 'Delete' ? 'glyphicon-remove' : ( match[0] == 'Edit' ? 'glyphicon-edit' : 'glyphicon-cog' ) ),
+                    } );
+                } );
+                col.commands = commands;
+            }
+        } );
     },
 
     resolveTypes: function ( config ) {
@@ -2702,32 +2692,6 @@ gp.templates['bootstrap-modal'] = function(model, arg) {
     out.push('</div>');
     return out.join('');
 };
-gp.templates['button'] = function(model, arg) {
-    var out = [];
-    out.push('<button type="button" class="btn ');
-    out.push(model.btnClass);
-    out.push(' btn-xs" value="');
-    out.push(model.value);
-    out.push('">');
-    out.push('    <span class="glyphicon ');
-    out.push(model.glyphicon);
-    out.push('"></span>');
-    out.push(model.text);
-        out.push('</button>');
-    return out.join('');
-};
-gp.templates['form-group'] = function(model, arg) {
-    var out = [];
-    out.push('<div class="form-group">');
-    out.push('    <label class="col-sm-4 control-label">');
-    out.push(model.label);
-    out.push('</label>');
-    out.push('    <div class="col-sm-6">');
-    out.push(model.input);
-    out.push('</div>');
-    out.push('</div>');
-    return out.join('');
-};
 gp.templates['gridponent-body'] = function(model, arg) {
     var out = [];
     out.push('<table class="table" cellpadding="0" cellspacing="0">');
@@ -2759,61 +2723,49 @@ gp.templates['gridponent-pager'] = function(model, arg) {
     out.push(gp.helpers['setPagerFlags'].call(model));
             if (model.pageModel.HasPages) {
             out.push('<div class="btn-group">');
-    out.push('        <label class="ms-page-index btn btn-default ');
+    out.push('    <button class="ms-page-index btn btn-default ');
     if (model.pageModel.IsFirstPage) {
     out.push(' disabled ');
     }
-    out.push('" title="First page">');
+    out.push('" title="First page" value="page" data-page="1">');
     out.push('<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>');
-                    if (model.pageModel.IsFirstPage == false) {
-        out.push('<input type="radio" name="page" value="1" />');
-                    }
-        out.push('</label>');
-        out.push('        <label class="ms-page-index btn btn-default ');
+    out.push('</button>');
+        out.push('    <button class="ms-page-index btn btn-default ');
     if (model.pageModel.IsFirstPage) {
     out.push(' disabled ');
     }
-    out.push('" title="Previous page">');
-    out.push('<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>');
-                    if (model.pageModel.IsFirstPage == false) {
-        out.push('                <input type="radio" name="page" value="');
+    out.push('" title="Previous page" value="page" data-page="');
     out.push(model.pageModel.PreviousPage);
-    out.push('" />');
-                    }
-        out.push('</label>');
+    out.push('">');
+    out.push('<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>');
+    out.push('</button>');
     out.push('</div>');
-    out.push('    <input type="number" name="page" value="');
+    out.push('<input type="number" name="page" value="');
     out.push(model.pageModel.page);
     out.push('" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />');
     out.push('<span class="page-count">');
-    out.push('        of ');
+    out.push('    of ');
     out.push(model.pageModel.pagecount);
         out.push('</span>');
     out.push('<div class="btn-group">');
-    out.push('        <label class="ms-page-index btn btn-default ');
+    out.push('    <button class="ms-page-index btn btn-default ');
     if (model.pageModel.IsLastPage) {
     out.push(' disabled ');
     }
-    out.push('" title="Next page">');
-    out.push('<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>');
-                    if (model.pageModel.IsLastPage == false) {
-        out.push('            <input type="radio" name="page" value="');
+    out.push('" title="Next page" value="page" data-page="');
     out.push(model.pageModel.NextPage);
-    out.push('" />');
-                    }
-        out.push('</label>');
-        out.push('        <label class="ms-page-index btn btn-default ');
+    out.push('">');
+    out.push('<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>');
+    out.push('</button>');
+        out.push('    <button class="ms-page-index btn btn-default ');
     if (model.pageModel.IsLastPage) {
     out.push(' disabled ');
     }
-    out.push('" title="Last page">');
-    out.push('<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>');
-                    if (model.pageModel.IsLastPage == false) {
-        out.push('            <input type="radio" name="page" value="');
+    out.push('" title="Last page" value="page" data-page="');
     out.push(model.pageModel.pagecount);
-    out.push('" />');
-                    }
-        out.push('</label>');
+    out.push('">');
+    out.push('<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>');
+    out.push('</button>');
     out.push('</div>');
     }
             return out.join('');
@@ -2854,7 +2806,7 @@ gp.templates['gridponent'] = function(model, arg) {
         out.push('<div class="input-group gridponent-searchbox">');
     out.push('<input type="text" name="search" class="form-control" placeholder="Search...">');
     out.push('<span class="input-group-btn">');
-    out.push('<button class="btn btn-default" type="button">');
+    out.push('<button class="btn btn-default" type="button" value="search">');
     out.push('<span class="glyphicon glyphicon-search"></span>');
     out.push('</button>');
     out.push('</span>');
@@ -2953,6 +2905,10 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         }
     };
 
+    gp.attr = function ( el, name ) {
+        return el.attributes[name].value;
+    };
+
     gp.camelize = function ( str ) {
         if ( gp.isNullOrEmpty( str ) ) return str;
         return str
@@ -3030,6 +2986,7 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
     gp.disable = function ( elem, seconds ) {
         elem.setAttribute( 'disabled', 'disabled' );
         gp.addClass( elem, 'disabled' );
+        gp.addClass( elem, 'busy' );
         if ( typeof seconds == 'number' && seconds > 0 ) {
             setTimeout( function () {
                 gp.enable( elem );
@@ -3040,6 +2997,7 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
     gp.enable = function ( elem ) {
         elem.removeAttribute( 'disabled' );
         gp.removeClass( elem, 'disabled' );
+        gp.removeClass( elem, 'busy' );
     };
 
     var chars = [/&/g, /</g, />/g, /"/g, /'/g, /`/g];
@@ -3106,7 +3064,7 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
     };
 
     gp.getObjectAtPath = function ( path, root ) {
-        if ( !path ) return;
+        if ( !path ) return path;
 
         path = Array.isArray( path ) ? path : path.match( gp.rexp.splitPath );
 
@@ -3159,7 +3117,7 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         if ( Array.isArray( a ) ) {
             return 'array';
         }
-        // 'number','string','boolean','function','object'
+        // number string boolean function object
         return typeof ( a );
     };
 
@@ -3281,12 +3239,6 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         return child;
     };
 
-    gp.raiseCustomEvent = function ( node, name, detail ) {
-        var event = new CustomEvent( name, { bubbles: true, detail: detail, cancelable: true } );
-        node.dispatchEvent( event );
-        return event;
-    };
-
     gp.removeClass = function ( el, cn ) {
         if ( el instanceof NodeList ) {
             for ( var i = 0; i < el.length; i++ ) {
@@ -3305,7 +3257,6 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         timestamp: /\/Date\((\d+)\)\//,
         quoted: /^['"].+['"]$/,
         trueFalse: /true|false/i,
-        braces: /{{.+?}}/g,
         json: /^\{.*\}$|^\[.*\]$/
     };
 
@@ -3326,6 +3277,8 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
             function ( a, b ) {
                 r = o[b];
                 if ( types.test( typeof r ) ) return r;
+                // models can contain functions
+                if ( typeof r === 'function' ) return gp.applyFunc( r, self, args );
                 // it's not in o, so check for a function
                 r = gp.getObjectAtPath( b );
                 return typeof r === 'function' ? gp.applyFunc( r, self, args ) : '';
@@ -3336,6 +3289,8 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
             function ( a, b ) {
                 r = o[b];
                 if ( types.test( typeof r ) ) return gp.escapeHTML( r );
+                // models can contain functions
+                if ( typeof r === 'function' ) return gp.escapeHTML( gp.applyFunc( r, self, args ) );
                 // it's not in o, so check for a function
                 r = gp.getObjectAtPath( b );
                 return typeof r === 'function' ? gp.escapeHTML( gp.applyFunc( r, self, args ) ) : '';
