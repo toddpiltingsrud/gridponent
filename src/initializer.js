@@ -43,6 +43,7 @@ gp.Initializer.prototype = {
                         gp.shallowCopy( data, self.config.pageModel, true );
                         //self.config.pageModel = data;
                         self.resolveTypes( self.config );
+                        self.resolveCommands( self.config.columns );
                         self.render( self.config );
                         controller.init();
                         if ( typeof callback === 'function' ) callback( self.config );
@@ -83,10 +84,8 @@ gp.Initializer.prototype = {
             colNode = gpColumns[i];
             colConfig = gp.getAttributes(colNode);
             config.columns.push(colConfig);
-            this.resolveCommands(colConfig);
             this.resolveTemplates( templates, colConfig, colNode );
         }
-
 
         // resolve the top level configurations
         var options = 'rowselected searchfunction read create update destroy validate model'.split(' ');
@@ -209,10 +208,23 @@ gp.Initializer.prototype = {
         } );
     },
 
-    resolveCommands: function (col) {
-        if ( typeof col.commands == 'string' ) {
-            col.commands = col.commands.split( ',' );
-        }
+    resolveCommands: function ( columns ) {
+        var match, val, commands;
+        columns.forEach( function ( col ) {
+            if ( typeof col.commands == 'string' ) {
+                commands = [];
+                col.commands.split( ',' ).forEach( function ( cmd ) {
+                    match = cmd.split(':');
+                    commands.push( {
+                        text: match[0],
+                        value: match[1] || match[0],
+                        btnClass: match[2] || (match[0] == 'Delete' ? 'btn-danger' : 'btn-default'),
+                        glyphicon: match[3] || ( match[0] == 'Delete' ? 'glyphicon-remove' : ( match[0] == 'Edit' ? 'glyphicon-edit' : 'glyphicon-cog' ) ),
+                    } );
+                } );
+                col.commands = commands;
+            }
+        } );
     },
 
     resolveTypes: function ( config ) {

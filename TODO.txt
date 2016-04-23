@@ -2,10 +2,9 @@
 
 Now the btn-group in modals is set to small.
 
-Add a colon delimiter to the commands config option so we can specify command value and button text:
-commands="Search:fns.customSearchFunction,Edit,Delete"
-
 Swap out simpler templates with helpers that use the supplant function.
+
+Rename model to datalayer. Rename pageModel to model. Add model as a property of api.
 
 Test supplant against null, undefined and functions.
 
