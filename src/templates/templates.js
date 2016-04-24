@@ -196,10 +196,7 @@ gp.templates['gridponent'] = function(model, arg) {
                 if (model.pager) {
         out.push('<div class="table-pager"></div>');
             }
-        out.push('<style type="text/css" class="sort-style">');
-                out.push(gp.helpers['sortStyle'].call(model));
-        out.push('</style>');
-    out.push('<style type="text/css" class="column-width-style">');
+        out.push('<style type="text/css" class="column-width-style">');
                 out.push(gp.helpers['columnWidthStyle'].call(model));
         out.push('</style>');
     out.push('<div class="gp-progress-overlay">');

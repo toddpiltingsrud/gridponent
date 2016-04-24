@@ -171,16 +171,18 @@
   border: solid 1px #ccc;
   border-radius: 4px;
 }
-.gp label.table-sort {
+.gp button.table-sort {
   color: #337ab7;
   cursor: pointer;
   margin: 0;
   vertical-align: middle;
+  background: none;
+  border: none;
 }
-.gp label.table-sort > input {
+.gp button.table-sort > input {
   display: none;
 }
-.gp label.table-sort:after {
+.gp button.table-sort:after {
   font-family: 'Glyphicons Halflings';
   font-style: normal;
   font-weight: 400;

@@ -107,7 +107,7 @@ Object.getOwnPropertyNames( gp.events ).forEach( function ( evt ) {
 
 } );
 
-gp.qpi.prototype.ready = function ( callback ) {
+gp.api.prototype.ready = function ( callback ) {
     this.controller.ready( callback );
     return this;
 };

@@ -135,7 +135,7 @@ var getTableConfig = function ( options, callback ) {
     out.push( '        <script type="text/html" data-template="body"><button class="btn" value="{{fns.getButtonText}}"><span class="glyphicon {{fns.getButtonIcon}}"></span>{{fns.getButtonText}}</button></script>' );
     out.push( '    </gp-column>' );
     out.push( '    <gp-column field="ProductNumber" header="Product #"></gp-column>' );
-    out.push( '    <gp-column commands="edit,destroy"></gp-column>' );
+    out.push( '    <gp-column commands="Edit,Delete"></gp-column>' );
     if ( options.customCommand ) {
         out.push( '    <gp-column commands="' + options.customCommand + '"></gp-column>' );
     }
@@ -235,7 +235,7 @@ var configuration = {
             field: 'ProductNumber'
         },
         {
-            commands: ['edit', 'destroy']
+            commands: ['Edit', 'Delete']
         }
     ]
 };
@@ -302,7 +302,11 @@ QUnit.test( 'busy class', function ( assert ) {
         done2();
     };
 
-    getTableConfig( options, function ( api ) { } );
+    getTableConfig( options, function ( api ) {
+
+        $( '#table .box' ).append( api.config.node );
+
+    } );
 
 } );
 
@@ -318,7 +322,7 @@ QUnit.test( 'sorting', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var lbl = api.find( 'label.table-sort' );
+        var lbl = api.find( 'button.table-sort' );
 
         clickButton( lbl );
 
@@ -344,8 +348,6 @@ QUnit.test( 'paging', function ( assert ) {
     options.editmode = 'modal';
 
     getTableConfig( options, function ( api ) {
-
-        $( '#table .box' ).append( api.config.node );
 
         // find the ProductNumber column
         var productNumber1 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).innerHTML;
@@ -771,7 +773,7 @@ QUnit.test( 'commandHandler', function ( assert ) {
 
         assert.ok( editRow == null, 'clicking cancel should remove the dataItem' );
 
-        var destroyBtn = api.find( '[value=destroy]' )
+        var destroyBtn = api.find( '[value=destroy],[value=delete],[value=Delete]' )
 
         clickButton( destroyBtn );
 
@@ -1442,7 +1444,7 @@ QUnit.test( 'api.destroy', function ( assert ) {
 
 } );
 
-QUnit.test( 'ChangeMonitor.beforeSync', function ( assert ) {
+QUnit.test( 'pageModel.desc', function ( assert ) {
 
     var done = assert.async();
 
@@ -1451,21 +1453,17 @@ QUnit.test( 'ChangeMonitor.beforeSync', function ( assert ) {
         var config = api.config;
 
         // set one of the radio buttons a couple of times
-        var sortInput = api.find( 'input[name=sort]' );
+        var sortInput = api.find( 'button.table-sort' );
 
-        sortInput.checked = true;
-
-        changeInput( sortInput );
+        clickButton( sortInput );
 
         assert.equal( config.pageModel.desc, false );
 
         // Need a fresh reference to the input or the second change event won't do anything.
-        // That's probably because the header gets recreated. If so, is that necessary?
-        sortInput = api.find( 'input[name=sort]' );
+        // This happens when thead is inside div.table-body (no fixed headers) because thead gets rendered again.
+        sortInput = api.find( 'button.table-sort' );
 
-        sortInput.checked = true;
-
-        changeInput( sortInput );
+        clickButton( sortInput );
 
         assert.equal( config.pageModel.desc, true );
 
@@ -2014,11 +2012,9 @@ QUnit.test( 'gp.helpers.thead', function ( assert ) {
     function testHeaders( headers ) {
         assert.ok( headers[0].querySelector( 'input[type=checkbox]' ) != null );
 
-        assert.ok( headers[1].querySelector( 'input[type=radio][name=sort]' ) != null );
+        assert.ok( headers[1].querySelector( 'button.table-sort' ) != null );
 
-        assert.ok( headers[2].querySelector( 'label.table-sort > input[type=radio]' ) != null );
-
-        assert.equal( headers[6].querySelector( 'label.table-sort' ).textContent, 'Markup' );
+        assert.equal( headers[6].querySelector( 'button.table-sort' ).textContent, 'Markup' );
     }
 
     // fixed headers, with sorting

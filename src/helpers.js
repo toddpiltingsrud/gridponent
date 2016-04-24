@@ -246,19 +246,15 @@ gp.helpers = {
         this.pageModel.NextPage = this.pageModel.page === this.pageModel.pagecount ? this.pageModel.pagecount : this.pageModel.page + 1;
     },
 
-    sortStyle: function () {
-        var html = new gp.StringBuilder();
-        if ( gp.isNullOrEmpty( this.pageModel.sort ) === false ) {
-            html.add( '#' + this.ID + ' thead th.header-cell[data-sort="' + gp.escapeHTML( this.pageModel.sort ) + '"] > label:after' )
-                .add( '{ content: ' );
-            if ( this.pageModel.desc ) {
-                html.add( '"\\e114"; }' );
-            }
-            else {
-                html.add( '"\\e113"; }' );
-            }
+    sortStyle: function ( config ) {
+        // remove glyphicons from sort buttons
+        var spans = config.node.querySelectorAll( 'button.table-sort > spn.glyphicon-chevron-up,button.table-sort > span.glyphicon-chevron-down' );
+        gp.removeClass( spans, 'glyphicon-chevron-up' );
+        gp.removeClass( spans, 'glyphicon-chevron-down' );
+        var span = config.node.querySelector( 'button.table-sort[data-sort="' + config.pageModel.sort + '"] > span' );
+        if ( span ) {
+            gp.addClass( span, ( config.pageModel.desc ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up' ) );
         }
-        return html.toString();
     },
 
     tableRows: function () {
@@ -318,12 +314,12 @@ gp.helpers = {
                 }
             }
             else if ( sort != '' ) {
-                html.add( '<label class="table-sort">' )
-                    .add( '<input type="radio" name="sort" value="' )
+                html.add( '<button class="table-sort" value="sort" data-sort="' )
                     .escape( sort )
-                    .add( '" />' )
+                    .add( '">' )
                     .escape( gp.coalesce( [col.header, col.field, sort] ) )
-                    .add( '</label>' );
+                    .add( '<span class="glyphicon"></span>' )
+                    .add( '</button>' );
             }
             else {
                 html.escape( gp.coalesce( [col.header, col.field, ''] ) );

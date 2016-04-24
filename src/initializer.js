@@ -145,7 +145,6 @@ gp.Initializer.prototype = {
             var body = node.querySelector( 'div.table-body' );
             var footer = node.querySelector( 'div.table-footer' );
             var pager = node.querySelector( 'div.table-pager' );
-            var sortStyle = node.querySelector( 'style.sort-style' );
 
             body.innerHTML = gp.templates['gridponent-body']( config );
             if ( footer ) {
@@ -154,7 +153,7 @@ gp.Initializer.prototype = {
             if ( pager ) {
                 pager.innerHTML = gp.templates['gridponent-pager']( config );
             }
-            sortStyle = gp.helpers.sortStyle.call( config );
+            gp.helpers.sortStyle( config );
 
             // sync column widths
             if ( config.fixedheaders || config.fixedfooters ) {
@@ -218,8 +217,8 @@ gp.Initializer.prototype = {
                     commands.push( {
                         text: match[0],
                         value: match[1] || match[0],
-                        btnClass: match[2] || ( match[0] == 'Delete' ? 'btn-danger' : 'btn-default' ),
-                        glyphicon: match[3] || ( match[0] == 'Delete' ? 'glyphicon-remove' : ( match[0] == 'Edit' ? 'glyphicon-edit' : 'glyphicon-cog' ) ),
+                        btnClass: match[2] || ( /delete|destroy/i.test( match[0] ) ? 'btn-danger' : 'btn-default' ),
+                        glyphicon: match[3] || ( match[0] == 'Delete' ? 'glyphicon-remove' : ( /edit/i.test( match[0] ) ? 'glyphicon-edit' : 'glyphicon-cog' ) ),
                     } );
                 } );
                 col.commands = commands;

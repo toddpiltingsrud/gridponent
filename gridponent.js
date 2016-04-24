@@ -102,23 +102,6 @@ gp.api = function ( controller ) {
 
 gp.api.prototype = {
 
-
-
-    beforeEdit: function ( callback ) {
-        this.controller.addDelegate( gp.events.beforeEdit, callback );;
-        return this;
-    },
-
-    beforeInit: function ( callback ) {
-        this.controller.addDelegate( gp.events.beforeInit, callback );;
-        return this;
-    },
-
-    beforeRead: function ( callback ) {
-        this.controller.addDelegate( gp.events.beforeRead, callback );;
-        return this;
-    },
-
     create: function ( dataItem, callback ) {
         var model = this.controller.addRow( dataItem );
         if ( model != null ) this.controller.createRow( dataItem, model.elem, callback );
@@ -131,11 +114,6 @@ gp.api.prototype = {
 
     dispose: function () {
         this.controller.dispose();
-    },
-
-    editReady: function ( callback ) {
-        this.controller.addDelegate( gp.events.editReady, callback );;
-        return this;
     },
 
     find: function ( selector ) {
@@ -159,28 +137,8 @@ gp.api.prototype = {
         );
     },
 
-    httpError: function ( callback ) {
-        this.controller.addDelegate( gp.events.httpError, callback );;
-        return this;
-    },
-
-    onEdit: function ( callback ) {
-        this.controller.addDelegate( gp.events.onEdit, callback );;
-        return this;
-    },
-
-    onRead: function ( callback ) {
-        this.controller.addDelegate( gp.events.onRead, callback );;
-        return this;
-    },
-
     read: function ( requestModel, callback ) {
         this.controller.read( requestModel, callback );
-    },
-
-    ready: function ( callback ) {
-        this.controller.ready( callback );
-        return this;
     },
 
     refresh: function ( callback ) {
@@ -206,8 +164,22 @@ gp.api.prototype = {
 
     update: function ( dataItem, done ) {
         this.controller.updateRow( dataItem, done );
-    },
+    }
 
+};
+
+Object.getOwnPropertyNames( gp.events ).forEach( function ( evt ) {
+
+    gp.api.prototype[evt] = function (callback) {
+        this.controller.addDelegate( gp.events[evt], callback );;
+        return this;
+    };
+
+} );
+
+gp.api.prototype.ready = function ( callback ) {
+    this.controller.ready( callback );
+    return this;
 };
 
 /***************\
@@ -353,7 +325,8 @@ gp.Controller.prototype = {
             node = this.config.node,
             elem = gp.closest( evt.selectedTarget, 'tr[data-uid],div.modal', node ),
             dataItem = elem ? this.config.map.get( elem ) : null,
-            command = gp.attr( evt.selectedTarget, 'value' );
+            command = gp.attr( evt.selectedTarget, 'value' ),
+            model = this.config.pageModel;
 
         if ( gp.hasValue( command ) ) lower = command.toLowerCase();
 
@@ -371,11 +344,22 @@ gp.Controller.prototype = {
                 break;
             case 'page':
                 var page = gp.attr( evt.selectedTarget, 'data-page' );
-                this.config.pageModel.page = parseInt( page );
+                model.page = parseInt( page );
                 this.read();
                 break;
             case 'search':
-                this.config.pageModel.search = this.config.node.querySelector( '.table-toolbar input[name=search]' ).value;
+                model.search = this.config.node.querySelector( '.table-toolbar input[name=search]' ).value;
+                this.read();
+                break;
+            case 'sort':
+                var sort = gp.attr(evt.selectedTarget, 'data-sort');
+                if ( model.sort === sort ) {
+                    model.desc = !model.desc;
+                }
+                else {
+                    model.sort = sort;
+                    model.desc = false;
+                }
                 this.read();
                 break;
             default:
@@ -644,8 +628,7 @@ gp.Controller.prototype = {
             var node = this.config.node,
                 body = node.querySelector( 'div.table-body' ),
                 footer = node.querySelector( 'div.table-footer' ),
-                pager = node.querySelector( 'div.table-pager' ),
-                sortStyle = node.querySelector( 'style.sort-style' );
+                pager = node.querySelector( 'div.table-pager' );
 
             this.config.map.clear();
 
@@ -656,7 +639,8 @@ gp.Controller.prototype = {
             if ( pager ) {
                 pager.innerHTML = gp.templates['gridponent-pager']( this.config );
             }
-            sortStyle.innerHTML = gp.helpers.sortStyle.call( this.config );
+
+            gp.helpers.sortStyle( this.config );
         }
         catch ( e ) {
             gp.error( e );
@@ -1597,19 +1581,15 @@ gp.helpers = {
         this.pageModel.NextPage = this.pageModel.page === this.pageModel.pagecount ? this.pageModel.pagecount : this.pageModel.page + 1;
     },
 
-    sortStyle: function () {
-        var html = new gp.StringBuilder();
-        if ( gp.isNullOrEmpty( this.pageModel.sort ) === false ) {
-            html.add( '#' + this.ID + ' thead th.header-cell[data-sort="' + gp.escapeHTML( this.pageModel.sort ) + '"] > label:after' )
-                .add( '{ content: ' );
-            if ( this.pageModel.desc ) {
-                html.add( '"\\e114"; }' );
-            }
-            else {
-                html.add( '"\\e113"; }' );
-            }
+    sortStyle: function ( config ) {
+        // remove glyphicons from sort buttons
+        var spans = config.node.querySelectorAll( 'button.table-sort > spn.glyphicon-chevron-up,button.table-sort > span.glyphicon-chevron-down' );
+        gp.removeClass( spans, 'glyphicon-chevron-up' );
+        gp.removeClass( spans, 'glyphicon-chevron-down' );
+        var span = config.node.querySelector( 'button.table-sort[data-sort="' + config.pageModel.sort + '"] > span' );
+        if ( span ) {
+            gp.addClass( span, ( config.pageModel.desc ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up' ) );
         }
-        return html.toString();
     },
 
     tableRows: function () {
@@ -1669,12 +1649,12 @@ gp.helpers = {
                 }
             }
             else if ( sort != '' ) {
-                html.add( '<label class="table-sort">' )
-                    .add( '<input type="radio" name="sort" value="' )
+                html.add( '<button class="table-sort" value="sort" data-sort="' )
                     .escape( sort )
-                    .add( '" />' )
+                    .add( '">' )
                     .escape( gp.coalesce( [col.header, col.field, sort] ) )
-                    .add( '</label>' );
+                    .add( '<span class="glyphicon"></span>' )
+                    .add( '</button>' );
             }
             else {
                 html.escape( gp.coalesce( [col.header, col.field, ''] ) );
@@ -1847,7 +1827,6 @@ gp.Initializer.prototype = {
             var body = node.querySelector( 'div.table-body' );
             var footer = node.querySelector( 'div.table-footer' );
             var pager = node.querySelector( 'div.table-pager' );
-            var sortStyle = node.querySelector( 'style.sort-style' );
 
             body.innerHTML = gp.templates['gridponent-body']( config );
             if ( footer ) {
@@ -1856,7 +1835,7 @@ gp.Initializer.prototype = {
             if ( pager ) {
                 pager.innerHTML = gp.templates['gridponent-pager']( config );
             }
-            sortStyle = gp.helpers.sortStyle.call( config );
+            gp.helpers.sortStyle( config );
 
             // sync column widths
             if ( config.fixedheaders || config.fixedfooters ) {
@@ -1920,8 +1899,8 @@ gp.Initializer.prototype = {
                     commands.push( {
                         text: match[0],
                         value: match[1] || match[0],
-                        btnClass: match[2] || ( match[0] == 'Delete' ? 'btn-danger' : 'btn-default' ),
-                        glyphicon: match[3] || ( match[0] == 'Delete' ? 'glyphicon-remove' : ( match[0] == 'Edit' ? 'glyphicon-edit' : 'glyphicon-cog' ) ),
+                        btnClass: match[2] || ( /delete|destroy/i.test( match[0] ) ? 'btn-danger' : 'btn-default' ),
+                        glyphicon: match[3] || ( match[0] == 'Delete' ? 'glyphicon-remove' : ( /edit/i.test( match[0] ) ? 'glyphicon-edit' : 'glyphicon-cog' ) ),
                     } );
                 } );
                 col.commands = commands;
@@ -2863,10 +2842,7 @@ gp.templates['gridponent'] = function(model, arg) {
                 if (model.pager) {
         out.push('<div class="table-pager"></div>');
             }
-        out.push('<style type="text/css" class="sort-style">');
-                out.push(gp.helpers['sortStyle'].call(model));
-        out.push('</style>');
-    out.push('<style type="text/css" class="column-width-style">');
+        out.push('<style type="text/css" class="column-width-style">');
                 out.push(gp.helpers['columnWidthStyle'].call(model));
         out.push('</style>');
     out.push('<div class="gp-progress-overlay">');

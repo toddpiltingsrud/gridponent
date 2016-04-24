@@ -141,7 +141,8 @@ gp.Controller.prototype = {
             node = this.config.node,
             elem = gp.closest( evt.selectedTarget, 'tr[data-uid],div.modal', node ),
             dataItem = elem ? this.config.map.get( elem ) : null,
-            command = gp.attr( evt.selectedTarget, 'value' );
+            command = gp.attr( evt.selectedTarget, 'value' ),
+            model = this.config.pageModel;
 
         if ( gp.hasValue( command ) ) lower = command.toLowerCase();
 
@@ -159,11 +160,22 @@ gp.Controller.prototype = {
                 break;
             case 'page':
                 var page = gp.attr( evt.selectedTarget, 'data-page' );
-                this.config.pageModel.page = parseInt( page );
+                model.page = parseInt( page );
                 this.read();
                 break;
             case 'search':
-                this.config.pageModel.search = this.config.node.querySelector( '.table-toolbar input[name=search]' ).value;
+                model.search = this.config.node.querySelector( '.table-toolbar input[name=search]' ).value;
+                this.read();
+                break;
+            case 'sort':
+                var sort = gp.attr(evt.selectedTarget, 'data-sort');
+                if ( model.sort === sort ) {
+                    model.desc = !model.desc;
+                }
+                else {
+                    model.sort = sort;
+                    model.desc = false;
+                }
                 this.read();
                 break;
             default:
@@ -432,8 +444,7 @@ gp.Controller.prototype = {
             var node = this.config.node,
                 body = node.querySelector( 'div.table-body' ),
                 footer = node.querySelector( 'div.table-footer' ),
-                pager = node.querySelector( 'div.table-pager' ),
-                sortStyle = node.querySelector( 'style.sort-style' );
+                pager = node.querySelector( 'div.table-pager' );
 
             this.config.map.clear();
 
@@ -444,7 +455,8 @@ gp.Controller.prototype = {
             if ( pager ) {
                 pager.innerHTML = gp.templates['gridponent-pager']( this.config );
             }
-            sortStyle.innerHTML = gp.helpers.sortStyle.call( this.config );
+
+            gp.helpers.sortStyle( this.config );
         }
         catch ( e ) {
             gp.error( e );
