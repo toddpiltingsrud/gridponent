@@ -128,7 +128,7 @@ gp.Controller.prototype = {
 
     addCommandHandlers: function ( node ) {
         // listen for command button clicks at the grid level
-        gp.on( node, 'click', 'button[value]', this.handlers.commandHandler );
+        gp.on( node, 'click', 'button[data-cmd]', this.handlers.commandHandler );
     },
 
     removeCommandHandlers: function ( node ) {
@@ -138,13 +138,19 @@ gp.Controller.prototype = {
     commandHandler: function ( evt ) {
         // this function handles all the button clicks for the entire grid
         var lower,
-            node = this.config.node,
-            elem = gp.closest( evt.selectedTarget, 'tr[data-uid],div.modal', node ),
+            btn = evt.selectedTarget,
+            elem = gp.closest( btn, 'tr[data-uid],div.modal', this.config.node ),
             dataItem = elem ? this.config.map.get( elem ) : null,
-            command = gp.attr( evt.selectedTarget, 'value' ),
+            index = gp.attr( btn, 'data-cmd' ),
+            cmd = this.config.commands[index],
             model = this.config.pageModel;
 
-        if ( gp.hasValue( command ) ) lower = command.toLowerCase();
+        if ( typeof cmd.value === function () {
+            cmd.value.call( this.config.node.api, dataItem );
+            return;
+        } );
+
+        lower = cmd.value.toLowerCase();
 
         switch ( lower ) {
             case 'addrow':
@@ -177,13 +183,6 @@ gp.Controller.prototype = {
                     model.desc = false;
                 }
                 this.read();
-                break;
-            default:
-                // look for a custom command
-                var fn = gp.getObjectAtPath( command );
-                if ( typeof fn == 'function' ) {
-                    gp.applyFunc( fn, this.config.node.api, [dataItem] );
-                }
                 break;
         }
     },

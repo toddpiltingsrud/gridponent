@@ -235,7 +235,16 @@ var configuration = {
             field: 'ProductNumber'
         },
         {
-            commands: ['Edit', 'Delete']
+            commands: [
+                { text: 'Edit' },
+                { text:'Delete' },
+                {
+                    text:'View',
+                    value:function(dataItem) {
+                        alert(dataItem);
+                    }
+                }
+            ]
         }
     ]
 };
@@ -246,11 +255,13 @@ QUnit.test( 'Initializer.resolveCommands', function ( assert ) {
 
     var fn = gp.Initializer.prototype.resolveCommands;
 
-    var col = {
-        commands: 'Search:fns.customSearchFunction,Edit,Delete,Filter:fns.filter:btn-primary,Add:fns.addItem:btn-primary:glyphicon-plus'
+    var config = {
+        columns:[
+            { commands: 'Search:fns.customSearchFunction,Edit,Delete,Filter:fns.filter:btn-primary,Add:fns.addItem:btn-primary:glyphicon-plus' }
+        ]
     };
 
-    fn( [col] );
+    fn( config );
 
     assert.equal( col.commands[0].text, 'Search' );
     assert.equal( col.commands[0].value, 'fns.customSearchFunction' );
@@ -303,8 +314,6 @@ QUnit.test( 'busy class', function ( assert ) {
     };
 
     getTableConfig( options, function ( api ) {
-
-        $( '#table .box' ).append( api.config.node );
 
     } );
 
@@ -645,6 +654,8 @@ QUnit.test( 'options', function ( assert ) {
 
     gridponent( '#div1', options ).ready( function ( api ) {
 
+        $( '#table .box' ).append( api.config.node );
+
         var config = api.config;
 
         assert.ok( true, 'initialization with JSON works' );
@@ -668,7 +679,9 @@ QUnit.test( 'options', function ( assert ) {
         assert.ok( span != null, 'should be able to use a function as a custom footer template' );
 
         // put one of the rows into edit model
-        var btn = api.find( 'button[value=edit]' );
+        var index = api.getCommandIndex( 'Edit' );
+
+        var btn = api.find( 'button[data-cmd="' + index + '"]' );
 
         clickButton( btn );
 
@@ -679,6 +692,10 @@ QUnit.test( 'options', function ( assert ) {
         span = api.find( 'span.header-template' );
 
         assert.ok( span != null, 'should be able to use a function as a custom header template inside a modal' );
+
+        var index = api.getCommandIndex( 'Cancel' );
+
+        var btn = api.find( 'button[data-cmd="' + index + '"]' );
 
         btn = api.find( 'button[value=cancel]' );
 

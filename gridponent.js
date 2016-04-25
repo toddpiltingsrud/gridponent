@@ -124,6 +124,14 @@ gp.api.prototype = {
         return this.controller.config.node.querySelectorAll( selector );
     },
 
+    getCommandIndex: function ( value ) {
+        for ( var i = 0; i < this.config.commands.length; i++ ) {
+            if ( this.config.commands[i].value === value ) {
+                return i;
+            }
+        }
+    },
+
     getData: function ( index ) {
         if ( typeof index == 'number' ) return this.controller.config.pageModel.data[index];
         return this.controller.config.pageModel.data;
@@ -312,7 +320,7 @@ gp.Controller.prototype = {
 
     addCommandHandlers: function ( node ) {
         // listen for command button clicks at the grid level
-        gp.on( node, 'click', 'button[value]', this.handlers.commandHandler );
+        gp.on( node, 'click', 'button[data-cmd]', this.handlers.commandHandler );
     },
 
     removeCommandHandlers: function ( node ) {
@@ -322,13 +330,19 @@ gp.Controller.prototype = {
     commandHandler: function ( evt ) {
         // this function handles all the button clicks for the entire grid
         var lower,
-            node = this.config.node,
-            elem = gp.closest( evt.selectedTarget, 'tr[data-uid],div.modal', node ),
+            btn = evt.selectedTarget,
+            elem = gp.closest( btn, 'tr[data-uid],div.modal', this.config.node ),
             dataItem = elem ? this.config.map.get( elem ) : null,
-            command = gp.attr( evt.selectedTarget, 'value' ),
+            index = gp.attr( btn, 'data-cmd' ),
+            cmd = this.config.commands[index],
             model = this.config.pageModel;
 
-        if ( gp.hasValue( command ) ) lower = command.toLowerCase();
+        if ( typeof cmd.value === function () {
+            cmd.value.call( this.config.node.api, dataItem );
+            return;
+        } );
+
+        lower = cmd.value.toLowerCase();
 
         switch ( lower ) {
             case 'addrow':
@@ -361,13 +375,6 @@ gp.Controller.prototype = {
                     model.desc = false;
                 }
                 this.read();
-                break;
-            default:
-                // look for a custom command
-                var fn = gp.getObjectAtPath( command );
-                if ( typeof fn == 'function' ) {
-                    gp.applyFunc( fn, this.config.node.api, [dataItem] );
-                }
                 break;
         }
     },
@@ -1438,7 +1445,7 @@ gp.helpers = {
     },
 
     button: function ( model, arg ) {
-        var template = '<button type="button" class="btn {{btnClass}}" value="{{value}}"><span class="glyphicon {{glyphicon}}"></span>{{text}}</button>';
+        var template = '<button type="button" class="btn {{btnClass}}" data-cmd="{{index}}"><span class="glyphicon {{glyphicon}}"></span>{{text}}</button>';
         return gp.supplant( template, model );
     },
 
@@ -1725,7 +1732,7 @@ gp.Initializer.prototype = {
                         gp.shallowCopy( data, self.config.pageModel, true );
                         //self.config.pageModel = data;
                         self.resolveTypes( self.config );
-                        self.resolveCommands( self.config.columns );
+                        self.resolveCommands( self.config );
                         self.render( self.config );
                         controller.init();
                         if ( typeof callback === 'function' ) callback( self.config );
@@ -1889,21 +1896,37 @@ gp.Initializer.prototype = {
         } );
     },
 
-    resolveCommands: function ( columns ) {
-        var match, val, commands;
-        columns.forEach( function ( col ) {
+    resolveCommands: function ( config ) {
+        var match, val, commands, index = 0, obj;
+        config.commands = [];
+        config.columns.forEach( function ( col ) {
             if ( typeof col.commands == 'string' ) {
-                commands = [];
                 col.commands.split( ',' ).forEach( function ( cmd ) {
                     match = cmd.split( ':' );
-                    commands.push( {
+                    config.commands.push( {
                         text: match[0],
-                        value: match[1] || match[0],
-                        btnClass: match[2] || ( /delete|destroy/i.test( match[0] ) ? 'btn-danger' : 'btn-default' ),
-                        glyphicon: match[3] || ( match[0] == 'Delete' ? 'glyphicon-remove' : ( /edit/i.test( match[0] ) ? 'glyphicon-edit' : 'glyphicon-cog' ) ),
+                        value: match[1],
+                        btnClass: match[2],
+                        glyphicon: match[3],
                     } );
                 } );
                 col.commands = commands;
+            }
+            if ( Array.isArray( col.commands ) ) {
+                col.commands.forEach( function ( cmd ) {
+                    cmd.index = index;
+                    cmd.text = cmd.text || cmd.value;
+                    cmd.value = cmd.value || cmd.text;
+                    cmd.btnClass = cmd.btnClass || ( /delete|destroy/i.test( cmd.text ) ? 'btn-danger' : 'btn-default' );
+                    cmd.glyphicon = cmd.glyphicon || ( /delete|destroy/i.test( cmd.text ) ? 'glyphicon-remove' : ( /edit/i.test( cmd.text ) ? 'glyphicon-edit' : 'glyphicon-cog' ) );
+                    if ( typeof cmd.value === 'string' ) {
+                        obj = gp.getObjectAtPath( cmd.value );
+                        if ( typeof obj === 'function' ) {
+                            cmd.value = obj;
+                        }
+                    }
+                    config.commands[index++] = cmd;
+                } );
             }
         } );
     },

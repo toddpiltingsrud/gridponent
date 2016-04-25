@@ -5,6 +5,8 @@ Now the btn-group in modals is set to small.
 Add a colon delimiter to the commands config option so we can specify command value and button text:
 commands="Search:fns.customSearchFunction,Edit,Delete"
 
+Support the ability to include function inside the configuration when using the javascript method.
+
 Swap out simpler templates with helpers that use the supplant function.
 
 Test supplant against null, undefined and functions.

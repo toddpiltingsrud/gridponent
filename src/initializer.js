@@ -43,7 +43,7 @@ gp.Initializer.prototype = {
                         gp.shallowCopy( data, self.config.pageModel, true );
                         //self.config.pageModel = data;
                         self.resolveTypes( self.config );
-                        self.resolveCommands( self.config.columns );
+                        self.resolveCommands( self.config );
                         self.render( self.config );
                         controller.init();
                         if ( typeof callback === 'function' ) callback( self.config );
@@ -207,21 +207,34 @@ gp.Initializer.prototype = {
         } );
     },
 
-    resolveCommands: function ( columns ) {
-        var match, val, commands;
-        columns.forEach( function ( col ) {
+    resolveCommands: function ( config ) {
+        var match, val, commands, index = 0;
+        config.commands = [];
+        config.columns.forEach( function ( col ) {
             if ( typeof col.commands == 'string' ) {
-                commands = [];
                 col.commands.split( ',' ).forEach( function ( cmd ) {
                     match = cmd.split( ':' );
-                    commands.push( {
+                    config.commands.push( {
                         text: match[0],
-                        value: match[1] || match[0],
-                        btnClass: match[2] || ( /delete|destroy/i.test( match[0] ) ? 'btn-danger' : 'btn-default' ),
-                        glyphicon: match[3] || ( match[0] == 'Delete' ? 'glyphicon-remove' : ( /edit/i.test( match[0] ) ? 'glyphicon-edit' : 'glyphicon-cog' ) ),
+                        value: match[1],
+                        btnClass: match[2],
+                        glyphicon: match[3],
                     } );
                 } );
                 col.commands = commands;
+            }
+            if ( Array.isArray( col.commands ) ) {
+                col.commands.forEach( function ( cmd ) {
+                    cmd.index = index;
+                    cmd.text = cmd.text || cmd.value;
+                    cmd.value = cmd.value || cmd.text;
+                    cmd.btnClass = cmd.btnClass || ( /delete|destroy/i.test( cmd.text ) ? 'btn-danger' : 'btn-default' );
+                    cmd.glyphicon = cmd.glyphicon || ( /delete|destroy/i.test( cmd.text ) ? 'glyphicon-remove' : ( /edit/i.test( cmd.text ) ? 'glyphicon-edit' : 'glyphicon-cog' ) );
+                    if ( typeof cmd.value === 'string' ) {
+                        cmd.func = gp.getObjectAtPath( cmd.value );
+                    }
+                    config.commands[index++] = cmd;
+                } );
             }
         } );
     },

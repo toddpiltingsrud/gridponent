@@ -54,6 +54,14 @@ gp.api.prototype = {
         return this.controller.config.node.querySelectorAll( selector );
     },
 
+    getCommandIndex: function ( value ) {
+        for ( var i = 0; i < this.config.commands.length; i++ ) {
+            if ( this.config.commands[i].value === value ) {
+                return i;
+            }
+        }
+    },
+
     getData: function ( index ) {
         if ( typeof index == 'number' ) return this.controller.config.pageModel.data[index];
         return this.controller.config.pageModel.data;
