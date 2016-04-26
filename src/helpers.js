@@ -107,6 +107,11 @@ gp.helpers = {
         return gp.supplant( template, model );
     },
 
+    each: function ( arrayLike, fn ) {
+        for ( var i = 0; i < arrayLike.length; i++ ) {
+            fn( arrayLike[i] );
+        }
+    },
 
     columnWidthStyle: function () {
         var self = this,
