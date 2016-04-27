@@ -198,7 +198,8 @@ var configuration = {
         {
             width: '75px',
             header: 'Make',
-            field: 'MakeFlag'
+            field: 'MakeFlag',
+            edittemplate: '<input type="radio" name="MakeFlag" value="true" /><input type="radio" name="MakeFlag" value="false" />'
         },
         {
             header: 'Safety Stock Level',
@@ -237,11 +238,11 @@ var configuration = {
         {
             commands: [
                 { text: 'Edit' },
-                { text:'Delete' },
+                { text: 'Delete' },
                 {
-                    text:'View',
-                    func:function(dataItem) {
-                        alert(dataItem);
+                    text: 'View',
+                    func: function ( dataItem ) {
+                        fns.viewed = true;
                     }
                 }
             ]
@@ -250,6 +251,12 @@ var configuration = {
 };
 
 fns.model = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
+
+QUnit.test( 'utils.syncChange', function ( assert ) {
+
+
+
+} );
 
 QUnit.test( 'Initializer.resolveCommands', function ( assert ) {
 
@@ -322,9 +329,7 @@ QUnit.test( 'busy class', function ( assert ) {
         done2();
     };
 
-    getTableConfig( options, function ( api ) {
-
-    } );
+    getTableConfig( options, function ( api ) { } );
 
 } );
 
@@ -646,7 +651,7 @@ QUnit.test( 'options', function ( assert ) {
     };
 
     options.columns[0].headertemplate = function () {
-        return '<span class="custom-header">custom header</span>'
+        return '<span class="custom-header">custom header</span>';
     };
     options.columns[0].bodytemplate = function () {
         return '<span class="body-template">custom body template</span>'
@@ -703,6 +708,16 @@ QUnit.test( 'options', function ( assert ) {
         btn = api.find( 'button[value=cancel]' );
 
         clickButton( btn );
+
+        btn = api.find( 'button[value=View]' );
+
+        fns.viewed = false;
+
+        assert.ok( btn != null, 'should find custom commands' );
+
+        clickButton( btn );
+
+        assert.strictEqual( fns.viewed, true );
 
         done2();
     } );

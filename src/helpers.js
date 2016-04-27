@@ -20,7 +20,7 @@ gp.helpers = {
 
         config.columns.forEach( function ( col ) {
             if ( col.commands ) {
-                model.footer = gp.helpers.editCellContent( col, dataItem, mode );
+                model.footer = gp.helpers.editCellContent.call( config, col, dataItem, mode );
                 return;
             }
             var canEdit = !col.readonly && ( gp.hasValue( col.field ) || gp.hasValue( col.edittemplate ) );
@@ -28,7 +28,7 @@ gp.helpers = {
 
             var formGroupModel = {
                 label: null,
-                input: gp.helpers.editCellContent( col, dataItem, mode )
+                input: gp.helpers.editCellContent.call( config, col, dataItem, mode )
             };
 
             // headers become labels
@@ -178,7 +178,9 @@ gp.helpers = {
             }
         }
         else if ( col.commands ) {
-            html.add( '<div class="btn-group btn-group-xs">' )
+            html.add( '<div class="btn-group' )
+                .add( this.editmode == 'inline' ? ' btn-group-xs' : '' )
+                .add('">')
                 .add( gp.helpers.button( {
                     btnClass: 'btn-primary',
                     value: ( mode == 'create' ? 'create' : 'update' ),
@@ -192,10 +194,6 @@ gp.helpers = {
         }
         else {
             var val = dataItem[col.field];
-            //// render empty cell if this field doesn't exist in the data
-            //if ( val === undefined ) return '';
-            //// render null as empty string
-            //if ( val === null ) val = '';
             // render undefined/null as empty string
             if ( !gp.hasValue( val ) ) val = '';
             html.add( gp.helpers.input( col.Type, col.field, gp.escapeHTML( val ) ) );
@@ -217,7 +215,7 @@ gp.helpers = {
     },
 
     formGroup: function ( model, arg ) {
-        var template = '<div class="form-group"><label class="col-sm-4 control-label">{{label}}</label><div class="col-sm-6">{{{input}}}</div></div>';
+        var template = '<div class="form-group"><label class="col-sm-4 control-label">{{{label}}}</label><div class="col-sm-6">{{{input}}}</div></div>';
         return gp.supplant( template, model );
     },
 

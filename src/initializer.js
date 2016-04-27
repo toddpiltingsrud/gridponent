@@ -230,9 +230,6 @@ gp.Initializer.prototype = {
                     cmd.btnClass = cmd.btnClass || ( /delete|destroy/i.test( cmd.text ) ? 'btn-danger' : 'btn-default' );
                     cmd.glyphicon = cmd.glyphicon || ( /delete|destroy/i.test( cmd.text ) ? 'glyphicon-remove' : ( /edit/i.test( cmd.text ) ? 'glyphicon-edit' : 'glyphicon-cog' ) );
                     cmd.func = cmd.func || gp.getObjectAtPath( cmd.value );
-                    if ( typeof cmd.value === 'string' ) {
-                        cmd.func = gp.getObjectAtPath( cmd.value );
-                    }
                 } );
             }
         } );

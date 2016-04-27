@@ -145,10 +145,10 @@ gp.Controller.prototype = {
             model = this.config.pageModel;
 
         // check for a user-defined command
-        if ( cmd && typeof cmd.func === function () {
+        if ( cmd && typeof cmd.func === 'function') {
             cmd.func.call( this.config.node.api, dataItem );
             return;
-        } );
+        };
 
         lower = btn.value.toLowerCase();
 
