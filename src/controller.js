@@ -128,7 +128,7 @@ gp.Controller.prototype = {
 
     addCommandHandlers: function ( node ) {
         // listen for command button clicks at the grid level
-        gp.on( node, 'click', 'button[data-cmd]', this.handlers.commandHandler );
+        gp.on( node, 'click', 'button[value]', this.handlers.commandHandler );
     },
 
     removeCommandHandlers: function ( node ) {
@@ -139,18 +139,18 @@ gp.Controller.prototype = {
         // this function handles all the button clicks for the entire grid
         var lower,
             btn = evt.selectedTarget,
-            elem = gp.closest( btn, 'tr[data-uid],div.modal', this.config.node ),
-            dataItem = elem ? this.config.map.get( elem ) : null,
-            index = gp.attr( btn, 'data-cmd' ),
-            cmd = this.config.commands[index],
+            rowOrModal = gp.closest( btn, 'tr[data-uid],div.modal', this.config.node ),
+            dataItem = rowOrModal ? this.config.map.get( rowOrModal ) : null,
+            cmd = gp.getCommand( this.config.columns, btn.value ),
             model = this.config.pageModel;
 
-        if ( typeof cmd.value === function () {
-            cmd.value.call( this.config.node.api, dataItem );
+        // check for a user-defined command
+        if ( cmd && typeof cmd.func === function () {
+            cmd.func.call( this.config.node.api, dataItem );
             return;
         } );
 
-        lower = cmd.value.toLowerCase();
+        lower = btn.value.toLowerCase();
 
         switch ( lower ) {
             case 'addrow':
@@ -158,11 +158,11 @@ gp.Controller.prototype = {
                 break;
             case 'edit':
                 // the button is inside either a table row or a modal
-                this.editRow( dataItem, elem );
+                this.editRow( dataItem, rowOrModal );
                 break;
             case 'delete':
             case 'destroy':
-                this.deleteRow( dataItem, elem );
+                this.deleteRow( dataItem, rowOrModal );
                 break;
             case 'page':
                 var page = gp.attr( evt.selectedTarget, 'data-page' );
@@ -183,6 +183,8 @@ gp.Controller.prototype = {
                     model.desc = false;
                 }
                 this.read();
+                break;
+            default:
                 break;
         }
     },

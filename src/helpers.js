@@ -103,14 +103,8 @@ gp.helpers = {
     },
 
     button: function ( model, arg ) {
-        var template = '<button type="button" class="btn {{btnClass}}" data-cmd="{{index}}"><span class="glyphicon {{glyphicon}}"></span>{{text}}</button>';
+        var template = '<button type="button" class="btn {{btnClass}}" value="{{value}}"><span class="glyphicon {{glyphicon}}"></span>{{text}}</button>';
         return gp.supplant( template, model );
-    },
-
-    each: function ( arrayLike, fn ) {
-        for ( var i = 0; i < arrayLike.length; i++ ) {
-            fn( arrayLike[i] );
-        }
     },
 
     columnWidthStyle: function () {
@@ -256,9 +250,11 @@ gp.helpers = {
         var spans = config.node.querySelectorAll( 'button.table-sort > spn.glyphicon-chevron-up,button.table-sort > span.glyphicon-chevron-down' );
         gp.removeClass( spans, 'glyphicon-chevron-up' );
         gp.removeClass( spans, 'glyphicon-chevron-down' );
-        var span = config.node.querySelector( 'button.table-sort[data-sort="' + config.pageModel.sort + '"] > span' );
-        if ( span ) {
-            gp.addClass( span, ( config.pageModel.desc ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up' ) );
+        if ( !gp.isNullOrEmpty( config.pageModel.sort ) ) {
+            var span = config.node.querySelector( 'button.table-sort[data-sort="' + config.pageModel.sort + '"] > span' );
+            if ( span ) {
+                gp.addClass( span, ( config.pageModel.desc ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up' ) );
+            }
         }
     },
 
@@ -318,7 +314,7 @@ gp.helpers = {
                     html.add( gp.supplant.call( this, col.headertemplate, col, [col] ) );
                 }
             }
-            else if ( sort != '' ) {
+            else if ( !gp.isNullOrEmpty(sort) ) {
                 html.add( '<button class="table-sort" value="sort" data-sort="' )
                     .escape( sort )
                     .add( '">' )

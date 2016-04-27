@@ -209,12 +209,12 @@ gp.Initializer.prototype = {
 
     resolveCommands: function ( config ) {
         var match, val, commands, index = 0;
-        config.commands = [];
         config.columns.forEach( function ( col ) {
             if ( typeof col.commands == 'string' ) {
+                commands = [];
                 col.commands.split( ',' ).forEach( function ( cmd ) {
                     match = cmd.split( ':' );
-                    config.commands.push( {
+                    commands.push( {
                         text: match[0],
                         value: match[1],
                         btnClass: match[2],
@@ -225,15 +225,14 @@ gp.Initializer.prototype = {
             }
             if ( Array.isArray( col.commands ) ) {
                 col.commands.forEach( function ( cmd ) {
-                    cmd.index = index;
                     cmd.text = cmd.text || cmd.value;
                     cmd.value = cmd.value || cmd.text;
                     cmd.btnClass = cmd.btnClass || ( /delete|destroy/i.test( cmd.text ) ? 'btn-danger' : 'btn-default' );
                     cmd.glyphicon = cmd.glyphicon || ( /delete|destroy/i.test( cmd.text ) ? 'glyphicon-remove' : ( /edit/i.test( cmd.text ) ? 'glyphicon-edit' : 'glyphicon-cog' ) );
+                    cmd.func = cmd.func || gp.getObjectAtPath( cmd.value );
                     if ( typeof cmd.value === 'string' ) {
                         cmd.func = gp.getObjectAtPath( cmd.value );
                     }
-                    config.commands[index++] = cmd;
                 } );
             }
         } );

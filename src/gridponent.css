@@ -178,6 +178,10 @@
   vertical-align: middle;
   background: none;
   border: none;
+  padding: 0;
+}
+.gp button.table-sort > span.glyphicon {
+  margin-left: 2px;
 }
 .gp button.table-sort > input {
   display: none;

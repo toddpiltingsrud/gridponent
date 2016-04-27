@@ -261,12 +261,19 @@ QUnit.test( 'Initializer.resolveCommands', function ( assert ) {
         ]
     };
 
+    fns.customSearchFunction = function () { };
+    fns.filter = function () { };
+    fns.addItem = function () { };
+
     fn( config );
+
+    var col = config.columns[0];
 
     assert.equal( col.commands[0].text, 'Search' );
     assert.equal( col.commands[0].value, 'fns.customSearchFunction' );
     assert.equal( col.commands[0].btnClass, 'btn-default' );
     assert.equal( col.commands[0].glyphicon, 'glyphicon-cog' );
+    assert.equal( col.commands[0].func, fns.customSearchFunction );
 
     assert.equal( col.commands[1].text, 'Edit' );
     assert.equal( col.commands[1].value, 'Edit' );
@@ -282,11 +289,13 @@ QUnit.test( 'Initializer.resolveCommands', function ( assert ) {
     assert.equal( col.commands[3].value, 'fns.filter' );
     assert.equal( col.commands[3].btnClass, 'btn-primary' );
     assert.equal( col.commands[3].glyphicon, 'glyphicon-cog' );
+    assert.equal( col.commands[3].func, fns.filter );
 
     assert.equal( col.commands[4].text, 'Add' );
     assert.equal( col.commands[4].value, 'fns.addItem' );
     assert.equal( col.commands[4].btnClass, 'btn-primary' );
     assert.equal( col.commands[4].glyphicon, 'glyphicon-plus' );
+    assert.equal( col.commands[4].func, fns.addItem );
 
 } );
 
