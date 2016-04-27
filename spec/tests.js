@@ -240,7 +240,7 @@ var configuration = {
                 { text:'Delete' },
                 {
                     text:'View',
-                    value:function(dataItem) {
+                    func:function(dataItem) {
                         alert(dataItem);
                     }
                 }
@@ -688,9 +688,7 @@ QUnit.test( 'options', function ( assert ) {
         assert.ok( span != null, 'should be able to use a function as a custom footer template' );
 
         // put one of the rows into edit model
-        var index = api.getCommandIndex( 'Edit' );
-
-        var btn = api.find( 'button[data-cmd="' + index + '"]' );
+        var btn = api.find( 'button[value=edit]' );
 
         clickButton( btn );
 
@@ -701,10 +699,6 @@ QUnit.test( 'options', function ( assert ) {
         span = api.find( 'span.header-template' );
 
         assert.ok( span != null, 'should be able to use a function as a custom header template inside a modal' );
-
-        var index = api.getCommandIndex( 'Cancel' );
-
-        var btn = api.find( 'button[data-cmd="' + index + '"]' );
 
         btn = api.find( 'button[value=cancel]' );
 
