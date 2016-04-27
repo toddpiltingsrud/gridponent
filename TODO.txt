@@ -1,34 +1,25 @@
-﻿Add a timeout to the progress bar to make sure it gets turned off.
+﻿Test radio buttons in edit mode. I'm betting the function that writes changes back to the model won't know how to handle radios.
+
+Create a modeling class that will work in both gridponent and lojax.
 
 Now the btn-group in modals is set to small.
 
-Add a colon delimiter to the commands config option so we can specify command value and button text:
-commands="Search:fns.customSearchFunction,Edit,Delete"
-
-Support the ability to include function inside the configuration when using the javascript method.
-
-Swap out simpler templates with helpers that use the supplant function.
-
 Test supplant against null, undefined and functions.
 
-Sometimes the request goes so fast that the progress bar doesn't really show up.
-
-Sometimes clicking a row doesn't change the style because we're navigating away from the page.
+Add a timeout to the progress bar to make sure it gets turned off.
 
 Can we isolate the controllers commandHandler from the editors? Don't like relying on differences in command value.
 
-If we use buttons for pagers and links for sorting we could get rid of some markup and possibly get rid of the Controller's ChangeMonitor.
-
 Eliminate setting config.dataItem.
-
-Test radio buttons in edit mode.
 
 What happens if a grid is rendered twice? Make sure the original is disposed if this happens.
 
+Add page size config option (default to 25).
+
+Build a jQuery version.
+
 Add a change event to a column:
 <gp-column field="IsCurrent" change="fns.isCurrentChanged"></gp-column>
-
-Should we resolve JS config objects on demand? That would solve the problem of page ready for some config options but not others.
 
 Footer template
 edit class
@@ -41,28 +32,4 @@ Move the globals into a private variable. Currently they are all on the main obj
 
 Use a CommonJS module library (e.g. webpack).
 
-create a filter API:
-
-node.api.filter({
-	ID: [2,3,4],
-	Name: ['Name1','Name2','Name3']
-});
-
-The model would apply it thusly:
-
-select * 
-from Products
-where ID in (2,3,4)
-and Name in ('Name1','Name2','Name3')
-
-
-If paging is turned off, use client pager to sort and search.
-Problem: we won't know whether we can use client pager until after we've retrieved data from the server.
-
 Allow the http module to be configured to use JSON or application/x-www-form-urlencoded.
-
-Add page size config option (default to 25).
-
-Build a jQuery version.
-
-Build a Polymer version.
