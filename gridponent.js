@@ -1449,6 +1449,11 @@ gp.helpers = {
         return gp.supplant( template, model );
     },
 
+    each: function ( arrayLike, fn ) {
+        for ( var i = 0; i < arrayLike.length; i++ ) {
+            fn( arrayLike[i] );
+        }
+    },
 
     columnWidthStyle: function () {
         var self = this,
@@ -1897,13 +1902,13 @@ gp.Initializer.prototype = {
     },
 
     resolveCommands: function ( config ) {
-        var match, val, commands, index = 0, obj;
-        config.commands = [];
+        var match, val, commands, index = 0;
         config.columns.forEach( function ( col ) {
             if ( typeof col.commands == 'string' ) {
+                commands = [];
                 col.commands.split( ',' ).forEach( function ( cmd ) {
                     match = cmd.split( ':' );
-                    config.commands.push( {
+                    commands.push( {
                         text: match[0],
                         value: match[1],
                         btnClass: match[2],
@@ -1914,18 +1919,13 @@ gp.Initializer.prototype = {
             }
             if ( Array.isArray( col.commands ) ) {
                 col.commands.forEach( function ( cmd ) {
-                    cmd.index = index;
                     cmd.text = cmd.text || cmd.value;
                     cmd.value = cmd.value || cmd.text;
                     cmd.btnClass = cmd.btnClass || ( /delete|destroy/i.test( cmd.text ) ? 'btn-danger' : 'btn-default' );
                     cmd.glyphicon = cmd.glyphicon || ( /delete|destroy/i.test( cmd.text ) ? 'glyphicon-remove' : ( /edit/i.test( cmd.text ) ? 'glyphicon-edit' : 'glyphicon-cog' ) );
                     if ( typeof cmd.value === 'string' ) {
-                        obj = gp.getObjectAtPath( cmd.value );
-                        if ( typeof obj === 'function' ) {
-                            cmd.value = obj;
-                        }
+                        cmd.func = gp.getObjectAtPath( cmd.value );
                     }
-                    config.commands[index++] = cmd;
                 } );
             }
         } );
@@ -2893,6 +2893,15 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
 \***************/
 ( function ( gp ) {
 
+    var matches = null;
+
+    var possibles = ['matches', 'matchesSelector', 'mozMatchesSelector', 'webkitMatchesSelector', 'msMatchesSelector', 'oMatchesSelector'];
+
+    for ( var i = 0; i < possibles.length && matches == null; i++ ) {
+        if ( Element.prototype[possibles[i]] ) matches = possibles[i];
+    }
+
+
     gp.addClass = function ( el, cn ) {
         if ( !gp.hasClass( el, cn ) ) {
             el.className = ( el.className === '' ) ? cn : el.className + ' ' + cn;
@@ -2938,27 +2947,25 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
     };
 
     gp.closest = function ( elem, selector, parentNode ) {
-        var e, potentials, j;
+        var e;
+        // parentNode is usually the grid's containing element
+        // we don't want to select elements outside the grid
         parentNode = parentNode || document;
+
         // if elem is a selector, convert it to an element
         if ( typeof ( elem ) === 'string' ) {
             elem = document.querySelector( elem );
         }
 
-        if ( elem ) {
-            // start with elem's immediate parent
-            e = elem.parentElement;
+        e = elem;
 
-            potentials = parentNode.querySelectorAll( selector );
+        while ( e ) {
 
-            while ( e ) {
-                for ( j = 0; j < potentials.length; j++ ) {
-                    if ( e == potentials[j] ) {
-                        return e;
-                    }
-                }
-                e = e.parentElement;
-            }
+            if ( e[matches]( selector ) ) return e;
+
+            if ( e == elem ) return null;
+
+            e = e.parentElement;
         }
     };
 
@@ -3163,20 +3170,16 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
 
             var e = evt.target;
 
-            // get all the elements that match targetSelector
-            var potentials = elem.querySelectorAll( targetSelector );
-
             // find the first element that matches targetSelector
             // usually this will be the first one
-            while ( e ) {
-                for ( var j = 0; j < potentials.length; j++ ) {
-                    if ( e == potentials[j] ) {
-                        // don't modify the listener's context to preserve the ability to use bind()
-                        // set selectedTarget to the matching element instead
-                        evt.selectedTarget = e;
-                        listener( evt );
-                        return;
-                    }
+            while ( e && e != elem ) {
+                if ( e[matches]( targetSelector ) ) {
+                    // don't modify the listener's context to preserve the ability to use bind()
+                    // set selectedTarget to the matching element instead
+
+                    evt.selectedTarget = e;
+                    listener( evt );
+                    return;
                 }
                 e = e.parentElement;
             }
@@ -3191,7 +3194,7 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
     };
 
     gp.off = function ( elem, event, listener ) {
-        // check for a matching listener store on the element
+        // check for a matching listener stored on the element
         var listeners = elem['gp-listeners-' + event];
         if ( listeners ) {
             for ( var i = 0; i < listeners.length; i++ ) {

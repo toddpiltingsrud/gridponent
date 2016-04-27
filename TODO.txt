@@ -33,36 +33,14 @@ Should we resolve JS config objects on demand? That would solve the problem of p
 Footer template
 edit class
 
-Empty table template
-
 Eliminate the helpers' dependencies on config.
 
 Move the globals into a private variable. Currently they are all on the main object.
 
-Use a CommonJS module library (e.g. webpack).
-
-create a filter API:
-
-node.api.filter({
-	ID: [2,3,4],
-	Name: ['Name1','Name2','Name3']
-});
-
-The model would apply it thusly:
-
-select * 
-from Products
-where ID in (2,3,4)
-and Name in ('Name1','Name2','Name3')
-
-
 If paging is turned off, use client pager to sort and search.
 Problem: we won't know whether we can use client pager until after we've retrieved data from the server.
-
-Allow the http module to be configured to use JSON or application/x-www-form-urlencoded.
 
 Add page size config option (default to 25).
 
 Build a jQuery version.
 
-Build a Polymer version.

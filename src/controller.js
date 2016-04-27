@@ -128,7 +128,7 @@ gp.Controller.prototype = {
 
     addCommandHandlers: function ( node ) {
         // listen for command button clicks at the grid level
-        gp.on( node, 'click', 'button[data-cmd]', this.handlers.commandHandler );
+        gp.on( node, 'click', 'button[value]', this.handlers.commandHandler );
     },
 
     removeCommandHandlers: function ( node ) {
@@ -142,7 +142,7 @@ gp.Controller.prototype = {
             elem = gp.closest( btn, 'tr[data-uid],div.modal', this.config.node ),
             dataItem = elem ? this.config.map.get( elem ) : null,
             index = gp.attr( btn, 'data-cmd' ),
-            cmd = this.config.commands[index],
+            cmd = gp.getCommand(btn, this.config.columns),
             model = this.config.pageModel;
 
         if ( typeof cmd.value === function () {

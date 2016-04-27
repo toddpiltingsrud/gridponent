@@ -103,14 +103,8 @@ gp.helpers = {
     },
 
     button: function ( model, arg ) {
-        var template = '<button type="button" class="btn {{btnClass}}" data-cmd="{{index}}"><span class="glyphicon {{glyphicon}}"></span>{{text}}</button>';
+        var template = '<button type="button" class="btn {{btnClass}}" value="{{value}}"><span class="glyphicon {{glyphicon}}"></span>{{text}}</button>';
         return gp.supplant( template, model );
-    },
-
-    each: function ( arrayLike, fn ) {
-        for ( var i = 0; i < arrayLike.length; i++ ) {
-            fn( arrayLike[i] );
-        }
     },
 
     columnWidthStyle: function () {
