@@ -1,4 +1,8 @@
 ﻿Test radio buttons in edit mode. I'm betting the function that writes changes back to the model won't know how to handle radios.
+The usual templating mechanism won't work for edit templates. There's no way to set the values for radios and selects using declarative syntax.
+Perhaps we only need to run the sync for edit templates.
+
+When editing or creating a new record, we should run a sync to set the input elements to the declared model if present.
 
 Create a modeling class that will work in both gridponent and lojax.
 
