@@ -497,6 +497,7 @@ gp.Controller.prototype = {
                 // standardize capitalization of incoming data
                 gp.shallowCopy( model, self.config.pageModel, true );
                 self.config.map.clear();
+                gp.resolveTypes( self.config );
                 self.refresh( self.config );
                 self.invokeDelegates( gp.events.onRead, self.config.node.api );
                 gp.applyFunc( callback, self.config.node, self.config.pageModel );
@@ -1716,6 +1717,7 @@ gp.Initializer.prototype = {
         var controller = new gp.Controller( self.config, dal, requestModel );
         this.config.node.api = new gp.api( controller );
         this.config.footer = this.resolveFooter( this.config );
+        this.config.preload = this.config.preload === false ? this.config.preload : true;
 
         setTimeout( function () {
             self.addEventDelegates( self.config, controller );
@@ -1723,32 +1725,37 @@ gp.Initializer.prototype = {
             // provides a hook for extensions
             controller.invokeDelegates( gp.events.beforeInit, self.config );
 
-            // we need both beforeinit and beforeread because beforeread is used after every read in the controller
-            // and beforeinit happens just once after the node is created, but before first read
-            controller.invokeDelegates( gp.events.beforeRead, self.config.pageModel );
+            if ( self.config.preload ) {
+                // we need both beforeinit and beforeread because beforeread is used after every read in the controller
+                // and beforeinit happens just once after the node is created, but before first read
+                controller.invokeDelegates( gp.events.beforeRead, self.config.pageModel );
 
-            dal.read( requestModel,
-                function ( data ) {
-                    try {
-                        gp.shallowCopy( data, self.config.pageModel, true );
-                        //self.config.pageModel = data;
-                        self.resolveTypes( self.config );
-                        self.resolveCommands( self.config );
-                        self.render( self.config );
-                        controller.init();
-                        if ( typeof callback === 'function' ) callback( self.config );
-                    } catch ( e ) {
+                dal.read( requestModel,
+                    function ( data ) {
+                        try {
+                            gp.shallowCopy( data, self.config.pageModel, true );
+                            gp.resolveTypes( self.config );
+                            self.resolveCommands( self.config );
+                            self.render( self.config );
+                            controller.init();
+                            if ( typeof callback === 'function' ) callback( self.config );
+                        } catch ( e ) {
+                            gp.error( e );
+                        }
+                        controller.invokeDelegates( gp.events.onRead, self.config.pageModel );
+                    },
+                    function ( e ) {
+                        controller.invokeDelegates( gp.events.httpError, e );
+                        alert( 'An error occurred while carrying out your request.' );
                         gp.error( e );
                     }
-                    controller.invokeDelegates( gp.events.onRead, self.config.pageModel );
-                },
-                function ( e ) {
-                    controller.invokeDelegates( gp.events.httpError, e );
-                    alert( 'An error occurred while carrying out your request.' );
-                    gp.error( e );
-                }
+                );
+            }
+            else {
+                self.resolveCommands( self.config );
+                controller.init();
+            }
 
-            );
         } );
 
         return this.config;
@@ -1923,33 +1930,7 @@ gp.Initializer.prototype = {
                 } );
             }
         } );
-    },
-
-    resolveTypes: function ( config ) {
-        var field,
-            hasData = config && config.pageModel && config.pageModel.data && config.pageModel.data.length;
-
-        config.columns.forEach( function ( col ) {
-            field = gp.hasValue( col.field ) ? col.field : col.sort;
-            if ( gp.isNullOrEmpty( field ) ) return;
-            if ( config.model ) {
-                // look for a type by field first, then by sort
-                if ( gp.hasValue( config.model[field] ) ) {
-                    col.Type = gp.getType( config.model[field] );
-                }
-            }
-            if ( !gp.hasValue( col.Type ) && hasData ) {
-                // if we haven't found a value after 200 iterations, give up
-                for ( var i = 0; i < config.pageModel.data.length && i < 200 ; i++ ) {
-                    if ( config.pageModel.data[i][field] !== null ) {
-                        col.Type = gp.getType( config.pageModel.data[i][field] );
-                        break;
-                    }
-                }
-            }
-        } );
     }
-
 };
 
 /***************\
@@ -3283,6 +3264,33 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
             el.className = gp.trim(( ' ' + el.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
         }
     };
+
+    gp.resolveTypes = function ( config ) {
+        var field,
+            hasData = config && config.pageModel && config.pageModel.data && config.pageModel.data.length;
+
+        config.columns.forEach( function ( col ) {
+            if ( gp.hasValue( col.Type ) ) return;
+            field = gp.hasValue( col.field ) ? col.field : col.sort;
+            if ( gp.isNullOrEmpty( field ) ) return;
+            if ( config.model ) {
+                // look for a type by field first, then by sort
+                if ( gp.hasValue( config.model[field] ) ) {
+                    col.Type = gp.getType( config.model[field] );
+                }
+            }
+            if ( !gp.hasValue( col.Type ) && hasData ) {
+                // if we haven't found a value after 25 iterations, give up
+                for ( var i = 0; i < config.pageModel.data.length && i < 25 ; i++ ) {
+                    if ( config.pageModel.data[i][field] !== null ) {
+                        col.Type = gp.getType( config.pageModel.data[i][field] );
+                        break;
+                    }
+                }
+            }
+        } );
+    };
+
 
     gp.rexp = {
         splitPath: /[^\[\]\.\s]+|\[\d+\]/g,
