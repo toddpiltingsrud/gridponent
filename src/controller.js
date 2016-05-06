@@ -260,7 +260,7 @@ gp.Controller.prototype = {
         if ( proceed === false ) return;
 
         if ( type === 'function' ) {
-            gp.applyFunc( config.rowselected, tr, [dataItem] );
+            gp.applyFunc( config.rowselected, this.config.node.api, [dataItem] );
         }
         else {
             // it's a urlTemplate

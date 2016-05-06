@@ -4,6 +4,8 @@ Perhaps we only need to run the sync for edit templates.
 
 When editing or creating a new record, we should run a sync to set the input elements to the declared model if present.
 
+Prevent double-clicking?
+
 Create a modeling class that will work in both gridponent and lojax.
 
 Add a preload config option. Set it to false to put off reading until the user performs some action (e.g. search).
