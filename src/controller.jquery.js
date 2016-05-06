@@ -1,5 +1,5 @@
 ﻿/***************\
-controller.jquery
+   controller
 \***************/
 gp.Controller = function ( config, model, requestModel ) {
     var self = this;
