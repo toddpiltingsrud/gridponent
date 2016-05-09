@@ -97,6 +97,7 @@ gp.events = {
 gp.api = function ( controller ) {
     this.controller = controller;
     this.config = controller.config;
+    this.$n = $( this.config.node );
 };
 
 gp.api.prototype = {
@@ -169,20 +170,6 @@ gp.api.prototype = {
         this.controller.sort( name, desc, callback );
     },
 
-    toggleBusy: function ( isBusy ) {
-
-        isBusy = ( isBusy === true || isBusy === false ? isBusy : !gp.hasClass( this.config.node, 'busy' ) );
-
-        if ( isBusy ) {
-            gp.addClass( this.config.node, 'busy' );
-        }
-        else {
-            gp.removeClass( this.config.node, 'busy' );
-        }
-
-        return this;
-    },
-
     update: function ( dataItem, done ) {
         this.controller.updateRow( dataItem, done );
     }
@@ -204,11 +191,12 @@ gp.api.prototype.ready = function ( callback ) {
 };
 
 /***************\
-   controller
+controller.jquery
 \***************/
 gp.Controller = function ( config, model, requestModel ) {
     var self = this;
     this.config = config;
+    this.$n = $( config.node );
     this.model = model;
     this.requestModel = requestModel;
     if ( config.pager ) {
@@ -249,12 +237,12 @@ gp.Controller.prototype = {
 
     addBusy: function () {
         // this function executes with the api as its context
-        gp.addClass( this.config.node, 'busy' );
+        this.$n.addClass( 'busy' );
     },
 
     removeBusy: function () {
         // this function executes with the api as its context
-        gp.removeClass( this.config.node, 'busy' );
+        this.$n.removeClass( 'busy' );
     },
 
     ready: function ( callback ) {
@@ -287,13 +275,13 @@ gp.Controller.prototype = {
     addToolbarChangeHandler: function () {
         // monitor changes to search, sort, and paging
         var selector = '.table-toolbar [name], thead input, .table-pager input';
-        gp.on( this.config.node, 'change', selector, this.handlers.toolbarChangeHandler );
-        gp.on( this.config.node, 'keydown', selector, this.handlers.toolbarEnterKeyHandler );
+        this.$n.on( 'change', selector, this.handlers.toolbarChangeHandler );
+        this.$n.on( 'keydown', selector, this.handlers.toolbarEnterKeyHandler );
     },
 
     removeToolbarChangeHandler: function () {
-        gp.off( this.config.node, 'change', this.handlers.toolbarChangeHandler );
-        gp.off( this.config.node, 'keydown', this.handlers.toolbarEnterKeyHandler );
+        this.$n.off( 'change', this.handlers.toolbarChangeHandler );
+        this.$n.off( 'keydown', this.handlers.toolbarEnterKeyHandler );
     },
 
     toolbarEnterKeyHandler: function ( evt ) {
@@ -325,37 +313,36 @@ gp.Controller.prototype = {
         this.read();
 
         // reset the radio inputs
-        var radios = this.config.node.querySelectorAll( 'thead input[type=radio], .table-pager input[type=radio]' );
-        for ( var i = 0; i < radios.length; i++ ) {
-            radios[i].checked = false;
-        }
+        this.$n.find( 'thead input[type=radio], .table-pager input[type=radio]' ).each( function () {
+            this.checked = false;
+        } );
     },
 
     addCommandHandlers: function ( node ) {
         // listen for command button clicks at the grid level
-        gp.on( node, 'click', 'button[value]', this.handlers.commandHandler );
+        $(node).on( 'click', 'button[value]', this.handlers.commandHandler );
     },
 
     removeCommandHandlers: function ( node ) {
-        gp.off( node, 'click', this.handlers.commandHandler );
+        $(node).off( 'click', this.handlers.commandHandler );
     },
 
     commandHandler: function ( evt ) {
         // this function handles all the button clicks for the entire grid
         var lower,
-            btn = evt.selectedTarget,
-            rowOrModal = gp.closest( btn, 'tr[data-uid],div.modal', this.config.node ),
+            $btn = $(evt.selectedTarget),
+            rowOrModal = $btn.closest( 'tr[data-uid],div.modal' ),
             dataItem = rowOrModal ? this.config.map.get( rowOrModal ) : null,
-            cmd = gp.getCommand( this.config.columns, btn.value ),
+            cmd = gp.getCommand( this.config.columns, $btn.attr('value') ),
             model = this.config.pageModel;
 
         // check for a user-defined command
-        if ( cmd && typeof cmd.func === 'function') {
+        if ( cmd && typeof cmd.func === 'function' ) {
             cmd.func.call( this.config.node.api, dataItem );
             return;
         };
 
-        lower = btn.value.toLowerCase();
+        lower = $btn.attr('value').toLowerCase();
 
         switch ( lower ) {
             case 'addrow':
@@ -370,16 +357,16 @@ gp.Controller.prototype = {
                 this.deleteRow( dataItem, rowOrModal );
                 break;
             case 'page':
-                var page = gp.attr( evt.selectedTarget, 'data-page' );
+                var page = $btn.attr( 'data-page' );
                 model.page = parseInt( page );
                 this.read();
                 break;
             case 'search':
-                model.search = this.config.node.querySelector( '.table-toolbar input[name=search]' ).value;
+                model.search = this.$n.find( '.table-toolbar input[name=search]' ).val();
                 this.read();
                 break;
             case 'sort':
-                var sort = gp.attr(evt.selectedTarget, 'data-sort');
+                var sort = $btn.attr( 'data-sort' );
                 if ( model.sort === sort ) {
                     model.desc = !model.desc;
                 }
@@ -423,20 +410,20 @@ gp.Controller.prototype = {
     },
 
     addRowSelectHandler: function ( config ) {
-        if ( gp.hasClass( config.node, 'selectable' ) ) {
+        if ( this.$n.hasClass( 'selectable' ) ) {
             // add click handler
-            gp.on( config.node, 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
+            this.$n.on( 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
         }
     },
 
     removeRowSelectHandler: function () {
-        gp.off( this.config.node, 'click', this.handlers.rowSelectHandler );
+        this.$n.off( 'click', this.handlers.rowSelectHandler );
     },
 
     rowSelectHandler: function ( evt ) {
         var config = this.config,
-            tr = gp.closest( evt.selectedTarget, 'tr', config.node ),
-            trs = config.node.querySelectorAll( 'div.table-body > table > tbody > tr.selected' ),
+            tr = $(evt.selectedTarget).closest( 'tr' ),
+            trs = this.$n.find( 'div.table-body > table > tbody > tr.selected' ),
             type = typeof config.rowselected,
             dataItem,
             proceed;
@@ -444,18 +431,16 @@ gp.Controller.prototype = {
         if ( type === 'string' && config.rowselected.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
 
         // remove previously selected class
-        for ( var i = 0; i < trs.length; i++ ) {
-            gp.removeClass( trs[i], 'selected' );
-        }
+        trs.removeClass( 'selected' );
 
         // add selected class
-        gp.addClass( tr, 'selected' );
+        $(tr).addClass( 'selected' );
         // get the dataItem for this tr
-        dataItem = config.map.get( tr );
+        dataItem = config.map.get( tr[0] );
 
-        // ensure dataItem selection doesn't interfere with button clicks in the dataItem
-        // by making sure the evt target is a body cell
-        if ( evt.target != evt.selectedTarget ) return;
+        //// ensure dataItem selection doesn't interfere with button clicks in the dataItem
+        //// by making sure the evt target is a body cell
+        //if ( evt.target != evt.selectedTarget ) return;
 
         proceed = this.invokeDelegates( gp.events.rowselected, {
             dataItem: dataItem,
@@ -475,20 +460,19 @@ gp.Controller.prototype = {
 
     addRefreshEventHandler: function ( config ) {
         if ( config.refreshevent ) {
-            gp.on( document, config.refreshevent, this.handlers.readHandler );
+            $(document).on( config.refreshevent, this.handlers.readHandler );
         }
     },
 
     removeRefreshEventHandler: function ( config ) {
         if ( config.refreshevent ) {
-            gp.off( document, config.refreshevent, this.handlers.readHandler );
+            $(document).off( config.refreshevent, this.handlers.readHandler );
         }
     },
 
     search: function ( searchTerm, callback ) {
         this.config.pageModel.search = searchTerm;
-        var searchBox = this.config.node.querySelector( 'div.table-toolbar input[name=search' );
-        searchBox.value = searchTerm;
+        var searchBox = this.$n.find( 'div.table-toolbar input[name=search' ).val( searchBox );
         this.read( null, callback );
     },
 
@@ -547,7 +531,7 @@ gp.Controller.prototype = {
 
             editor.save( callback, this.httpErrorHandler.bind( this ) );
         }
-        catch ( e ) {
+        catch ( ex ) {
             this.removeBusy();
             this.httpErrorHandler( e );
         }
@@ -579,7 +563,7 @@ gp.Controller.prototype = {
 
             editor.save( callback, this.httpErrorHandler.bind( this ) );
         }
-        catch ( e ) {
+        catch ( ex ) {
             this.removeBusy();
             this.httpErrorHandler( e );
         }
@@ -596,7 +580,7 @@ gp.Controller.prototype = {
             var self = this,
                 confirmed = skipConfirm || confirm( 'Are you sure you want to delete this item?' ),
                 message,
-                tr = gp.getTableRow( this.config.map, dataItem, this.config.node );
+                tr = gp.getTableRow( this.config.map, dataItem, this.$n[0] );
 
             if ( !confirmed ) {
                 gp.applyFunc( callback, this.config.node );
@@ -648,20 +632,15 @@ gp.Controller.prototype = {
     refresh: function () {
         try {
             // inject table rows, footer, pager and header style.
-            var node = this.config.node,
-                body = node.querySelector( 'div.table-body' ),
-                footer = node.querySelector( 'div.table-footer' ),
-                pager = node.querySelector( 'div.table-pager' );
+            var body = this.$n.find( 'div.table-body' ),
+                footer = this.$n.find( 'div.table-footer' ),
+                pager = this.$n.find( 'div.table-pager' );
 
             this.config.map.clear();
 
-            body.innerHTML = gp.templates['gridponent-body']( this.config );
-            if ( footer ) {
-                footer.innerHTML = gp.templates['gridponent-table-footer']( this.config );
-            }
-            if ( pager ) {
-                pager.innerHTML = gp.templates['gridponent-pager']( this.config );
-            }
+            body.html( gp.templates['gridponent-body']( this.config ) );
+            footer.html( gp.templates['gridponent-table-footer']( this.config ) );
+            pager.html( gp.templates['gridponent-pager']( this.config ) );
 
             gp.helpers.sortStyle( this.config );
         }
@@ -682,122 +661,6 @@ gp.Controller.prototype = {
         this.removeCommandHandlers( this.config.node );
         this.removeToolbarChangeHandler();
     }
-
-};
-
-/***************\
-     model
-\***************/
-gp.DataLayer = function ( config ) {
-    this.config = config;
-    this.reader = null;
-    var type = gp.getType( config.read );
-    switch ( type ) {
-        case 'string':
-            this.reader = new gp.ServerPager( config.read );
-            break;
-        case 'function':
-            this.reader = new gp.FunctionPager( config );
-            break;
-        case 'object':
-            // read is a PagingModel
-            this.config.pageModel = config.read;
-            this.reader = new gp.ClientPager( this.config );
-            break;
-        case 'array':
-            this.config.pageModel.data = this.config.read;
-            this.reader = new gp.ClientPager( this.config );
-            break;
-        default:
-            throw 'Unsupported read configuration';
-    }
-};
-
-gp.DataLayer.prototype = {
-
-    read: function ( requestModel, done, fail ) {
-        var self = this;
-
-        this.reader.read(
-            requestModel,
-            // make sure we wrap result in an array when we return it
-            // if result is an array of data, then applyFunc will end up only grabbing the first dataItem
-            function ( result ) {
-                result = self.resolveResult( result );
-                gp.applyFunc( done, self, [result] );
-            },
-            function ( result ) { gp.applyFunc( fail, self, [result] ); }
-        );
-    },
-
-    create: function ( dataItem, done, fail) {
-        var self = this, url;
-
-        // config.create can be a function or a URL
-        if ( typeof this.config.create === 'function' ) {
-            // call the function, set the API as the context
-            gp.applyFunc(this.config.create, this.config.node.api, [dataItem, done, fail], fail);
-        }
-        else {
-            // the url can be a template
-            url = gp.supplant( this.config.create, dataItem );
-            // call the URL
-            var http = new gp.Http();
-            http.post(
-                url,
-                dataItem,
-                function ( arg ) { gp.applyFunc( done, self, arg ); },
-                function ( arg ) { gp.applyFunc( fail, self, arg ); }
-            );
-        }
-    },
-
-    update: function (dataItem, done, fail) {
-        var self = this, url;
-
-        // config.update can be a function or URL
-        if ( typeof this.config.update === 'function' ) {
-            gp.applyFunc(this.config.update, this.config.node.api, [dataItem, done, fail], fail);
-        }
-        else {
-            // the url can be a template
-            url = gp.supplant( this.config.update, dataItem );
-            var http = new gp.Http();
-            http.post(
-                url,
-                dataItem,
-                function ( arg ) { gp.applyFunc( done, self, arg ); },
-                function ( arg ) { gp.applyFunc( fail, self, arg ); }
-            );
-        }
-    },
-
-    destroy: function (dataItem, done, fail) {
-        var self = this, url;
-        if ( typeof this.config.destroy === 'function' ) {
-            gp.applyFunc(this.config.destroy, this.config.node.api, [dataItem, done, fail], fail);
-        }
-        else {
-            // the url can be a template
-            url = gp.supplant( this.config.destroy, dataItem );
-            var http = new gp.Http();
-            http.destroy(
-                url,
-                dataItem,
-                function ( arg ) { gp.applyFunc( done, self, arg ); },
-                function ( arg ) { gp.applyFunc( fail, self, arg ); }
-            );
-        }
-    },
-
-    resolveResult: function ( result ) {
-        if ( gp.hasValue( result ) && Array.isArray( result ) ) {
-            //  wrap the array in a PagingModel
-            return new gp.PagingModel( result );
-        }
-        return result;
-    }
-
 
 };
 
@@ -878,7 +741,7 @@ gp.DataMap.prototype = {
 };
 
 /***************\
-     Editor
+ editors.jquery
 \***************/
 
 gp.Editor = function ( config, dal ) {
@@ -892,6 +755,7 @@ gp.Editor = function ( config, dal ) {
     this.afterEdit = null;
     this.editReady = null;
     this.button = null;
+    this.$n = $( config.node );
 
 };
 
@@ -914,33 +778,16 @@ gp.Editor.prototype = {
         };
     },
 
-    httpErrorHandler: function ( e ) {
-        alert( 'An error occurred while carrying out your request.' );
-        gp.error( e );
-    },
-
     save: function ( done, fail ) {
         // create or update
         var self = this,
             returnedDataItem,
-            serialized,
             fail = fail || gp.error;
 
         this.addBusy();
 
-        // it's possible for the API to invoke this save method, so there won't be an element
         if ( this.elem ) {
-            // serialize the form
-            serialized = gp.ModelSync.serialize( this.elem );
-
-            // currently the only supported post format is application/x-www-form-urlencoded
-            // so normally there'd be no point in converting the serialized form values to their former types
-            // but we can't rely on the server to return an updated model (it may simply return a success/fail message)
-            // so we'll convert them anyway
-            gp.ModelSync.castValues( serialized, this.config.columns );
-
-            // copy the values back to the original dataItem
-            gp.shallowCopy( serialized, this.dataItem );
+            gp.syncModel( this.elem, this.dataItem, this.config.columns );
         }
 
         if ( typeof this.beforeEdit == 'function' ) {
@@ -999,10 +846,7 @@ gp.Editor.prototype = {
 
                 gp.applyFunc( done, self.config.node.api, updateModel );
             },
-            function ( e ) {
-                self.removeBusy();
-                gp.applyFunc( fail, self, e );
-            } );
+            fail );
 
         }
         else {
@@ -1051,21 +895,14 @@ gp.Editor.prototype = {
 
                 gp.applyFunc( done, self.config.node, updateModel );
             },
-            function ( e ) {
-                self.removeBusy();
-                gp.applyFunc( fail, self, e );
-            } );
+            fail );
 
         }
     },
 
-    addBusy: function () {
-        gp.addClass( this.config.node, 'busy' );
-    },
+    addBusy: function () { },
 
-    removeBusy: function () {
-        gp.removeClass( this.config.node, 'busy' );
-    },
+    removeBusy: function () { },
 
     updateUI: function () { },
 
@@ -1111,13 +948,13 @@ gp.TableRowEditor = function ( config, dal ) {
     this.elem = null;
     this.commandHandler = function ( evt ) {
         // handle save or cancel
-        var command = evt.selectedTarget.attributes['value'].value;
+        var command = $( this ).val();
 
         if ( /^(create|update|save)$/i.test( command ) ) {
-            self.button = evt.selectedTarget;
+            self.button = this;
             // prevent double clicking
             gp.disable( self.button, 5 );
-            self.save(null, self.httpErrorHandler);
+            self.save();
         }
         else if ( /^cancel$/i.test( command ) ) self.cancel();
     };
@@ -1126,27 +963,17 @@ gp.TableRowEditor = function ( config, dal ) {
 
 gp.TableRowEditor.prototype = {
 
-    save: gp.Editor.prototype.save,
-
-    addBusy: gp.Editor.prototype.addBusy,
-
-    removeBusy: gp.Editor.prototype.removeBusy,
-
-    httpErrorHandler: gp.Editor.prototype.httpErrorHandler,
-
-    createDataItem: gp.Editor.prototype.createDataItem,
-
     addCommandHandler: function() {
-        gp.on( this.elem, 'click', 'button[value]', this.commandHandler );
+        $(this.elem).on( 'click', 'button[value]', this.commandHandler );
     },
 
     removeCommandHandler: function () {
-        gp.off( this.elem, 'click', this.commandHandler );
+        $(this.elem).off( 'click', this.commandHandler );
     },
 
     add: function () {
         var self = this,
-            tbody = this.config.node.querySelector( 'div.table-body > table > tbody' ),
+            tbody = this.$n.find( 'div.table-body > table > tbody' ),
             bodyCellContent = gp.helpers['bodyCellContent'],
             editCellContent = gp.helpers['editCellContent'],
             builder = new gp.NodeBuilder(),
@@ -1161,20 +988,14 @@ gp.TableRowEditor.prototype = {
             cellContent = col.readonly ?
                 bodyCellContent.call( self.config, col, self.dataItem ) :
                 editCellContent.call( self.config, col, self.dataItem, 'create' );
-            builder.create( 'td' ).addClass( 'body-cell' ).addClass( col.bodyclass ).html( cellContent );
-            if ( col.commands ) {
-                builder.addClass( 'commands' );
-            }
-            builder.endElem();
+            builder.create( 'td' ).addClass( 'body-cell' ).addClass( col.bodyclass ).html( cellContent ).endElem();
         } );
 
         this.elem = builder.close();
 
-        gp.ModelSync.bindElements( this.dataItem, this.elem );
-
         this.addCommandHandler();
 
-        gp.prependChild( tbody, this.elem );
+        tbody.prepend( this.elem );
 
         this.invokeEditReady();
 
@@ -1190,7 +1011,7 @@ gp.TableRowEditor.prototype = {
 
         var col,
             editCellContent = gp.helpers['editCellContent'],
-            cells = tr.querySelectorAll( 'td.body-cell' ),
+            cells = $(tr).find( 'td.body-cell' ),
             uid;
 
         gp.Editor.prototype.edit.call( this, dataItem );
@@ -1201,15 +1022,14 @@ gp.TableRowEditor.prototype = {
 
         // IE9 can't set innerHTML of tr, so iterate through each cell and set its innerHTML
         // besides, that way we can just skip readonly cells
-        for ( var i = 0; i < cells.length; i++ ) {
+        cells.each( function (i) {
             col = this.config.columns[i];
             if ( !col.readonly ) {
-                cells[i].innerHTML = editCellContent.call( this.config, col, dataItem, 'edit' );
+                $(this).html( editCellContent.call( this.config, col, dataItem, 'edit' ) );
             }
-        }
-        gp.addClass( tr, 'edit-mode' );
+        } );
 
-        gp.ModelSync.bindElements( dataItem, this.elem );
+        $( tr ).addClass( 'edit-mode' );
 
         this.invokeEditReady();
 
@@ -1219,13 +1039,15 @@ gp.TableRowEditor.prototype = {
         };
     },
 
+    save: gp.Editor.prototype.save,
+
     cancel: function () {
 
         try {
-            var tbl = gp.closest( this.elem, 'table', this.config.node ),
+            var tbl = $(this.elem).closest( 'table', this.$n ),
                 index;
 
-            if ( gp.hasClass( this.elem, 'create-mode' ) ) {
+            if ( $( this.elem ).hasClass( 'create-mode' ) ) {
                 // remove elem
                 tbl.deleteRow( this.elem.rowIndex );
             }
@@ -1260,17 +1082,13 @@ gp.TableRowEditor.prototype = {
             builder.add( 'Please correct the following errors:\r\n' );
 
             // remove error class from inputs
-            gp.removeClass( self.elem.querySelectorAll( '[name].error' ), 'error' );
+            $( self.elem ).find( '[name].error' ).removeClass( 'error' );
 
             Object.getOwnPropertyNames( updateModel.errors ).forEach( function ( e ) {
 
-                input = self.elem.querySelector( '[name="' + e + '"]' );
+                $(self.elem).find( '[name="' + e + '"]' ).addClass( 'error' );
 
                 errors = updateModel.errors[e].errors;
-
-                if ( input ) {
-                    gp.addClass( input, 'error' );
-                }
 
                 builder
                     .add( e + ':\r\n' )
@@ -1285,18 +1103,22 @@ gp.TableRowEditor.prototype = {
 
     },
 
+    createDataItem: gp.Editor.prototype.createDataItem,
+
+    addBusy: function () { },
+    removeBusy: function() {},
+
     updateUI: function () {
         // take the table row out of edit mode
         var col,
             bodyCellContent = gp.helpers['bodyCellContent'],
-            cells = this.elem.querySelectorAll( 'td.body-cell' );
+            cells = $(this.elem).find( 'td.body-cell' );
 
-        for ( var i = 0 ; i < cells.length; i++ ) {
+        cells.each( function ( i ) {
             col = this.config.columns[i];
-            cells[i].innerHTML = bodyCellContent.call( this.config, col, this.dataItem );
-        }
-        gp.removeClass( this.elem, 'edit-mode' );
-        gp.removeClass( this.elem, 'create-mode' );
+            $(this).html( bodyCellContent.call( this.config, col, this.dataItem ) );
+        } );
+        $( this.elem ).removeClass( 'edit-mode create-mode' );
     },
 
     invokeEditReady: function() {
@@ -1323,19 +1145,9 @@ gp.ModalEditor = function ( config, dal ) {
 
 gp.ModalEditor.prototype = {
 
-    save: gp.Editor.prototype.save,
-
-    httpErrorHandler: gp.Editor.prototype.httpErrorHandler,
-
     addCommandHandler: gp.TableRowEditor.prototype.addCommandHandler,
 
     removeCommandHandler: gp.TableRowEditor.prototype.removeCommandHandler,
-
-    validate: gp.TableRowEditor.prototype.validate,
-
-    createDataItem: gp.Editor.prototype.createDataItem,
-
-    invokeEditReady: gp.TableRowEditor.prototype.invokeEditReady,
 
     add: function () {
         var self = this,
@@ -1353,14 +1165,11 @@ gp.ModalEditor.prototype = {
             .one('shown.bs.modal', self.invokeEditReady.bind(self) )
             .modal( {
                 show: true,
-                keyboard: true,
-                backdrop: 'static'
+                keyboard: true
             }
         );
 
         this.elem = modal[0];
-
-        gp.ModelSync.bindElements( this.dataItem, this.elem );
 
         modal.one( 'hidden.bs.modal', function () {
             $( modal ).remove();
@@ -1389,14 +1198,11 @@ gp.ModalEditor.prototype = {
             .one( 'shown.bs.modal', self.invokeEditReady.bind( self ) )
             .modal( {
                 show: true,
-                keyboard: true,
-                backdrop: 'static'
+                keyboard: true
             }
         );
 
         this.elem = modal[0];
-
-        gp.ModelSync.bindElements( dataItem, this.elem );
 
         modal.one( 'hidden.bs.modal', function () {
             $( modal ).remove();
@@ -1411,6 +1217,8 @@ gp.ModalEditor.prototype = {
 
     },
 
+    save: gp.Editor.prototype.save,
+
     cancel: function () {
         $( this.elem ).modal('hide');
         //restore the dataItem to its original state
@@ -1420,18 +1228,18 @@ gp.ModalEditor.prototype = {
         this.removeCommandHandler();
     },
 
-    addBusy: function() {
-        gp.addClass( this.elem, 'busy' );
+    addBusy: function () {
+        $( this.elem ).addClass( 'busy' );
     },
 
     removeBusy: function() {
-        gp.removeClass( this.elem, 'busy' );
+        $( this.elem ).removeClass( 'busy' );
     },
 
     updateUI: function () {
 
         var self = this,
-            tbody = this.config.node.querySelector( 'div.table-body > table > tbody' ),
+            tbody = this.$n.find( 'div.table-body > table > tbody' ),
             bodyCellContent = gp.helpers['bodyCellContent'],
             tableRow,
             cells,
@@ -1463,23 +1271,26 @@ gp.ModalEditor.prototype = {
 
             tableRow = builder.close();
 
-            gp.prependChild( tbody, tableRow );
-
+            $( tbody ).prepend( tableRow );
         }
         else {
             tableRow = gp.getTableRow( this.config.map, this.dataItem, this.config.node );
     
             if ( tableRow ) {
-                cells = tableRow.querySelectorAll( 'td.body-cell' );
-
-                for ( var i = 0 ; i < cells.length; i++ ) {
+                $( tableRow ).find( 'td.body-cell' ).each( function ( i ) {
                     col = this.config.columns[i];
-                    cells[i].innerHTML = bodyCellContent.call( this.config, col, this.dataItem );
-                }
+                    $(this).html( bodyCellContent.call( this.config, col, this.dataItem ) );
+                } );
             }
         }
 
-    }
+    },
+
+    validate: gp.TableRowEditor.prototype.validate,
+
+    createDataItem: gp.Editor.prototype.createDataItem,
+
+    invokeEditReady: gp.TableRowEditor.prototype.invokeEditReady
 
 };
 
@@ -1519,7 +1330,7 @@ gp.Formatter.prototype = {
 };
 
 /***************\
-    helpers
+ helpers.jquery
 \***************/
 
 gp.helpers = {
@@ -1716,7 +1527,7 @@ gp.helpers = {
             var val = dataItem[col.field];
             // render undefined/null as empty string
             if ( !gp.hasValue( val ) ) val = '';
-            html.add( gp.helpers.input( col.Type, col.field, "" ) );
+            html.add( gp.helpers.input( col.Type, col.field, gp.escapeHTML( val ) ) );
         }
         return html.toString();
     },
@@ -1765,14 +1576,13 @@ gp.helpers = {
 
     sortStyle: function ( config ) {
         // remove glyphicons from sort buttons
-        var spans = config.node.querySelectorAll( 'button.table-sort > spn.glyphicon-chevron-up,button.table-sort > span.glyphicon-chevron-down' );
-        gp.removeClass( spans, 'glyphicon-chevron-up' );
-        gp.removeClass( spans, 'glyphicon-chevron-down' );
+        var spans = $( config.node )
+            .find( 'button.table-sort > spn.glyphicon-chevron-up,button.table-sort > span.glyphicon-chevron-down' )
+            .removeClass( 'glyphicon-chevron-up glyphicon-chevron-down' );
         if ( !gp.isNullOrEmpty( config.pageModel.sort ) ) {
-            var span = config.node.querySelector( 'button.table-sort[data-sort="' + config.pageModel.sort + '"] > span' );
-            if ( span ) {
-                gp.addClass( span, ( config.pageModel.desc ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up' ) );
-            }
+            $( config.node )
+                .find( 'button.table-sort[data-sort="' + config.pageModel.sort + '"] > span' )
+                .addClass(( config.pageModel.desc ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up' ));
         }
     },
 
@@ -1864,11 +1674,11 @@ gp.helpers = {
 };
 
 
-/***************\
-   Initializer
-\***************/
+/****************\
+Initializer.jquery
+\****************/
 gp.Initializer = function ( node ) {
-    this.parent = node;
+    this.parent = $( node );
 };
 
 gp.Initializer.prototype = {
@@ -1884,14 +1694,15 @@ gp.Initializer.prototype = {
         options.ID = gp.createUID();
         this.config = options;
         this.renderLayout( this.config, this.parent );
-        this.config.node = this.parent.querySelector( '.table-container' );
+        this.config.node = this.parent.find( '.table-container' );
+        this.$n = this.parent.find( '.table-container' );
 
         this.config.map = new gp.DataMap();
-        var dal = new gp.DataLayer( this.config );
+        var dal = new gp.Model( this.config );
         var requestModel = new gp.PagingModel();
         var controller = new gp.Controller( self.config, dal, requestModel );
         this.config.node.api = new gp.api( controller );
-        this.config.footer = this.resolveFooter( this.config );
+        this.config.footer = this.hasFooterTemplate( this.config );
         this.config.preload = this.config.preload === false ? this.config.preload : true;
 
         setTimeout( function () {
@@ -1939,11 +1750,10 @@ gp.Initializer.prototype = {
     getConfig: function ( parentNode ) {
         var self = this,
             obj,
-            colNode,
             colConfig,
             templates,
             config = gp.getAttributes( parentNode ),
-            gpColumns = parentNode.querySelectorAll( 'gp-column' );
+            gpColumns = $(parentNode).find( 'gp-column' );
 
         // modal or inline
         config.editmode = config.editmode || 'inline';
@@ -1952,12 +1762,11 @@ gp.Initializer.prototype = {
 
         // create the column configurations
         templates = 'header body edit footer'.split( ' ' );
-        for ( var i = 0; i < gpColumns.length; i++ ) {
-            colNode = gpColumns[i];
-            colConfig = gp.getAttributes( colNode );
+        gpColumns.each( function () {
+            colConfig = gp.getAttributes( this );
             config.columns.push( colConfig );
-            this.resolveTemplates( templates, colConfig, colNode );
-        }
+            this.resolveTemplates( templates, colConfig, this );
+        } );
 
         // resolve the top level configurations
         var options = 'rowselected searchfunction read create update destroy validate model'.split( ' ' );
@@ -1998,38 +1807,31 @@ gp.Initializer.prototype = {
     },
 
     renderLayout: function ( config, parentNode ) {
-        var self = this;
         try {
-            parentNode.innerHTML = gp.templates['gridponent']( config );
+            $(parentNode).html( gp.templates['gridponent']( config ) );
         }
-        catch ( ex ) {
-            gp.error( ex );
+        catch ( e ) {
+            gp.error( e );
         }
     },
 
     render: function ( config ) {
         var self = this;
         try {
-            var node = config.node;
-
             // inject table rows, footer, pager and header style.
 
-            var body = node.querySelector( 'div.table-body' );
-            var footer = node.querySelector( 'div.table-footer' );
-            var pager = node.querySelector( 'div.table-pager' );
+            var body = this.$n.find( 'div.table-body' );
+            var footer = this.$n.find( 'div.table-footer' );
+            var pager = this.$n.find( 'div.table-pager' );
 
-            body.innerHTML = gp.templates['gridponent-body']( config );
-            if ( footer ) {
-                footer.innerHTML = gp.templates['gridponent-table-footer']( config );
-            }
-            if ( pager ) {
-                pager.innerHTML = gp.templates['gridponent-pager']( config );
-            }
+            body.html( gp.templates['gridponent-body']( config ) );
+            footer.html( gp.templates['gridponent-table-footer']( config ) );
+            pager.html( gp.templates['gridponent-pager']( config ) );
             gp.helpers.sortStyle( config );
 
             // sync column widths
             if ( config.fixedheaders || config.fixedfooters ) {
-                var nodes = node.querySelectorAll( '.table-body > table > tbody > tr:first-child > td' );
+                var nodes = this.$n.find( '.table-body > table > tbody > tr:first-child > td' );
 
                 if ( gp.hasPositiveWidth( nodes ) ) {
                     // call syncColumnWidths twice because the first call causes things to shift around a bit
@@ -2049,10 +1851,10 @@ gp.Initializer.prototype = {
 
     syncColumnWidths: function ( config ) {
         var html = gp.helpers.columnWidthStyle.call( config );
-        config.node.querySelector( 'style.column-width-style' ).innerHTML = html;
+        this.$n.find( 'style.column-width-style' ).html( html );
     },
 
-    resolveFooter: function ( config ) {
+    hasFooterTemplate: function ( config ) {
         for ( var i = 0; i < config.columns.length; i++ ) {
             if ( config.columns[i].footertemplate ) return true;
         }
@@ -2281,168 +2083,119 @@ gp.Initializer.prototype = {
 })(gridponent);
 
 /***************\
-   ModelSync
+     model
 \***************/
-
-gp.ModelSync = {
-
-    rexp: {
-        rCRLF: /\r?\n/g,
-        rsubmitterTypes: /^(?:submit|button|image|reset|file)$/i,
-        rsubmittable: /^(?:input|select|textarea|keygen)/i,
-        rcheckableType: /^(?:checkbox|radio)$/i
-    },
-
-    isDisabled: function ( elem ) {
-        return elem.disabled == true;
-    },
-
-    isNumeric: function ( obj ) {
-        return !Array.isArray( obj ) && ( obj - parseFloat( obj ) + 1 ) >= 0;
-    },
-
-    toArray: function ( arrayLike ) {
-        if ( arrayLike !== undefined && arrayLike.length != undefined ) {
-            var arr = [];
-            for ( var i = 0; i < arrayLike.length; i++ ) {
-                arr[i] = arrayLike[i];
-            }
-            return arr;
-        }
-        return null;
-    },
-
-    /*
-        jQuery's serializeArray function fails under the following scenario:
-        There are two inputs with the same name.
-        One of them is a checkbox with a value of true, the other is a hidden with a value of false.
-
-        What should happen:
-        If the checkbox is checked, both are submitted and only the first one (checkbox) is used by the server resulting in a value of true.
-        If the checkbox is unchecked, only the hidden is submitted resulting in a value of false.
-        ASP.NET uses this technique to submit an explicit true or false instead of true or nothing.
-
-        What actually happens:
-        jQuery's serializeArray function always submits true regardless of checked state.
-    */
-
-    serialize: function ( form ) {
-        var inputs = form.querySelectorAll( '[name]' ),
-            arr = this.toArray( inputs ),
-            obj = {};
-
-        arr.filter( function (elem) {
-                var type = elem.type;
-
-                return elem.name && !this.isDisabled( elem ) &&
-                    this.rexp.rsubmittable.test( elem.nodeName ) && !this.rexp.rsubmitterTypes.test( type ) &&
-                    ( elem.checked || !this.rexp.rcheckableType.test( type ) );
-            }.bind(this) )
-		    .forEach( function ( elem ) {
-
-                // if there are multiple inputs with this name, take the first one
-		        if ( elem.name in obj ) return;
-
-		        var val = elem.value;
-		        obj[elem.name] =
-                    ( val == null ?
-				    null :
-    			    val.replace( this.rexp.rCRLF, "\r\n" ) );
-		    }.bind(this)
-        );
-
-        return obj;
-    },
-
-    bindElements: function ( model, context ) {
-        var value,
-            elem;
-
-        Object.getOwnPropertyNames( model ).forEach( function ( prop ) {
-
-            value = gp.hasValue( model[prop] ) ? model[prop].toString() : '';
-
-            clean = gp.escapeHTML( value ).replace( this.rexp.rCRLF, "\r\n" );
-
-            // is there a checkbox or radio with this name and value?
-            elem = context.querySelector( '[type=checkbox][name="' + prop + '"][value="' + clean + '"],[type=radio][name="' + prop + '"][value="' + clean + '"]' );
-
-            if ( elem != null )
-            {
-                elem.checked = true;
-                return;
-            }
-
-            // check for boolean
-            if ( /^(true|false)$/i.test( value ) )
-            {
-                elem = context.querySelector( '[type=checkbox][name="' + prop + '"][value=true]' );
-
-                if ( elem != null ) {
-                    elem.checked = /^true$/i.test( value );
-                    return;
-                }
-            }
-
-            elem = context.querySelector( '[name="' + prop + '"]' );
-            if ( elem != null ) {
-
-                // inputs with a value attribute
-                if ( elem.value !== undefined ) {
-                    elem.value = value;
-                }
-                    // inputs with no value attribute (e.g. textarea)
-                else if ( elem.innerHTML !== undefined ) {
-                    elem.innerHTML = ( value == null ? '' : gp.escapeHTML( value ) );
-                }
-
-            }
-
-        }.bind( this ) );
-    },
-
-    castValues: function ( model, columns ) {
-        var col;
-
-        Object.getOwnPropertyNames( model ).forEach( function ( prop ) {
-            col = gp.getColumnByField( columns, prop );
-
-            if ( col && col.Type ) {
-                model[prop] = this.cast( model[prop], col.Type );
-            }
-        }.bind(this) );
-    },
-
-    cast: function ( val, dataType ) {
-        var isArray = Array.isArray( val );
-        var arr = isArray ? val : [val];
-        switch ( dataType ) {
-            case 'number':
-                arr = arr.filter( this.isNumeric ).map( parseFloat );
-                break;
-            case 'boolean':
-                arr = arr.map( function ( v ) {
-                    return v.toLowerCase() == 'true';
-                } );
-                break;
-            case 'null':
-            case 'undefined':
-                arr = arr.map( function ( v ) {
-                    if ( /true|false/i.test( v ) ) {
-                        // assume boolean
-                        return v.toLowerCase() === 'true';
-                    }
-                    return v === '' ? null : v;
-                } );
-                break;
-            default:
-                arr = arr.map( function ( v ) {
-                    return v === '' ? null : v;
-                } );
-                break;
-        }
-        return isArray ? arr : arr[0];
+gp.Model = function ( config ) {
+    this.config = config;
+    this.reader = null;
+    var type = gp.getType( config.read );
+    switch ( type ) {
+        case 'string':
+            this.reader = new gp.ServerPager( config.read );
+            break;
+        case 'function':
+            this.reader = new gp.FunctionPager( config );
+            break;
+        case 'object':
+            // read is a PagingModel
+            this.config.pageModel = config.read;
+            this.reader = new gp.ClientPager( this.config );
+            break;
+        case 'array':
+            this.config.pageModel.data = this.config.read;
+            this.reader = new gp.ClientPager( this.config );
+            break;
+        default:
+            throw 'Unsupported read configuration';
     }
+};
+
+gp.Model.prototype = {
+
+    read: function ( requestModel, done, fail ) {
+        var self = this;
+
+        this.reader.read(
+            requestModel,
+            // make sure we wrap result in an array when we return it
+            // if result is an array of data, then applyFunc will end up only grabbing the first dataItem
+            function ( result ) {
+                result = self.resolveResult( result );
+                gp.applyFunc( done, self, [result] );
+            },
+            function ( result ) { gp.applyFunc( fail, self, [result] ); }
+        );
+    },
+
+    create: function ( dataItem, done, fail) {
+        var self = this, url;
+
+        // config.create can be a function or a URL
+        if ( typeof this.config.create === 'function' ) {
+            // call the function, set the API as the context
+            gp.applyFunc(this.config.create, this.config.node.api, [dataItem, done, fail], fail);
+        }
+        else {
+            // the url can be a template
+            url = gp.supplant( this.config.create, dataItem );
+            // call the URL
+            var http = new gp.Http();
+            http.post(
+                url,
+                dataItem,
+                function ( arg ) { gp.applyFunc( done, self, arg ); },
+                function ( arg ) { gp.applyFunc( fail, self, arg ); }
+            );
+        }
+    },
+
+    update: function (dataItem, done, fail) {
+        var self = this, url;
+
+        // config.update can be a function or URL
+        if ( typeof this.config.update === 'function' ) {
+            gp.applyFunc(this.config.update, this.config.node.api, [dataItem, done, fail], fail);
+        }
+        else {
+            // the url can be a template
+            url = gp.supplant( this.config.update, dataItem );
+            var http = new gp.Http();
+            http.post(
+                url,
+                dataItem,
+                function ( arg ) { gp.applyFunc( done, self, arg ); },
+                function ( arg ) { gp.applyFunc( fail, self, arg ); }
+            );
+        }
+    },
+
+    destroy: function (dataItem, done, fail) {
+        var self = this, url;
+        if ( typeof this.config.destroy === 'function' ) {
+            gp.applyFunc(this.config.destroy, this.config.node.api, [dataItem, done, fail], fail);
+        }
+        else {
+            // the url can be a template
+            url = gp.supplant( this.config.destroy, dataItem );
+            var http = new gp.Http();
+            http.destroy(
+                url,
+                dataItem,
+                function ( arg ) { gp.applyFunc( done, self, arg ); },
+                function ( arg ) { gp.applyFunc( fail, self, arg ); }
+            );
+        }
+    },
+
+    resolveResult: function ( result ) {
+        if ( gp.hasValue( result ) && Array.isArray( result ) ) {
+            //  wrap the array in a PagingModel
+            return new gp.PagingModel( result );
+        }
+        return result;
+    }
+
+
 };
 
 /***************\
@@ -2506,6 +2259,10 @@ gp.NodeBuilder.prototype = {
 };
 
 /***************\
+  pagers.jquery
+\***************/
+
+/***************\
 server-side pager
 \***************/
 gp.ServerPager = function (url) {
@@ -2567,7 +2324,7 @@ gp.ClientPager.prototype = {
             // filter first
             if ( !gp.isNullOrEmpty( model.search ) ) {
                 // make sure searchTerm is a string and trim it
-                search = gp.trim( model.search.toString() );
+                search = $.trim( model.search.toString() );
                 model.data = model.data.filter(function (row) {
                     return self.searchFilter(row, search);
                 });
@@ -2755,90 +2512,6 @@ gp.PagingModel = function (data) {
     });
 };
 
-// pilfered from JQuery
-/*!
- * jQuery JavaScript Library v2.1.4
- * http://jquery.com/
- *
- * Copyright 2005, 2014 jQuery Foundation, Inc. and other contributors
- * Released under the MIT license
- * http://jquery.org/license
- *
- * Date: 2015-04-28T16:01Z
- */
-gp.ready = function (fn) {
-
-    var isReady = false;
-
-    var completed = function (event) {
-        // readyState === "complete" is good enough for us to call the dom ready in oldIE
-        if (document.addEventListener || event.type === "load" || document.readyState === "complete") {
-            isReady = true;
-            detach();
-            fn();
-        }
-    };
-
-    var detach = function () {
-        if (document.addEventListener) {
-            document.removeEventListener("DOMContentLoaded", completed, false);
-            window.removeEventListener("load", completed, false);
-
-        } else {
-            document.detachEvent("onreadystatechange", completed);
-            window.detachEvent("onload", completed);
-        }
-    };
-
-    if (document.readyState === "complete") {
-        // Handle it asynchronously to allow scripts the opportunity to delay ready
-        setTimeout(fn);
-
-        // Standards-based browsers support DOMContentLoaded
-    } else if (document.addEventListener) {
-        // Use the handy event callback
-        document.addEventListener("DOMContentLoaded", completed, false);
-
-        // A fallback to window.onload, that will always work
-        window.addEventListener("load", completed, false);
-
-        // If IE event model is used
-    } else {
-        // Ensure firing before onload, maybe late but safe also for iframes
-        document.attachEvent("onreadystatechange", completed);
-
-        // A fallback to window.onload, that will always work
-        window.attachEvent("onload", completed);
-
-        // If IE and not a frame
-        // continually check to see if the document is ready
-        var top = false;
-
-        try {
-            top = window.frameElement == null && document.documentElement;
-        } catch (e) { }
-
-        if (top && top.doScroll) {
-            (function doScrollCheck() {
-                if (!isReady) {
-
-                    try {
-                        // Use the trick by Diego Perini
-                        // http://javascript.nwbox.com/IEContentLoaded/
-                        top.doScroll("left");
-                    } catch (e) {
-                        return setTimeout(doScrollCheck, 50);
-                    }
-
-                    // detach all dom ready events
-                    detach();
-
-                    fn();
-                }
-            })();
-        }
-    }
-};
 
 /***************\
   StringBuilder
@@ -2870,213 +2543,210 @@ gp.StringBuilder.prototype = {
     templates
 \***************/
 gp.templates = gp.templates || {};
-gp.templates['bootstrap-modal'] = function ( model, arg ) {
+gp.templates['bootstrap-modal'] = function(model, arg) {
     var out = [];
-    out.push( '<div class="modal fade" tabindex="-1" role="dialog">' );
-    out.push( '<div class="modal-dialog" role="document">' );
-    out.push( '<div class="modal-content">' );
-    out.push( '<div class="modal-header">' );
-    out.push( '<button type="button" class="close" aria-label="Close" value="cancel"><span aria-hidden="true">&times;</span></button>' );
-    out.push( '                <h4 class="modal-title">' );
-    out.push( model.title );
-    out.push( '</h4>' );
-    out.push( '</div>' );
-    out.push( '<div class="modal-body">' );
-    out.push( model.body );
-    out.push( '</div>' );
-    out.push( '<div class="modal-footer">' );
-    if ( model.footer ) {
-        out.push( model.footer );
-    } else {
-        out.push( '<div class="btn-group">' );
-        out.push( '<button type="button" class="btn btn-default" value="cancel">' );
-        out.push( '<span class="glyphicon glyphicon-remove"></span>Close' );
-        out.push( '</button>' );
-        out.push( '<button type="button" class="btn btn-primary" value="save">' );
-        out.push( '<span class="glyphicon glyphicon-save"></span>Save changes' );
-        out.push( '</button>' );
-        out.push( '</div>' );
+    out.push('<div class="modal fade" tabindex="-1" role="dialog">');
+    out.push('<div class="modal-dialog" role="document">');
+    out.push('<div class="modal-content">');
+    out.push('<div class="modal-header">');
+    out.push('<button type="button" class="close" aria-label="Close" value="cancel"><span aria-hidden="true">&times;</span></button>');
+    out.push('                <h4 class="modal-title">');
+    out.push(model.title);
+    out.push('</h4>');
+    out.push('</div>');
+    out.push('<div class="modal-body">');
+                        out.push(model.body);
+        out.push('</div>');
+    out.push('<div class="modal-footer">');
+                        if (model.footer) {
+                                out.push(model.footer);
+                            } else {
+        out.push('<div class="btn-group">');
+    out.push('<button type="button" class="btn btn-default" value="cancel">');
+    out.push('<span class="glyphicon glyphicon-remove"></span>Close');
+    out.push('</button>');
+    out.push('<button type="button" class="btn btn-primary" value="save">');
+    out.push('<span class="glyphicon glyphicon-save"></span>Save changes');
+    out.push('</button>');
+    out.push('</div>');
+                        }
+        out.push('</div>');
+    out.push('</div>');
+    out.push('<div class="gp-progress-overlay">');
+    out.push('<div class="gp-progress gp-progress-container">');
+    out.push('<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>');
+    out.push('</div>');
+    out.push('</div>');
+    out.push('</div>');
+    out.push('</div>');
+    return out.join('');
+};
+gp.templates['gridponent-body'] = function(model, arg) {
+    var out = [];
+    out.push('<table class="table" cellpadding="0" cellspacing="0">');
+            if (!model.fixedheaders) {
+                    out.push(gp.helpers['thead'].call(model));
+                }
+        out.push('<tbody>');
+                out.push(gp.helpers['tableRows'].call(model));
+        out.push('</tbody>');
+            if (model.footer && !model.fixedfooters) {
+                    out.push(gp.templates['gridponent-tfoot'](model));
+                }
+        out.push('</table>');
+    return out.join('');
+};
+gp.templates['gridponent-cells'] = function(model, arg) {
+    var out = [];
+    model.columns.forEach(function(col, index) {
+            out.push('    <td class="body-cell ');
+    out.push(col.bodyclass);
+    out.push('">');
+                out.push(gp.helpers['bodyCellContent'].call(model, col));
+        out.push('</td>');
+    });
+            return out.join('');
+};
+gp.templates['gridponent-pager'] = function(model, arg) {
+    var out = [];
+    out.push(gp.helpers['setPagerFlags'].call(model));
+            if (model.pageModel.HasPages) {
+            out.push('<div class="btn-group">');
+    out.push('    <button class="ms-page-index btn btn-default ');
+    if (model.pageModel.IsFirstPage) {
+    out.push(' disabled ');
     }
-    out.push( '</div>' );
-    out.push( '</div>' );
-    out.push( '<div class="gp-progress-overlay">' );
-    out.push( '<div class="gp-progress gp-progress-container">' );
-    out.push( '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>' );
-    out.push( '</div>' );
-    out.push( '</div>' );
-    out.push( '</div>' );
-    out.push( '</div>' );
-    return out.join( '' );
-};
-gp.templates['gridponent-body'] = function ( model, arg ) {
-    var out = [];
-    out.push( '<table class="table" cellpadding="0" cellspacing="0">' );
-    if ( !model.fixedheaders ) {
-        out.push( gp.helpers['thead'].call( model ) );
+    out.push('" title="First page" value="page" data-page="1">');
+    out.push('<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>');
+    out.push('</button>');
+        out.push('    <button class="ms-page-index btn btn-default ');
+    if (model.pageModel.IsFirstPage) {
+    out.push(' disabled ');
     }
-    out.push( '<tbody>' );
-    out.push( gp.helpers['tableRows'].call( model ) );
-    out.push( '</tbody>' );
-    if ( model.footer && !model.fixedfooters ) {
-        out.push( gp.templates['gridponent-tfoot']( model ) );
+    out.push('" title="Previous page" value="page" data-page="');
+    out.push(model.pageModel.PreviousPage);
+    out.push('">');
+    out.push('<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>');
+    out.push('</button>');
+    out.push('</div>');
+    out.push('<input type="number" name="page" value="');
+    out.push(model.pageModel.page);
+    out.push('" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />');
+    out.push('<span class="page-count">');
+    out.push('    of ');
+    out.push(model.pageModel.pagecount);
+        out.push('</span>');
+    out.push('<div class="btn-group">');
+    out.push('    <button class="ms-page-index btn btn-default ');
+    if (model.pageModel.IsLastPage) {
+    out.push(' disabled ');
     }
-    out.push( '</table>' );
-    return out.join( '' );
-};
-gp.templates['gridponent-cells'] = function ( model, arg ) {
-    var out = [];
-    model.columns.forEach( function ( col, index ) {
-        out.push( '    <td class="body-cell ' );
-        if ( ( col.commands ) ) {
-            out.push( 'commands ' );
-        }
-        out.push( col.bodyclass );
-        out.push( '">' );
-        out.push( gp.helpers['bodyCellContent'].call( model, col ) );
-        out.push( '</td>' );
-    } );
-    return out.join( '' );
-};
-gp.templates['gridponent-pager'] = function ( model, arg ) {
-    var out = [];
-    out.push( gp.helpers['setPagerFlags'].call( model ) );
-    if ( model.pageModel.HasPages ) {
-        out.push( '<div class="btn-group">' );
-        out.push( '    <button class="ms-page-index btn btn-default ' );
-        if ( model.pageModel.IsFirstPage ) {
-            out.push( ' disabled ' );
-        }
-        out.push( '" title="First page" value="page" data-page="1">' );
-        out.push( '<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>' );
-        out.push( '</button>' );
-        out.push( '    <button class="ms-page-index btn btn-default ' );
-        if ( model.pageModel.IsFirstPage ) {
-            out.push( ' disabled ' );
-        }
-        out.push( '" title="Previous page" value="page" data-page="' );
-        out.push( model.pageModel.PreviousPage );
-        out.push( '">' );
-        out.push( '<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>' );
-        out.push( '</button>' );
-        out.push( '</div>' );
-        out.push( '<input type="number" name="page" value="' );
-        out.push( model.pageModel.page );
-        out.push( '" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />' );
-        out.push( '<span class="page-count">' );
-        out.push( '    of ' );
-        out.push( model.pageModel.pagecount );
-        out.push( '</span>' );
-        out.push( '<div class="btn-group">' );
-        out.push( '    <button class="ms-page-index btn btn-default ' );
-        if ( model.pageModel.IsLastPage ) {
-            out.push( ' disabled ' );
-        }
-        out.push( '" title="Next page" value="page" data-page="' );
-        out.push( model.pageModel.NextPage );
-        out.push( '">' );
-        out.push( '<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>' );
-        out.push( '</button>' );
-        out.push( '    <button class="ms-page-index btn btn-default ' );
-        if ( model.pageModel.IsLastPage ) {
-            out.push( ' disabled ' );
-        }
-        out.push( '" title="Last page" value="page" data-page="' );
-        out.push( model.pageModel.pagecount );
-        out.push( '">' );
-        out.push( '<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>' );
-        out.push( '</button>' );
-        out.push( '</div>' );
+    out.push('" title="Next page" value="page" data-page="');
+    out.push(model.pageModel.NextPage);
+    out.push('">');
+    out.push('<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>');
+    out.push('</button>');
+        out.push('    <button class="ms-page-index btn btn-default ');
+    if (model.pageModel.IsLastPage) {
+    out.push(' disabled ');
     }
-    return out.join( '' );
+    out.push('" title="Last page" value="page" data-page="');
+    out.push(model.pageModel.pagecount);
+    out.push('">');
+    out.push('<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>');
+    out.push('</button>');
+    out.push('</div>');
+    }
+            return out.join('');
 };
-gp.templates['gridponent-table-footer'] = function ( model, arg ) {
+gp.templates['gridponent-table-footer'] = function(model, arg) {
     var out = [];
-    out.push( '<table class="table" cellpadding="0" cellspacing="0">' );
-    out.push( gp.templates['gridponent-tfoot']( model ) );
-    out.push( '</table>' );
-    return out.join( '' );
+    out.push('<table class="table" cellpadding="0" cellspacing="0">');
+            out.push(gp.templates['gridponent-tfoot'](model));
+        out.push('</table>');
+    return out.join('');
 };
-gp.templates['gridponent-tfoot'] = function ( model, arg ) {
+gp.templates['gridponent-tfoot'] = function(model, arg) {
     var out = [];
-    out.push( '<tfoot>' );
-    out.push( '<tr>' );
-    model.columns.forEach( function ( col, index ) {
-        out.push( '<td class="footer-cell">' );
-        out.push( gp.helpers['footerCell'].call( model, col ) );
-        out.push( '</td>' );
-    } );
-    out.push( '</tr>' );
-    out.push( '</tfoot>' );
-    return out.join( '' );
+    out.push('<tfoot>');
+    out.push('<tr>');
+                model.columns.forEach(function(col, index) {
+        out.push('<td class="footer-cell">');
+                    out.push(gp.helpers['footerCell'].call(model, col));
+        out.push('</td>');
+                });
+        out.push('</tr>');
+    out.push('</tfoot>');
+    return out.join('');
 };
-gp.templates['gridponent'] = function ( model, arg ) {
+gp.templates['gridponent'] = function(model, arg) {
     var out = [];
-    out.push( '<div class="gp table-container' );
-    out.push( gp.helpers['containerClasses'].call( model ) );
-    out.push( '" id="' );
-    out.push( model.ID );
-    out.push( '">' );
-    if ( model.search || model.create || model.toolbartemplate ) {
-        out.push( '<div class="table-toolbar">' );
-        if ( model.toolbartemplate ) {
-            out.push( gp.helpers['toolbartemplate'].call( model ) );
-        } else {
-            if ( model.search ) {
-                out.push( '<div class="input-group gridponent-searchbox">' );
-                out.push( '<input type="text" name="search" class="form-control" placeholder="Search...">' );
-                out.push( '<span class="input-group-btn">' );
-                out.push( '<button class="btn btn-default" type="button" value="search">' );
-                out.push( '<span class="glyphicon glyphicon-search"></span>' );
-                out.push( '</button>' );
-                out.push( '</span>' );
-                out.push( '</div>' );
+    out.push('<div class="gp table-container');
+    out.push(gp.helpers['containerClasses'].call(model));
+    out.push('" id="');
+    out.push(model.ID);
+    out.push('">');
+            if (model.search || model.create || model.toolbartemplate) {
+        out.push('<div class="table-toolbar">');
+                    if (model.toolbartemplate) {
+                            out.push(gp.helpers['toolbartemplate'].call(model));
+                        } else {
+                            if (model.search) {
+        out.push('<div class="input-group gridponent-searchbox">');
+    out.push('<input type="text" name="search" class="form-control" placeholder="Search...">');
+    out.push('<span class="input-group-btn">');
+    out.push('<button class="btn btn-default" type="button" value="search">');
+    out.push('<span class="glyphicon glyphicon-search"></span>');
+    out.push('</button>');
+    out.push('</span>');
+    out.push('</div>');
+                        }
+                            if (model.create) {
+        out.push('<button class="btn btn-default" type="button" value="AddRow">');
+    out.push('<span class="glyphicon glyphicon-plus"></span>Add');
+    out.push('</button>');
+                        }
+                        }
+        out.push('</div>');
             }
-            if ( model.create ) {
-                out.push( '<button class="btn btn-default" type="button" value="AddRow">' );
-                out.push( '<span class="glyphicon glyphicon-plus"></span>Add' );
-                out.push( '</button>' );
+                if (model.fixedheaders) {
+        out.push('<div class="table-header">');
+    out.push('<table class="table" cellpadding="0" cellspacing="0">');
+                        out.push(gp.helpers['thead'].call(model));
+        out.push('</table>');
+    out.push('</div>');
             }
-        }
-        out.push( '</div>' );
+        out.push('    <div class="table-body ');
+    if (model.fixedheaders) {
+    out.push('table-scroll');
     }
-    if ( model.fixedheaders ) {
-        out.push( '<div class="table-header">' );
-        out.push( '<table class="table" cellpadding="0" cellspacing="0">' );
-        out.push( gp.helpers['thead'].call( model ) );
-        out.push( '</table>' );
-        out.push( '</div>' );
-    }
-    out.push( '    <div class="table-body ' );
-    if ( model.fixedheaders ) {
-        out.push( 'table-scroll' );
-    }
-    out.push( '" style="' );
-    out.push( model.style );
-    out.push( '">' );
-    out.push( '<table class="table" cellpadding="0" cellspacing="0">' );
-    if ( !model.fixedheaders ) {
-        out.push( gp.helpers['thead'].call( model ) );
-    }
-    out.push( '</table>' );
-    out.push( '</div>' );
-    if ( model.fixedfooters ) {
-        out.push( '<div class="table-footer">' );
-        out.push( gp.templates['gridponent-table-footer']( model ) );
-        out.push( '</div>' );
-    }
-    if ( model.pager ) {
-        out.push( '<div class="table-pager"></div>' );
-    }
-    out.push( '<style type="text/css" class="column-width-style">' );
-    out.push( gp.helpers['columnWidthStyle'].call( model ) );
-    out.push( '</style>' );
-    out.push( '<div class="gp-progress-overlay">' );
-    out.push( '<div class="gp-progress gp-progress-container">' );
-    out.push( '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>' );
-    out.push( '</div>' );
-    out.push( '</div>' );
-    out.push( '</div>' );
-    return out.join( '' );
+    out.push('" style="');
+    out.push(model.style);
+    out.push('">');
+    out.push('<table class="table" cellpadding="0" cellspacing="0">');
+                    if (!model.fixedheaders) {
+                            out.push(gp.helpers['thead'].call(model));
+                        }
+        out.push('</table>');
+    out.push('</div>');
+            if (model.fixedfooters) {
+        out.push('<div class="table-footer">');
+                    out.push(gp.templates['gridponent-table-footer'](model));
+        out.push('</div>');
+            }
+                if (model.pager) {
+        out.push('<div class="table-pager"></div>');
+            }
+        out.push('<style type="text/css" class="column-width-style">');
+                out.push(gp.helpers['columnWidthStyle'].call(model));
+        out.push('</style>');
+    out.push('<div class="gp-progress-overlay">');
+    out.push('<div class="gp-progress gp-progress-container">');
+    out.push('<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>');
+    out.push('</div>');
+    out.push('</div>');
+    out.push('</div>');
+    return out.join('');
 };
 
 /***************\
@@ -3103,11 +2773,6 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         if ( Element.prototype[possibles[i]] ) matches = possibles[i];
     }
 
-    gp.addClass = function ( el, cn ) {
-        if ( !gp.hasClass( el, cn ) ) {
-            el.className = ( el.className === '' ) ? cn : el.className + ' ' + cn;
-        }
-    };
 
     gp.applyFunc = function ( callback, context, args, error ) {
         if ( typeof callback !== 'function' ) return;
@@ -3129,10 +2794,6 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         }
     };
 
-    gp.attr = function ( el, name ) {
-        return el.attributes[name].value;
-    };
-
     gp.camelize = function ( str ) {
         if ( gp.isNullOrEmpty( str ) ) return str;
         return str
@@ -3145,29 +2806,6 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
             .replace( /^([A-Z])/, function ( _, c ) {
                 return c ? c.toLowerCase() : '';
             } );
-    };
-
-    gp.closest = function ( elem, selector, parentNode ) {
-        var e;
-        // parentNode is usually the grid's containing element
-        // we don't want to select elements outside the grid
-        parentNode = parentNode || document;
-
-        // if elem is a selector, convert it to an element
-        if ( typeof ( elem ) === 'string' ) {
-            elem = document.querySelector( elem );
-        }
-
-        e = elem;
-
-        while ( e ) {
-
-            if ( e[matches]( selector ) ) return e;
-
-            if ( e == parentNode ) return null;
-
-            e = e.parentElement;
-        }
     };
 
     gp.coalesce = function ( array ) {
@@ -3206,9 +2844,7 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
     };
 
     gp.disable = function ( elem, seconds ) {
-        elem.setAttribute( 'disabled', 'disabled' );
-        gp.addClass( elem, 'disabled' );
-        gp.addClass( elem, 'busy' );
+        $(elem).attr( 'disabled', 'disabled' ).addClass('disabled busy');
         if ( typeof seconds == 'number' && seconds > 0 ) {
             setTimeout( function () {
                 gp.enable( elem );
@@ -3216,17 +2852,8 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         }
     };
 
-    gp.each = function ( arrayLike, fn ) {
-        // I hate for loops
-        for ( var i = 0; i < arrayLike.length; i++ ) {
-            fn( arrayLike[i] );
-        }
-    };
-
     gp.enable = function ( elem ) {
-        elem.removeAttribute( 'disabled' );
-        gp.removeClass( elem, 'disabled' );
-        gp.removeClass( elem, 'busy' );
+        $(elem).removeAttr( 'disabled' ).removeClass('disabled busy' );
     };
 
     var chars = [/&/g, /</g, />/g, /"/g, /'/g, /`/g];
@@ -3341,7 +2968,7 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
     gp.getTableRow = function ( map, dataItem, node ) {
         var uid = map.getUid( dataItem );
         if ( uid == -1 ) return;
-        return node.querySelector( 'tr[data-uid="' + uid + '"]' );
+        return $(node).find( 'tr[data-uid="' + uid + '"]' );
     };
 
     gp.getType = function ( a ) {
@@ -3366,10 +2993,6 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         return typeof ( a );
     };
 
-    gp.hasClass = function ( el, cn ) {
-        return ( ' ' + el.className + ' ' ).indexOf( ' ' + cn + ' ' ) !== -1;
-    };
-
     gp.hasPositiveWidth = function ( nodes ) {
         if ( gp.isNullOrEmpty( nodes ) ) return false;
         for ( var i = 0; i < nodes.length; i++ ) {
@@ -3386,109 +3009,6 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         // if a string or array is passed, it'll be tested for both null and zero length
         // if any other data type is passed (no length property), it'll only be tested for null
         return gp.hasValue( val ) === false || ( val.length != undefined && val.length === 0 );
-    };
-
-    var proxyListener = function ( elem, event, targetSelector, listener ) {
-
-        this.handler = function ( evt ) {
-
-            var e = evt.target;
-
-            // find the first element that matches targetSelector
-            // usually this will be the first one
-            while ( e && e != elem ) {
-                if ( e[matches]( targetSelector ) ) {
-                    // don't modify the listener's context to preserve the ability to use bind()
-                    // set selectedTarget to the matching element instead
-
-                    evt.selectedTarget = e;
-                    listener( evt );
-                    return;
-                }
-                e = e.parentElement;
-            }
-        };
-
-        this.remove = function () {
-            elem.removeEventListener( event, this.handler );
-        };
-
-        // handle event
-        elem.addEventListener( event, this.handler, false );
-    };
-
-    gp.off = function ( elem, event, listener ) {
-        // check for a matching listener stored on the element
-        var listeners = elem['gp-listeners-' + event];
-        if ( listeners ) {
-            for ( var i = 0; i < listeners.length; i++ ) {
-                if ( listeners[i].pub === listener ) {
-
-                    // remove the event handler
-                    listeners[i].priv.remove();
-
-                    // remove it from the listener store
-                    listeners.splice( i, 1 );
-                    return;
-                }
-            }
-        }
-        else {
-            elem.removeEventListener( event, listener );
-        }
-    };
-
-    // this allows us to attach an event handler to the document
-    // and handle events that match a selector
-    gp.on = function ( elem, event, targetSelector, listener ) {
-        // if elem is a selector, convert it to an element
-        if ( typeof ( elem ) === 'string' ) {
-            elem = document.querySelector( elem );
-        }
-
-        if ( !gp.hasValue( elem ) ) {
-            return;
-        }
-
-        if ( typeof targetSelector === 'function' ) {
-            elem.addEventListener( event, targetSelector, false );
-            return;
-        }
-
-        var proxy = new proxyListener( elem, event, targetSelector, listener );
-
-        // use an array to store privateListener 
-        // so we can remove the handler with gp.off
-        var propName = 'gp-listeners-' + event;
-        var listeners = elem[propName] || ( elem[propName] = [] );
-        listeners.push( {
-            pub: listener,
-            priv: proxy
-        } );
-
-        return elem;
-    };
-
-    gp.prependChild = function ( node, child ) {
-        if ( typeof node === 'string' ) node = document.querySelector( node );
-        if ( !node.firstChild ) {
-            node.appendChild( child );
-        }
-        else {
-            node.insertBefore( child, node.firstChild );
-        }
-        return child;
-    };
-
-    gp.removeClass = function ( el, cn ) {
-        if ( el instanceof NodeList ) {
-            for ( var i = 0; i < el.length; i++ ) {
-                el[i].className = $.trim(( ' ' + el[i].className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
-            }
-        }
-        else {
-            el.className = $.trim(( ' ' + el.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
-        }
     };
 
     gp.resolveTypes = function ( config ) {
@@ -3540,7 +3060,7 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
 
     gp.supplant = function ( str, o, args ) {
         var self = this, types = /^(string|number|boolean)$/, r;
-        // raw: 3 curly braces
+        // raw
         str = str.replace( /{{{([^{}]*)}}}/g,
             function ( a, b ) {
                 r = o[b];
@@ -3552,7 +3072,7 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
                 return typeof r === 'function' ? gp.applyFunc( r, self, args ) : '';
             }
         )
-        // escape HTML: 2 curly braces
+        // escape HTML
         return str.replace( /{{([^{}]*)}}/g,
             function ( a, b ) {
                 r = o[b];
@@ -3620,11 +3140,6 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         }
     };
 
-    gp.trim = function ( str ) {
-        if ( gp.isNullOrEmpty( str ) ) return str;
-        return str.trim ? str.trim() : str.replace( /^\s+|\s+$/g, '' );
-    };
-
     // logging
     gp.log = ( window.console ? window.console.log.bind( window.console ) : function () { } );
     gp.error = function ( e ) {
@@ -3634,6 +3149,11 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
     };
 
 } )( gridponent );
+
+
+/****************\
+webomponent.jquery
+\****************/
 
 // check for web component support
 if (document.registerElement) {
@@ -3665,7 +3185,7 @@ else {
         }
     };
 
-    gp.ready( gp.initialize );
+    $( gp.initialize );
 }
 
 })(gridponent);
