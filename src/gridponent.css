@@ -81,8 +81,7 @@
   color: #333;
   cursor: pointer;
 }
-.gp.selectable div.table-body > table > tbody > tr.selected,
-.gp.selectable div.table-body > table > tbody > tr:active {
+.gp.selectable div.table-body > table > tbody > tr.selected {
   background: #dff0d8;
   color: #000;
 }
