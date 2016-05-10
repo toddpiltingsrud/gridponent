@@ -81,9 +81,10 @@
   color: #333;
   cursor: pointer;
 }
-.gp.selectable div.table-body > table > tbody > tr.selected {
-  background: #333;
-  color: #eee;
+.gp.selectable div.table-body > table > tbody > tr.selected,
+.gp.selectable div.table-body > table > tbody > tr:active {
+  background: #dff0d8;
+  color: #000;
 }
 .gp.fixed-headers .table-header {
   padding-right: 17px;

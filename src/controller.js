@@ -260,7 +260,7 @@ gp.Controller.prototype = {
         if ( proceed === false ) return;
 
         if ( type === 'function' ) {
-            gp.applyFunc( config.rowselected, tr, [dataItem] );
+            gp.applyFunc( config.rowselected, this.config.node.api, [dataItem] );
         }
         else {
             // it's a urlTemplate
@@ -305,6 +305,7 @@ gp.Controller.prototype = {
                 // standardize capitalization of incoming data
                 gp.shallowCopy( model, self.config.pageModel, true );
                 self.config.map.clear();
+                gp.resolveTypes( self.config );
                 self.refresh( self.config );
                 self.invokeDelegates( gp.events.onRead, self.config.node.api );
                 gp.applyFunc( callback, self.config.node, self.config.pageModel );

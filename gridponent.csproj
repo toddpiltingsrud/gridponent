@@ -64,6 +64,7 @@
     <Content Include="src\datamap.js" />
     <Content Include="src\editors.js" />
     <Content Include="src\templates\bootstrap-modal.html" />
+    <Content Include="src\x-column-filter.js" />
     <Content Include="src\z-webcomponent.js" />
     <Content Include="src\gridponent.css">
       <DependentUpon>gridponent.less</DependentUpon>

@@ -400,6 +400,33 @@
         }
     };
 
+    gp.resolveTypes = function ( config ) {
+        var field,
+            hasData = config && config.pageModel && config.pageModel.data && config.pageModel.data.length;
+
+        config.columns.forEach( function ( col ) {
+            if ( gp.hasValue( col.Type ) ) return;
+            field = gp.hasValue( col.field ) ? col.field : col.sort;
+            if ( gp.isNullOrEmpty( field ) ) return;
+            if ( config.model ) {
+                // look for a type by field first, then by sort
+                if ( gp.hasValue( config.model[field] ) ) {
+                    col.Type = gp.getType( config.model[field] );
+                }
+            }
+            if ( !gp.hasValue( col.Type ) && hasData ) {
+                // if we haven't found a value after 25 iterations, give up
+                for ( var i = 0; i < config.pageModel.data.length && i < 25 ; i++ ) {
+                    if ( config.pageModel.data[i][field] !== null ) {
+                        col.Type = gp.getType( config.pageModel.data[i][field] );
+                        break;
+                    }
+                }
+            }
+        } );
+    };
+
+
     gp.rexp = {
         splitPath: /[^\[\]\.\s]+|\[\d+\]/g,
         indexer: /\[\d+\]/,

@@ -35,6 +35,11 @@ gp.Editor.prototype = {
         };
     },
 
+    httpErrorHandler: function ( e ) {
+        alert( 'An error occurred while carrying out your request.' );
+        gp.error( e );
+    },
+
     save: function ( done, fail ) {
         // create or update
         var self = this,
@@ -103,7 +108,10 @@ gp.Editor.prototype = {
 
                 gp.applyFunc( done, self.config.node.api, updateModel );
             },
-            fail );
+            function ( e ) {
+                self.removeBusy();
+                gp.applyFunc( fail, self, e );
+            } );
 
         }
         else {
@@ -152,14 +160,21 @@ gp.Editor.prototype = {
 
                 gp.applyFunc( done, self.config.node, updateModel );
             },
-            fail );
+            function ( e ) {
+                self.removeBusy();
+                gp.applyFunc( fail, self, e );
+            } );
 
         }
     },
 
-    addBusy: function () { },
+    addBusy: function () {
+        gp.addClass( this.config.node, 'busy' );
+    },
 
-    removeBusy: function () { },
+    removeBusy: function () {
+        gp.removeClass( this.config.node, 'busy' );
+    },
 
     updateUI: function () { },
 
@@ -211,7 +226,7 @@ gp.TableRowEditor = function ( config, dal ) {
             self.button = evt.selectedTarget;
             // prevent double clicking
             gp.disable( self.button, 5 );
-            self.save();
+            self.save(null, self.httpErrorHandler);
         }
         else if ( /^cancel$/i.test( command ) ) self.cancel();
     };
@@ -219,6 +234,16 @@ gp.TableRowEditor = function ( config, dal ) {
 };
 
 gp.TableRowEditor.prototype = {
+
+    save: gp.Editor.prototype.save,
+
+    addBusy: gp.Editor.prototype.addBusy,
+
+    removeBusy: gp.Editor.prototype.removeBusy,
+
+    httpErrorHandler: gp.Editor.prototype.httpErrorHandler,
+
+    createDataItem: gp.Editor.prototype.createDataItem,
 
     addCommandHandler: function() {
         gp.on( this.elem, 'click', 'button[value]', this.commandHandler );
@@ -245,7 +270,11 @@ gp.TableRowEditor.prototype = {
             cellContent = col.readonly ?
                 bodyCellContent.call( self.config, col, self.dataItem ) :
                 editCellContent.call( self.config, col, self.dataItem, 'create' );
-            builder.create( 'td' ).addClass( 'body-cell' ).addClass( col.bodyclass ).html( cellContent ).endElem();
+            builder.create( 'td' ).addClass( 'body-cell' ).addClass( col.bodyclass ).html( cellContent );
+            if ( col.commands ) {
+                builder.addClass( 'commands' );
+            }
+            builder.endElem();
         } );
 
         this.elem = builder.close();
@@ -294,8 +323,6 @@ gp.TableRowEditor.prototype = {
             elem: this.elem
         };
     },
-
-    save: gp.Editor.prototype.save,
 
     cancel: function () {
 
@@ -363,11 +390,6 @@ gp.TableRowEditor.prototype = {
 
     },
 
-    createDataItem: gp.Editor.prototype.createDataItem,
-
-    addBusy: function () { },
-    removeBusy: function() {},
-
     updateUI: function () {
         // take the table row out of edit mode
         var col,
@@ -406,9 +428,19 @@ gp.ModalEditor = function ( config, dal ) {
 
 gp.ModalEditor.prototype = {
 
+    save: gp.Editor.prototype.save,
+
+    httpErrorHandler: gp.Editor.prototype.httpErrorHandler,
+
     addCommandHandler: gp.TableRowEditor.prototype.addCommandHandler,
 
     removeCommandHandler: gp.TableRowEditor.prototype.removeCommandHandler,
+
+    validate: gp.TableRowEditor.prototype.validate,
+
+    createDataItem: gp.Editor.prototype.createDataItem,
+
+    invokeEditReady: gp.TableRowEditor.prototype.invokeEditReady,
 
     add: function () {
         var self = this,
@@ -478,8 +510,6 @@ gp.ModalEditor.prototype = {
 
     },
 
-    save: gp.Editor.prototype.save,
-
     cancel: function () {
         $( this.elem ).modal('hide');
         //restore the dataItem to its original state
@@ -548,12 +578,6 @@ gp.ModalEditor.prototype = {
             }
         }
 
-    },
-
-    validate: gp.TableRowEditor.prototype.validate,
-
-    createDataItem: gp.Editor.prototype.createDataItem,
-
-    invokeEditReady: gp.TableRowEditor.prototype.invokeEditReady
+    }
 
 };
