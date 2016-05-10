@@ -252,9 +252,52 @@ var configuration = {
 
 fns.model = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
 
-QUnit.test( 'utils.syncChange', function ( assert ) {
+QUnit.test( 'gp.syncModel', function ( assert ) {
 
+    var model = {
+        number: 1,
+        date: '2015-01-01',
+        bool: true,
+        name: 'Todd',
+        color: 'red'
+    };
 
+    var columns = [
+        { field: 'number', Type: 'number' },
+        { field: 'date', Type: 'dateString' },
+        { sort: 'bool', Type: 'boolean' },
+        { sort: 'name', Type: 'string' },
+    ];
+
+    $( div ).empty();
+
+    div.append( '<input type="number" name="number" value="1" />' );
+    div.append( '<input type="date" name="date" value="2015-01-01" />' );
+    div.append( '<input type="checkbox" name="bool" value="true" checked />' );
+    div.append( '<input type="checkbox" name="name" value="Todd" checked="checked" />' );
+    div.append( '<input type="text" name="notInModel" value="text" />' );
+    div.append( '<input type="radio" name="color" value="blue" />' );
+    div.append( '<input type="radio" name="color" value="green" />' );
+
+    var numberInput = div[0].querySelector( '[name=number]' );
+    numberInput.value = '2';
+    gp.syncModel( div[0], model, columns );
+    assert.strictEqual( model.number, 2 );
+
+    var textInput = div[0].querySelector( '[name=notInModel]' );
+    textInput.value = 'more text';
+    gp.syncModel( div[0], model, columns );
+    assert.equal( model.notInModel, 'more text', 'should add properties not present in the model' );
+
+    var checkbox = div[0].querySelector( '[name=bool]' );
+    checkbox.checked = false;
+    gp.syncModel( div[0], model, columns );
+    assert.equal( model.bool, false, 'afterSync should return values after changing them' );
+
+    var blueRadio = div[0].querySelector( '[value=blue]' );
+    blueRadio.checked = true;
+    gp.syncModel( div[0], model, columns );
+    assert.equal( model.color, 'blue', 'syncModel should handle radio buttons' );
 
 } );
 
@@ -2224,46 +2267,6 @@ QUnit.test( 'gp.helpers.footerCell', function ( assert ) {
 } );
 
 
-QUnit.test( 'gp.syncModel', function ( assert ) {
-
-    var model = {
-        number: 1,
-        date: '2015-01-01',
-        bool: true,
-        name: 'Todd'
-    };
-
-    var columns = [
-        { field: 'number', Type: 'number' },
-        { field: 'date', Type: 'dateString' },
-        { sort: 'bool', Type: 'boolean' },
-        { sort: 'name', Type: 'string' },
-    ];
-
-    $( div ).empty();
-
-    div.append( '<input type="number" name="number" value="1" />' );
-    div.append( '<input type="date" name="date" value="2015-01-01" />' );
-    div.append( '<input type="checkbox" name="bool" value="true" checked />' );
-    div.append( '<input type="checkbox" name="name" value="Todd" checked="checked" />' );
-    div.append( '<input type="text" name="notInModel" value="text" />' );
-
-    var numberInput = div[0].querySelector( '[name=number]' );
-    numberInput.value = '2';
-    gp.syncModel( div[0], model, columns );
-    assert.strictEqual( model.number, 2 );
-
-    var textInput = div[0].querySelector( '[name=notInModel]' );
-    textInput.value = 'more text';
-    gp.syncModel( div[0], model, columns );
-    assert.equal( model.notInModel, 'more text', 'should add properties not present in the model' );
-
-    var checkbox = div[0].querySelector( '[name=bool]' );
-    checkbox.checked = false;
-    gp.syncModel( div[0], model, columns );
-    assert.equal( model.bool, false, 'afterSync should return values after changing them' );
-
-} );
 
 QUnit.test( 'custom search filter', function ( assert ) {
 
