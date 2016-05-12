@@ -196,7 +196,7 @@ gp.helpers = {
             var val = dataItem[col.field];
             // render undefined/null as empty string
             if ( !gp.hasValue( val ) ) val = '';
-            html.add( gp.helpers.input( col.Type, col.field, gp.escapeHTML( val ) ) );
+            html.add( gp.helpers.input( col.Type, col.field, "" ) );
         }
         return html.toString();
     },

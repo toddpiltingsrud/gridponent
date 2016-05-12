@@ -250,18 +250,144 @@ var configuration = {
     ]
 };
 
-fns.model = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
+fns.model = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "blue", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "C", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
+
+QUnit.test( 'ModelSync.serialize', function ( assert ) {
+
+    div.append( gp.helpers.input( 'string', 'ProductID', "" ) );
+    div.append( gp.helpers.input( 'boolean', 'MakeFlag', true ) );
+    div.append( gp.helpers.input( 'number', 'SafetyStockLevel', -1 ) );
+    div.append( gp.helpers.input( 'date', 'SellEndDate', "" ) );
+
+    div.append( '<input type="radio" name="Color" value="red" />' );
+    div.append( '<input type="radio" name="Color" value="blue" />' );
+    div.append( '<input type="radio" name="Color" value="green" />' );
+
+    var select = [];
+    select.push( '<select name="Style">' );
+
+    (['A', 'B', 'C']).forEach( function ( style ) {
+        select.push( '<option value="' + style + '">' + style + '</option>' );
+    } );
+
+    select.push( '</select>' )
+
+    div.append( select.join( '' ) );
+
+    gp.ModelSync.bindElements( fns.model, div[0] );
+
+    var input = div.find( '[name=ProductID]' );
+    assert.equal( input.val(), '0' );
+
+    input = div.find( '[name=MakeFlag]' );
+    assert.equal( input.prop('checked'), false );
+
+    input = div.find( '[name=SafetyStockLevel]' );
+    assert.equal( input.val(), '0' );
+
+    input = div.find( '[name=Color]:checked' ).val();
+    assert.equal( input, 'blue' );
+
+    input = div.find( '[name=Style]' ).val();
+    assert.equal( input, 'C' );
+
+    input = div.find( '[name=SellEndDate]' ).val();
+    assert.equal( input, '' );
+
+    div.empty();
+
+} );
+
+QUnit.test( 'ModelSync.serialize', function ( assert ) {
+
+    div.append( gp.helpers.input( 'boolean', 'IsSelected', true ) );
+
+    div.append( gp.helpers.input( 'hidden', 'IsSelected', false ) );
+
+    div.append( gp.helpers.input( 'number', 'Total', 123.5 ) );
+
+    var d = new Date( 1463069066619 ); // 5/12/2016
+
+    div.append( gp.helpers.input( 'date', 'Date', d ) );
+
+    div.append( gp.helpers.input( 'datestring', 'Date2', '2016-04-03' ) );
+
+    div.append( gp.helpers.input( 'string', 'FirstName', 'Todd' ) );
+
+    div.append( gp.helpers.input( 'radio', 'FirstName', 'Todd' ) );
+
+    div.append( '<input type="radio" name="Color" value="red" />' );
+    div.append( '<input type="radio" name="Color" value="blue" checked />' );
+    div.append( '<input type="radio" name="Color" value="green" />' );
+
+    var obj = gp.ModelSync.serialize( div[0] );
+
+    assert.strictEqual( obj.IsSelected, 'true' );
+    assert.strictEqual( obj.Total, '123.5' );
+    assert.strictEqual( obj.Date, '2016-05-12' );
+    assert.strictEqual( obj.Date2, '2016-04-03' );
+    assert.strictEqual( obj.FirstName, 'Todd' );
+    assert.strictEqual( obj.Color, 'blue' );
+
+    // uncheck the IsSelected box
+    div.find( 'input[type=checkbox]' ).prop( 'checked', false );
+
+    var obj = gp.ModelSync.serialize( div[0] );
+
+    assert.strictEqual( obj.IsSelected, 'false' );
+
+    div.empty();
+
+} );
+
+QUnit.test( 'ModelSync.isDisabled', function ( assert ) {
+
+    var elem = $( '<input type="text" />' );
+
+    var isDisabled = gp.ModelSync.isDisabled( elem[0] );
+
+    assert.strictEqual( isDisabled, false );
+
+    elem.attr( 'disabled', true );
+
+    isDisabled = gp.ModelSync.isDisabled( elem[0] );
+
+    assert.strictEqual( isDisabled, true );
+
+} );
+
+QUnit.test( 'ModelSync.toArray', function ( assert ) {
+
+    var divs = $( 'div' );
+
+    assert.strictEqual( Array.isArray( divs ), false );
+
+    var arr = gp.ModelSync.toArray( divs );
+
+    assert.strictEqual( Array.isArray( arr ), true );
+
+    arr = gp.ModelSync.toArray( 1 );
+
+    assert.strictEqual( Array.isArray( arr ), false );
+
+    assert.strictEqual( arr, null );
+
+    arr = gp.ModelSync.toArray( 'this is a string' );
+
+    assert.strictEqual( Array.isArray( arr ), true );
+
+} );
 
 QUnit.test( 'preload option', function ( assert ) {
 
     var done1 = assert.async();
     var done2 = assert.async();
 
-    var config = gp.shallowCopy( configuration );
+    var options = gp.shallowCopy( configuration );
 
-    config.preload = false;
+    options.preload = false;
 
-    gridponent( '#table .box', config ).ready( function ( api ) {
+    gridponent( '#table .box', options ).ready( function ( api ) {
 
         var config = api.config;
 
@@ -291,12 +417,13 @@ QUnit.test( 'preload option', function ( assert ) {
 
             done2();
 
+            api.dispose();
+
         } );
 
         api.search( 'Adjustable Race' );
 
     } );
-
 
 } );
 
@@ -470,22 +597,6 @@ QUnit.test( 'model', function ( assert ) {
 
 } );
 
-QUnit.test( 'api.findAll', function ( assert ) {
-
-    var done = assert.async();
-
-    gridponent( '#table .box', configuration ).ready( function () {
-
-        // find all edit buttons
-        var btn = this.findAll( 'button[value=edit]' );
-
-        assert.ok( btn.length > 1 );
-
-        done();
-
-    } );
-
-} );
 
 QUnit.test( 'ModalEditor', function ( assert ) {
 
@@ -1225,7 +1336,7 @@ QUnit.test( 'api.create 1', function ( assert ) {
 
         var cellCount1 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
 
-        config.node.api.create( dataItem, function ( updateModel ) {
+        api.create( dataItem, function ( updateModel ) {
             var cellCount2 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
             assert.ok( gp.hasValue( updateModel.dataItem ), 'api should return an UpdateModel' );
             assert.strictEqual( cellCount1, cellCount2, 'should create the same number of cells' );
@@ -2736,6 +2847,25 @@ QUnit.test( 'controller.render', function ( assert ) {
 //    assert.equal( propertyChanged, true, 'propertyChangedCallback should be called' );
 
 //} );
+
+QUnit.test( 'api.findAll', function ( assert ) {
+
+    var done = assert.async();
+
+    gridponent( '#table .box', configuration ).ready( function () {
+
+        // find all edit buttons
+        var btn = this.findAll( 'button[value=edit]' );
+
+        assert.ok( btn.length > 1 );
+
+        done();
+
+        this.dispose();
+
+    } );
+
+} );
 
 QUnit.test( 'coverage report', function ( assert ) {
 

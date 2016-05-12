@@ -1,4 +1,7 @@
-﻿Test radio buttons in edit mode. I'm betting the function that writes changes back to the model won't know how to handle radios.
+﻿Use model binding to set the values of edit controls instead of doing it in the templates.
+That way user-supplied templates will get bound along with everything else.
+
+Test radio buttons in edit mode. I'm betting the function that writes changes back to the model won't know how to handle radios.
 The usual templating mechanism won't work for edit templates. There's no way to set the values for radios and selects using declarative syntax.
 Perhaps we only need to run the sync for edit templates.
 

@@ -44,12 +44,25 @@ gp.Editor.prototype = {
         // create or update
         var self = this,
             returnedDataItem,
+            serialized,
             fail = fail || gp.error;
 
         this.addBusy();
 
+        // it's possible for the API to invoke this save method
+        // there won't be a form element in that case
         if ( this.elem ) {
-            gp.syncModel( this.elem, this.dataItem, this.config.columns );
+            // serialize the form
+            serialized = gp.ModelSync.serialize( this.elem );
+
+            // currently the only supported post format is application/x-www-form-urlencoded
+            // so normally there'd be no point in converting the serialized form values to their former types
+            // but we can't rely on the server to return an updated model (it may simply return a success/fail message)
+            // so we'll convert them anyway
+            gp.ModelSync.castValues( serialized, this.config.columns );
+
+            // copy the values back to the original dataItem
+            gp.shallowCopy( serialized, this.dataItem );
         }
 
         if ( typeof this.beforeEdit == 'function' ) {
@@ -279,6 +292,8 @@ gp.TableRowEditor.prototype = {
 
         this.elem = builder.close();
 
+        gp.ModelSync.bindElements( this.dataItem, this.elem );
+
         this.addCommandHandler();
 
         gp.prependChild( tbody, this.elem );
@@ -315,6 +330,8 @@ gp.TableRowEditor.prototype = {
             }
         }
         gp.addClass( tr, 'edit-mode' );
+
+        gp.ModelSync.bindElements( dataItem, this.elem );
 
         this.invokeEditReady();
 
@@ -465,6 +482,8 @@ gp.ModalEditor.prototype = {
 
         this.elem = modal[0];
 
+        gp.ModelSync.bindElements( this.dataItem, this.elem );
+
         modal.one( 'hidden.bs.modal', function () {
             $( modal ).remove();
         } );
@@ -498,6 +517,8 @@ gp.ModalEditor.prototype = {
         );
 
         this.elem = modal[0];
+
+        gp.ModelSync.bindElements( dataItem, this.elem );
 
         modal.one( 'hidden.bs.modal', function () {
             $( modal ).remove();

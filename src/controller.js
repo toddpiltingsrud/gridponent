@@ -325,7 +325,7 @@ gp.Controller.prototype = {
         return editor;
     },
 
-    // elem is either a tabel row or a modal
+    // elem is either a table row or a modal
     createRow: function ( dataItem, elem, callback ) {
         try {
             var self = this,
@@ -342,7 +342,7 @@ gp.Controller.prototype = {
 
             editor.save( callback, this.httpErrorHandler.bind( this ) );
         }
-        catch ( ex ) {
+        catch ( e ) {
             this.removeBusy();
             this.httpErrorHandler( e );
         }
@@ -374,7 +374,7 @@ gp.Controller.prototype = {
 
             editor.save( callback, this.httpErrorHandler.bind( this ) );
         }
-        catch ( ex ) {
+        catch ( e ) {
             this.removeBusy();
             this.httpErrorHandler( e );
         }
