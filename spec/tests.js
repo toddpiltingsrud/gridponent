@@ -1830,7 +1830,7 @@ QUnit.test( 'gp.getObjectAtPath', function ( assert ) {
 //} );
 
 
-QUnit.test( 'gp.Model', function ( assert ) {
+QUnit.test( 'gp.DataLayer', function ( assert ) {
 
     var done1 = assert.async(),
         done2 = assert.async(),
@@ -1850,7 +1850,7 @@ QUnit.test( 'gp.Model', function ( assert ) {
 
         var config = api.config;
 
-        var model = new gp.Model( config );
+        var model = new gp.DataLayer( config );
 
         var request = new gp.PagingModel();
 
@@ -1904,7 +1904,7 @@ QUnit.test( 'gp.Model', function ( assert ) {
         };
 
         // create a new model
-        model = new gp.Model( config );
+        model = new gp.DataLayer( config );
 
         model.read( request, function ( response ) {
             assert.ok( true, 'calling read should execute this function' );
@@ -1916,7 +1916,7 @@ QUnit.test( 'gp.Model', function ( assert ) {
             return data.products;
         };
 
-        model = new gp.Model( config );
+        model = new gp.DataLayer( config );
 
         model.read( request, function ( response ) {
             assert.ok( true, 'calling read should execute this function' );
@@ -1929,7 +1929,7 @@ QUnit.test( 'gp.Model', function ( assert ) {
             return new gp.PagingModel( data.products );
         };
 
-        model = new gp.Model( config );
+        model = new gp.DataLayer( config );
 
         model.read( request, function ( response ) {
             assert.ok( true, 'calling read should execute this function' );
@@ -1942,7 +1942,7 @@ QUnit.test( 'gp.Model', function ( assert ) {
         //    return false;
         //};
 
-        //model = new gp.Model( config );
+        //model = new gp.DataLayer( config );
 
         //model.read( request, function ( response ) {
         //    assert.ok( false, 'calling read should NOT execute this function' );
@@ -1959,7 +1959,7 @@ QUnit.test( 'gp.Model', function ( assert ) {
 
         config.read = '/Products/read';
 
-        model = new gp.Model( config );
+        model = new gp.DataLayer( config );
 
         request = new gp.PagingModel();
 
@@ -1983,7 +1983,7 @@ QUnit.test( 'gp.Model', function ( assert ) {
 
         // destroy
         request = data.products[0];
-        model = new gp.Model( config );
+        model = new gp.DataLayer( config );
 
         model.destroy( request, function ( response ) {
             assert.equal( response.Success, true, 'destroy should return true if the record was found and deleted' );

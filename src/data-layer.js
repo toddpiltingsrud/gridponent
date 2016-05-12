@@ -1,7 +1,7 @@
 ﻿/***************\
      model
 \***************/
-gp.Model = function ( config ) {
+gp.DataLayer = function ( config ) {
     this.config = config;
     this.reader = null;
     var type = gp.getType( config.read );
@@ -26,7 +26,7 @@ gp.Model = function ( config ) {
     }
 };
 
-gp.Model.prototype = {
+gp.DataLayer.prototype = {
 
     read: function ( requestModel, done, fail ) {
         var self = this;

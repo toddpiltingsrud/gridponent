@@ -80,7 +80,7 @@
     <Content Include="src\node-builder.js" />
     <Content Include="src\api.js" />
     <Content Include="src\x-polar.js" />
-    <Content Include="src\model.js" />
+    <Content Include="src\data-layer.js" />
     <Content Include="src\controller.js" />
     <Content Include="spec\styles\bootstrap-datepicker.min.css" />
     <Content Include="spec\styles\bootstrap.min.css" />

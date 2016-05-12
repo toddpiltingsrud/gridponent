@@ -1806,7 +1806,7 @@ var gridponent = gridponent || function ( elem, options ) {
             this.config.node = this.parent.querySelector( '.table-container' );
 
             this.config.map = new gp.DataMap();
-            var dal = new gp.Model( this.config );
+            var dal = new gp.DataLayer( this.config );
             var requestModel = new gp.PagingModel();
             var controller = new gp.Controller( self.config, dal, requestModel );
             this.config.node.api = new gp.api( controller );
@@ -2031,7 +2031,7 @@ var gridponent = gridponent || function ( elem, options ) {
     /***************\
          model
     \***************/
-    gp.Model = function ( config ) {
+    gp.DataLayer = function ( config ) {
         this.config = config;
         this.reader = null;
         var type = gp.getType( config.read );
@@ -2056,7 +2056,7 @@ var gridponent = gridponent || function ( elem, options ) {
         }
     };
 
-    gp.Model.prototype = {
+    gp.DataLayer.prototype = {
 
         read: function ( requestModel, done, fail ) {
             var self = this;
