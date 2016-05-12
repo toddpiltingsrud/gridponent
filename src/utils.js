@@ -11,7 +11,6 @@
         if ( Element.prototype[possibles[i]] ) matches = possibles[i];
     }
 
-
     gp.addClass = function ( el, cn ) {
         if ( !gp.hasClass( el, cn ) ) {
             el.className = ( el.className === '' ) ? cn : el.className + ' ' + cn;
@@ -449,7 +448,7 @@
 
     gp.supplant = function ( str, o, args ) {
         var self = this, types = /^(string|number|boolean)$/, r;
-        // raw
+        // raw: 3 curly braces
         str = str.replace( /{{{([^{}]*)}}}/g,
             function ( a, b ) {
                 r = o[b];
@@ -461,7 +460,7 @@
                 return typeof r === 'function' ? gp.applyFunc( r, self, args ) : '';
             }
         )
-        // escape HTML
+        // escape HTML: 2 curly braces
         return str.replace( /{{([^{}]*)}}/g,
             function ( a, b ) {
                 r = o[b];

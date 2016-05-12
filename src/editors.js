@@ -458,7 +458,8 @@ gp.ModalEditor.prototype = {
             .one('shown.bs.modal', self.invokeEditReady.bind(self) )
             .modal( {
                 show: true,
-                keyboard: true
+                keyboard: true,
+                backdrop: 'static'
             }
         );
 
@@ -491,7 +492,8 @@ gp.ModalEditor.prototype = {
             .one( 'shown.bs.modal', self.invokeEditReady.bind( self ) )
             .modal( {
                 show: true,
-                keyboard: true
+                keyboard: true,
+                backdrop: 'static'
             }
         );
 

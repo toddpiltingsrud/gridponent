@@ -27,7 +27,6 @@ gp.events = {
 gp.api = function ( controller ) {
     this.controller = controller;
     this.config = controller.config;
-    this.$n = $( this.config.node );
 };
 
 gp.api.prototype = {
@@ -98,6 +97,20 @@ gp.api.prototype = {
         name = gp.isNullOrEmpty( name ) ? '' : name.toString();
         typeof desc == 'boolean' ? desc : desc === 'false' ? false : !!desc;
         this.controller.sort( name, desc, callback );
+    },
+
+    toggleBusy: function ( isBusy ) {
+
+        isBusy = ( isBusy === true || isBusy === false ? isBusy : !gp.hasClass( this.config.node, 'busy' ) );
+
+        if ( isBusy ) {
+            gp.addClass( this.config.node, 'busy' );
+        }
+        else {
+            gp.removeClass( this.config.node, 'busy' );
+        }
+
+        return this;
     },
 
     update: function ( dataItem, done ) {
