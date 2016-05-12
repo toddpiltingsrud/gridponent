@@ -1698,7 +1698,7 @@ gp.Initializer.prototype = {
         this.$n = this.parent.find( '.table-container' );
 
         this.config.map = new gp.DataMap();
-        var dal = new gp.Model( this.config );
+        var dal = new gp.DataLayer( this.config );
         var requestModel = new gp.PagingModel();
         var controller = new gp.Controller( self.config, dal, requestModel );
         this.config.node.api = new gp.api( controller );
@@ -2085,7 +2085,7 @@ gp.Initializer.prototype = {
 /***************\
      model
 \***************/
-gp.Model = function ( config ) {
+gp.DataLayer = function ( config ) {
     this.config = config;
     this.reader = null;
     var type = gp.getType( config.read );
@@ -2110,7 +2110,7 @@ gp.Model = function ( config ) {
     }
 };
 
-gp.Model.prototype = {
+gp.DataLayer.prototype = {
 
     read: function ( requestModel, done, fail ) {
         var self = this;
