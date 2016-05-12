@@ -22,7 +22,7 @@ gp.Initializer.prototype = {
         this.$n = this.parent.find( '.table-container' );
 
         this.config.map = new gp.DataMap();
-        var dal = new gp.Model( this.config );
+        var dal = new gp.DataLayer( this.config );
         var requestModel = new gp.PagingModel();
         var controller = new gp.Controller( self.config, dal, requestModel );
         this.config.node.api = new gp.api( controller );
