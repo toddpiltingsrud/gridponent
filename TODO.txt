@@ -5,6 +5,13 @@ Test radio buttons in edit mode. I'm betting the function that writes changes ba
 The usual templating mechanism won't work for edit templates. There's no way to set the values for radios and selects using declarative syntax.
 Perhaps we only need to run the sync for edit templates.
 
+Model scenarios:
+- a simple input : an object property
+- a checkbox with a boolean value of 'true' : a boolean object property
+- a checkbox with a non-boolean value : an object property set to the value or null
+- a list of radios : an object property
+- a list of inputs with the same name : an object array
+
 When editing or creating a new record, we should run a sync to set the input elements to the declared model if present.
 
 Prevent double-clicking?
