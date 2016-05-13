@@ -34,6 +34,15 @@
     <RootNamespace>tp_table</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="gridponent.jquery.js">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>gridponent.jquery.tt</DependentUpon>
+    </Content>
+    <Content Include="gridponent.jquery.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>gridponent.jquery.js</LastGenOutput>
+    </Content>
     <Content Include="gridponent.js">
       <DependentUpon>gridponent.tt</DependentUpon>
       <DesignTime>True</DesignTime>
@@ -63,10 +72,17 @@
     <Content Include="spec\styles\bootstrap-theme.min.css" />
     <Content Include="src\controller.jquery.js" />
     <Content Include="src\datamap.js" />
+    <Content Include="src\editors.jquery.js" />
     <Content Include="src\editors.js" />
+    <Content Include="src\helpers.jquery.js" />
+    <Content Include="src\initializer.jquery.js" />
     <Content Include="src\model-sync.js" />
+    <Content Include="src\pagers.jquery.js" />
+    <Content Include="src\ready-check.jquery.js" />
     <Content Include="src\templates\bootstrap-modal.html" />
+    <Content Include="src\utils.jquery.js" />
     <Content Include="src\x-column-filter.js" />
+    <Content Include="src\z-webcomponent.jquery.js" />
     <Content Include="src\z-webcomponent.js" />
     <Content Include="src\gridponent.css">
       <DependentUpon>gridponent.less</DependentUpon>
