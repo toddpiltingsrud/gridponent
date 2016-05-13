@@ -61,8 +61,8 @@ gp.api.prototype = {
         }
     },
 
-    getData: function ( index ) {
-        if ( typeof index == 'number' ) return this.controller.config.pageModel.data[index];
+    getData: function ( uidOrTableRow ) {
+        if ( uidOrTableRow != undefined ) return this.config.map.get( uidOrTableRow );
         return this.controller.config.pageModel.data;
     },
 
