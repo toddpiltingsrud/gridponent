@@ -97,7 +97,6 @@ gp.events = {
 gp.api = function ( controller ) {
     this.controller = controller;
     this.config = controller.config;
-    this.$n = $( this.config.node );
 };
 
 gp.api.prototype = {
@@ -132,8 +131,8 @@ gp.api.prototype = {
         }
     },
 
-    getData: function ( index ) {
-        if ( typeof index == 'number' ) return this.controller.config.pageModel.data[index];
+    getData: function ( uidOrTableRow ) {
+        if ( uidOrTableRow != undefined ) return this.config.map.get( uidOrTableRow );
         return this.controller.config.pageModel.data;
     },
 
@@ -168,6 +167,20 @@ gp.api.prototype = {
         name = gp.isNullOrEmpty( name ) ? '' : name.toString();
         typeof desc == 'boolean' ? desc : desc === 'false' ? false : !!desc;
         this.controller.sort( name, desc, callback );
+    },
+
+    toggleBusy: function ( isBusy ) {
+
+        isBusy = ( isBusy === true || isBusy === false ? isBusy : !gp.hasClass( this.config.node, 'busy' ) );
+
+        if ( isBusy ) {
+            gp.addClass( this.config.node, 'busy' );
+        }
+        else {
+            gp.removeClass( this.config.node, 'busy' );
+        }
+
+        return this;
     },
 
     update: function ( dataItem, done ) {
@@ -661,6 +674,122 @@ gp.Controller.prototype = {
         this.removeCommandHandlers( this.config.node );
         this.removeToolbarChangeHandler();
     }
+
+};
+
+/***************\
+   DataLayer
+\***************/
+gp.DataLayer = function ( config ) {
+    this.config = config;
+    this.reader = null;
+    var type = gp.getType( config.read );
+    switch ( type ) {
+        case 'string':
+            this.reader = new gp.ServerPager( config.read );
+            break;
+        case 'function':
+            this.reader = new gp.FunctionPager( config );
+            break;
+        case 'object':
+            // read is a PagingModel
+            this.config.pageModel = config.read;
+            this.reader = new gp.ClientPager( this.config );
+            break;
+        case 'array':
+            this.config.pageModel.data = this.config.read;
+            this.reader = new gp.ClientPager( this.config );
+            break;
+        default:
+            throw 'Unsupported read configuration';
+    }
+};
+
+gp.DataLayer.prototype = {
+
+    read: function ( requestModel, done, fail ) {
+        var self = this;
+
+        this.reader.read(
+            requestModel,
+            // make sure we wrap result in an array when we return it
+            // if result is an array of data, then applyFunc will end up only grabbing the first dataItem
+            function ( result ) {
+                result = self.resolveResult( result );
+                gp.applyFunc( done, self, [result] );
+            },
+            function ( result ) { gp.applyFunc( fail, self, [result] ); }
+        );
+    },
+
+    create: function ( dataItem, done, fail) {
+        var self = this, url;
+
+        // config.create can be a function or a URL
+        if ( typeof this.config.create === 'function' ) {
+            // call the function, set the API as the context
+            gp.applyFunc(this.config.create, this.config.node.api, [dataItem, done, fail], fail);
+        }
+        else {
+            // the url can be a template
+            url = gp.supplant( this.config.create, dataItem );
+            // call the URL
+            var http = new gp.Http();
+            http.post(
+                url,
+                dataItem,
+                function ( arg ) { gp.applyFunc( done, self, arg ); },
+                function ( arg ) { gp.applyFunc( fail, self, arg ); }
+            );
+        }
+    },
+
+    update: function (dataItem, done, fail) {
+        var self = this, url;
+
+        // config.update can be a function or URL
+        if ( typeof this.config.update === 'function' ) {
+            gp.applyFunc(this.config.update, this.config.node.api, [dataItem, done, fail], fail);
+        }
+        else {
+            // the url can be a template
+            url = gp.supplant( this.config.update, dataItem );
+            var http = new gp.Http();
+            http.post(
+                url,
+                dataItem,
+                function ( arg ) { gp.applyFunc( done, self, arg ); },
+                function ( arg ) { gp.applyFunc( fail, self, arg ); }
+            );
+        }
+    },
+
+    destroy: function (dataItem, done, fail) {
+        var self = this, url;
+        if ( typeof this.config.destroy === 'function' ) {
+            gp.applyFunc(this.config.destroy, this.config.node.api, [dataItem, done, fail], fail);
+        }
+        else {
+            // the url can be a template
+            url = gp.supplant( this.config.destroy, dataItem );
+            var http = new gp.Http();
+            http.destroy(
+                url,
+                dataItem,
+                function ( arg ) { gp.applyFunc( done, self, arg ); },
+                function ( arg ) { gp.applyFunc( fail, self, arg ); }
+            );
+        }
+    },
+
+    resolveResult: function ( result ) {
+        if ( gp.hasValue( result ) && Array.isArray( result ) ) {
+            //  wrap the array in a PagingModel
+            return new gp.PagingModel( result );
+        }
+        return result;
+    }
+
 
 };
 
@@ -2083,119 +2212,371 @@ gp.Initializer.prototype = {
 })(gridponent);
 
 /***************\
-     model
+    modeling
 \***************/
-gp.DataLayer = function ( config ) {
-    this.config = config;
-    this.reader = null;
-    var type = gp.getType( config.read );
-    switch ( type ) {
-        case 'string':
-            this.reader = new gp.ServerPager( config.read );
-            break;
-        case 'function':
-            this.reader = new gp.FunctionPager( config );
-            break;
-        case 'object':
-            // read is a PagingModel
-            this.config.pageModel = config.read;
-            this.reader = new gp.ClientPager( this.config );
-            break;
-        case 'array':
-            this.config.pageModel.data = this.config.read;
-            this.reader = new gp.ClientPager( this.config );
-            break;
-        default:
-            throw 'Unsupported read configuration';
-    }
+gp.Modeler = function () {
+
 };
 
-gp.DataLayer.prototype = {
+var rexp = {
+	segments: /[^\[\]\.\s]+|\[\d+\]/g,
+	indexer: /\[\d+\]/
+};
 
-    read: function ( requestModel, done, fail ) {
-        var self = this;
+gp.Modeler.prototype = {
+	syncChange: function ( parent, target, model, columns ) {
+		var name = target.name;
+		if ( gp.isNullOrEmpty( name ) ) return;
 
-        this.reader.read(
-            requestModel,
-            // make sure we wrap result in an array when we return it
-            // if result is an array of data, then applyFunc will end up only grabbing the first dataItem
-            function ( result ) {
-                result = self.resolveResult( result );
-                gp.applyFunc( done, self, [result] );
-            },
-            function ( result ) { gp.applyFunc( fail, self, [result] ); }
+		// there could be more than one element with this name, find them all
+		var elems = parent.querySelectorAll( '[name="' + name + '"]' );
+
+		var o = {
+			target: evt.target,
+			name: name,
+			value: target.value,
+			model: model
+		};
+
+		this.setModelProperty( parent, o.model, elems );
+	},
+
+	getPathSegments: function ( path ) {
+		return path.match( rexp.segments );
+	},
+
+	resolvePathSegment: function ( segment ) {
+	    // is this segment an array index?
+	    if ( rexp.indexer.test( segment ) ) {
+	        return parseInt( /\d+/.exec( segment ) );
+	    }
+	    return segment;
+	},
+
+	setModelProperty: function ( context, model, elems ) {
+		var obj,
+            prop,
+            type,
+            val;
+
+		// get the raw value
+		val = this.getValue( elems );
+
+		// grab the object we're setting
+		obj = gp.getObjectAtPath( model, segments, Array.isArray( val ) );
+
+		// grab the object property name
+		prop = this.resolvePathSegment( segments[segments.length - 1] );
+
+		// attempt to resolve the data type in the model
+		// if we can't get a type from the model
+		// rely on the server to resolve it
+		if ( prop in obj ) {
+			type = $.type( obj[prop] );
+		}
+		else if ( Array.isArray( obj ) && obj.length ) {
+			type = $.type( obj[0] );
+		}
+
+		// cast the raw value to the appropriate type
+		val = this.castValues( val, type );
+
+		if ( Array.isArray( val ) && Array.isArray( obj ) ) {
+			// preserve the object reference in case it's referenced elsewhere
+			// clear out the array and repopulate it
+			obj.splice( 0, obj.length );
+			val.forEach( function ( v ) {
+				obj.push( v );
+			} );
+		}
+		else {
+			obj[prop] = val;
+		}
+	},
+	getValue: function ( elem, parent ) {
+		if ( elem.length === 0 ) return null;
+		var val,
+		    type = elem.type,
+            node = elem.nodeName,
+		    name = elem.name,
+            input;
+
+		if ( type == 'radio' ) {
+            input = parent.querySelector( 'input[type=radio][name="' + name + '"][checked]' );
+            return input ? input.value : null;
+		}
+		else {
+		    input = parent.querySelectorAll( '[name="' + name + '"]' );
+		}
+
+		if ( input && input.length == 1 ) {
+		    return input[0].value;
+		}
+
+		var ret = [];
+
+
+		// it's supposed to be an array if they're all the same type and they're not radios
+		var isArray = elem.length > 1
+            && type !== 'radio'
+            && elem.filter( '[type="' + type + '"]' ).length === elem.length;
+		if ( type === 'checkbox' ) {
+			if ( isArray ) {
+				// this will only include checked boxes
+				val = elem.serializeArray().map( function ( nv ) { return nv.value; } );
+			}
+			else {
+				// this returns the checkbox value, not whether it's checked
+				val = elem.val();
+				// check for boolean, otherwise return val if it's checked, null if not checked
+				if ( val.toLowerCase() == 'true' ) val = ( elem[0].checked ).toString();
+				else if ( val.toLowerCase() == 'false' ) val = ( !elem[0].checked ).toString();
+				else val = elem[0].checked ? val : null;
+			}
+		}
+		else if ( type === 'radio' ) {
+			val = elem.serializeArray()[0].value;
+		}
+		else {
+			val = ( isArray ) ? elem.serializeArray().map( function ( nv ) { return nv.value; } ) : elem.val();
+		}
+		if ( !isArray && val === '' ) return null;
+		return val;
+	},
+	castValues: function ( val, type ) {
+		var isArray = Array.isArray( val );
+		var arr = isArray ? val : [val];
+		switch ( type ) {
+			case 'number':
+				arr = arr.filter( $.isNumeric ).map( parseFloat );
+				break;
+			case 'boolean':
+				arr = arr.map( function ( v ) {
+					return v.toLowerCase() == 'true';
+				} );
+				break;
+			case 'null':
+			case 'undefined':
+				arr = arr.map( function ( v ) {
+					if ( /true|false/i.test( v ) ) {
+						// assume boolean
+						return v.toLowerCase() === 'true';
+					}
+					return v === '' ? null : v;
+				} );
+				break;
+			default:
+				arr = arr.map( function ( v ) {
+					return v === '' ? null : v;
+				} );
+				break;
+		}
+		return isArray ? arr : arr[0];
+	},
+
+
+	serializeArray: function ( parent ) {
+	    var self = this,
+            inputs = parent.querySelectorAll( '[name]' ),
+	        arr = [],
+            rCRLF = /\r?\n/g,
+	        rsubmitterTypes = /^(?:submit|button|image|reset|file)$/i,
+            rsubmittable = /^(?:input|select|textarea|keygen)/i,
+            rcheckableType = /^(?:checkbox|radio)$/i;
+
+	    for ( var i = 0; i < inputs.length; i++ ) {
+	        arr.push( inputs[i] );
+	    }
+
+	    // jQuery's version of this fails when there's a checkbox with a value of true
+	    // and a hidden with a value of false.
+	    // That's how ASP.NET sends false when the box is not checked.
+        // In this case jQuery always sends true even if the box is not checked.
+
+	    return arr.filter( function () {
+		    var type = this.type;
+
+		    return rsubmittable.test( this.nodeName ) && !rsubmitterTypes.test( type ) &&
+				( this.checked || !rcheckableType.test( type ) );
+		} )
+		.map( function ( i, elem ) {
+		    var val = self.getValue(elem, parent);
+
+		    return val == null ?
+				null :
+				jQuery.isArray( val ) ?
+					jQuery.map( val, function ( val ) {
+					    return { name: elem.name, value: val.replace( rCRLF, "\r\n" ) };
+					} ) :
+					{ name: elem.name, value: val.replace( rCRLF, "\r\n" ) };
+		} );
+	}
+
+};
+
+/***************\
+   ModelSync
+\***************/
+
+gp.ModelSync = {
+
+    rexp: {
+        rCRLF: /\r?\n/g,
+        rsubmitterTypes: /^(?:submit|button|image|reset|file)$/i,
+        rsubmittable: /^(?:input|select|textarea|keygen)/i,
+        rcheckableType: /^(?:checkbox|radio)$/i
+    },
+
+    isDisabled: function ( elem ) {
+        return elem.disabled == true;
+    },
+
+    isNumeric: function ( obj ) {
+        return !Array.isArray( obj ) && ( obj - parseFloat( obj ) + 1 ) >= 0;
+    },
+
+    toArray: function ( arrayLike ) {
+        if ( arrayLike !== undefined && arrayLike.length != undefined ) {
+            var arr = [];
+            for ( var i = 0; i < arrayLike.length; i++ ) {
+                arr[i] = arrayLike[i];
+            }
+            return arr;
+        }
+        return null;
+    },
+
+    /*
+        jQuery's serializeArray function fails under the following scenario:
+        There are two inputs with the same name.
+        One of them is a checkbox with a value of true, the other is a hidden with a value of false.
+
+        What should happen:
+        If the checkbox is checked, both are submitted and only the first one (checkbox) is used by the server resulting in a value of true.
+        If the checkbox is unchecked, only the hidden is submitted resulting in a value of false.
+        ASP.NET uses this technique to submit an explicit true or false instead of true or nothing.
+
+        What actually happens:
+        jQuery's serializeArray function always submits true regardless of checked state.
+    */
+
+    serialize: function ( form ) {
+        var inputs = form.querySelectorAll( '[name]' ),
+            arr = this.toArray( inputs ),
+            obj = {};
+
+        arr.filter( function (elem) {
+                var type = elem.type;
+
+                return elem.name && !this.isDisabled( elem ) &&
+                    this.rexp.rsubmittable.test( elem.nodeName ) && !this.rexp.rsubmitterTypes.test( type ) &&
+                    ( elem.checked || !this.rexp.rcheckableType.test( type ) );
+            }.bind(this) )
+		    .forEach( function ( elem ) {
+
+                // if there are multiple inputs with this name, take the first one
+		        if ( elem.name in obj ) return;
+
+		        var val = elem.value;
+		        obj[elem.name] =
+                    ( val == null ?
+				    null :
+    			    val.replace( this.rexp.rCRLF, "\r\n" ) );
+		    }.bind(this)
         );
+
+        return obj;
     },
 
-    create: function ( dataItem, done, fail) {
-        var self = this, url;
+    bindElements: function ( model, context ) {
+        var value,
+            elem;
 
-        // config.create can be a function or a URL
-        if ( typeof this.config.create === 'function' ) {
-            // call the function, set the API as the context
-            gp.applyFunc(this.config.create, this.config.node.api, [dataItem, done, fail], fail);
-        }
-        else {
-            // the url can be a template
-            url = gp.supplant( this.config.create, dataItem );
-            // call the URL
-            var http = new gp.Http();
-            http.post(
-                url,
-                dataItem,
-                function ( arg ) { gp.applyFunc( done, self, arg ); },
-                function ( arg ) { gp.applyFunc( fail, self, arg ); }
-            );
-        }
+        Object.getOwnPropertyNames( model ).forEach( function ( prop ) {
+
+            value = gp.hasValue( model[prop] ) ? model[prop].toString() : '';
+
+            clean = gp.escapeHTML( value ).replace( this.rexp.rCRLF, "\r\n" );
+
+            // is there a checkbox or radio with this name and value?
+            elem = context.querySelector( '[type=checkbox][name="' + prop + '"][value="' + clean + '"],[type=radio][name="' + prop + '"][value="' + clean + '"]' );
+
+            if ( elem != null )
+            {
+                elem.checked = true;
+                return;
+            }
+
+            // check for boolean
+            if ( /^(true|false)$/i.test( value ) )
+            {
+                elem = context.querySelector( '[type=checkbox][name="' + prop + '"][value=true]' );
+
+                if ( elem != null ) {
+                    elem.checked = /^true$/i.test( value );
+                    return;
+                }
+            }
+
+            elem = context.querySelector( '[name="' + prop + '"]' );
+            if ( elem != null ) {
+
+                // inputs with a value attribute
+                if ( elem.value !== undefined ) {
+                    elem.value = value;
+                }
+                    // inputs with no value attribute (e.g. textarea)
+                else if ( elem.innerHTML !== undefined ) {
+                    elem.innerHTML = ( value == null ? '' : gp.escapeHTML( value ) );
+                }
+
+            }
+
+        }.bind( this ) );
     },
 
-    update: function (dataItem, done, fail) {
-        var self = this, url;
+    castValues: function ( model, columns ) {
+        var col;
 
-        // config.update can be a function or URL
-        if ( typeof this.config.update === 'function' ) {
-            gp.applyFunc(this.config.update, this.config.node.api, [dataItem, done, fail], fail);
-        }
-        else {
-            // the url can be a template
-            url = gp.supplant( this.config.update, dataItem );
-            var http = new gp.Http();
-            http.post(
-                url,
-                dataItem,
-                function ( arg ) { gp.applyFunc( done, self, arg ); },
-                function ( arg ) { gp.applyFunc( fail, self, arg ); }
-            );
-        }
+        Object.getOwnPropertyNames( model ).forEach( function ( prop ) {
+            col = gp.getColumnByField( columns, prop );
+
+            if ( col && col.Type ) {
+                model[prop] = this.cast( model[prop], col.Type );
+            }
+        }.bind(this) );
     },
 
-    destroy: function (dataItem, done, fail) {
-        var self = this, url;
-        if ( typeof this.config.destroy === 'function' ) {
-            gp.applyFunc(this.config.destroy, this.config.node.api, [dataItem, done, fail], fail);
+    cast: function ( val, dataType ) {
+        var isArray = Array.isArray( val );
+        var arr = isArray ? val : [val];
+        switch ( dataType ) {
+            case 'number':
+                arr = arr.filter( this.isNumeric ).map( parseFloat );
+                break;
+            case 'boolean':
+                arr = arr.map( function ( v ) {
+                    return v.toLowerCase() == 'true';
+                } );
+                break;
+            case 'null':
+            case 'undefined':
+                arr = arr.map( function ( v ) {
+                    if ( /true|false/i.test( v ) ) {
+                        // assume boolean
+                        return v.toLowerCase() === 'true';
+                    }
+                    return v === '' ? null : v;
+                } );
+                break;
+            default:
+                arr = arr.map( function ( v ) {
+                    return v === '' ? null : v;
+                } );
+                break;
         }
-        else {
-            // the url can be a template
-            url = gp.supplant( this.config.destroy, dataItem );
-            var http = new gp.Http();
-            http.destroy(
-                url,
-                dataItem,
-                function ( arg ) { gp.applyFunc( done, self, arg ); },
-                function ( arg ) { gp.applyFunc( fail, self, arg ); }
-            );
-        }
-    },
-
-    resolveResult: function ( result ) {
-        if ( gp.hasValue( result ) && Array.isArray( result ) ) {
-            //  wrap the array in a PagingModel
-            return new gp.PagingModel( result );
-        }
-        return result;
+        return isArray ? arr : arr[0];
     }
-
-
 };
 
 /***************\
@@ -2545,7 +2926,9 @@ gp.StringBuilder.prototype = {
 gp.templates = gp.templates || {};
 gp.templates['bootstrap-modal'] = function(model, arg) {
     var out = [];
-    out.push('<div class="modal fade" tabindex="-1" role="dialog">');
+    out.push('<div class="modal fade" tabindex="-1" role="dialog" data-uid="');
+    out.push(model.uid);
+    out.push('">');
     out.push('<div class="modal-dialog" role="document">');
     out.push('<div class="modal-content">');
     out.push('<div class="modal-header">');
@@ -2600,7 +2983,10 @@ gp.templates['gridponent-cells'] = function(model, arg) {
     var out = [];
     model.columns.forEach(function(col, index) {
             out.push('    <td class="body-cell ');
-    out.push(col.bodyclass);
+    if ((col.commands)) {
+    out.push('commands ');
+    }
+        out.push(col.bodyclass);
     out.push('">');
                 out.push(gp.helpers['bodyCellContent'].call(model, col));
         out.push('</td>');
