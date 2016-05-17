@@ -131,8 +131,8 @@ gp.api.prototype = {
         }
     },
 
-    getData: function ( index ) {
-        if ( typeof index == 'number' ) return this.controller.config.pageModel.data[index];
+    getData: function ( uidOrTableRow ) {
+        if ( uidOrTableRow != undefined ) return this.config.map.get( uidOrTableRow );
         return this.controller.config.pageModel.data;
     },
 
@@ -928,7 +928,8 @@ gp.Editor.prototype = {
 
         this.addBusy();
 
-        // it's possible for the API to invoke this save method, so there won't be an element
+        // it's possible for the API to invoke this save method
+        // there won't be a form element in that case
         if ( this.elem ) {
             // serialize the form
             serialized = gp.ModelSync.serialize( this.elem );
@@ -1529,7 +1530,8 @@ gp.helpers = {
         var model = {
             title: ( mode == 'create' ? 'Add' : 'Edit' ),
             body: '',
-            footer: null
+            footer: null,
+            uid: config.map.getUid( dataItem )
         };
 
         var html = new gp.StringBuilder();
@@ -1865,6 +1867,61 @@ gp.helpers = {
 
 
 /***************\
+     http        
+\***************/
+gp.Http = function () { };
+
+gp.Http.prototype = {
+    serialize: function ( obj ) {
+        // creates a query string from a simple object
+        var props = Object.getOwnPropertyNames( obj );
+        var out = [];
+        props.forEach( function ( prop ) {
+            // don't send complex objects back to the server
+            // data should be flattened before it leaves the server
+            // editing complex objects is not supported
+            if ( /^(array|function|object)$/.test( gp.getType( obj[prop] ) ) == false ) {
+                out.push( encodeURIComponent( prop ) + '=' + ( gp.isNullOrEmpty( obj[prop] ) ? '' : encodeURIComponent( obj[prop] ) ) );
+            }
+        } );
+        return out.join( '&' );
+    },
+    createXhr: function ( type, url, callback, error ) {
+        var xhr = new XMLHttpRequest();
+        xhr.open(type.toUpperCase(), url, true);
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.onload = function () {
+            var response = ( gp.rexp.json.test( xhr.responseText ) ? JSON.parse( xhr.responseText ) : xhr.responseText );
+            if ( xhr.status == 200 ) {
+                callback( response, xhr );
+            }
+            else {
+                gp.applyFunc( error, xhr, response );
+            }
+        }
+        xhr.onerror = error;
+        return xhr;
+    },
+    get: function (url, callback, error) {
+        var xhr = this.createXhr('GET', url, callback, error);
+        xhr.send();
+    },
+    post: function ( url, data, callback, error ) {
+        var s = this.serialize( data );
+        var xhr = this.createXhr( 'POST', url, callback, error );
+        xhr.setRequestHeader( 'Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8' );
+        xhr.send( s );
+    },
+    destroy: function ( url, data, callback, error ) {
+        var s = this.serialize( data );
+        var xhr = this.createXhr( 'DELETE', url, callback, error );
+        xhr.setRequestHeader( 'Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8' );
+        xhr.send( s );
+    }
+
+};
+
+/***************\
    Initializer
 \***************/
 gp.Initializer = function ( node ) {
@@ -2109,178 +2166,6 @@ gp.Initializer.prototype = {
 };
 
 /***************\
-   mock-http
-\***************/
-(function (gp) {
-    gp.Http = function () { };
-
-    // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
-    var routes = {
-        read: /read/i,
-        update: /update/i,
-        create: /create/i,
-        destroy: /Delete/i
-    };
-
-    gp.Http.prototype = {
-        //serialize: function (obj, props) {
-        //    // creates a query string from a simple object
-        //    var self = this;
-        //    props = props || Object.getOwnPropertyNames(obj);
-        //    var out = [];
-        //    props.forEach(function (prop) {
-        //        out.push(encodeURIComponent(prop) + '=' + encodeURIComponent(obj[prop]));
-        //    });
-        //    return out.join('&');
-        //},
-        //deserialize: function (queryString) {
-        //    var nameValue, split = queryString.split( '&' );
-        //    var obj = {};
-        //    if ( !queryString ) return obj;
-        //    split.forEach( function ( s ) {
-        //        nameValue = s.split( '=' );
-        //        var val = nameValue[1];
-        //        if ( !val ) {
-        //            obj[nameValue[0]] = null;
-        //        }
-        //        else if ( /true|false/i.test( val ) ) {
-        //            obj[nameValue[0]] = ( /true/i.test( val ) );
-        //        }
-        //        else if ( parseFloat( val ).toString() === val ) {
-        //            obj[nameValue[0]] = parseFloat( val );
-        //        }
-        //        else {
-        //            obj[nameValue[0]] = val;
-        //        }
-        //    } );
-        //    return obj;
-        //},
-        //get: function (url, callback, error) {
-        //    if (routes.read.test(url)) {
-        //        var index = url.substring(url.indexOf('?'));
-        //        if (index !== -1) {
-        //            var queryString = url.substring(index + 1);
-        //            var model = this.deserialize(queryString);
-        //            this.post(url.substring(0, index), model, callback, error);
-        //        }
-        //        else {
-        //            this.post(url, null, callback, error);
-        //        }
-        //    }
-        //    else if (routes.create.test(url)) {
-        //        var result = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
-        //        callback(result);
-        //    }
-        //    else {
-        //        throw 'Not found: ' + url;
-        //    }
-        //},
-        post: function (url, model, callback, error) {
-            model = model || {};
-            if (routes.read.test(url)) {
-                getData(model, callback);
-            }
-            else if ( routes.create.test( url ) ) {
-                data.products.push( model );
-                callback( new gp.UpdateModel( model ) );
-            }
-            else if ( routes.update.test( url ) ) {
-                callback( new gp.UpdateModel(model) );
-            }
-            else {
-                throw '404 Not found: ' + url;
-            }
-        },
-        destroy: function ( url, model, callback, error ) {
-            model = model || {};
-            var index = data.products.indexOf( model );
-            callback( {
-                Success: true,
-                Message: ''
-            } );
-        }
-    };
-
-    var getData = function (model, callback) {
-        var count, d = data.products.slice( 0, this.data.length );
-
-        if (!gp.isNullOrEmpty(model.search)) {
-            var props = Object.getOwnPropertyNames(d[0]);
-            var search = model.search.toLowerCase();
-            d = d.filter(function (row) {
-                for (var i = 0; i < props.length; i++) {
-                    if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
-                        return true;
-                    }
-                }
-                return false;
-            });
-        }
-        if (!gp.isNullOrEmpty(model.sort)) {
-            if (model.desc) {
-                d.sort(function (row1, row2) {
-                    var a = row1[model.sort];
-                    var b = row2[model.sort];
-                    if (a === null) {
-                        if (b != null) {
-                            return 1;
-                        }
-                    }
-                    else if (b === null) {
-                        // we already know a isn't null
-                        return -1;
-                    }
-                    if (a > b) {
-                        return -1;
-                    }
-                    if (a < b) {
-                        return 1;
-                    }
-
-                    return 0;
-                });
-            }
-            else {
-                d.sort(function (row1, row2) {
-                    var a = row1[model.sort];
-                    var b = row2[model.sort];
-                    if (a === null) {
-                        if (b != null) {
-                            return -1;
-                        }
-                    }
-                    else if (b === null) {
-                        // we already know a isn't null
-                        return 1;
-                    }
-                    if (a > b) {
-                        return 1;
-                    }
-                    if (a < b) {
-                        return -1;
-                    }
-
-                    return 0;
-                });
-            }
-        }
-        count = d.length;
-        if (model.top !== -1) {
-            model.data = d.slice(model.skip).slice(0, model.top);
-        }
-        else {
-            model.data = d;
-        }
-        model.errors = [];
-        setTimeout(function () {
-            callback(model);
-        });
-
-    };
-
-})(gridponent);
-
-/***************\
    ModelSync
 \***************/
 
@@ -2340,7 +2225,10 @@ gp.ModelSync = {
             }.bind(this) )
 		    .forEach( function ( elem ) {
 
-                // if there are multiple inputs with this name, take the first one
+		        // if there are multiple inputs with this name, take the first one
+		        // this won't work for submitting arrays of values,
+		        // but editing an array inside a grid cell is an unlikely scenario
+                // complex paths are not supported
 		        if ( elem.name in obj ) return;
 
 		        var val = elem.value;
@@ -2870,213 +2758,215 @@ gp.StringBuilder.prototype = {
     templates
 \***************/
 gp.templates = gp.templates || {};
-gp.templates['bootstrap-modal'] = function ( model, arg ) {
+gp.templates['bootstrap-modal'] = function(model, arg) {
     var out = [];
-    out.push( '<div class="modal fade" tabindex="-1" role="dialog">' );
-    out.push( '<div class="modal-dialog" role="document">' );
-    out.push( '<div class="modal-content">' );
-    out.push( '<div class="modal-header">' );
-    out.push( '<button type="button" class="close" aria-label="Close" value="cancel"><span aria-hidden="true">&times;</span></button>' );
-    out.push( '                <h4 class="modal-title">' );
-    out.push( model.title );
-    out.push( '</h4>' );
-    out.push( '</div>' );
-    out.push( '<div class="modal-body">' );
-    out.push( model.body );
-    out.push( '</div>' );
-    out.push( '<div class="modal-footer">' );
-    if ( model.footer ) {
-        out.push( model.footer );
-    } else {
-        out.push( '<div class="btn-group">' );
-        out.push( '<button type="button" class="btn btn-default" value="cancel">' );
-        out.push( '<span class="glyphicon glyphicon-remove"></span>Close' );
-        out.push( '</button>' );
-        out.push( '<button type="button" class="btn btn-primary" value="save">' );
-        out.push( '<span class="glyphicon glyphicon-save"></span>Save changes' );
-        out.push( '</button>' );
-        out.push( '</div>' );
+    out.push('<div class="modal fade" tabindex="-1" role="dialog" data-uid="');
+    out.push(model.uid);
+    out.push('">');
+    out.push('<div class="modal-dialog" role="document">');
+    out.push('<div class="modal-content">');
+    out.push('<div class="modal-header">');
+    out.push('<button type="button" class="close" aria-label="Close" value="cancel"><span aria-hidden="true">&times;</span></button>');
+    out.push('                <h4 class="modal-title">');
+    out.push(model.title);
+    out.push('</h4>');
+    out.push('</div>');
+    out.push('<div class="modal-body">');
+                        out.push(model.body);
+        out.push('</div>');
+    out.push('<div class="modal-footer">');
+                        if (model.footer) {
+                                out.push(model.footer);
+                            } else {
+        out.push('<div class="btn-group">');
+    out.push('<button type="button" class="btn btn-default" value="cancel">');
+    out.push('<span class="glyphicon glyphicon-remove"></span>Close');
+    out.push('</button>');
+    out.push('<button type="button" class="btn btn-primary" value="save">');
+    out.push('<span class="glyphicon glyphicon-save"></span>Save changes');
+    out.push('</button>');
+    out.push('</div>');
+                        }
+        out.push('</div>');
+    out.push('</div>');
+    out.push('<div class="gp-progress-overlay">');
+    out.push('<div class="gp-progress gp-progress-container">');
+    out.push('<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>');
+    out.push('</div>');
+    out.push('</div>');
+    out.push('</div>');
+    out.push('</div>');
+    return out.join('');
+};
+gp.templates['gridponent-body'] = function(model, arg) {
+    var out = [];
+    out.push('<table class="table" cellpadding="0" cellspacing="0">');
+            if (!model.fixedheaders) {
+                    out.push(gp.helpers['thead'].call(model));
+                }
+        out.push('<tbody>');
+                out.push(gp.helpers['tableRows'].call(model));
+        out.push('</tbody>');
+            if (model.footer && !model.fixedfooters) {
+                    out.push(gp.templates['gridponent-tfoot'](model));
+                }
+        out.push('</table>');
+    return out.join('');
+};
+gp.templates['gridponent-cells'] = function(model, arg) {
+    var out = [];
+    model.columns.forEach(function(col, index) {
+            out.push('    <td class="body-cell ');
+    if ((col.commands)) {
+    out.push('commands ');
     }
-    out.push( '</div>' );
-    out.push( '</div>' );
-    out.push( '<div class="gp-progress-overlay">' );
-    out.push( '<div class="gp-progress gp-progress-container">' );
-    out.push( '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>' );
-    out.push( '</div>' );
-    out.push( '</div>' );
-    out.push( '</div>' );
-    out.push( '</div>' );
-    return out.join( '' );
+        out.push(col.bodyclass);
+    out.push('">');
+                out.push(gp.helpers['bodyCellContent'].call(model, col));
+        out.push('</td>');
+    });
+            return out.join('');
 };
-gp.templates['gridponent-body'] = function ( model, arg ) {
+gp.templates['gridponent-pager'] = function(model, arg) {
     var out = [];
-    out.push( '<table class="table" cellpadding="0" cellspacing="0">' );
-    if ( !model.fixedheaders ) {
-        out.push( gp.helpers['thead'].call( model ) );
+    out.push(gp.helpers['setPagerFlags'].call(model));
+            if (model.pageModel.HasPages) {
+            out.push('<div class="btn-group">');
+    out.push('    <button class="ms-page-index btn btn-default ');
+    if (model.pageModel.IsFirstPage) {
+    out.push(' disabled ');
     }
-    out.push( '<tbody>' );
-    out.push( gp.helpers['tableRows'].call( model ) );
-    out.push( '</tbody>' );
-    if ( model.footer && !model.fixedfooters ) {
-        out.push( gp.templates['gridponent-tfoot']( model ) );
+    out.push('" title="First page" value="page" data-page="1">');
+    out.push('<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>');
+    out.push('</button>');
+        out.push('    <button class="ms-page-index btn btn-default ');
+    if (model.pageModel.IsFirstPage) {
+    out.push(' disabled ');
     }
-    out.push( '</table>' );
-    return out.join( '' );
-};
-gp.templates['gridponent-cells'] = function ( model, arg ) {
-    var out = [];
-    model.columns.forEach( function ( col, index ) {
-        out.push( '    <td class="body-cell ' );
-        if ( ( col.commands ) ) {
-            out.push( 'commands ' );
-        }
-        out.push( col.bodyclass );
-        out.push( '">' );
-        out.push( gp.helpers['bodyCellContent'].call( model, col ) );
-        out.push( '</td>' );
-    } );
-    return out.join( '' );
-};
-gp.templates['gridponent-pager'] = function ( model, arg ) {
-    var out = [];
-    out.push( gp.helpers['setPagerFlags'].call( model ) );
-    if ( model.pageModel.HasPages ) {
-        out.push( '<div class="btn-group">' );
-        out.push( '    <button class="ms-page-index btn btn-default ' );
-        if ( model.pageModel.IsFirstPage ) {
-            out.push( ' disabled ' );
-        }
-        out.push( '" title="First page" value="page" data-page="1">' );
-        out.push( '<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>' );
-        out.push( '</button>' );
-        out.push( '    <button class="ms-page-index btn btn-default ' );
-        if ( model.pageModel.IsFirstPage ) {
-            out.push( ' disabled ' );
-        }
-        out.push( '" title="Previous page" value="page" data-page="' );
-        out.push( model.pageModel.PreviousPage );
-        out.push( '">' );
-        out.push( '<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>' );
-        out.push( '</button>' );
-        out.push( '</div>' );
-        out.push( '<input type="number" name="page" value="' );
-        out.push( model.pageModel.page );
-        out.push( '" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />' );
-        out.push( '<span class="page-count">' );
-        out.push( '    of ' );
-        out.push( model.pageModel.pagecount );
-        out.push( '</span>' );
-        out.push( '<div class="btn-group">' );
-        out.push( '    <button class="ms-page-index btn btn-default ' );
-        if ( model.pageModel.IsLastPage ) {
-            out.push( ' disabled ' );
-        }
-        out.push( '" title="Next page" value="page" data-page="' );
-        out.push( model.pageModel.NextPage );
-        out.push( '">' );
-        out.push( '<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>' );
-        out.push( '</button>' );
-        out.push( '    <button class="ms-page-index btn btn-default ' );
-        if ( model.pageModel.IsLastPage ) {
-            out.push( ' disabled ' );
-        }
-        out.push( '" title="Last page" value="page" data-page="' );
-        out.push( model.pageModel.pagecount );
-        out.push( '">' );
-        out.push( '<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>' );
-        out.push( '</button>' );
-        out.push( '</div>' );
+    out.push('" title="Previous page" value="page" data-page="');
+    out.push(model.pageModel.PreviousPage);
+    out.push('">');
+    out.push('<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>');
+    out.push('</button>');
+    out.push('</div>');
+    out.push('<input type="number" name="page" value="');
+    out.push(model.pageModel.page);
+    out.push('" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />');
+    out.push('<span class="page-count">');
+    out.push('    of ');
+    out.push(model.pageModel.pagecount);
+        out.push('</span>');
+    out.push('<div class="btn-group">');
+    out.push('    <button class="ms-page-index btn btn-default ');
+    if (model.pageModel.IsLastPage) {
+    out.push(' disabled ');
     }
-    return out.join( '' );
+    out.push('" title="Next page" value="page" data-page="');
+    out.push(model.pageModel.NextPage);
+    out.push('">');
+    out.push('<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>');
+    out.push('</button>');
+        out.push('    <button class="ms-page-index btn btn-default ');
+    if (model.pageModel.IsLastPage) {
+    out.push(' disabled ');
+    }
+    out.push('" title="Last page" value="page" data-page="');
+    out.push(model.pageModel.pagecount);
+    out.push('">');
+    out.push('<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>');
+    out.push('</button>');
+    out.push('</div>');
+    }
+            return out.join('');
 };
-gp.templates['gridponent-table-footer'] = function ( model, arg ) {
+gp.templates['gridponent-table-footer'] = function(model, arg) {
     var out = [];
-    out.push( '<table class="table" cellpadding="0" cellspacing="0">' );
-    out.push( gp.templates['gridponent-tfoot']( model ) );
-    out.push( '</table>' );
-    return out.join( '' );
+    out.push('<table class="table" cellpadding="0" cellspacing="0">');
+            out.push(gp.templates['gridponent-tfoot'](model));
+        out.push('</table>');
+    return out.join('');
 };
-gp.templates['gridponent-tfoot'] = function ( model, arg ) {
+gp.templates['gridponent-tfoot'] = function(model, arg) {
     var out = [];
-    out.push( '<tfoot>' );
-    out.push( '<tr>' );
-    model.columns.forEach( function ( col, index ) {
-        out.push( '<td class="footer-cell">' );
-        out.push( gp.helpers['footerCell'].call( model, col ) );
-        out.push( '</td>' );
-    } );
-    out.push( '</tr>' );
-    out.push( '</tfoot>' );
-    return out.join( '' );
+    out.push('<tfoot>');
+    out.push('<tr>');
+                model.columns.forEach(function(col, index) {
+        out.push('<td class="footer-cell">');
+                    out.push(gp.helpers['footerCell'].call(model, col));
+        out.push('</td>');
+                });
+        out.push('</tr>');
+    out.push('</tfoot>');
+    return out.join('');
 };
-gp.templates['gridponent'] = function ( model, arg ) {
+gp.templates['gridponent'] = function(model, arg) {
     var out = [];
-    out.push( '<div class="gp table-container' );
-    out.push( gp.helpers['containerClasses'].call( model ) );
-    out.push( '" id="' );
-    out.push( model.ID );
-    out.push( '">' );
-    if ( model.search || model.create || model.toolbartemplate ) {
-        out.push( '<div class="table-toolbar">' );
-        if ( model.toolbartemplate ) {
-            out.push( gp.helpers['toolbartemplate'].call( model ) );
-        } else {
-            if ( model.search ) {
-                out.push( '<div class="input-group gridponent-searchbox">' );
-                out.push( '<input type="text" name="search" class="form-control" placeholder="Search...">' );
-                out.push( '<span class="input-group-btn">' );
-                out.push( '<button class="btn btn-default" type="button" value="search">' );
-                out.push( '<span class="glyphicon glyphicon-search"></span>' );
-                out.push( '</button>' );
-                out.push( '</span>' );
-                out.push( '</div>' );
+    out.push('<div class="gp table-container');
+    out.push(gp.helpers['containerClasses'].call(model));
+    out.push('" id="');
+    out.push(model.ID);
+    out.push('">');
+            if (model.search || model.create || model.toolbartemplate) {
+        out.push('<div class="table-toolbar">');
+                    if (model.toolbartemplate) {
+                            out.push(gp.helpers['toolbartemplate'].call(model));
+                        } else {
+                            if (model.search) {
+        out.push('<div class="input-group gridponent-searchbox">');
+    out.push('<input type="text" name="search" class="form-control" placeholder="Search...">');
+    out.push('<span class="input-group-btn">');
+    out.push('<button class="btn btn-default" type="button" value="search">');
+    out.push('<span class="glyphicon glyphicon-search"></span>');
+    out.push('</button>');
+    out.push('</span>');
+    out.push('</div>');
+                        }
+                            if (model.create) {
+        out.push('<button class="btn btn-default" type="button" value="AddRow">');
+    out.push('<span class="glyphicon glyphicon-plus"></span>Add');
+    out.push('</button>');
+                        }
+                        }
+        out.push('</div>');
             }
-            if ( model.create ) {
-                out.push( '<button class="btn btn-default" type="button" value="AddRow">' );
-                out.push( '<span class="glyphicon glyphicon-plus"></span>Add' );
-                out.push( '</button>' );
+                if (model.fixedheaders) {
+        out.push('<div class="table-header">');
+    out.push('<table class="table" cellpadding="0" cellspacing="0">');
+                        out.push(gp.helpers['thead'].call(model));
+        out.push('</table>');
+    out.push('</div>');
             }
-        }
-        out.push( '</div>' );
+        out.push('    <div class="table-body ');
+    if (model.fixedheaders) {
+    out.push('table-scroll');
     }
-    if ( model.fixedheaders ) {
-        out.push( '<div class="table-header">' );
-        out.push( '<table class="table" cellpadding="0" cellspacing="0">' );
-        out.push( gp.helpers['thead'].call( model ) );
-        out.push( '</table>' );
-        out.push( '</div>' );
-    }
-    out.push( '    <div class="table-body ' );
-    if ( model.fixedheaders ) {
-        out.push( 'table-scroll' );
-    }
-    out.push( '" style="' );
-    out.push( model.style );
-    out.push( '">' );
-    out.push( '<table class="table" cellpadding="0" cellspacing="0">' );
-    if ( !model.fixedheaders ) {
-        out.push( gp.helpers['thead'].call( model ) );
-    }
-    out.push( '</table>' );
-    out.push( '</div>' );
-    if ( model.fixedfooters ) {
-        out.push( '<div class="table-footer">' );
-        out.push( gp.templates['gridponent-table-footer']( model ) );
-        out.push( '</div>' );
-    }
-    if ( model.pager ) {
-        out.push( '<div class="table-pager"></div>' );
-    }
-    out.push( '<style type="text/css" class="column-width-style">' );
-    out.push( gp.helpers['columnWidthStyle'].call( model ) );
-    out.push( '</style>' );
-    out.push( '<div class="gp-progress-overlay">' );
-    out.push( '<div class="gp-progress gp-progress-container">' );
-    out.push( '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>' );
-    out.push( '</div>' );
-    out.push( '</div>' );
-    out.push( '</div>' );
-    return out.join( '' );
+    out.push('" style="');
+    out.push(model.style);
+    out.push('">');
+    out.push('<table class="table" cellpadding="0" cellspacing="0">');
+                    if (!model.fixedheaders) {
+                            out.push(gp.helpers['thead'].call(model));
+                        }
+        out.push('</table>');
+    out.push('</div>');
+            if (model.fixedfooters) {
+        out.push('<div class="table-footer">');
+                    out.push(gp.templates['gridponent-table-footer'](model));
+        out.push('</div>');
+            }
+                if (model.pager) {
+        out.push('<div class="table-pager"></div>');
+            }
+        out.push('<style type="text/css" class="column-width-style">');
+                out.push(gp.helpers['columnWidthStyle'].call(model));
+        out.push('</style>');
+    out.push('<div class="gp-progress-overlay">');
+    out.push('<div class="gp-progress gp-progress-container">');
+    out.push('<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>');
+    out.push('</div>');
+    out.push('</div>');
+    out.push('</div>');
+    return out.join('');
 };
 
 /***************\
@@ -3601,18 +3491,6 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
                     break;
                 default:
                     model[name] = val;
-            }
-        }
-        catch ( e ) {
-            gp.error( e );
-        }
-    };
-
-    gp.syncModel = function ( parent, model, columns ) {
-        try {
-            var inputs = parent.querySelectorAll( '[name]' );
-            for ( var i = 0; i < inputs.length; i++ ) {
-                gp.syncChange( inputs[i], model, columns );
             }
         }
         catch ( e ) {

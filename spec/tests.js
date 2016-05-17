@@ -252,6 +252,19 @@ var configuration = {
 
 fns.model = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "blue", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "C", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
 
+QUnit.test( 'custom toolbar button', function ( assert ) {
+
+    var done = assert.async();
+
+    fns.customToolbarCommand = function () {
+        assert.ok( false, 'custom toolbar buttons should resolve to a function' );
+        done();
+    }
+
+
+
+} );
+
 QUnit.test( 'ModelSync.serialize', function ( assert ) {
 
     div.append( gp.helpers.input( 'string', 'ProductID', "" ) );

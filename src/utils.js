@@ -516,18 +516,6 @@
         }
     };
 
-    gp.syncModel = function ( parent, model, columns ) {
-        try {
-            var inputs = parent.querySelectorAll( '[name]' );
-            for ( var i = 0; i < inputs.length; i++ ) {
-                gp.syncChange( inputs[i], model, columns );
-            }
-        }
-        catch ( e ) {
-            gp.error( e );
-        }
-    };
-
     gp.trim = function ( str ) {
         if ( gp.isNullOrEmpty( str ) ) return str;
         return str.trim ? str.trim() : str.replace( /^\s+|\s+$/g, '' );

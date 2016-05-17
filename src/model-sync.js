@@ -49,24 +49,28 @@ gp.ModelSync = {
             arr = this.toArray( inputs ),
             obj = {};
 
-        arr.filter( function (elem) {
-                var type = elem.type;
+        // add properties for each named input in the form
+        // so they don't get overwritten when we merge the 
+        // serialized form with the original dataItem
+        arr.forEach( function ( elem ) {
+            obj[elem.name] = '';
+        } );
 
-                return elem.name && !this.isDisabled( elem ) &&
-                    this.rexp.rsubmittable.test( elem.nodeName ) && !this.rexp.rsubmitterTypes.test( type ) &&
-                    ( elem.checked || !this.rexp.rcheckableType.test( type ) );
-            }.bind(this) )
-		    .forEach( function ( elem ) {
+        arr.filter( function ( elem ) {
+            var type = elem.type;
 
-                // if there are multiple inputs with this name, take the first one
-		        if ( elem.name in obj ) return;
-
-		        var val = elem.value;
-		        obj[elem.name] =
+            return !this.isDisabled( elem )
+                && this.rexp.rsubmittable.test( elem.nodeName )
+                && !this.rexp.rsubmitterTypes.test( type )
+                && ( elem.checked || !this.rexp.rcheckableType.test( type ) );
+        }.bind( this ) )
+            .forEach( function ( elem ) {
+                var val = elem.value;
+                obj[elem.name] =
                     ( val == null ?
-				    null :
-    			    val.replace( this.rexp.rCRLF, "\r\n" ) );
-		    }.bind(this)
+                    null :
+                    val.replace( this.rexp.rCRLF, "\r\n" ) );
+            }.bind( this )
         );
 
         return obj;

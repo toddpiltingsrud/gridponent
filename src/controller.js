@@ -185,6 +185,12 @@ gp.Controller.prototype = {
                 this.read();
                 break;
             default:
+                // check for a function
+                // this is needed in case there's a custom command in the toolbar
+                cmd = gp.getObjectAtPath( btn.value );
+                if ( typeof cmd == 'function' ) {
+                    cmd.call( this.config.node.api, dataItem );
+                }
                 break;
         }
     },
