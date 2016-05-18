@@ -66,6 +66,9 @@ gp.ModelSync = {
         }.bind( this ) )
             .forEach( function ( elem ) {
                 var val = elem.value;
+
+                if ( obj[elem.name] != '' ) return;
+
                 obj[elem.name] =
                     ( val == null ?
                     null :

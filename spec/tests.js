@@ -257,11 +257,25 @@ QUnit.test( 'custom toolbar button', function ( assert ) {
     var done = assert.async();
 
     fns.customToolbarCommand = function () {
-        assert.ok( false, 'custom toolbar buttons should resolve to a function' );
+        assert.ok( true, 'custom toolbar buttons should resolve to a function' );
         done();
     }
 
+    var options = gp.shallowCopy( configuration );
 
+    options.toolbartemplate = '<button class="btn" value="fns.customToolbarCommand">Custom Command</button>';
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var btn = api.find( 'button[value="fns.customToolbarCommand"]' );
+
+        clickButton( btn );
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
 
 } );
 
@@ -435,6 +449,10 @@ QUnit.test( 'preload option', function ( assert ) {
         } );
 
         api.search( 'Adjustable Race' );
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
 
     } );
 
@@ -635,7 +653,7 @@ QUnit.test( 'ModalEditor', function ( assert ) {
 
         editor.cancel();
 
-        var dataItem = api.getData( 0 );
+        var dataItem = api.getData()[0];
 
         model = editor.edit( dataItem );
 
@@ -767,7 +785,7 @@ QUnit.test( 'camelize', function ( assert ) {
 //    getTableConfig( configOptions, function ( api ) {
 
 //        // grab a row and modify it
-//        var dataItem = api.getData( 0 );
+//        var dataItem = api.getData()[0];
 
 //        var cell = api.find( '.table-body tr:first-child td:nth-child(2)' );
 
@@ -1458,7 +1476,7 @@ QUnit.test( 'api.update', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var dataItem = api.getData( 0 );
+        var dataItem = api.getData()[0];
 
         dataItem.Name = 'test';
 
@@ -1476,7 +1494,7 @@ QUnit.test( 'api.update', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var dataItem = api.getData( 0 );
+        var dataItem = api.getData()[0];
 
         api.update( dataItem, function ( updateModel ) {
             assert.strictEqual( updateModel.dataItem.Name, 'test', 'update should support functions that use a URL' );
@@ -1491,7 +1509,7 @@ QUnit.test( 'api.update', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var dataItem = api.getData( 0 );
+        var dataItem = api.getData()[0];
 
         api.update( dataItem, function ( updateModel ) {
             assert.ok( updateModel == undefined, 'empty update setting should execute the callback with no arguments' );
@@ -1589,7 +1607,7 @@ QUnit.test( 'api.destroy', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var dataItem = api.getData( 0 );
+        var dataItem = api.getData()[0];
 
         api.destroy( dataItem, function ( dataItem ) {
             var index = api.getData().indexOf( dataItem );
@@ -1616,7 +1634,7 @@ QUnit.test( 'api.destroy', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        dataItem = api.getData( 0 );
+        dataItem = api.getData()[0];
 
         api.destroy( dataItem, function ( dataItem ) {
             var index = api.getData().indexOf( dataItem );
@@ -1633,7 +1651,7 @@ QUnit.test( 'api.destroy', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        dataItem = api.getData( 0 );
+        dataItem = api.getData()[0];
 
         api.destroy( dataItem, function ( response ) {
             var index = api.getData().indexOf( dataItem );
@@ -2416,18 +2434,21 @@ QUnit.test( 'gp.syncModel', function ( assert ) {
 
     var numberInput = div[0].querySelector( '[name=number]' );
     numberInput.value = '2';
-    gp.syncModel( div[0], model, columns );
-    assert.strictEqual( model.number, 2 );
+    var obj = gp.ModelSync.serialize( div[0] );
+    gp.ModelSync.castValues( obj, columns );
+    assert.strictEqual( obj.number, 2 );
 
     var textInput = div[0].querySelector( '[name=notInModel]' );
     textInput.value = 'more text';
-    gp.syncModel( div[0], model, columns );
-    assert.equal( model.notInModel, 'more text', 'should add properties not present in the model' );
+    obj = gp.ModelSync.serialize( div[0] );
+    gp.ModelSync.castValues( obj, columns );
+    assert.equal( obj.notInModel, 'more text', 'should add properties not present in the model' );
 
     var checkbox = div[0].querySelector( '[name=bool]' );
     checkbox.checked = false;
-    gp.syncModel( div[0], model, columns );
-    assert.equal( model.bool, false, 'afterSync should return values after changing them' );
+    obj = gp.ModelSync.serialize( div[0] );
+    gp.ModelSync.castValues( obj, columns );
+    assert.equal( obj.bool, false, 'afterSync should return values after changing them' );
 
 } );
 
