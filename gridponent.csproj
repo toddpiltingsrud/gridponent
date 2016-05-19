@@ -75,7 +75,6 @@
     </Content>
     <Content Include="src\templates\gridponent-table-footer.html" />
     <Content Include="src\format.js" />
-    <Content Include="src\x-promise-7.0.4.js" />
     <Content Include="src\update-model.js" />
     <Content Include="src\string-builder.js" />
     <Content Include="src\node-builder.js" />
@@ -89,7 +88,6 @@
     <Content Include="spec\styles\styles.css" />
     <Content Include="src\x-object-proxy.js" />
     <Content Include="src\x-format.js" />
-    <Content Include="src\x-custom-event-polyfill.js" />
     <Content Include="src\mock-http.js" />
     <Content Include="src\ready-check.js" />
     <Content Include="src\pagers.js" />

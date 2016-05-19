@@ -252,6 +252,59 @@ var configuration = {
 
 fns.model = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "blue", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "C", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": "<p>Product's name: \"Adjustable Race\"</p>" };
 
+QUnit.test( 'preload option', function ( assert ) {
+
+    var done1 = assert.async();
+    var done2 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    options.preload = false;
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var config = api.config;
+
+        // there should not be any rows in the table
+
+        var rows = api.find( 'div.table-body tbody > tr' );
+
+        assert.strictEqual( rows, null, 'there should not be any rows in the table' );
+
+        var types = config.columns.filter( function ( col ) {
+            return col.Type != undefined;
+        } );
+
+        assert.strictEqual( types.length, 0, 'there should be no types in the columns' );
+
+        done1();
+
+        // performing a search should trigger a read and resolve types
+
+        api.onRead( function () {
+
+            types = config.columns.filter( function ( col ) {
+                return col.Type != undefined;
+            } );
+
+            assert.ok( types.length > 0, 'there should be types in the columns' );
+
+            done2();
+
+            api.dispose();
+
+        } );
+
+        api.search( 'Adjustable Race' );
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+} );
+
 QUnit.test( 'custom toolbar button', function ( assert ) {
 
     var done = assert.async();
@@ -278,6 +331,7 @@ QUnit.test( 'custom toolbar button', function ( assert ) {
     } );
 
 } );
+
 
 QUnit.test( 'ModelSync.bindElements', function ( assert ) {
 
@@ -375,6 +429,7 @@ QUnit.test( 'ModelSync.serialize', function ( assert ) {
 
 } );
 
+
 QUnit.test( 'ModelSync.isDisabled', function ( assert ) {
 
     var elem = $( '<input type="text" />' );
@@ -410,59 +465,6 @@ QUnit.test( 'ModelSync.toArray', function ( assert ) {
     arr = gp.ModelSync.toArray( 'this is a string' );
 
     assert.strictEqual( Array.isArray( arr ), true );
-
-} );
-
-QUnit.test( 'preload option', function ( assert ) {
-
-    var done1 = assert.async();
-    var done2 = assert.async();
-
-    var options = gp.shallowCopy( configuration );
-
-    options.preload = false;
-
-    gridponent( '#table .box', options ).ready( function ( api ) {
-
-        var config = api.config;
-
-        // there should not be any rows in the table
-
-        var rows = api.find( 'div.table-body tbody > tr' );
-
-        assert.strictEqual( rows, null, 'there should not be any rows in the table' );
-
-        var types = config.columns.filter( function ( col ) {
-            return col.Type != undefined;
-        } );
-
-        assert.strictEqual( types.length, 0, 'there should be no types in the columns' );
-
-        done1();
-
-        // performing a search should trigger a read and resolve types
-
-        api.onRead( function () {
-
-            types = config.columns.filter( function ( col ) {
-                return col.Type != undefined;
-            } );
-
-            assert.ok( types.length > 0, 'there should be types in the columns' );
-
-            done2();
-
-            api.dispose();
-
-        } );
-
-        api.search( 'Adjustable Race' );
-
-        api.dispose();
-
-        $( '#table .box' ).empty();
-
-    } );
 
 } );
 

@@ -142,33 +142,24 @@ gp.ModelSync = {
     },
 
     cast: function ( val, dataType ) {
-        var isArray = Array.isArray( val );
-        var arr = isArray ? val : [val];
         switch ( dataType ) {
             case 'number':
-                arr = arr.filter( this.isNumeric ).map( parseFloat );
+                if ( this.isNumeric( val ) ) return parseFloat( val );
                 break;
             case 'boolean':
-                arr = arr.map( function ( v ) {
-                    return v != null && v.toLowerCase() == 'true';
-                } );
+                return val != null && val.toLowerCase() == 'true';
                 break;
             case 'null':
             case 'undefined':
-                arr = arr.map( function ( v ) {
-                    if ( /true|false/i.test( v ) ) {
-                        // assume boolean
-                        return v != null && v.toLowerCase() == 'true';
-                    }
-                    return v === '' ? null : v;
-                } );
+                if ( /true|false/i.test( val ) ) {
+                    // assume boolean
+                    return val != null && val.toLowerCase() == 'true';
+                }
+                return val === '' ? null : val;
                 break;
             default:
-                arr = arr.map( function ( v ) {
-                    return v === '' ? null : v;
-                } );
+                return val === '' ? null : val;
                 break;
         }
-        return isArray ? arr : arr[0];
     }
 };
