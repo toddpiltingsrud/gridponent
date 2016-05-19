@@ -50,10 +50,6 @@ foreach (var file in files.OrderBy(f => f.Name))
 	// a mechanism for temporarily excluding files
 	if (file.Name.StartsWith("x-")) continue;
 
-	// line break before each file
-#>
-
-<#
 	var lines = File.ReadAllLines(file.FullName);
     foreach (var line in lines)
     {

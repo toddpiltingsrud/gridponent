@@ -250,7 +250,7 @@ var configuration = {
     ]
 };
 
-fns.model = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "blue", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "C", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
+fns.model = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "blue", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "C", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": "<p>Product's name: \"Adjustable Race\"</p>" };
 
 QUnit.test( 'custom toolbar button', function ( assert ) {
 
@@ -279,7 +279,7 @@ QUnit.test( 'custom toolbar button', function ( assert ) {
 
 } );
 
-QUnit.test( 'ModelSync.serialize', function ( assert ) {
+QUnit.test( 'ModelSync.bindElements', function ( assert ) {
 
     div.append( gp.helpers.input( 'string', 'ProductID', "" ) );
     div.append( gp.helpers.input( 'boolean', 'MakeFlag', true ) );
@@ -289,6 +289,8 @@ QUnit.test( 'ModelSync.serialize', function ( assert ) {
     div.append( '<input type="radio" name="Color" value="red" />' );
     div.append( '<input type="radio" name="Color" value="blue" />' );
     div.append( '<input type="radio" name="Color" value="green" />' );
+
+    div.append( '<textarea name="Markup"></textarea>' );
 
     var select = [];
     select.push( '<select name="Style">' );
@@ -321,6 +323,9 @@ QUnit.test( 'ModelSync.serialize', function ( assert ) {
     input = div.find( '[name=SellEndDate]' ).val();
     assert.equal( input, '' );
 
+    input = div.find( '[name=Markup]' ).val();
+    assert.equal( input, fns.model.Markup );
+
     div.empty();
 
 } );
@@ -347,6 +352,8 @@ QUnit.test( 'ModelSync.serialize', function ( assert ) {
     div.append( '<input type="radio" name="Color" value="blue" checked />' );
     div.append( '<input type="radio" name="Color" value="green" />' );
 
+    div.append( '<textarea name="Markup">some text</textarea>' );
+
     var obj = gp.ModelSync.serialize( div[0] );
 
     assert.strictEqual( obj.IsSelected, 'true' );
@@ -355,6 +362,7 @@ QUnit.test( 'ModelSync.serialize', function ( assert ) {
     assert.strictEqual( obj.Date2, '2016-04-03' );
     assert.strictEqual( obj.FirstName, 'Todd' );
     assert.strictEqual( obj.Color, 'blue' );
+    assert.strictEqual( obj.Markup, 'some text' );
 
     // uncheck the IsSelected box
     div.find( 'input[type=checkbox]' ).prop( 'checked', false );

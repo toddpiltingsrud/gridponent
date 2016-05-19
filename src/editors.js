@@ -45,6 +45,7 @@ gp.Editor.prototype = {
         var self = this,
             returnedDataItem,
             serialized,
+            uid,
             fail = fail || gp.error;
 
         this.addBusy();

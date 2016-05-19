@@ -71,7 +71,7 @@
                 getData(model, callback);
             }
             else if ( routes.create.test( url ) ) {
-                data.products.push( model );
+                window.data.products.push( model );
                 callback( new gp.UpdateModel( model ) );
             }
             else if ( routes.update.test( url ) ) {
@@ -83,7 +83,7 @@
         },
         destroy: function ( url, model, callback, error ) {
             model = model || {};
-            var index = data.products.indexOf( model );
+            var index = window.data.products.indexOf( model );
             callback( {
                 Success: true,
                 Message: ''
@@ -92,7 +92,7 @@
     };
 
     var getData = function (model, callback) {
-        var count, d = data.products.slice( 0, this.data.length );
+        var count, d = window.data.products.slice( 0, window.data.length );
 
         if (!gp.isNullOrEmpty(model.search)) {
             var props = Object.getOwnPropertyNames(d[0]);

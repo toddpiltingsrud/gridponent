@@ -47,13 +47,13 @@ gp.ModelSync = {
     serialize: function ( form ) {
         var inputs = form.querySelectorAll( '[name]' ),
             arr = this.toArray( inputs ),
+            filter = {},
             obj = {};
 
-        // add properties for each named input in the form
-        // so they don't get overwritten when we merge the 
-        // serialized form with the original dataItem
         arr.forEach( function ( elem ) {
-            obj[elem.name] = '';
+            // add properties for each named element in the form
+            // so unsuccessful form elements are still explicitly represented
+            obj[elem.name] = null;
         } );
 
         arr.filter( function ( elem ) {
@@ -64,11 +64,13 @@ gp.ModelSync = {
                 && !this.rexp.rsubmitterTypes.test( type )
                 && ( elem.checked || !this.rexp.rcheckableType.test( type ) );
         }.bind( this ) )
+            .filter( function ( elem ) {
+                // if there are multiple elements with the same name, take the first value
+                if ( elem.name in filter ) return false;
+                return filter[elem.name] = true;
+            } )
             .forEach( function ( elem ) {
                 var val = elem.value;
-
-                if ( obj[elem.name] != '' ) return;
-
                 obj[elem.name] =
                     ( val == null ?
                     null :
@@ -81,6 +83,7 @@ gp.ModelSync = {
 
     bindElements: function ( model, context ) {
         var value,
+            clean,
             elem;
 
         Object.getOwnPropertyNames( model ).forEach( function ( prop ) {
@@ -147,7 +150,7 @@ gp.ModelSync = {
                 break;
             case 'boolean':
                 arr = arr.map( function ( v ) {
-                    return v.toLowerCase() == 'true';
+                    return v != null && v.toLowerCase() == 'true';
                 } );
                 break;
             case 'null':
@@ -155,7 +158,7 @@ gp.ModelSync = {
                 arr = arr.map( function ( v ) {
                     if ( /true|false/i.test( v ) ) {
                         // assume boolean
-                        return v.toLowerCase() === 'true';
+                        return v != null && v.toLowerCase() == 'true';
                     }
                     return v === '' ? null : v;
                 } );
