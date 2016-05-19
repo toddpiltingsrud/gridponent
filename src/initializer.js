@@ -73,7 +73,6 @@ gp.Initializer.prototype = {
     getConfig: function ( parentNode ) {
         var self = this,
             obj,
-            colNode,
             colConfig,
             templates,
             config = gp.getAttributes( parentNode ),
@@ -131,7 +130,6 @@ gp.Initializer.prototype = {
     },
 
     renderLayout: function ( config, parentNode ) {
-        var self = this;
         try {
             parentNode.innerHTML = gp.templates['gridponent']( config );
         }

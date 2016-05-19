@@ -40,12 +40,26 @@ gp.Editor.prototype = {
         // create or update
         var self = this,
             returnedDataItem,
+            serialized,
+            uid,
             fail = fail || gp.error;
 
         this.addBusy();
 
+        // it's possible for the API to invoke this save method
+        // there won't be a form element in that case
         if ( this.elem ) {
-            gp.syncModel( this.elem, this.dataItem, this.config.columns );
+            // serialize the form
+            serialized = gp.ModelSync.serialize( this.elem );
+
+            // currently the only supported post format is application/x-www-form-urlencoded
+            // so normally there'd be no point in converting the serialized form values to their former types
+            // but we can't rely on the server to return an updated model (it may simply return a success/fail message)
+            // so we'll convert them anyway
+            gp.ModelSync.castValues( serialized, this.config.columns );
+
+            // copy the values back to the original dataItem
+            gp.shallowCopy( serialized, this.dataItem );
         }
 
         if ( typeof this.beforeEdit == 'function' ) {
@@ -104,7 +118,10 @@ gp.Editor.prototype = {
 
                 gp.applyFunc( done, self.config.node.api, updateModel );
             },
-            fail );
+            function ( e ) {
+                self.removeBusy();
+                gp.applyFunc( fail, self, e );
+            } );
 
         }
         else {
@@ -153,14 +170,21 @@ gp.Editor.prototype = {
 
                 gp.applyFunc( done, self.config.node, updateModel );
             },
-            fail );
+            function ( e ) {
+                self.removeBusy();
+                gp.applyFunc( fail, self, e );
+            } );
 
         }
     },
 
-    addBusy: function () { },
+    addBusy: function () {
+        this.$n.addClass( 'busy' );
+    },
 
-    removeBusy: function () { },
+    removeBusy: function () {
+        this.$n.removeClass( 'busy' );
+    },
 
     updateUI: function () { },
 
@@ -221,7 +245,17 @@ gp.TableRowEditor = function ( config, dal ) {
 
 gp.TableRowEditor.prototype = {
 
-    addCommandHandler: function() {
+    save: gp.Editor.prototype.save,
+
+    addBusy: gp.Editor.prototype.addBusy,
+
+    removeBusy: gp.Editor.prototype.removeBusy,
+
+    httpErrorHandler: gp.Editor.prototype.httpErrorHandler,
+
+    createDataItem: gp.Editor.prototype.createDataItem,
+
+    addCommandHandler: function () {
         $(this.elem).on( 'click', 'button[value]', this.commandHandler );
     },
 
@@ -250,6 +284,8 @@ gp.TableRowEditor.prototype = {
         } );
 
         this.elem = builder.close();
+
+        gp.ModelSync.bindElements( this.dataItem, this.elem );
 
         this.addCommandHandler();
 
@@ -289,6 +325,8 @@ gp.TableRowEditor.prototype = {
 
         $( tr ).addClass( 'edit-mode' );
 
+        gp.ModelSync.bindElements( dataItem, this.elem );
+
         this.invokeEditReady();
 
         return {
@@ -296,8 +334,6 @@ gp.TableRowEditor.prototype = {
             elem: this.elem
         };
     },
-
-    save: gp.Editor.prototype.save,
 
     cancel: function () {
 
@@ -361,10 +397,6 @@ gp.TableRowEditor.prototype = {
 
     },
 
-    createDataItem: gp.Editor.prototype.createDataItem,
-
-    addBusy: function () { },
-    removeBusy: function() {},
 
     updateUI: function () {
         // take the table row out of edit mode
@@ -403,9 +435,19 @@ gp.ModalEditor = function ( config, dal ) {
 
 gp.ModalEditor.prototype = {
 
+    save: gp.Editor.prototype.save,
+
+    httpErrorHandler: gp.Editor.prototype.httpErrorHandler,
+
     addCommandHandler: gp.TableRowEditor.prototype.addCommandHandler,
 
     removeCommandHandler: gp.TableRowEditor.prototype.removeCommandHandler,
+
+    validate: gp.TableRowEditor.prototype.validate,
+
+    createDataItem: gp.Editor.prototype.createDataItem,
+
+    invokeEditReady: gp.TableRowEditor.prototype.invokeEditReady,
 
     add: function () {
         var self = this,
@@ -423,11 +465,14 @@ gp.ModalEditor.prototype = {
             .one('shown.bs.modal', self.invokeEditReady.bind(self) )
             .modal( {
                 show: true,
-                keyboard: true
+                keyboard: true,
+                backdrop: 'static' // too easy to close a modal on a tablet by touching the background
             }
         );
 
         this.elem = modal[0];
+
+        gp.ModelSync.bindElements( this.dataItem, this.elem );
 
         modal.one( 'hidden.bs.modal', function () {
             $( modal ).remove();
@@ -456,11 +501,14 @@ gp.ModalEditor.prototype = {
             .one( 'shown.bs.modal', self.invokeEditReady.bind( self ) )
             .modal( {
                 show: true,
-                keyboard: true
+                keyboard: true,
+                backdrop: 'static'
             }
         );
 
         this.elem = modal[0];
+
+        gp.ModelSync.bindElements( dataItem, this.elem );
 
         modal.one( 'hidden.bs.modal', function () {
             $( modal ).remove();
@@ -474,8 +522,6 @@ gp.ModalEditor.prototype = {
         };
 
     },
-
-    save: gp.Editor.prototype.save,
 
     cancel: function () {
         $( this.elem ).modal('hide');
@@ -530,6 +576,7 @@ gp.ModalEditor.prototype = {
             tableRow = builder.close();
 
             $( tbody ).prepend( tableRow );
+
         }
         else {
             tableRow = gp.getTableRow( this.config.map, this.dataItem, this.config.node );
@@ -542,12 +589,6 @@ gp.ModalEditor.prototype = {
             }
         }
 
-    },
-
-    validate: gp.TableRowEditor.prototype.validate,
-
-    createDataItem: gp.Editor.prototype.createDataItem,
-
-    invokeEditReady: gp.TableRowEditor.prototype.invokeEditReady
+    }
 
 };

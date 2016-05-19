@@ -9,7 +9,8 @@ gp.helpers = {
         var model = {
             title: ( mode == 'create' ? 'Add' : 'Edit' ),
             body: '',
-            footer: null
+            footer: null,
+            uid: config.map.getUid( dataItem )
         };
 
         var html = new gp.StringBuilder();

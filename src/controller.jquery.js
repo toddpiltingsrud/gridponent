@@ -101,29 +101,15 @@ gp.Controller.prototype = {
     },
 
     toolbarChangeHandler: function ( evt ) {
+        // tracks the search and paging textboxes
         var name = evt.target.name,
-            val = evt.target.value,
-            model = this.config.pageModel;
+            model = this.config.pageModel,
+            type = gp.getType( model[name] ),
+            val = gp.ModelSync.cast( evt.target.value, type );
 
-        if ( name === 'sort' ) {
-            if ( model[name] === val ) {
-                model.desc = !model.desc;
-            }
-            else {
-                model[name] = val;
-                model.desc = false;
-            }
-        }
-        else {
-            gp.syncChange( evt.target, model, this.config.columns );
-        }
+        model[name] = val;
 
         this.read();
-
-        // reset the radio inputs
-        this.$n.find( 'thead input[type=radio], .table-pager input[type=radio]' ).each( function () {
-            this.checked = false;
-        } );
     },
 
     addCommandHandlers: function ( node ) {
@@ -185,6 +171,12 @@ gp.Controller.prototype = {
                 this.read();
                 break;
             default:
+                // check for a function
+                // this is needed in case there's a custom command in the toolbar
+                cmd = gp.getObjectAtPath( btn.value );
+                if ( typeof cmd == 'function' ) {
+                    cmd.call( this.config.node.api, dataItem );
+                }
                 break;
         }
     },
