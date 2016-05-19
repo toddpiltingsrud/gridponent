@@ -1,10 +1,9 @@
-﻿'use strict';
-
-/***************\
+﻿/***************\
    Gridponent
 \***************/
 
 var gridponent = gridponent || function ( elem, options ) {
+    'use strict';
 
     // check for a selector
     if ( typeof elem == 'string' ) {
@@ -68,3 +67,4 @@ var gridponent = gridponent || function ( elem, options ) {
 };
 
 (function(gp) { 
+    'use strict';
