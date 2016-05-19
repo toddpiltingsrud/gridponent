@@ -1,6 +1,4 @@
-﻿Start using gp.each
-
-Can we isolate the controllers commandHandler from the editors? Don't like relying on differences in command value.
+﻿Can we isolate the controllers commandHandler from the editors? Don't like relying on differences in command value.
 
 Eliminate setting config.dataItem.
 
@@ -9,9 +7,6 @@ What happens if a grid is rendered twice? Make sure the original is disposed if 
 Add page size config option (default to 25).
 
 Build a jQuery version.
-
-Add a change event to a column:
-<gp-column field="IsCurrent" change="fns.isCurrentChanged"></gp-column>
 
 Footer template
 
