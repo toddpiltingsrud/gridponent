@@ -324,12 +324,13 @@ gp.TableRowEditor.prototype = {
 
         // IE9 can't set innerHTML of tr, so iterate through each cell and set its innerHTML
         // besides, that way we can just skip readonly cells
-        for ( var i = 0; i < cells.length; i++ ) {
+        gp.each( cells, function ( cell, i ) {
             col = this.config.columns[i];
             if ( !col.readonly ) {
-                cells[i].innerHTML = editCellContent.call( this.config, col, dataItem, 'edit' );
+                cell.innerHTML = editCellContent.call( this.config, col, dataItem, 'edit' );
             }
-        }
+        }.bind( this ) );
+
         gp.addClass( tr, 'edit-mode' );
 
         gp.ModelSync.bindElements( dataItem, this.elem );
@@ -414,10 +415,10 @@ gp.TableRowEditor.prototype = {
             bodyCellContent = gp.helpers['bodyCellContent'],
             cells = this.elem.querySelectorAll( 'td.body-cell' );
 
-        for ( var i = 0 ; i < cells.length; i++ ) {
+        gp.each( cells, function ( cell, i ) {
             col = this.config.columns[i];
-            cells[i].innerHTML = bodyCellContent.call( this.config, col, this.dataItem );
-        }
+            cell.innerHTML = bodyCellContent.call( this.config, col, this.dataItem );
+        }.bind( this ) );
         gp.removeClass( this.elem, 'edit-mode' );
         gp.removeClass( this.elem, 'create-mode' );
     },
@@ -595,10 +596,10 @@ gp.ModalEditor.prototype = {
             if ( tableRow ) {
                 cells = tableRow.querySelectorAll( 'td.body-cell' );
 
-                for ( var i = 0 ; i < cells.length; i++ ) {
+                gp.each( cells, function ( cell, i ) {
                     col = this.config.columns[i];
-                    cells[i].innerHTML = bodyCellContent.call( this.config, col, this.dataItem );
-                }
+                    cell.innerHTML = bodyCellContent.call( this.config, col, this.dataItem );
+                }.bind( this ) );
             }
         }
 

@@ -1040,7 +1040,7 @@ QUnit.test( 'handleEnterKey', function ( assert ) {
 
 } );
 
-QUnit.test( 'ChangeMonitor boolean', function ( assert ) {
+QUnit.test( 'toolbarChangeHandler', function ( assert ) {
 
     var done1 = assert.async();
 
@@ -1050,25 +1050,23 @@ QUnit.test( 'ChangeMonitor boolean', function ( assert ) {
 
         var controller = api.controller;
 
-        var target = {
-            type: 'text',
-            value: 'false',
-            name: 'test'
+        var evt = {
+            target: {
+                value: '1000',
+                name: 'search'
+            },
         };
 
-        var model = {
-            test: true
-        };
+        api.controller.toolbarChangeHandler( evt );
 
-        gp.syncChange( target, model, api.config.columns );
+        assert.equal( api.config.pageModel.search, '1000' );
 
-        assert.equal( model.test, false, 'non-checkbox inputs should sync value directly instead of using the checked property' );
+        evt.target.value = '2';
+        evt.target.name = 'page';
 
-        target.value = 'true';
+        api.controller.toolbarChangeHandler( evt );
 
-        gp.syncChange( target, model, api.config.columns );
-
-        assert.equal( model.test, true, 'non-checkbox inputs should sync value directly instead of using the checked property' );
+        assert.equal( api.config.pageModel.page, 2 );
 
         done1();
 

@@ -296,6 +296,7 @@ gp.Controller.prototype = {
     },
 
     toolbarEnterKeyHandler: function ( evt ) {
+        // tracks the search and paging textboxes
         if ( evt.keyCode == 13 ) {
             // trigger change event
             evt.target.blur();
@@ -304,30 +305,15 @@ gp.Controller.prototype = {
     },
 
     toolbarChangeHandler: function ( evt ) {
+        // tracks the search and paging textboxes
         var name = evt.target.name,
-            val = evt.target.value,
-            model = this.config.pageModel;
+            model = this.config.pageModel,
+            type = gp.getType( model[name] ),
+            val = gp.ModelSync.cast( evt.target.value, type );
 
-        if ( name === 'sort' ) {
-            if ( model[name] === val ) {
-                model.desc = !model.desc;
-            }
-            else {
-                model[name] = val;
-                model.desc = false;
-            }
-        }
-        else {
-            gp.syncChange( evt.target, model, this.config.columns );
-        }
+        model[name] = val;
 
         this.read();
-
-        // reset the radio inputs
-        var radios = this.config.node.querySelectorAll( 'thead input[type=radio], .table-pager input[type=radio]' );
-        for ( var i = 0; i < radios.length; i++ ) {
-            radios[i].checked = false;
-        }
     },
 
     addCommandHandlers: function ( node ) {
@@ -449,9 +435,7 @@ gp.Controller.prototype = {
         if ( type === 'string' && config.rowselected.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
 
         // remove previously selected class
-        for ( var i = 0; i < trs.length; i++ ) {
-            gp.removeClass( trs[i], 'selected' );
-        }
+        gp.removeClass( trs, 'selected' );
 
         // add selected class
         gp.addClass( tr, 'selected' );
@@ -1205,12 +1189,13 @@ gp.TableRowEditor.prototype = {
 
         // IE9 can't set innerHTML of tr, so iterate through each cell and set its innerHTML
         // besides, that way we can just skip readonly cells
-        for ( var i = 0; i < cells.length; i++ ) {
+        gp.each( cells, function ( cell, i ) {
             col = this.config.columns[i];
             if ( !col.readonly ) {
-                cells[i].innerHTML = editCellContent.call( this.config, col, dataItem, 'edit' );
+                cell.innerHTML = editCellContent.call( this.config, col, dataItem, 'edit' );
             }
-        }
+        }.bind( this ) );
+
         gp.addClass( tr, 'edit-mode' );
 
         gp.ModelSync.bindElements( dataItem, this.elem );
@@ -1295,10 +1280,10 @@ gp.TableRowEditor.prototype = {
             bodyCellContent = gp.helpers['bodyCellContent'],
             cells = this.elem.querySelectorAll( 'td.body-cell' );
 
-        for ( var i = 0 ; i < cells.length; i++ ) {
+        gp.each( cells, function ( cell, i ) {
             col = this.config.columns[i];
-            cells[i].innerHTML = bodyCellContent.call( this.config, col, this.dataItem );
-        }
+            cell.innerHTML = bodyCellContent.call( this.config, col, this.dataItem );
+        }.bind( this ) );
         gp.removeClass( this.elem, 'edit-mode' );
         gp.removeClass( this.elem, 'create-mode' );
     },
@@ -1476,10 +1461,10 @@ gp.ModalEditor.prototype = {
             if ( tableRow ) {
                 cells = tableRow.querySelectorAll( 'td.body-cell' );
 
-                for ( var i = 0 ; i < cells.length; i++ ) {
+                gp.each( cells, function ( cell, i ) {
                     col = this.config.columns[i];
-                    cells[i].innerHTML = bodyCellContent.call( this.config, col, this.dataItem );
-                }
+                    cell.innerHTML = bodyCellContent.call( this.config, col, this.dataItem );
+                }.bind( this ) );
             }
         }
 
@@ -1867,6 +1852,60 @@ gp.helpers = {
 };
 
 /***************\
+     http        
+\***************/
+gp.Http = function () { };
+
+gp.Http.prototype = {
+    serialize: function ( obj ) {
+        // creates a query string from a simple object
+        var props = Object.getOwnPropertyNames( obj );
+        var out = [];
+        props.forEach( function ( prop ) {
+            // don't send complex objects back to the server
+            // data should be flattened before it leaves the server
+            // editing complex objects is not supported
+            if ( /^(array|function|object)$/.test( gp.getType( obj[prop] ) ) == false ) {
+                out.push( encodeURIComponent( prop ) + '=' + ( gp.isNullOrEmpty( obj[prop] ) ? '' : encodeURIComponent( obj[prop] ) ) );
+            }
+        } );
+        return out.join( '&' );
+    },
+    createXhr: function ( type, url, callback, error ) {
+        var xhr = new XMLHttpRequest();
+        xhr.open(type.toUpperCase(), url, true);
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.onload = function () {
+            var response = ( gp.rexp.json.test( xhr.responseText ) ? JSON.parse( xhr.responseText ) : xhr.responseText );
+            if ( xhr.status == 200 ) {
+                callback( response, xhr );
+            }
+            else {
+                gp.applyFunc( error, xhr, response );
+            }
+        }
+        xhr.onerror = error;
+        return xhr;
+    },
+    get: function (url, callback, error) {
+        var xhr = this.createXhr('GET', url, callback, error);
+        xhr.send();
+    },
+    post: function ( url, data, callback, error ) {
+        var s = this.serialize( data );
+        var xhr = this.createXhr( 'POST', url, callback, error );
+        xhr.setRequestHeader( 'Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8' );
+        xhr.send( s );
+    },
+    destroy: function ( url, data, callback, error ) {
+        var s = this.serialize( data );
+        var xhr = this.createXhr( 'DELETE', url, callback, error );
+        xhr.setRequestHeader( 'Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8' );
+        xhr.send( s );
+    }
+
+};
+/***************\
    Initializer
 \***************/
 gp.Initializer = function ( node ) {
@@ -1954,12 +1993,11 @@ gp.Initializer.prototype = {
 
         // create the column configurations
         templates = 'header body edit footer'.split( ' ' );
-        for ( var i = 0; i < gpColumns.length; i++ ) {
-            colNode = gpColumns[i];
+        gp.each( gpColumns, function ( colNode, i ) {
             colConfig = gp.getAttributes( colNode );
             config.columns.push( colConfig );
             this.resolveTemplates( templates, colConfig, colNode );
-        }
+        }.bind(this) );
 
         // resolve the top level configurations
         var options = 'rowselected searchfunction read create update destroy validate model'.split( ' ' );
@@ -2109,177 +2147,6 @@ gp.Initializer.prototype = {
         } );
     }
 };
-/***************\
-   mock-http
-\***************/
-(function (gp) {
-    gp.Http = function () { };
-
-    // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
-    var routes = {
-        read: /read/i,
-        update: /update/i,
-        create: /create/i,
-        destroy: /Delete/i
-    };
-
-    gp.Http.prototype = {
-        //serialize: function (obj, props) {
-        //    // creates a query string from a simple object
-        //    var self = this;
-        //    props = props || Object.getOwnPropertyNames(obj);
-        //    var out = [];
-        //    props.forEach(function (prop) {
-        //        out.push(encodeURIComponent(prop) + '=' + encodeURIComponent(obj[prop]));
-        //    });
-        //    return out.join('&');
-        //},
-        //deserialize: function (queryString) {
-        //    var nameValue, split = queryString.split( '&' );
-        //    var obj = {};
-        //    if ( !queryString ) return obj;
-        //    split.forEach( function ( s ) {
-        //        nameValue = s.split( '=' );
-        //        var val = nameValue[1];
-        //        if ( !val ) {
-        //            obj[nameValue[0]] = null;
-        //        }
-        //        else if ( /true|false/i.test( val ) ) {
-        //            obj[nameValue[0]] = ( /true/i.test( val ) );
-        //        }
-        //        else if ( parseFloat( val ).toString() === val ) {
-        //            obj[nameValue[0]] = parseFloat( val );
-        //        }
-        //        else {
-        //            obj[nameValue[0]] = val;
-        //        }
-        //    } );
-        //    return obj;
-        //},
-        //get: function (url, callback, error) {
-        //    if (routes.read.test(url)) {
-        //        var index = url.substring(url.indexOf('?'));
-        //        if (index !== -1) {
-        //            var queryString = url.substring(index + 1);
-        //            var model = this.deserialize(queryString);
-        //            this.post(url.substring(0, index), model, callback, error);
-        //        }
-        //        else {
-        //            this.post(url, null, callback, error);
-        //        }
-        //    }
-        //    else if (routes.create.test(url)) {
-        //        var result = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
-        //        callback(result);
-        //    }
-        //    else {
-        //        throw 'Not found: ' + url;
-        //    }
-        //},
-        post: function (url, model, callback, error) {
-            model = model || {};
-            if (routes.read.test(url)) {
-                getData(model, callback);
-            }
-            else if ( routes.create.test( url ) ) {
-                window.data.products.push( model );
-                callback( new gp.UpdateModel( model ) );
-            }
-            else if ( routes.update.test( url ) ) {
-                callback( new gp.UpdateModel(model) );
-            }
-            else {
-                throw '404 Not found: ' + url;
-            }
-        },
-        destroy: function ( url, model, callback, error ) {
-            model = model || {};
-            var index = window.data.products.indexOf( model );
-            callback( {
-                Success: true,
-                Message: ''
-            } );
-        }
-    };
-
-    var getData = function (model, callback) {
-        var count, d = window.data.products.slice( 0, window.data.length );
-
-        if (!gp.isNullOrEmpty(model.search)) {
-            var props = Object.getOwnPropertyNames(d[0]);
-            var search = model.search.toLowerCase();
-            d = d.filter(function (row) {
-                for (var i = 0; i < props.length; i++) {
-                    if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
-                        return true;
-                    }
-                }
-                return false;
-            });
-        }
-        if (!gp.isNullOrEmpty(model.sort)) {
-            if (model.desc) {
-                d.sort(function (row1, row2) {
-                    var a = row1[model.sort];
-                    var b = row2[model.sort];
-                    if (a === null) {
-                        if (b != null) {
-                            return 1;
-                        }
-                    }
-                    else if (b === null) {
-                        // we already know a isn't null
-                        return -1;
-                    }
-                    if (a > b) {
-                        return -1;
-                    }
-                    if (a < b) {
-                        return 1;
-                    }
-
-                    return 0;
-                });
-            }
-            else {
-                d.sort(function (row1, row2) {
-                    var a = row1[model.sort];
-                    var b = row2[model.sort];
-                    if (a === null) {
-                        if (b != null) {
-                            return -1;
-                        }
-                    }
-                    else if (b === null) {
-                        // we already know a isn't null
-                        return 1;
-                    }
-                    if (a > b) {
-                        return 1;
-                    }
-                    if (a < b) {
-                        return -1;
-                    }
-
-                    return 0;
-                });
-            }
-        }
-        count = d.length;
-        if (model.top !== -1) {
-            model.data = d.slice(model.skip).slice(0, model.top);
-        }
-        else {
-            model.data = d;
-        }
-        model.errors = [];
-        setTimeout(function () {
-            callback(model);
-        });
-
-    };
-
-})(gridponent);
 /***************\
    ModelSync
 \***************/
@@ -2440,7 +2307,7 @@ gp.ModelSync = {
                 arr = arr.map( function ( v ) {
                     if ( /true|false/i.test( v ) ) {
                         // assume boolean
-                        return v.toLowerCase() === 'true';
+                        return v != null && v.toLowerCase() == 'true';
                     }
                     return v === '' ? null : v;
                 } );
@@ -3223,7 +3090,7 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
     gp.each = function ( arrayLike, fn ) {
         // I hate for loops
         for ( var i = 0; i < arrayLike.length; i++ ) {
-            fn( arrayLike[i] );
+            fn( arrayLike[i], i );
         }
     };
 
@@ -3240,9 +3107,9 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         if ( typeof obj !== 'string' ) {
             return obj;
         }
-        for ( var i = 0; i < chars.length; i++ ) {
-            obj = obj.replace( chars[i], escaped[i] );
-        }
+        chars.forEach( function ( char, i ) {
+            obj = obj.replace( char, escaped[i] );
+        } );
         return obj;
     };
 
@@ -3486,9 +3353,9 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
 
     gp.removeClass = function ( el, cn ) {
         if ( el instanceof NodeList ) {
-            for ( var i = 0; i < el.length; i++ ) {
-                el[i].className = gp.trim(( ' ' + el[i].className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
-            }
+            gp.each( el, function ( node ) {
+                node.className = gp.trim(( ' ' + node.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
+            } );
         }
         else {
             el.className = gp.trim(( ' ' + el.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
@@ -3568,48 +3435,6 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
                 return typeof r === 'function' ? gp.escapeHTML( gp.applyFunc( r, self, args ) ) : '';
             }
         );
-    };
-
-    gp.syncChange = function (target, model, columns) {
-        // get name and value of target
-        var name = target.name,
-            val = target.value,
-            type,
-            col;
-
-        // attempt to resolve a type by examining the configuration first
-        if ( this.config ) {
-            col = gp.getColumnByField( columns, name );
-            if ( col ) type = col.Type;
-        }
-
-        if ( !name in model ) model[name] = null;
-
-        try {
-            // if there's no type in the columns, get one from the model
-            type = type || gp.getType( model[name] );
-            switch ( type ) {
-                case 'number':
-                    model[name] = parseFloat( val );
-                    break;
-                case 'boolean':
-                    if ( target.type == 'checkbox' ) {
-                        if ( val.toLowerCase() == 'true' ) val = target.checked;
-                        else if ( val.toLowerCase() == 'false' ) val = !target.checked;
-                        else val = target.checked ? val : null;
-                        model[name] = val;
-                    }
-                    else {
-                        model[name] = ( val.toLowerCase() == 'true' );
-                    }
-                    break;
-                default:
-                    model[name] = val;
-            }
-        }
-        catch ( e ) {
-            gp.error( e );
-        }
     };
 
     gp.trim = function ( str ) {

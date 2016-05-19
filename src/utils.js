@@ -127,7 +127,7 @@
     gp.each = function ( arrayLike, fn ) {
         // I hate for loops
         for ( var i = 0; i < arrayLike.length; i++ ) {
-            fn( arrayLike[i] );
+            fn( arrayLike[i], i );
         }
     };
 
@@ -144,9 +144,9 @@
         if ( typeof obj !== 'string' ) {
             return obj;
         }
-        for ( var i = 0; i < chars.length; i++ ) {
-            obj = obj.replace( chars[i], escaped[i] );
-        }
+        chars.forEach( function ( char, i ) {
+            obj = obj.replace( char, escaped[i] );
+        } );
         return obj;
     };
 
@@ -390,9 +390,9 @@
 
     gp.removeClass = function ( el, cn ) {
         if ( el instanceof NodeList ) {
-            for ( var i = 0; i < el.length; i++ ) {
-                el[i].className = gp.trim(( ' ' + el[i].className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
-            }
+            gp.each( el, function ( node ) {
+                node.className = gp.trim(( ' ' + node.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
+            } );
         }
         else {
             el.className = gp.trim(( ' ' + el.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
@@ -472,48 +472,6 @@
                 return typeof r === 'function' ? gp.escapeHTML( gp.applyFunc( r, self, args ) ) : '';
             }
         );
-    };
-
-    gp.syncChange = function (target, model, columns) {
-        // get name and value of target
-        var name = target.name,
-            val = target.value,
-            type,
-            col;
-
-        // attempt to resolve a type by examining the configuration first
-        if ( this.config ) {
-            col = gp.getColumnByField( columns, name );
-            if ( col ) type = col.Type;
-        }
-
-        if ( !name in model ) model[name] = null;
-
-        try {
-            // if there's no type in the columns, get one from the model
-            type = type || gp.getType( model[name] );
-            switch ( type ) {
-                case 'number':
-                    model[name] = parseFloat( val );
-                    break;
-                case 'boolean':
-                    if ( target.type == 'checkbox' ) {
-                        if ( val.toLowerCase() == 'true' ) val = target.checked;
-                        else if ( val.toLowerCase() == 'false' ) val = !target.checked;
-                        else val = target.checked ? val : null;
-                        model[name] = val;
-                    }
-                    else {
-                        model[name] = ( val.toLowerCase() == 'true' );
-                    }
-                    break;
-                default:
-                    model[name] = val;
-            }
-        }
-        catch ( e ) {
-            gp.error( e );
-        }
     };
 
     gp.trim = function ( str ) {

@@ -92,6 +92,7 @@ gp.Controller.prototype = {
     },
 
     toolbarEnterKeyHandler: function ( evt ) {
+        // tracks the search and paging textboxes
         if ( evt.keyCode == 13 ) {
             // trigger change event
             evt.target.blur();
@@ -100,30 +101,15 @@ gp.Controller.prototype = {
     },
 
     toolbarChangeHandler: function ( evt ) {
+        // tracks the search and paging textboxes
         var name = evt.target.name,
-            val = evt.target.value,
-            model = this.config.pageModel;
+            model = this.config.pageModel,
+            type = gp.getType( model[name] ),
+            val = gp.ModelSync.cast( evt.target.value, type );
 
-        if ( name === 'sort' ) {
-            if ( model[name] === val ) {
-                model.desc = !model.desc;
-            }
-            else {
-                model[name] = val;
-                model.desc = false;
-            }
-        }
-        else {
-            gp.syncChange( evt.target, model, this.config.columns );
-        }
+        model[name] = val;
 
         this.read();
-
-        // reset the radio inputs
-        var radios = this.config.node.querySelectorAll( 'thead input[type=radio], .table-pager input[type=radio]' );
-        for ( var i = 0; i < radios.length; i++ ) {
-            radios[i].checked = false;
-        }
     },
 
     addCommandHandlers: function ( node ) {
@@ -245,9 +231,7 @@ gp.Controller.prototype = {
         if ( type === 'string' && config.rowselected.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
 
         // remove previously selected class
-        for ( var i = 0; i < trs.length; i++ ) {
-            gp.removeClass( trs[i], 'selected' );
-        }
+        gp.removeClass( trs, 'selected' );
 
         // add selected class
         gp.addClass( tr, 'selected' );

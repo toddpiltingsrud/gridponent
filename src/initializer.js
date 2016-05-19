@@ -86,12 +86,11 @@ gp.Initializer.prototype = {
 
         // create the column configurations
         templates = 'header body edit footer'.split( ' ' );
-        for ( var i = 0; i < gpColumns.length; i++ ) {
-            colNode = gpColumns[i];
+        gp.each( gpColumns, function ( colNode, i ) {
             colConfig = gp.getAttributes( colNode );
             config.columns.push( colConfig );
             this.resolveTemplates( templates, colConfig, colNode );
-        }
+        }.bind(this) );
 
         // resolve the top level configurations
         var options = 'rowselected searchfunction read create update destroy validate model'.split( ' ' );
