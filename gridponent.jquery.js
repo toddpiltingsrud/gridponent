@@ -4,6 +4,7 @@
 \***************/
 
 var gridponent = gridponent || function ( elem, options ) {
+    'use strict';
 
     // check for a selector
     if ( typeof elem == 'string' ) {
@@ -67,6 +68,7 @@ var gridponent = gridponent || function ( elem, options ) {
 };
 
 (function(gp) { 
+    'use strict';
 
 /***************\
       API
@@ -306,29 +308,15 @@ gp.Controller.prototype = {
     },
 
     toolbarChangeHandler: function ( evt ) {
+        // tracks the search and paging textboxes
         var name = evt.target.name,
-            val = evt.target.value,
-            model = this.config.pageModel;
+            model = this.config.pageModel,
+            type = gp.getType( model[name] ),
+            val = gp.ModelSync.cast( evt.target.value, type );
 
-        if ( name === 'sort' ) {
-            if ( model[name] === val ) {
-                model.desc = !model.desc;
-            }
-            else {
-                model[name] = val;
-                model.desc = false;
-            }
-        }
-        else {
-            gp.syncChange( evt.target, model, this.config.columns );
-        }
+        model[name] = val;
 
         this.read();
-
-        // reset the radio inputs
-        this.$n.find( 'thead input[type=radio], .table-pager input[type=radio]' ).each( function () {
-            this.checked = false;
-        } );
     },
 
     addCommandHandlers: function ( node ) {
@@ -390,6 +378,12 @@ gp.Controller.prototype = {
                 this.read();
                 break;
             default:
+                // check for a function
+                // this is needed in case there's a custom command in the toolbar
+                cmd = gp.getObjectAtPath( btn.value );
+                if ( typeof cmd == 'function' ) {
+                    cmd.call( this.config.node.api, dataItem );
+                }
                 break;
         }
     },
@@ -911,12 +905,26 @@ gp.Editor.prototype = {
         // create or update
         var self = this,
             returnedDataItem,
+            serialized,
+            uid,
             fail = fail || gp.error;
 
         this.addBusy();
 
+        // it's possible for the API to invoke this save method
+        // there won't be a form element in that case
         if ( this.elem ) {
-            gp.syncModel( this.elem, this.dataItem, this.config.columns );
+            // serialize the form
+            serialized = gp.ModelSync.serialize( this.elem );
+
+            // currently the only supported post format is application/x-www-form-urlencoded
+            // so normally there'd be no point in converting the serialized form values to their former types
+            // but we can't rely on the server to return an updated model (it may simply return a success/fail message)
+            // so we'll convert them anyway
+            gp.ModelSync.castValues( serialized, this.config.columns );
+
+            // copy the values back to the original dataItem
+            gp.shallowCopy( serialized, this.dataItem );
         }
 
         if ( typeof this.beforeEdit == 'function' ) {
@@ -975,7 +983,10 @@ gp.Editor.prototype = {
 
                 gp.applyFunc( done, self.config.node.api, updateModel );
             },
-            fail );
+            function ( e ) {
+                self.removeBusy();
+                gp.applyFunc( fail, self, e );
+            } );
 
         }
         else {
@@ -1024,14 +1035,21 @@ gp.Editor.prototype = {
 
                 gp.applyFunc( done, self.config.node, updateModel );
             },
-            fail );
+            function ( e ) {
+                self.removeBusy();
+                gp.applyFunc( fail, self, e );
+            } );
 
         }
     },
 
-    addBusy: function () { },
+    addBusy: function () {
+        this.$n.addClass( 'busy' );
+    },
 
-    removeBusy: function () { },
+    removeBusy: function () {
+        this.$n.removeClass( 'busy' );
+    },
 
     updateUI: function () { },
 
@@ -1092,7 +1110,17 @@ gp.TableRowEditor = function ( config, dal ) {
 
 gp.TableRowEditor.prototype = {
 
-    addCommandHandler: function() {
+    save: gp.Editor.prototype.save,
+
+    addBusy: gp.Editor.prototype.addBusy,
+
+    removeBusy: gp.Editor.prototype.removeBusy,
+
+    httpErrorHandler: gp.Editor.prototype.httpErrorHandler,
+
+    createDataItem: gp.Editor.prototype.createDataItem,
+
+    addCommandHandler: function () {
         $(this.elem).on( 'click', 'button[value]', this.commandHandler );
     },
 
@@ -1121,6 +1149,8 @@ gp.TableRowEditor.prototype = {
         } );
 
         this.elem = builder.close();
+
+        gp.ModelSync.bindElements( this.dataItem, this.elem );
 
         this.addCommandHandler();
 
@@ -1160,6 +1190,8 @@ gp.TableRowEditor.prototype = {
 
         $( tr ).addClass( 'edit-mode' );
 
+        gp.ModelSync.bindElements( dataItem, this.elem );
+
         this.invokeEditReady();
 
         return {
@@ -1167,8 +1199,6 @@ gp.TableRowEditor.prototype = {
             elem: this.elem
         };
     },
-
-    save: gp.Editor.prototype.save,
 
     cancel: function () {
 
@@ -1232,10 +1262,6 @@ gp.TableRowEditor.prototype = {
 
     },
 
-    createDataItem: gp.Editor.prototype.createDataItem,
-
-    addBusy: function () { },
-    removeBusy: function() {},
 
     updateUI: function () {
         // take the table row out of edit mode
@@ -1274,9 +1300,19 @@ gp.ModalEditor = function ( config, dal ) {
 
 gp.ModalEditor.prototype = {
 
+    save: gp.Editor.prototype.save,
+
+    httpErrorHandler: gp.Editor.prototype.httpErrorHandler,
+
     addCommandHandler: gp.TableRowEditor.prototype.addCommandHandler,
 
     removeCommandHandler: gp.TableRowEditor.prototype.removeCommandHandler,
+
+    validate: gp.TableRowEditor.prototype.validate,
+
+    createDataItem: gp.Editor.prototype.createDataItem,
+
+    invokeEditReady: gp.TableRowEditor.prototype.invokeEditReady,
 
     add: function () {
         var self = this,
@@ -1294,11 +1330,14 @@ gp.ModalEditor.prototype = {
             .one('shown.bs.modal', self.invokeEditReady.bind(self) )
             .modal( {
                 show: true,
-                keyboard: true
+                keyboard: true,
+                backdrop: 'static' // too easy to close a modal on a tablet by touching the background
             }
         );
 
         this.elem = modal[0];
+
+        gp.ModelSync.bindElements( this.dataItem, this.elem );
 
         modal.one( 'hidden.bs.modal', function () {
             $( modal ).remove();
@@ -1327,11 +1366,14 @@ gp.ModalEditor.prototype = {
             .one( 'shown.bs.modal', self.invokeEditReady.bind( self ) )
             .modal( {
                 show: true,
-                keyboard: true
+                keyboard: true,
+                backdrop: 'static'
             }
         );
 
         this.elem = modal[0];
+
+        gp.ModelSync.bindElements( dataItem, this.elem );
 
         modal.one( 'hidden.bs.modal', function () {
             $( modal ).remove();
@@ -1345,8 +1387,6 @@ gp.ModalEditor.prototype = {
         };
 
     },
-
-    save: gp.Editor.prototype.save,
 
     cancel: function () {
         $( this.elem ).modal('hide');
@@ -1401,6 +1441,7 @@ gp.ModalEditor.prototype = {
             tableRow = builder.close();
 
             $( tbody ).prepend( tableRow );
+
         }
         else {
             tableRow = gp.getTableRow( this.config.map, this.dataItem, this.config.node );
@@ -1413,13 +1454,7 @@ gp.ModalEditor.prototype = {
             }
         }
 
-    },
-
-    validate: gp.TableRowEditor.prototype.validate,
-
-    createDataItem: gp.Editor.prototype.createDataItem,
-
-    invokeEditReady: gp.TableRowEditor.prototype.invokeEditReady
+    }
 
 };
 
@@ -1469,7 +1504,8 @@ gp.helpers = {
         var model = {
             title: ( mode == 'create' ? 'Add' : 'Edit' ),
             body: '',
-            footer: null
+            footer: null,
+            uid: config.map.getUid( dataItem )
         };
 
         var html = new gp.StringBuilder();
@@ -2112,7 +2148,7 @@ gp.Initializer.prototype = {
                 getData(model, callback);
             }
             else if ( routes.create.test( url ) ) {
-                data.products.push( model );
+                window.data.products.push( model );
                 callback( new gp.UpdateModel( model ) );
             }
             else if ( routes.update.test( url ) ) {
@@ -2124,7 +2160,7 @@ gp.Initializer.prototype = {
         },
         destroy: function ( url, model, callback, error ) {
             model = model || {};
-            var index = data.products.indexOf( model );
+            var index = window.data.products.indexOf( model );
             callback( {
                 Success: true,
                 Message: ''
@@ -2133,7 +2169,7 @@ gp.Initializer.prototype = {
     };
 
     var getData = function (model, callback) {
-        var count, d = data.products.slice( 0, this.data.length );
+        var count, d = window.data.products.slice( 0, window.data.length );
 
         if (!gp.isNullOrEmpty(model.search)) {
             var props = Object.getOwnPropertyNames(d[0]);
@@ -2212,209 +2248,6 @@ gp.Initializer.prototype = {
 })(gridponent);
 
 /***************\
-    modeling
-\***************/
-gp.Modeler = function () {
-
-};
-
-var rexp = {
-	segments: /[^\[\]\.\s]+|\[\d+\]/g,
-	indexer: /\[\d+\]/
-};
-
-gp.Modeler.prototype = {
-	syncChange: function ( parent, target, model, columns ) {
-		var name = target.name;
-		if ( gp.isNullOrEmpty( name ) ) return;
-
-		// there could be more than one element with this name, find them all
-		var elems = parent.querySelectorAll( '[name="' + name + '"]' );
-
-		var o = {
-			target: evt.target,
-			name: name,
-			value: target.value,
-			model: model
-		};
-
-		this.setModelProperty( parent, o.model, elems );
-	},
-
-	getPathSegments: function ( path ) {
-		return path.match( rexp.segments );
-	},
-
-	resolvePathSegment: function ( segment ) {
-	    // is this segment an array index?
-	    if ( rexp.indexer.test( segment ) ) {
-	        return parseInt( /\d+/.exec( segment ) );
-	    }
-	    return segment;
-	},
-
-	setModelProperty: function ( context, model, elems ) {
-		var obj,
-            prop,
-            type,
-            val;
-
-		// get the raw value
-		val = this.getValue( elems );
-
-		// grab the object we're setting
-		obj = gp.getObjectAtPath( model, segments, Array.isArray( val ) );
-
-		// grab the object property name
-		prop = this.resolvePathSegment( segments[segments.length - 1] );
-
-		// attempt to resolve the data type in the model
-		// if we can't get a type from the model
-		// rely on the server to resolve it
-		if ( prop in obj ) {
-			type = $.type( obj[prop] );
-		}
-		else if ( Array.isArray( obj ) && obj.length ) {
-			type = $.type( obj[0] );
-		}
-
-		// cast the raw value to the appropriate type
-		val = this.castValues( val, type );
-
-		if ( Array.isArray( val ) && Array.isArray( obj ) ) {
-			// preserve the object reference in case it's referenced elsewhere
-			// clear out the array and repopulate it
-			obj.splice( 0, obj.length );
-			val.forEach( function ( v ) {
-				obj.push( v );
-			} );
-		}
-		else {
-			obj[prop] = val;
-		}
-	},
-	getValue: function ( elem, parent ) {
-		if ( elem.length === 0 ) return null;
-		var val,
-		    type = elem.type,
-            node = elem.nodeName,
-		    name = elem.name,
-            input;
-
-		if ( type == 'radio' ) {
-            input = parent.querySelector( 'input[type=radio][name="' + name + '"][checked]' );
-            return input ? input.value : null;
-		}
-		else {
-		    input = parent.querySelectorAll( '[name="' + name + '"]' );
-		}
-
-		if ( input && input.length == 1 ) {
-		    return input[0].value;
-		}
-
-		var ret = [];
-
-
-		// it's supposed to be an array if they're all the same type and they're not radios
-		var isArray = elem.length > 1
-            && type !== 'radio'
-            && elem.filter( '[type="' + type + '"]' ).length === elem.length;
-		if ( type === 'checkbox' ) {
-			if ( isArray ) {
-				// this will only include checked boxes
-				val = elem.serializeArray().map( function ( nv ) { return nv.value; } );
-			}
-			else {
-				// this returns the checkbox value, not whether it's checked
-				val = elem.val();
-				// check for boolean, otherwise return val if it's checked, null if not checked
-				if ( val.toLowerCase() == 'true' ) val = ( elem[0].checked ).toString();
-				else if ( val.toLowerCase() == 'false' ) val = ( !elem[0].checked ).toString();
-				else val = elem[0].checked ? val : null;
-			}
-		}
-		else if ( type === 'radio' ) {
-			val = elem.serializeArray()[0].value;
-		}
-		else {
-			val = ( isArray ) ? elem.serializeArray().map( function ( nv ) { return nv.value; } ) : elem.val();
-		}
-		if ( !isArray && val === '' ) return null;
-		return val;
-	},
-	castValues: function ( val, type ) {
-		var isArray = Array.isArray( val );
-		var arr = isArray ? val : [val];
-		switch ( type ) {
-			case 'number':
-				arr = arr.filter( $.isNumeric ).map( parseFloat );
-				break;
-			case 'boolean':
-				arr = arr.map( function ( v ) {
-					return v.toLowerCase() == 'true';
-				} );
-				break;
-			case 'null':
-			case 'undefined':
-				arr = arr.map( function ( v ) {
-					if ( /true|false/i.test( v ) ) {
-						// assume boolean
-						return v.toLowerCase() === 'true';
-					}
-					return v === '' ? null : v;
-				} );
-				break;
-			default:
-				arr = arr.map( function ( v ) {
-					return v === '' ? null : v;
-				} );
-				break;
-		}
-		return isArray ? arr : arr[0];
-	},
-
-
-	serializeArray: function ( parent ) {
-	    var self = this,
-            inputs = parent.querySelectorAll( '[name]' ),
-	        arr = [],
-            rCRLF = /\r?\n/g,
-	        rsubmitterTypes = /^(?:submit|button|image|reset|file)$/i,
-            rsubmittable = /^(?:input|select|textarea|keygen)/i,
-            rcheckableType = /^(?:checkbox|radio)$/i;
-
-	    for ( var i = 0; i < inputs.length; i++ ) {
-	        arr.push( inputs[i] );
-	    }
-
-	    // jQuery's version of this fails when there's a checkbox with a value of true
-	    // and a hidden with a value of false.
-	    // That's how ASP.NET sends false when the box is not checked.
-        // In this case jQuery always sends true even if the box is not checked.
-
-	    return arr.filter( function () {
-		    var type = this.type;
-
-		    return rsubmittable.test( this.nodeName ) && !rsubmitterTypes.test( type ) &&
-				( this.checked || !rcheckableType.test( type ) );
-		} )
-		.map( function ( i, elem ) {
-		    var val = self.getValue(elem, parent);
-
-		    return val == null ?
-				null :
-				jQuery.isArray( val ) ?
-					jQuery.map( val, function ( val ) {
-					    return { name: elem.name, value: val.replace( rCRLF, "\r\n" ) };
-					} ) :
-					{ name: elem.name, value: val.replace( rCRLF, "\r\n" ) };
-		} );
-	}
-
-};
-
-/***************\
    ModelSync
 \***************/
 
@@ -2463,26 +2296,35 @@ gp.ModelSync = {
     serialize: function ( form ) {
         var inputs = form.querySelectorAll( '[name]' ),
             arr = this.toArray( inputs ),
+            filter = {},
             obj = {};
 
-        arr.filter( function (elem) {
-                var type = elem.type;
+        arr.forEach( function ( elem ) {
+            // add properties for each named element in the form
+            // so unsuccessful form elements are still explicitly represented
+            obj[elem.name] = null;
+        } );
 
-                return elem.name && !this.isDisabled( elem ) &&
-                    this.rexp.rsubmittable.test( elem.nodeName ) && !this.rexp.rsubmitterTypes.test( type ) &&
-                    ( elem.checked || !this.rexp.rcheckableType.test( type ) );
-            }.bind(this) )
-		    .forEach( function ( elem ) {
+        arr.filter( function ( elem ) {
+            var type = elem.type;
 
-                // if there are multiple inputs with this name, take the first one
-		        if ( elem.name in obj ) return;
-
-		        var val = elem.value;
-		        obj[elem.name] =
+            return !this.isDisabled( elem )
+                && this.rexp.rsubmittable.test( elem.nodeName )
+                && !this.rexp.rsubmitterTypes.test( type )
+                && ( elem.checked || !this.rexp.rcheckableType.test( type ) );
+        }.bind( this ) )
+            .filter( function ( elem ) {
+                // if there are multiple elements with the same name, take the first value
+                if ( elem.name in filter ) return false;
+                return filter[elem.name] = true;
+            } )
+            .forEach( function ( elem ) {
+                var val = elem.value;
+                obj[elem.name] =
                     ( val == null ?
-				    null :
-    			    val.replace( this.rexp.rCRLF, "\r\n" ) );
-		    }.bind(this)
+                    null :
+                    val.replace( this.rexp.rCRLF, "\r\n" ) );
+            }.bind( this )
         );
 
         return obj;
@@ -2490,6 +2332,7 @@ gp.ModelSync = {
 
     bindElements: function ( model, context ) {
         var value,
+            clean,
             elem;
 
         Object.getOwnPropertyNames( model ).forEach( function ( prop ) {
@@ -2548,34 +2391,25 @@ gp.ModelSync = {
     },
 
     cast: function ( val, dataType ) {
-        var isArray = Array.isArray( val );
-        var arr = isArray ? val : [val];
         switch ( dataType ) {
             case 'number':
-                arr = arr.filter( this.isNumeric ).map( parseFloat );
+                if ( this.isNumeric( val ) ) return parseFloat( val );
                 break;
             case 'boolean':
-                arr = arr.map( function ( v ) {
-                    return v.toLowerCase() == 'true';
-                } );
+                return val != null && val.toLowerCase() == 'true';
                 break;
             case 'null':
             case 'undefined':
-                arr = arr.map( function ( v ) {
-                    if ( /true|false/i.test( v ) ) {
-                        // assume boolean
-                        return v.toLowerCase() === 'true';
-                    }
-                    return v === '' ? null : v;
-                } );
+                if ( /true|false/i.test( val ) ) {
+                    // assume boolean
+                    return val != null && val.toLowerCase() == 'true';
+                }
+                return val === '' ? null : val;
                 break;
             default:
-                arr = arr.map( function ( v ) {
-                    return v === '' ? null : v;
-                } );
+                return val === '' ? null : val;
                 break;
         }
-        return isArray ? arr : arr[0];
     }
 };
 
