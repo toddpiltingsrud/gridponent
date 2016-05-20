@@ -124,13 +124,6 @@
         }
     };
 
-    gp.each = function ( arrayLike, fn ) {
-        // I hate for loops
-        for ( var i = 0; i < arrayLike.length; i++ ) {
-            fn( arrayLike[i], i );
-        }
-    };
-
     gp.enable = function ( elem ) {
         elem.removeAttribute( 'disabled' );
         gp.removeClass( elem, 'disabled' );

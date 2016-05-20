@@ -1,10 +1,9 @@
-﻿'use strict';
-
-/***************\
+﻿/***************\
    Gridponent
 \***************/
 
 var gridponent = gridponent || function ( elem, options ) {
+    'use strict';
 
     // check for a selector
     if ( typeof elem == 'string' ) {
@@ -67,7 +66,18 @@ var gridponent = gridponent || function ( elem, options ) {
 
 };
 
+var arr = [];
+
+gridponent.toArray = function(arrayLike) {
+    return [].slice.call(arrayLike);
+};
+
+gridponent.each = function(arrayLike, fn) {
+    return [].forEach.call(arrayLike, fn);
+};
+
 (function(gp) { 
+    'use strict';
 /***************\
       API
 \***************/
@@ -1339,15 +1349,15 @@ gp.ModalEditor.prototype = {
         // append the modal to the top node so button clicks will be picked up by commandHandlder
         modal = $( html )
             .appendTo( this.config.node )
-            .one('shown.bs.modal', self.invokeEditReady.bind(self) )
-            .modal( {
-                show: true,
-                keyboard: true,
-                backdrop: 'static'
-            }
-        );
+            .one( 'shown.bs.modal', self.invokeEditReady.bind( self ) );
 
         this.elem = modal[0];
+
+        modal.modal( {
+            show: true,
+            keyboard: true,
+            backdrop: 'static'
+        } );
 
         gp.ModelSync.bindElements( this.dataItem, this.elem );
 
@@ -1364,26 +1374,27 @@ gp.ModalEditor.prototype = {
     },
 
     edit: function (dataItem) {
-
-        var self = this;
+        var self = this,
+            html,
+            modal;
 
         gp.Editor.prototype.edit.call( this, dataItem );
 
         // mode: create or update
-        var html = gp.helpers.bootstrapModal( this.config, dataItem, 'udpate' );
+        html = gp.helpers.bootstrapModal( this.config, dataItem, 'udpate' );
 
         // append the modal to the top node so button clicks will be picked up by commandHandlder
-        var modal = $( html )
+        modal = $( html )
             .appendTo( this.config.node )
-            .one( 'shown.bs.modal', self.invokeEditReady.bind( self ) )
-            .modal( {
-                show: true,
-                keyboard: true,
-                backdrop: 'static'
-            }
-        );
+            .one( 'shown.bs.modal', self.invokeEditReady.bind( self ) );
 
         this.elem = modal[0];
+
+        modal.modal( {
+            show: true,
+            keyboard: true,
+            backdrop: 'static'
+        } );
 
         gp.ModelSync.bindElements( dataItem, this.elem );
 
@@ -1753,7 +1764,7 @@ gp.helpers = {
 
     sortStyle: function ( config ) {
         // remove glyphicons from sort buttons
-        var spans = config.node.querySelectorAll( 'button.table-sort > spn.glyphicon-chevron-up,button.table-sort > span.glyphicon-chevron-down' );
+        var spans = config.node.querySelectorAll( 'button.table-sort > span.glyphicon-chevron-up,button.table-sort > span.glyphicon-chevron-down' );
         gp.removeClass( spans, 'glyphicon-chevron-up' );
         gp.removeClass( spans, 'glyphicon-chevron-down' );
         if ( !gp.isNullOrEmpty( config.pageModel.sort ) ) {
@@ -2274,7 +2285,9 @@ gp.ModelSync = {
         rCRLF: /\r?\n/g,
         rsubmitterTypes: /^(?:submit|button|image|reset|file)$/i,
         rsubmittable: /^(?:input|select|textarea|keygen)/i,
-        rcheckableType: /^(?:checkbox|radio)$/i
+        rcheckableType: /^(?:checkbox|radio)$/i,
+        rTrue: /^true$/i,
+        rFalse: /^false$/i,
     },
 
     isDisabled: function ( elem ) {
@@ -2283,17 +2296,6 @@ gp.ModelSync = {
 
     isNumeric: function ( obj ) {
         return !Array.isArray( obj ) && ( obj - parseFloat( obj ) + 1 ) >= 0;
-    },
-
-    toArray: function ( arrayLike ) {
-        if ( arrayLike !== undefined && arrayLike.length != undefined ) {
-            var arr = [];
-            for ( var i = 0; i < arrayLike.length; i++ ) {
-                arr[i] = arrayLike[i];
-            }
-            return arr;
-        }
-        return null;
     },
 
     /*
@@ -2312,7 +2314,7 @@ gp.ModelSync = {
 
     serialize: function ( form ) {
         var inputs = form.querySelectorAll( '[name]' ),
-            arr = this.toArray( inputs ),
+            arr = gp.toArray( inputs ),
             filter = {},
             obj = {};
 
@@ -2331,7 +2333,7 @@ gp.ModelSync = {
                 && ( elem.checked || !this.rexp.rcheckableType.test( type ) );
         }.bind( this ) )
             .filter( function ( elem ) {
-                // if there are multiple elements with the same name, take the first value
+                // if there are multiple elements with the same name, take the first one
                 if ( elem.name in filter ) return false;
                 return filter[elem.name] = true;
             } )
@@ -2356,24 +2358,36 @@ gp.ModelSync = {
 
             value = gp.hasValue( model[prop] ) ? model[prop].toString() : '';
 
-            clean = gp.escapeHTML( value ).replace( this.rexp.rCRLF, "\r\n" );
-
             // is there a checkbox or radio with this name and value?
-            elem = context.querySelector( '[type=checkbox][name="' + prop + '"][value="' + clean + '"],[type=radio][name="' + prop + '"][value="' + clean + '"]' );
+            // don't select the value because it might throw a syntax error
+            elem = context.querySelectorAll( '[type=checkbox][name="' + prop + '"],[type=radio][name="' + prop + '"]' );
 
-            if ( elem != null )
-            {
-                elem.checked = true;
-                return;
+            if ( elem != null  ) {
+
+                clean = gp.escapeHTML( value );
+
+                for ( var i = 0; i < elem.length; i++ ) {
+                    if ( elem[i].value == value || elem[i].value == clean ) {
+                        elem[i].checked = true;
+                        return;
+                    }
+                }
             }
 
             // check for boolean
             if ( /^(true|false)$/i.test( value ) )
             {
-                elem = context.querySelector( '[type=checkbox][name="' + prop + '"][value=true]' );
+                elem = context.querySelectorAll( '[type=checkbox][name="' + prop + '"][value=true],[type=checkbox][name="' + prop + '"][value=false]' );
 
                 if ( elem != null ) {
-                    elem.checked = /^true$/i.test( value );
+                    gp.each( elem, function ( e ) {
+                        e.checked = (
+                            ( this.rexp.rTrue.test( value ) && this.rexp.rTrue.test( e.value ) )
+                            ||
+                            ( this.rexp.rFalse.test( value ) && this.rexp.rFalse.test( e.value ) )
+                        );
+                    }.bind( this ) );
+
                     return;
                 }
             }
@@ -2381,11 +2395,11 @@ gp.ModelSync = {
             elem = context.querySelector( '[name="' + prop + '"]' );
             if ( elem != null ) {
 
-                // inputs with a value attribute
+                // inputs with a value property
                 if ( elem.value !== undefined ) {
                     elem.value = value;
                 }
-                    // inputs with no value attribute (e.g. textarea)
+                // inputs without a value property (e.g. textarea)
                 else if ( elem.innerHTML !== undefined ) {
                     elem.innerHTML = ( value == null ? '' : gp.escapeHTML( value ) );
                 }
@@ -3192,13 +3206,6 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
             setTimeout( function () {
                 gp.enable( elem );
             }, seconds * 1000 );
-        }
-    };
-
-    gp.each = function ( arrayLike, fn ) {
-        // I hate for loops
-        for ( var i = 0; i < arrayLike.length; i++ ) {
-            fn( arrayLike[i], i );
         }
     };
 

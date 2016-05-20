@@ -336,13 +336,18 @@ QUnit.test( 'custom toolbar button', function ( assert ) {
 QUnit.test( 'ModelSync.bindElements', function ( assert ) {
 
     div.append( gp.helpers.input( 'string', 'ProductID', "" ) );
-    div.append( gp.helpers.input( 'boolean', 'MakeFlag', true ) );
     div.append( gp.helpers.input( 'number', 'SafetyStockLevel', -1 ) );
     div.append( gp.helpers.input( 'date', 'SellEndDate', "" ) );
+
+    div.append( '<input type="checkbox" name="MakeFlag" value="true" />' );
+    div.append( '<input type="checkbox" name="MakeFlag" value="false" />' );
 
     div.append( '<input type="radio" name="Color" value="red" />' );
     div.append( '<input type="radio" name="Color" value="blue" />' );
     div.append( '<input type="radio" name="Color" value="green" />' );
+
+    div.append( '<input type="radio" name="FinishedGoodsFlag" value="true" />' );
+    div.append( '<input type="radio" name="FinishedGoodsFlag" value="false" />' );
 
     div.append( '<textarea name="Markup"></textarea>' );
 
@@ -362,14 +367,20 @@ QUnit.test( 'ModelSync.bindElements', function ( assert ) {
     var input = div.find( '[name=ProductID]' );
     assert.equal( input.val(), '0' );
 
-    input = div.find( '[name=MakeFlag]' );
+    input = div.find( '[name=MakeFlag][value=true]' );
     assert.equal( input.prop('checked'), false );
+
+    input = div.find( '[name=MakeFlag][value=false]' );
+    assert.equal( input.prop( 'checked' ), true );
 
     input = div.find( '[name=SafetyStockLevel]' );
     assert.equal( input.val(), '0' );
 
     input = div.find( '[name=Color]:checked' ).val();
     assert.equal( input, 'blue' );
+
+    input = div.find( '[name=FinishedGoodsFlag]:checked' ).val();
+    assert.equal( input, 'false' );
 
     input = div.find( '[name=Style]' ).val();
     assert.equal( input, 'C' );
@@ -379,6 +390,11 @@ QUnit.test( 'ModelSync.bindElements', function ( assert ) {
 
     input = div.find( '[name=Markup]' ).val();
     assert.equal( input, fns.model.Markup );
+
+    fns.model.FinishedGoodsFlag = true;
+    gp.ModelSync.bindElements( fns.model, div[0] );
+    input = div.find( '[name=FinishedGoodsFlag]:checked' ).val();
+    assert.equal( input, 'true' );
 
     div.empty();
 
@@ -443,28 +459,6 @@ QUnit.test( 'ModelSync.isDisabled', function ( assert ) {
     isDisabled = gp.ModelSync.isDisabled( elem[0] );
 
     assert.strictEqual( isDisabled, true );
-
-} );
-
-QUnit.test( 'ModelSync.toArray', function ( assert ) {
-
-    var divs = $( 'div' );
-
-    assert.strictEqual( Array.isArray( divs ), false );
-
-    var arr = gp.ModelSync.toArray( divs );
-
-    assert.strictEqual( Array.isArray( arr ), true );
-
-    arr = gp.ModelSync.toArray( 1 );
-
-    assert.strictEqual( Array.isArray( arr ), false );
-
-    assert.strictEqual( arr, null );
-
-    arr = gp.ModelSync.toArray( 'this is a string' );
-
-    assert.strictEqual( Array.isArray( arr ), true );
 
 } );
 
@@ -2557,6 +2551,8 @@ QUnit.test( 'editready event', function ( assert ) {
         var btn = model.elem.querySelector( 'button[value=cancel]' );
 
         clickButton( btn );
+
+        $( 'div.modal-backdrop.in' ).remove();
 
     };
 
