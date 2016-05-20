@@ -36,6 +36,11 @@ gp.Editor.prototype = {
         };
     },
 
+    httpErrorHandler: function ( e ) {
+        alert( 'An error occurred while carrying out your request.' );
+        gp.error( e );
+    },
+
     save: function ( done, fail ) {
         // create or update
         var self = this,
@@ -462,15 +467,15 @@ gp.ModalEditor.prototype = {
         // append the modal to the top node so button clicks will be picked up by commandHandlder
         modal = $( html )
             .appendTo( this.config.node )
-            .one('shown.bs.modal', self.invokeEditReady.bind(self) )
-            .modal( {
-                show: true,
-                keyboard: true,
-                backdrop: 'static' // too easy to close a modal on a tablet by touching the background
-            }
-        );
+            .one( 'shown.bs.modal', self.invokeEditReady.bind( self ) );
 
         this.elem = modal[0];
+
+        modal.modal( {
+            show: true,
+            keyboard: true,
+            backdrop: 'static'
+        } );
 
         gp.ModelSync.bindElements( this.dataItem, this.elem );
 
@@ -496,17 +501,17 @@ gp.ModalEditor.prototype = {
         var html = gp.helpers.bootstrapModal( this.config, dataItem, 'udpate' );
 
         // append the modal to the top node so button clicks will be picked up by commandHandlder
-        var modal = $( html )
+        modal = $( html )
             .appendTo( this.config.node )
-            .one( 'shown.bs.modal', self.invokeEditReady.bind( self ) )
-            .modal( {
-                show: true,
-                keyboard: true,
-                backdrop: 'static'
-            }
-        );
+            .one( 'shown.bs.modal', self.invokeEditReady.bind( self ) );
 
         this.elem = modal[0];
+
+        modal.modal( {
+            show: true,
+            keyboard: true,
+            backdrop: 'static'
+        } );
 
         gp.ModelSync.bindElements( dataItem, this.elem );
 
