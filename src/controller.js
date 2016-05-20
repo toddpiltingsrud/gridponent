@@ -2,7 +2,6 @@
    controller
 \***************/
 gp.Controller = function ( config, model, requestModel ) {
-    var self = this;
     this.config = config;
     this.model = model;
     this.requestModel = requestModel;
@@ -10,12 +9,12 @@ gp.Controller = function ( config, model, requestModel ) {
         this.requestModel.top = 25;
     }
     this.handlers = {
-        readHandler: self.read.bind( self ),
-        commandHandler: self.commandHandler.bind( self ),
-        rowSelectHandler: self.rowSelectHandler.bind( self ),
-        httpErrorHandler: self.httpErrorHandler.bind( self ),
-        toolbarChangeHandler: self.toolbarChangeHandler.bind( self ),
-        toolbarEnterKeyHandler: self.toolbarEnterKeyHandler.bind( self )
+        readHandler: this.read.bind( this ),
+        commandHandler: this.commandHandler.bind( this ),
+        rowSelectHandler: this.rowSelectHandler.bind( this ),
+        httpErrorHandler: this.httpErrorHandler.bind( this ),
+        toolbarChangeHandler: this.toolbarChangeHandler.bind( this ),
+        toolbarEnterKeyHandler: this.toolbarEnterKeyHandler.bind( this )
     };
     this.done = false;
     this.eventDelegates = {};
