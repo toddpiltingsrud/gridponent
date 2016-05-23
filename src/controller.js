@@ -1,22 +1,20 @@
 ﻿/***************\
-controller.jquery
+   controller
 \***************/
 gp.Controller = function ( config, model, requestModel ) {
-    var self = this;
     this.config = config;
-    this.$n = $( config.node );
     this.model = model;
     this.requestModel = requestModel;
     if ( config.pager ) {
         this.requestModel.top = 25;
     }
     this.handlers = {
-        readHandler: self.read.bind( self ),
-        commandHandler: self.commandHandler.bind( self ),
-        rowSelectHandler: self.rowSelectHandler.bind( self ),
-        httpErrorHandler: self.httpErrorHandler.bind( self ),
-        toolbarChangeHandler: self.toolbarChangeHandler.bind( self ),
-        toolbarEnterKeyHandler: self.toolbarEnterKeyHandler.bind( self )
+        readHandler: this.read.bind( this ),
+        commandHandler: this.commandHandler.bind( this ),
+        rowSelectHandler: this.rowSelectHandler.bind( this ),
+        httpErrorHandler: this.httpErrorHandler.bind( this ),
+        toolbarChangeHandler: this.toolbarChangeHandler.bind( this ),
+        toolbarEnterKeyHandler: this.toolbarEnterKeyHandler.bind( this )
     };
     this.done = false;
     this.eventDelegates = {};
@@ -45,12 +43,12 @@ gp.Controller.prototype = {
 
     addBusy: function () {
         // this function executes with the api as its context
-        this.$n.addClass( 'busy' );
+        gp.addClass( this.config.node, 'busy' );
     },
 
     removeBusy: function () {
         // this function executes with the api as its context
-        this.$n.removeClass( 'busy' );
+        gp.removeClass( this.config.node, 'busy' );
     },
 
     ready: function ( callback ) {
@@ -83,16 +81,17 @@ gp.Controller.prototype = {
     addToolbarChangeHandler: function () {
         // monitor changes to search, sort, and paging
         var selector = '.table-toolbar [name], thead input, .table-pager input';
-        this.$n.on( 'change', selector, this.handlers.toolbarChangeHandler );
-        this.$n.on( 'keydown', selector, this.handlers.toolbarEnterKeyHandler );
+        gp.on( this.config.node, 'change', selector, this.handlers.toolbarChangeHandler );
+        gp.on( this.config.node, 'keydown', selector, this.handlers.toolbarEnterKeyHandler );
     },
 
     removeToolbarChangeHandler: function () {
-        this.$n.off( 'change', this.handlers.toolbarChangeHandler );
-        this.$n.off( 'keydown', this.handlers.toolbarEnterKeyHandler );
+        gp.off( this.config.node, 'change', this.handlers.toolbarChangeHandler );
+        gp.off( this.config.node, 'keydown', this.handlers.toolbarEnterKeyHandler );
     },
 
     toolbarEnterKeyHandler: function ( evt ) {
+        // tracks the search and paging textboxes
         if ( evt.keyCode == 13 ) {
             // trigger change event
             evt.target.blur();
@@ -114,20 +113,20 @@ gp.Controller.prototype = {
 
     addCommandHandlers: function ( node ) {
         // listen for command button clicks at the grid level
-        $( node ).on( 'click', 'button[value]', this.handlers.commandHandler );
+        gp.on( node, 'click', 'button[value]', this.handlers.commandHandler );
     },
 
     removeCommandHandlers: function ( node ) {
-        $( node ).off( 'click', this.handlers.commandHandler );
+        gp.off( node, 'click', this.handlers.commandHandler );
     },
 
     commandHandler: function ( evt ) {
         // this function handles all the button clicks for the entire grid
         var lower,
-            $btn = $( evt.selectedTarget ),
-            rowOrModal = $btn.closest( 'tr[data-uid],div.modal' ),
+            btn = evt.selectedTarget,
+            rowOrModal = gp.closest( btn, 'tr[data-uid],div.modal', this.config.node ),
             dataItem = rowOrModal ? this.config.map.get( rowOrModal ) : null,
-            cmd = gp.getCommand( this.config.columns, $btn.attr( 'value' ) ),
+            cmd = gp.getCommand( this.config.columns, btn.value ),
             model = this.config.pageModel;
 
         // check for a user-defined command
@@ -136,7 +135,7 @@ gp.Controller.prototype = {
             return;
         };
 
-        lower = $btn.attr( 'value' ).toLowerCase();
+        lower = btn.value.toLowerCase();
 
         switch ( lower ) {
             case 'addrow':
@@ -151,16 +150,16 @@ gp.Controller.prototype = {
                 this.deleteRow( dataItem, rowOrModal );
                 break;
             case 'page':
-                var page = $btn.attr( 'data-page' );
+                var page = gp.attr( evt.selectedTarget, 'data-page' );
                 model.page = parseInt( page );
                 this.read();
                 break;
             case 'search':
-                model.search = this.$n.find( '.table-toolbar input[name=search]' ).val();
+                model.search = this.config.node.querySelector( '.table-toolbar input[name=search]' ).value;
                 this.read();
                 break;
             case 'sort':
-                var sort = $btn.attr( 'data-sort' );
+                var sort = gp.attr( evt.selectedTarget, 'data-sort' );
                 if ( model.sort === sort ) {
                     model.desc = !model.desc;
                 }
@@ -210,20 +209,20 @@ gp.Controller.prototype = {
     },
 
     addRowSelectHandler: function ( config ) {
-        if ( this.$n.hasClass( 'selectable' ) ) {
+        if ( gp.hasClass( config.node, 'selectable' ) ) {
             // add click handler
-            this.$n.on( 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
+            gp.on( config.node, 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
         }
     },
 
     removeRowSelectHandler: function () {
-        this.$n.off( 'click', this.handlers.rowSelectHandler );
+        gp.off( this.config.node, 'click', this.handlers.rowSelectHandler );
     },
 
     rowSelectHandler: function ( evt ) {
         var config = this.config,
-            tr = $( evt.selectedTarget ).closest( 'tr' ),
-            trs = this.$n.find( 'div.table-body > table > tbody > tr.selected' ),
+            tr = gp.closest( evt.selectedTarget, 'tr', config.node ),
+            trs = config.node.querySelectorAll( 'div.table-body > table > tbody > tr.selected' ),
             type = typeof config.rowselected,
             dataItem,
             proceed;
@@ -231,16 +230,16 @@ gp.Controller.prototype = {
         if ( type === 'string' && config.rowselected.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
 
         // remove previously selected class
-        trs.removeClass( 'selected' );
+        gp.removeClass( trs, 'selected' );
 
         // add selected class
-        $( tr ).addClass( 'selected' );
+        gp.addClass( tr, 'selected' );
         // get the dataItem for this tr
-        dataItem = config.map.get( tr[0] );
+        dataItem = config.map.get( tr );
 
-        //// ensure dataItem selection doesn't interfere with button clicks in the dataItem
-        //// by making sure the evt target is a body cell
-        //if ( evt.target != evt.selectedTarget ) return;
+        // ensure dataItem selection doesn't interfere with button clicks in the dataItem
+        // by making sure the evt target is a body cell
+        if ( evt.target != evt.selectedTarget ) return;
 
         proceed = this.invokeDelegates( gp.events.rowselected, {
             dataItem: dataItem,
@@ -260,19 +259,20 @@ gp.Controller.prototype = {
 
     addRefreshEventHandler: function ( config ) {
         if ( config.refreshevent ) {
-            $( document ).on( config.refreshevent, this.handlers.readHandler );
+            gp.on( document, config.refreshevent, this.handlers.readHandler );
         }
     },
 
     removeRefreshEventHandler: function ( config ) {
         if ( config.refreshevent ) {
-            $( document ).off( config.refreshevent, this.handlers.readHandler );
+            gp.off( document, config.refreshevent, this.handlers.readHandler );
         }
     },
 
     search: function ( searchTerm, callback ) {
         this.config.pageModel.search = searchTerm;
-        var searchBox = this.$n.find( 'div.table-toolbar input[name=search' ).val( searchBox );
+        var searchBox = this.config.node.querySelector( 'div.table-toolbar input[name=search' );
+        searchBox.value = searchTerm;
         this.read( null, callback );
     },
 
@@ -331,7 +331,7 @@ gp.Controller.prototype = {
 
             editor.save( callback, this.httpErrorHandler.bind( this ) );
         }
-        catch ( ex ) {
+        catch ( e ) {
             this.removeBusy();
             this.httpErrorHandler( e );
         }
@@ -363,7 +363,7 @@ gp.Controller.prototype = {
 
             editor.save( callback, this.httpErrorHandler.bind( this ) );
         }
-        catch ( ex ) {
+        catch ( e ) {
             this.removeBusy();
             this.httpErrorHandler( e );
         }
@@ -380,7 +380,7 @@ gp.Controller.prototype = {
             var self = this,
                 confirmed = skipConfirm || confirm( 'Are you sure you want to delete this item?' ),
                 message,
-                tr = gp.getTableRow( this.config.map, dataItem, this.$n[0] );
+                tr = gp.getTableRow( this.config.map, dataItem, this.config.node );
 
             if ( !confirmed ) {
                 gp.applyFunc( callback, this.config.node );
@@ -432,15 +432,20 @@ gp.Controller.prototype = {
     refresh: function () {
         try {
             // inject table rows, footer, pager and header style.
-            var body = this.$n.find( 'div.table-body' ),
-                footer = this.$n.find( 'div.table-footer' ),
-                pager = this.$n.find( 'div.table-pager' );
+            var node = this.config.node,
+                body = node.querySelector( 'div.table-body' ),
+                footer = node.querySelector( 'div.table-footer' ),
+                pager = node.querySelector( 'div.table-pager' );
 
             this.config.map.clear();
 
-            body.html( gp.templates['gridponent-body']( this.config ) );
-            footer.html( gp.templates['gridponent-table-footer']( this.config ) );
-            pager.html( gp.templates['gridponent-pager']( this.config ) );
+            body.innerHTML = gp.templates['gridponent-body']( this.config );
+            if ( footer ) {
+                footer.innerHTML = gp.templates['gridponent-table-footer']( this.config );
+            }
+            if ( pager ) {
+                pager.innerHTML = gp.templates['gridponent-pager']( this.config );
+            }
 
             gp.helpers.sortStyle( this.config );
         }
