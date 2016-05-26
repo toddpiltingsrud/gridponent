@@ -2,7 +2,7 @@
    Initializer
 \***************/
 gp.Initializer = function ( node ) {
-    this.parent = node;
+    this.parent = $( node );
 };
 
 gp.Initializer.prototype = {
@@ -18,7 +18,8 @@ gp.Initializer.prototype = {
         options.ID = gp.createUID();
         this.config = options;
         this.renderLayout( this.config, this.parent );
-        this.config.node = this.parent.querySelector( '.table-container' );
+        this.config.node = this.parent.find( '.table-container' )[0];
+        this.$n = this.parent.find( '.table-container' );
 
         this.config.map = new gp.DataMap();
         var dal = new gp.DataLayer( this.config );
@@ -76,7 +77,7 @@ gp.Initializer.prototype = {
             colConfig,
             templates,
             config = gp.getAttributes( parentNode ),
-            gpColumns = parentNode.querySelectorAll( 'gp-column' );
+            gpColumns = $( parentNode ).find( 'gp-column' );
 
         // modal or inline
         config.editmode = config.editmode || 'inline';
@@ -85,11 +86,11 @@ gp.Initializer.prototype = {
 
         // create the column configurations
         templates = 'header body edit footer'.split( ' ' );
-        gp.each( gpColumns, function ( colNode, i ) {
-            colConfig = gp.getAttributes( colNode );
+        gpColumns.each( function () {
+            colConfig = gp.getAttributes( this );
             config.columns.push( colConfig );
-            this.resolveTemplates( templates, colConfig, colNode );
-        }.bind(this) );
+            self.resolveTemplates( templates, colConfig, this );
+        } );
 
         // resolve the top level configurations
         var options = 'rowselected searchfunction read create update destroy validate model'.split( ' ' );
@@ -131,7 +132,7 @@ gp.Initializer.prototype = {
 
     renderLayout: function ( config, parentNode ) {
         try {
-            parentNode.innerHTML = gp.templates['gridponent']( config );
+            $( parentNode ).html( gp.templates['gridponent']( config ) );
         }
         catch ( ex ) {
             gp.error( ex );
@@ -145,22 +146,18 @@ gp.Initializer.prototype = {
 
             // inject table rows, footer, pager and header style.
 
-            var body = node.querySelector( 'div.table-body' );
-            var footer = node.querySelector( 'div.table-footer' );
-            var pager = node.querySelector( 'div.table-pager' );
+            var body = this.$n.find( 'div.table-body' );
+            var footer = this.$n.find( 'div.table-footer' );
+            var pager = this.$n.find( 'div.table-pager' );
 
-            body.innerHTML = gp.templates['gridponent-body']( config );
-            if ( footer ) {
-                footer.innerHTML = gp.templates['gridponent-table-footer']( config );
-            }
-            if ( pager ) {
-                pager.innerHTML = gp.templates['gridponent-pager']( config );
-            }
+            body.html( gp.templates['gridponent-body']( config ) );
+            footer.html( gp.templates['gridponent-table-footer']( config ) );
+            pager.html( gp.templates['gridponent-pager']( config ) );
             gp.helpers.sortStyle( config );
 
             // sync column widths
             if ( config.fixedheaders || config.fixedfooters ) {
-                var nodes = node.querySelectorAll( '.table-body > table > tbody > tr:first-child > td' );
+                var nodes = this.$n.find( '.table-body > table > tbody > tr:first-child > td' );
 
                 if ( gp.hasPositiveWidth( nodes ) ) {
                     // call syncColumnWidths twice because the first call causes things to shift around a bit
@@ -180,7 +177,7 @@ gp.Initializer.prototype = {
 
     syncColumnWidths: function ( config ) {
         var html = gp.helpers.columnWidthStyle.call( config );
-        config.node.querySelector( 'style.column-width-style' ).innerHTML = html;
+        this.$n.find( 'style.column-width-style' ).html( html );
     },
 
     resolveFooter: function ( config ) {

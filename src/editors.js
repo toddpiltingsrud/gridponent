@@ -13,6 +13,7 @@ gp.Editor = function ( config, dal ) {
     this.afterEdit = null;
     this.editReady = null;
     this.button = null;
+    this.$n = $( config.node );
 
 };
 
@@ -183,11 +184,11 @@ gp.Editor.prototype = {
     },
 
     addBusy: function () {
-        gp.addClass( this.config.node, 'busy' );
+        this.$n.addClass( 'busy' );
     },
 
     removeBusy: function () {
-        gp.removeClass( this.config.node, 'busy' );
+        this.$n.removeClass( 'busy' );
     },
 
     updateUI: function () { },
@@ -234,7 +235,7 @@ gp.TableRowEditor = function ( config, dal ) {
     this.elem = null;
     this.commandHandler = function ( evt ) {
         // handle save or cancel
-        var command = evt.selectedTarget.attributes['value'].value;
+        var command = $( this ).val();
 
         if ( /^(create|update|save)$/i.test( command ) ) {
             self.button = evt.selectedTarget;
@@ -259,17 +260,17 @@ gp.TableRowEditor.prototype = {
 
     createDataItem: gp.Editor.prototype.createDataItem,
 
-    addCommandHandler: function() {
-        gp.on( this.elem, 'click', 'button[value]', this.commandHandler );
+    addCommandHandler: function () {
+        $( this.elem ).on( 'click', 'button[value]', this.commandHandler );
     },
 
     removeCommandHandler: function () {
-        gp.off( this.elem, 'click', this.commandHandler );
+        $( this.elem ).off( 'click', this.commandHandler );
     },
 
     add: function () {
         var self = this,
-            tbody = this.config.node.querySelector( 'div.table-body > table > tbody' ),
+            tbody = this.$n.find( 'div.table-body > table > tbody' ),
             bodyCellContent = gp.helpers['bodyCellContent'],
             editCellContent = gp.helpers['editCellContent'],
             builder = new gp.NodeBuilder(),
@@ -297,7 +298,7 @@ gp.TableRowEditor.prototype = {
 
         this.addCommandHandler();
 
-        gp.prependChild( tbody, this.elem );
+        tbody.prepend( this.elem );
 
         this.invokeEditReady();
 
@@ -311,9 +312,10 @@ gp.TableRowEditor.prototype = {
 
         // replace the cell contents of the table row with edit controls
 
-        var col,
+        var self = this,
+            col,
             editCellContent = gp.helpers['editCellContent'],
-            cells = tr.querySelectorAll( 'td.body-cell' ),
+            cells = $( tr ).find( 'td.body-cell' ),
             uid;
 
         gp.Editor.prototype.edit.call( this, dataItem );
@@ -324,14 +326,14 @@ gp.TableRowEditor.prototype = {
 
         // IE9 can't set innerHTML of tr, so iterate through each cell and set its innerHTML
         // besides, that way we can just skip readonly cells
-        gp.each( cells, function ( cell, i ) {
-            col = this.config.columns[i];
+        cells.each( function ( i ) {
+            col = self.config.columns[i];
             if ( !col.readonly ) {
-                cell.innerHTML = editCellContent.call( this.config, col, dataItem, 'edit' );
+                $( this ).html( editCellContent.call( self.config, col, dataItem, 'edit' ) );
             }
-        }.bind( this ) );
+        } );
 
-        gp.addClass( tr, 'edit-mode' );
+        $( tr ).addClass( 'edit-mode' );
 
         gp.ModelSync.bindElements( dataItem, this.elem );
 
@@ -346,10 +348,10 @@ gp.TableRowEditor.prototype = {
     cancel: function () {
 
         try {
-            var tbl = gp.closest( this.elem, 'table', this.config.node ),
+            var tbl = $(this.elem).closest( 'table', this.$n ),
                 index;
 
-            if ( gp.hasClass( this.elem, 'create-mode' ) ) {
+            if ( $( this.elem ).hasClass( 'create-mode' ) ) {
                 // remove elem
                 tbl.deleteRow( this.elem.rowIndex );
             }
@@ -377,24 +379,19 @@ gp.TableRowEditor.prototype = {
 
             var self = this,
                 builder = new gp.StringBuilder(),
-                input,
                 errors,
                 msg;
 
             builder.add( 'Please correct the following errors:\r\n' );
 
             // remove error class from inputs
-            gp.removeClass( self.elem.querySelectorAll( '[name].error' ), 'error' );
+            $( self.elem ).find( '[name].error' ).removeClass( 'error' );
 
             Object.getOwnPropertyNames( updateModel.errors ).forEach( function ( e ) {
 
-                input = self.elem.querySelector( '[name="' + e + '"]' );
+                $( self.elem ).find( '[name="' + e + '"]' ).addClass( 'error' );
 
                 errors = updateModel.errors[e].errors;
-
-                if ( input ) {
-                    gp.addClass( input, 'error' );
-                }
 
                 builder
                     .add( e + ':\r\n' )
@@ -411,16 +408,16 @@ gp.TableRowEditor.prototype = {
 
     updateUI: function () {
         // take the table row out of edit mode
-        var col,
+        var self = this,
+            col,
             bodyCellContent = gp.helpers['bodyCellContent'],
-            cells = this.elem.querySelectorAll( 'td.body-cell' );
+            cells = $( this.elem ).find( 'td.body-cell' );
 
-        gp.each( cells, function ( cell, i ) {
+        cells.each( function ( i ) {
             col = this.config.columns[i];
-            cell.innerHTML = bodyCellContent.call( this.config, col, this.dataItem );
-        }.bind( this ) );
-        gp.removeClass( this.elem, 'edit-mode' );
-        gp.removeClass( this.elem, 'create-mode' );
+            $( this ).html( bodyCellContent.call( self.config, col, self.dataItem ) );
+        } );
+        $( this.elem ).removeClass( 'edit-mode create-mode' );
     },
 
     invokeEditReady: function() {
@@ -474,15 +471,15 @@ gp.ModalEditor.prototype = {
         // append the modal to the top node so button clicks will be picked up by commandHandlder
         modal = $( html )
             .appendTo( this.config.node )
-            .one('shown.bs.modal', self.invokeEditReady.bind(self) )
-            .modal( {
-                show: true,
-                keyboard: true,
-                backdrop: 'static'
-            }
-        );
+            .one( 'shown.bs.modal', self.invokeEditReady.bind( self ) );
 
         this.elem = modal[0];
+
+        modal.modal( {
+            show: true,
+            keyboard: true,
+            backdrop: 'static'
+        } );
 
         gp.ModelSync.bindElements( this.dataItem, this.elem );
 
@@ -499,26 +496,27 @@ gp.ModalEditor.prototype = {
     },
 
     edit: function (dataItem) {
-
-        var self = this;
+        var self = this,
+            html,
+            modal;
 
         gp.Editor.prototype.edit.call( this, dataItem );
 
         // mode: create or update
-        var html = gp.helpers.bootstrapModal( this.config, dataItem, 'udpate' );
+        html = gp.helpers.bootstrapModal( this.config, dataItem, 'udpate' );
 
         // append the modal to the top node so button clicks will be picked up by commandHandlder
-        var modal = $( html )
+        modal = $( html )
             .appendTo( this.config.node )
-            .one( 'shown.bs.modal', self.invokeEditReady.bind( self ) )
-            .modal( {
-                show: true,
-                keyboard: true,
-                backdrop: 'static'
-            }
-        );
+            .one( 'shown.bs.modal', self.invokeEditReady.bind( self ) );
 
         this.elem = modal[0];
+
+        modal.modal( {
+            show: true,
+            keyboard: true,
+            backdrop: 'static'
+        } );
 
         gp.ModelSync.bindElements( dataItem, this.elem );
 
@@ -544,18 +542,18 @@ gp.ModalEditor.prototype = {
         this.removeCommandHandler();
     },
 
-    addBusy: function() {
-        gp.addClass( this.elem, 'busy' );
+    addBusy: function () {
+        $( this.elem ).addClass( 'busy' );
     },
 
-    removeBusy: function() {
-        gp.removeClass( this.elem, 'busy' );
+    removeBusy: function () {
+        $( this.elem ).removeClass( 'busy' );
     },
 
     updateUI: function () {
 
         var self = this,
-            tbody = this.config.node.querySelector( 'div.table-body > table > tbody' ),
+            tbody = this.$n.find( 'div.table-body > table > tbody' ),
             bodyCellContent = gp.helpers['bodyCellContent'],
             tableRow,
             cells,
@@ -587,19 +585,17 @@ gp.ModalEditor.prototype = {
 
             tableRow = builder.close();
 
-            gp.prependChild( tbody, tableRow );
+            $( tbody ).prepend( tableRow );
 
         }
         else {
             tableRow = gp.getTableRow( this.config.map, this.dataItem, this.config.node );
     
             if ( tableRow ) {
-                cells = tableRow.querySelectorAll( 'td.body-cell' );
-
-                gp.each( cells, function ( cell, i ) {
-                    col = this.config.columns[i];
-                    cell.innerHTML = bodyCellContent.call( this.config, col, this.dataItem );
-                }.bind( this ) );
+                $( tableRow ).find( 'td.body-cell' ).each( function ( i ) {
+                    col = self.config.columns[i];
+                    $( this ).html( bodyCellContent.call( self.config, col, self.dataItem ) );
+                } );
             }
         }
 

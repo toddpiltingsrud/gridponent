@@ -70,19 +70,11 @@
     <Content Include="spec\scripts\custom-event-polyfill.js" />
     <Content Include="spec\styles\bootstrap-theme.css" />
     <Content Include="spec\styles\bootstrap-theme.min.css" />
-    <Content Include="src\controller.jquery.js" />
     <Content Include="src\datamap.js" />
-    <Content Include="src\editors.jquery.js" />
     <Content Include="src\editors.js" />
-    <Content Include="src\helpers.jquery.js" />
-    <Content Include="src\initializer.jquery.js" />
     <Content Include="src\model-sync.js" />
-    <Content Include="src\pagers.jquery.js" />
-    <Content Include="src\ready-check.jquery.js" />
     <Content Include="src\templates\bootstrap-modal.html" />
-    <Content Include="src\utils.jquery.js" />
     <Content Include="src\x-column-filter.js" />
-    <Content Include="src\z-webcomponent.jquery.js" />
     <Content Include="src\z-webcomponent.js" />
     <Content Include="src\gridponent.css">
       <DependentUpon>gridponent.less</DependentUpon>
@@ -106,7 +98,6 @@
     <Content Include="src\x-object-proxy.js" />
     <Content Include="src\x-format.js" />
     <Content Include="src\mock-http.js" />
-    <Content Include="src\ready-check.js" />
     <Content Include="src\pagers.js" />
     <Content Include="src\utils.js" />
     <Content Include="src\paging-model.js" />

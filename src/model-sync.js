@@ -8,7 +8,9 @@ gp.ModelSync = {
         rCRLF: /\r?\n/g,
         rsubmitterTypes: /^(?:submit|button|image|reset|file)$/i,
         rsubmittable: /^(?:input|select|textarea|keygen)/i,
-        rcheckableType: /^(?:checkbox|radio)$/i
+        rcheckableType: /^(?:checkbox|radio)$/i,
+        rTrue: /^true$/i,
+        rFalse: /^false$/i,
     },
 
     isDisabled: function ( elem ) {
@@ -17,17 +19,6 @@ gp.ModelSync = {
 
     isNumeric: function ( obj ) {
         return !Array.isArray( obj ) && ( obj - parseFloat( obj ) + 1 ) >= 0;
-    },
-
-    toArray: function ( arrayLike ) {
-        if ( arrayLike !== undefined && arrayLike.length != undefined ) {
-            var arr = [];
-            for ( var i = 0; i < arrayLike.length; i++ ) {
-                arr[i] = arrayLike[i];
-            }
-            return arr;
-        }
-        return null;
     },
 
     /*
@@ -45,15 +36,15 @@ gp.ModelSync = {
     */
 
     serialize: function ( form ) {
-        var inputs = form.querySelectorAll( '[name]' ),
-            arr = this.toArray( inputs ),
+        var inputs = $( form ).find( '[name]' ),
+            arr = inputs.toArray(),
             filter = {},
             obj = {};
 
-        arr.forEach( function ( elem ) {
+        inputs.each( function () {
             // add properties for each named element in the form
             // so unsuccessful form elements are still explicitly represented
-            obj[elem.name] = null;
+            obj[this.name] = null;
         } );
 
         arr.filter( function ( elem ) {
@@ -65,7 +56,7 @@ gp.ModelSync = {
                 && ( elem.checked || !this.rexp.rcheckableType.test( type ) );
         }.bind( this ) )
             .filter( function ( elem ) {
-                // if there are multiple elements with the same name, take the first value
+                // if there are multiple elements with the same name, take the first one
                 if ( elem.name in filter ) return false;
                 return filter[elem.name] = true;
             } )
@@ -82,7 +73,8 @@ gp.ModelSync = {
     },
 
     bindElements: function ( model, context ) {
-        var value,
+        var self = this,
+            value,
             clean,
             elem;
 
@@ -90,38 +82,50 @@ gp.ModelSync = {
 
             value = gp.hasValue( model[prop] ) ? model[prop].toString() : '';
 
-            clean = gp.escapeHTML( value ).replace( this.rexp.rCRLF, "\r\n" );
-
             // is there a checkbox or radio with this name and value?
-            elem = context.querySelector( '[type=checkbox][name="' + prop + '"][value="' + clean + '"],[type=radio][name="' + prop + '"][value="' + clean + '"]' );
+            // don't select the value because it might throw a syntax error
+            elem = $(context).find( '[type=checkbox][name="' + prop + '"],[type=radio][name="' + prop + '"]' );
 
-            if ( elem != null )
-            {
-                elem.checked = true;
-                return;
+            if ( elem.length > 0 ) {
+
+                clean = gp.escapeHTML( value );
+
+                for ( var i = 0; i < elem.length; i++ ) {
+                    if ( elem[i].value == value || elem[i].value == clean ) {
+                        elem[i].checked = true;
+                        return;
+                    }
+                }
             }
 
             // check for boolean
             if ( /^(true|false)$/i.test( value ) )
             {
-                elem = context.querySelector( '[type=checkbox][name="' + prop + '"][value=true]' );
+                elem = $(context).find( '[type=checkbox][name="' + prop + '"][value=true],[type=checkbox][name="' + prop + '"][value=false]' );
 
-                if ( elem != null ) {
-                    elem.checked = /^true$/i.test( value );
+                if ( elem.length > 0 ) {
+                    elem.each( function ( e ) {
+                        this.checked = (
+                            ( self.rexp.rTrue.test( value ) && self.rexp.rTrue.test( e.value ) )
+                            ||
+                            ( self.rexp.rFalse.test( value ) && self.rexp.rFalse.test( e.value ) )
+                        );
+                    });
+
                     return;
                 }
             }
 
-            elem = context.querySelector( '[name="' + prop + '"]' );
-            if ( elem != null ) {
+            elem = $(context).find( '[name="' + prop + '"]' );
+            if ( elem.length > 0 ) {
 
-                // inputs with a value attribute
-                if ( elem.value !== undefined ) {
-                    elem.value = value;
+                // inputs with a value property
+                if ( elem[0].value !== undefined ) {
+                    elem[0].value = value;
                 }
-                    // inputs with no value attribute (e.g. textarea)
-                else if ( elem.innerHTML !== undefined ) {
-                    elem.innerHTML = ( value == null ? '' : gp.escapeHTML( value ) );
+                // inputs without a value property (e.g. textarea)
+                else if ( elem[0].innerHTML !== undefined ) {
+                    elem.html ( value == null ? '' : gp.escapeHTML( value ) );
                 }
 
             }

@@ -246,14 +246,13 @@ gp.helpers = {
 
     sortStyle: function ( config ) {
         // remove glyphicons from sort buttons
-        var spans = config.node.querySelectorAll( 'button.table-sort > spn.glyphicon-chevron-up,button.table-sort > span.glyphicon-chevron-down' );
-        gp.removeClass( spans, 'glyphicon-chevron-up' );
-        gp.removeClass( spans, 'glyphicon-chevron-down' );
+        var spans = $( config.node )
+            .find( 'button.table-sort > span.glyphicon-chevron-up,button.table-sort > span.glyphicon-chevron-down' )
+            .removeClass( 'glyphicon-chevron-up glyphicon-chevron-down' );
         if ( !gp.isNullOrEmpty( config.pageModel.sort ) ) {
-            var span = config.node.querySelector( 'button.table-sort[data-sort="' + config.pageModel.sort + '"] > span' );
-            if ( span ) {
-                gp.addClass( span, ( config.pageModel.desc ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up' ) );
-            }
+            $( config.node )
+                .find( 'button.table-sort[data-sort="' + config.pageModel.sort + '"] > span' )
+                .addClass(( config.pageModel.desc ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up' ) );
         }
     },
 
