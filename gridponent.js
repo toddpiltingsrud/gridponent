@@ -66,8 +66,6 @@ var gridponent = gridponent || function ( elem, options ) {
 
 };
 
-var arr = [];
-
 gridponent.toArray = function(arrayLike) {
     return [].slice.call(arrayLike);
 };
@@ -216,7 +214,6 @@ gp.api.prototype.ready = function ( callback ) {
    controller
 \***************/
 gp.Controller = function ( config, model, requestModel ) {
-    var self = this;
     this.config = config;
     this.model = model;
     this.requestModel = requestModel;
@@ -224,12 +221,12 @@ gp.Controller = function ( config, model, requestModel ) {
         this.requestModel.top = 25;
     }
     this.handlers = {
-        readHandler: self.read.bind( self ),
-        commandHandler: self.commandHandler.bind( self ),
-        rowSelectHandler: self.rowSelectHandler.bind( self ),
-        httpErrorHandler: self.httpErrorHandler.bind( self ),
-        toolbarChangeHandler: self.toolbarChangeHandler.bind( self ),
-        toolbarEnterKeyHandler: self.toolbarEnterKeyHandler.bind( self )
+        readHandler: this.read.bind( this ),
+        commandHandler: this.commandHandler.bind( this ),
+        rowSelectHandler: this.rowSelectHandler.bind( this ),
+        httpErrorHandler: this.httpErrorHandler.bind( this ),
+        toolbarChangeHandler: this.toolbarChangeHandler.bind( this ),
+        toolbarEnterKeyHandler: this.toolbarEnterKeyHandler.bind( this )
     };
     this.done = false;
     this.eventDelegates = {};
@@ -3511,11 +3508,15 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         timestamp: /\/Date\((\d+)\)\//,
         quoted: /^['"].+['"]$/,
         trueFalse: /true|false/i,
-        json: /^\{.*\}$|^\[.*\]$/
+        json: /^\{.*\}$|^\[.*\]$/,
+        copyable: /^(object|date|array|function)$/
     };
 
     gp.shallowCopy = function ( from, to, camelize ) {
         to = to || {};
+        // IE is more strict about what it will accept
+        // as an argument to getOwnPropertyNames
+        if ( !gp.rexp.copyable.test( gp.getType( from ) ) ) return to;
         var p, props = Object.getOwnPropertyNames( from );
         props.forEach( function ( prop ) {
             p = camelize ? gp.camelize( prop ) : prop;

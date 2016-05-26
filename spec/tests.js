@@ -252,6 +252,35 @@ var configuration = {
 
 fns.model = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "blue", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "C", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": "<p>Product's name: \"Adjustable Race\"</p>" };
 
+QUnit.test( 'shallowCopy', function ( assert ) {
+
+    var to = fns.model;
+
+    assert.equal( gp.shallowCopy( true, to ), to );
+    assert.equal( gp.shallowCopy( 1, to ), to );
+    assert.equal( gp.shallowCopy( "", to ), to );
+    assert.equal( gp.shallowCopy( null, to ), to );
+
+    gp.shallowCopy( { test: 'test' }, to );
+    assert.equal( to.test, 'test' );
+    delete to.test;
+
+    var d = new Date();
+    gp.shallowCopy( d, to );
+    Object.getOwnPropertyNames( d ).forEach( function ( prop ) {
+        assert.equal( d[prop], to[prop] );
+        delete to[prop];
+    } );
+
+    var rexp = /test/;
+    gp.shallowCopy( rexp, to );
+    Object.getOwnPropertyNames(rexp).forEach(function(prop){
+        assert.equal( rexp[prop], to[prop] );
+        delete to[prop];
+    });
+
+} );
+
 QUnit.test( 'preload option', function ( assert ) {
 
     var done1 = assert.async();
