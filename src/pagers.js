@@ -60,7 +60,7 @@ gp.ClientPager.prototype = {
             // filter first
             if ( !gp.isNullOrEmpty( model.search ) ) {
                 // make sure searchTerm is a string and trim it
-                search = gp.trim( model.search.toString() );
+                search = $.trim( model.search.toString() );
                 model.data = model.data.filter(function (row) {
                     return self.searchFilter(row, search);
                 });

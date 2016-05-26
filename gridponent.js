@@ -1,9 +1,9 @@
-﻿
-/***************\
+﻿/***************\
    Gridponent
 \***************/
 
 var gridponent = gridponent || function ( elem, options ) {
+    'use strict';
 
     // check for a selector
     if ( typeof elem == 'string' ) {
@@ -67,7 +67,7 @@ var gridponent = gridponent || function ( elem, options ) {
 };
 
 (function(gp) { 
-
+    'use strict';
 /***************\
       API
 \***************/
@@ -97,6 +97,7 @@ gp.events = {
 gp.api = function ( controller ) {
     this.controller = controller;
     this.config = controller.config;
+    this.$n = $( this.config.node );
 };
 
 gp.api.prototype = {
@@ -131,8 +132,8 @@ gp.api.prototype = {
         }
     },
 
-    getData: function ( index ) {
-        if ( typeof index == 'number' ) return this.controller.config.pageModel.data[index];
+    getData: function ( uidOrTableRow ) {
+        if ( uidOrTableRow != undefined ) return this.config.map.get( uidOrTableRow );
         return this.controller.config.pageModel.data;
     },
 
@@ -202,25 +203,24 @@ gp.api.prototype.ready = function ( callback ) {
     this.controller.ready( callback );
     return this;
 };
-
 /***************\
    controller
 \***************/
 gp.Controller = function ( config, model, requestModel ) {
-    var self = this;
     this.config = config;
     this.model = model;
+    this.$n = $( config.node );
     this.requestModel = requestModel;
     if ( config.pager ) {
         this.requestModel.top = 25;
     }
     this.handlers = {
-        readHandler: self.read.bind( self ),
-        commandHandler: self.commandHandler.bind( self ),
-        rowSelectHandler: self.rowSelectHandler.bind( self ),
-        httpErrorHandler: self.httpErrorHandler.bind( self ),
-        toolbarChangeHandler: self.toolbarChangeHandler.bind( self ),
-        toolbarEnterKeyHandler: self.toolbarEnterKeyHandler.bind( self )
+        readHandler: this.read.bind( this ),
+        commandHandler: this.commandHandler.bind( this ),
+        rowSelectHandler: this.rowSelectHandler.bind( this ),
+        httpErrorHandler: this.httpErrorHandler.bind( this ),
+        toolbarChangeHandler: this.toolbarChangeHandler.bind( this ),
+        toolbarEnterKeyHandler: this.toolbarEnterKeyHandler.bind( this )
     };
     this.done = false;
     this.eventDelegates = {};
@@ -249,12 +249,12 @@ gp.Controller.prototype = {
 
     addBusy: function () {
         // this function executes with the api as its context
-        gp.addClass( this.config.node, 'busy' );
+        this.$n.addClass( 'busy' );
     },
 
     removeBusy: function () {
         // this function executes with the api as its context
-        gp.removeClass( this.config.node, 'busy' );
+        this.$n.removeClass( 'busy' );
     },
 
     ready: function ( callback ) {
@@ -287,16 +287,17 @@ gp.Controller.prototype = {
     addToolbarChangeHandler: function () {
         // monitor changes to search, sort, and paging
         var selector = '.table-toolbar [name], thead input, .table-pager input';
-        gp.on( this.config.node, 'change', selector, this.handlers.toolbarChangeHandler );
-        gp.on( this.config.node, 'keydown', selector, this.handlers.toolbarEnterKeyHandler );
+        this.$n.on( 'change', selector, this.handlers.toolbarChangeHandler );
+        this.$n.on( 'keydown', selector, this.handlers.toolbarEnterKeyHandler );
     },
 
     removeToolbarChangeHandler: function () {
-        gp.off( this.config.node, 'change', this.handlers.toolbarChangeHandler );
-        gp.off( this.config.node, 'keydown', this.handlers.toolbarEnterKeyHandler );
+        this.$n.off( 'change', this.handlers.toolbarChangeHandler );
+        this.$n.off( 'keydown', this.handlers.toolbarEnterKeyHandler );
     },
 
     toolbarEnterKeyHandler: function ( evt ) {
+        // tracks the search and paging textboxes
         if ( evt.keyCode == 13 ) {
             // trigger change event
             evt.target.blur();
@@ -305,57 +306,42 @@ gp.Controller.prototype = {
     },
 
     toolbarChangeHandler: function ( evt ) {
+        // tracks the search and paging textboxes
         var name = evt.target.name,
-            val = evt.target.value,
-            model = this.config.pageModel;
+            model = this.config.pageModel,
+            type = gp.getType( model[name] ),
+            val = gp.ModelSync.cast( evt.target.value, type );
 
-        if ( name === 'sort' ) {
-            if ( model[name] === val ) {
-                model.desc = !model.desc;
-            }
-            else {
-                model[name] = val;
-                model.desc = false;
-            }
-        }
-        else {
-            gp.syncChange( evt.target, model, this.config.columns );
-        }
+        model[name] = val;
 
         this.read();
-
-        // reset the radio inputs
-        var radios = this.config.node.querySelectorAll( 'thead input[type=radio], .table-pager input[type=radio]' );
-        for ( var i = 0; i < radios.length; i++ ) {
-            radios[i].checked = false;
-        }
     },
 
     addCommandHandlers: function ( node ) {
         // listen for command button clicks at the grid level
-        gp.on( node, 'click', 'button[value]', this.handlers.commandHandler );
+        $( node ).on( 'click', 'button[value]', this.handlers.commandHandler );
     },
 
     removeCommandHandlers: function ( node ) {
-        gp.off( node, 'click', this.handlers.commandHandler );
+        $( node ).off( 'click', this.handlers.commandHandler );
     },
 
     commandHandler: function ( evt ) {
         // this function handles all the button clicks for the entire grid
         var lower,
-            btn = evt.selectedTarget,
-            rowOrModal = gp.closest( btn, 'tr[data-uid],div.modal', this.config.node ),
+            $btn = $( evt.selectedTarget ),
+            rowOrModal = $btn.closest( 'tr[data-uid],div.modal', this.config.node ),
             dataItem = rowOrModal ? this.config.map.get( rowOrModal ) : null,
-            cmd = gp.getCommand( this.config.columns, btn.value ),
+            cmd = gp.getCommand( this.config.columns, $btn.val() ),
             model = this.config.pageModel;
 
         // check for a user-defined command
-        if ( cmd && typeof cmd.func === 'function') {
+        if ( cmd && typeof cmd.func === 'function' ) {
             cmd.func.call( this.config.node.api, dataItem );
             return;
         };
 
-        lower = btn.value.toLowerCase();
+        lower = ( $btn.val() || '' ).toLowerCase();
 
         switch ( lower ) {
             case 'addrow':
@@ -370,16 +356,16 @@ gp.Controller.prototype = {
                 this.deleteRow( dataItem, rowOrModal );
                 break;
             case 'page':
-                var page = gp.attr( evt.selectedTarget, 'data-page' );
+                var page = $btn.attr( 'data-page' );
                 model.page = parseInt( page );
                 this.read();
                 break;
             case 'search':
-                model.search = this.config.node.querySelector( '.table-toolbar input[name=search]' ).value;
+                model.search = this.$n.find( '.table-toolbar input[name=search]' ).val();
                 this.read();
                 break;
             case 'sort':
-                var sort = gp.attr(evt.selectedTarget, 'data-sort');
+                var sort = $btn.attr( 'data-sort' );
                 if ( model.sort === sort ) {
                     model.desc = !model.desc;
                 }
@@ -390,6 +376,12 @@ gp.Controller.prototype = {
                 this.read();
                 break;
             default:
+                // check for a function
+                // this is needed in case there's a custom command in the toolbar
+                cmd = gp.getObjectAtPath( $btn.val() );
+                if ( typeof cmd == 'function' ) {
+                    cmd.call( this.config.node.api, dataItem );
+                }
                 break;
         }
     },
@@ -423,33 +415,30 @@ gp.Controller.prototype = {
     },
 
     addRowSelectHandler: function ( config ) {
-        if ( gp.hasClass( config.node, 'selectable' ) ) {
+        if ( this.$n.hasClass( 'selectable' ) ) {
             // add click handler
-            gp.on( config.node, 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
+            this.$n.on( 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
         }
     },
 
     removeRowSelectHandler: function () {
-        gp.off( this.config.node, 'click', this.handlers.rowSelectHandler );
+        this.$n.off( 'click', this.handlers.rowSelectHandler );
     },
 
     rowSelectHandler: function ( evt ) {
         var config = this.config,
-            tr = gp.closest( evt.selectedTarget, 'tr', config.node ),
-            trs = config.node.querySelectorAll( 'div.table-body > table > tbody > tr.selected' ),
+            tr = $( evt.selectedTarget ).closest( 'tr', config.node ),
+            trs = this.$n.find( 'div.table-body > table > tbody > tr.selected' ),
             type = typeof config.rowselected,
             dataItem,
             proceed;
 
         if ( type === 'string' && config.rowselected.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
 
-        // remove previously selected class
-        for ( var i = 0; i < trs.length; i++ ) {
-            gp.removeClass( trs[i], 'selected' );
-        }
+        trs.removeClass( 'selected' );
 
         // add selected class
-        gp.addClass( tr, 'selected' );
+        $( tr ).addClass( 'selected' );
         // get the dataItem for this tr
         dataItem = config.map.get( tr );
 
@@ -475,20 +464,19 @@ gp.Controller.prototype = {
 
     addRefreshEventHandler: function ( config ) {
         if ( config.refreshevent ) {
-            gp.on( document, config.refreshevent, this.handlers.readHandler );
+            $( document ).on( config.refreshevent, this.handlers.readHandler );
         }
     },
 
     removeRefreshEventHandler: function ( config ) {
         if ( config.refreshevent ) {
-            gp.off( document, config.refreshevent, this.handlers.readHandler );
+            $( document ).off( config.refreshevent, this.handlers.readHandler );
         }
     },
 
     search: function ( searchTerm, callback ) {
         this.config.pageModel.search = searchTerm;
-        var searchBox = this.config.node.querySelector( 'div.table-toolbar input[name=search' );
-        searchBox.value = searchTerm;
+        this.$n.find( 'div.table-toolbar input[name=search]' ).val( searchTerm );
         this.read( null, callback );
     },
 
@@ -596,7 +584,7 @@ gp.Controller.prototype = {
             var self = this,
                 confirmed = skipConfirm || confirm( 'Are you sure you want to delete this item?' ),
                 message,
-                tr = gp.getTableRow( this.config.map, dataItem, this.config.node );
+                tr = gp.getTableRow( this.config.map, dataItem, this.$n[0] );
 
             if ( !confirmed ) {
                 gp.applyFunc( callback, this.config.node );
@@ -648,20 +636,15 @@ gp.Controller.prototype = {
     refresh: function () {
         try {
             // inject table rows, footer, pager and header style.
-            var node = this.config.node,
-                body = node.querySelector( 'div.table-body' ),
-                footer = node.querySelector( 'div.table-footer' ),
-                pager = node.querySelector( 'div.table-pager' );
+            var body = this.$n.find( 'div.table-body' ),
+                footer = this.$n.find( 'div.table-footer' ),
+                pager = this.$n.find( 'div.table-pager' );
 
             this.config.map.clear();
 
-            body.innerHTML = gp.templates['gridponent-body']( this.config );
-            if ( footer ) {
-                footer.innerHTML = gp.templates['gridponent-table-footer']( this.config );
-            }
-            if ( pager ) {
-                pager.innerHTML = gp.templates['gridponent-pager']( this.config );
-            }
+            body.html( gp.templates['gridponent-body']( this.config ) );
+            footer.html( gp.templates['gridponent-table-footer']( this.config ) );
+            pager.html( gp.templates['gridponent-pager']( this.config ) );
 
             gp.helpers.sortStyle( this.config );
         }
@@ -684,9 +667,8 @@ gp.Controller.prototype = {
     }
 
 };
-
 /***************\
-     model
+   DataLayer
 \***************/
 gp.DataLayer = function ( config ) {
     this.config = config;
@@ -800,7 +782,6 @@ gp.DataLayer.prototype = {
 
 
 };
-
 /***************\
     datamap
 \***************/
@@ -876,7 +857,6 @@ gp.DataMap.prototype = {
     }
 
 };
-
 /***************\
      Editor
 \***************/
@@ -892,6 +872,7 @@ gp.Editor = function ( config, dal ) {
     this.afterEdit = null;
     this.editReady = null;
     this.button = null;
+    this.$n = $( config.node );
 
 };
 
@@ -924,11 +905,13 @@ gp.Editor.prototype = {
         var self = this,
             returnedDataItem,
             serialized,
+            uid,
             fail = fail || gp.error;
 
         this.addBusy();
 
-        // it's possible for the API to invoke this save method, so there won't be an element
+        // it's possible for the API to invoke this save method
+        // there won't be a form element in that case
         if ( this.elem ) {
             // serialize the form
             serialized = gp.ModelSync.serialize( this.elem );
@@ -1060,11 +1043,11 @@ gp.Editor.prototype = {
     },
 
     addBusy: function () {
-        gp.addClass( this.config.node, 'busy' );
+        this.$n.addClass( 'busy' );
     },
 
     removeBusy: function () {
-        gp.removeClass( this.config.node, 'busy' );
+        this.$n.removeClass( 'busy' );
     },
 
     updateUI: function () { },
@@ -1111,7 +1094,7 @@ gp.TableRowEditor = function ( config, dal ) {
     this.elem = null;
     this.commandHandler = function ( evt ) {
         // handle save or cancel
-        var command = evt.selectedTarget.attributes['value'].value;
+        var command = $( this ).val();
 
         if ( /^(create|update|save)$/i.test( command ) ) {
             self.button = evt.selectedTarget;
@@ -1136,17 +1119,17 @@ gp.TableRowEditor.prototype = {
 
     createDataItem: gp.Editor.prototype.createDataItem,
 
-    addCommandHandler: function() {
-        gp.on( this.elem, 'click', 'button[value]', this.commandHandler );
+    addCommandHandler: function () {
+        $( this.elem ).on( 'click', 'button[value]', this.commandHandler );
     },
 
     removeCommandHandler: function () {
-        gp.off( this.elem, 'click', this.commandHandler );
+        $( this.elem ).off( 'click', this.commandHandler );
     },
 
     add: function () {
         var self = this,
-            tbody = this.config.node.querySelector( 'div.table-body > table > tbody' ),
+            tbody = this.$n.find( 'div.table-body > table > tbody' ),
             bodyCellContent = gp.helpers['bodyCellContent'],
             editCellContent = gp.helpers['editCellContent'],
             builder = new gp.NodeBuilder(),
@@ -1174,7 +1157,7 @@ gp.TableRowEditor.prototype = {
 
         this.addCommandHandler();
 
-        gp.prependChild( tbody, this.elem );
+        tbody.prepend( this.elem );
 
         this.invokeEditReady();
 
@@ -1188,9 +1171,10 @@ gp.TableRowEditor.prototype = {
 
         // replace the cell contents of the table row with edit controls
 
-        var col,
+        var self = this,
+            col,
             editCellContent = gp.helpers['editCellContent'],
-            cells = tr.querySelectorAll( 'td.body-cell' ),
+            cells = $( tr ).find( 'td.body-cell' ),
             uid;
 
         gp.Editor.prototype.edit.call( this, dataItem );
@@ -1201,13 +1185,14 @@ gp.TableRowEditor.prototype = {
 
         // IE9 can't set innerHTML of tr, so iterate through each cell and set its innerHTML
         // besides, that way we can just skip readonly cells
-        for ( var i = 0; i < cells.length; i++ ) {
-            col = this.config.columns[i];
+        cells.each( function ( i ) {
+            col = self.config.columns[i];
             if ( !col.readonly ) {
-                cells[i].innerHTML = editCellContent.call( this.config, col, dataItem, 'edit' );
+                $( this ).html( editCellContent.call( self.config, col, dataItem, 'edit' ) );
             }
-        }
-        gp.addClass( tr, 'edit-mode' );
+        } );
+
+        $( tr ).addClass( 'edit-mode' );
 
         gp.ModelSync.bindElements( dataItem, this.elem );
 
@@ -1222,10 +1207,10 @@ gp.TableRowEditor.prototype = {
     cancel: function () {
 
         try {
-            var tbl = gp.closest( this.elem, 'table', this.config.node ),
+            var tbl = $(this.elem).closest( 'table', this.$n ),
                 index;
 
-            if ( gp.hasClass( this.elem, 'create-mode' ) ) {
+            if ( $( this.elem ).hasClass( 'create-mode' ) ) {
                 // remove elem
                 tbl.deleteRow( this.elem.rowIndex );
             }
@@ -1253,24 +1238,19 @@ gp.TableRowEditor.prototype = {
 
             var self = this,
                 builder = new gp.StringBuilder(),
-                input,
                 errors,
                 msg;
 
             builder.add( 'Please correct the following errors:\r\n' );
 
             // remove error class from inputs
-            gp.removeClass( self.elem.querySelectorAll( '[name].error' ), 'error' );
+            $( self.elem ).find( '[name].error' ).removeClass( 'error' );
 
             Object.getOwnPropertyNames( updateModel.errors ).forEach( function ( e ) {
 
-                input = self.elem.querySelector( '[name="' + e + '"]' );
+                $( self.elem ).find( '[name="' + e + '"]' ).addClass( 'error' );
 
                 errors = updateModel.errors[e].errors;
-
-                if ( input ) {
-                    gp.addClass( input, 'error' );
-                }
 
                 builder
                     .add( e + ':\r\n' )
@@ -1287,16 +1267,16 @@ gp.TableRowEditor.prototype = {
 
     updateUI: function () {
         // take the table row out of edit mode
-        var col,
+        var self = this,
+            col,
             bodyCellContent = gp.helpers['bodyCellContent'],
-            cells = this.elem.querySelectorAll( 'td.body-cell' );
+            cells = $( this.elem ).find( 'td.body-cell' );
 
-        for ( var i = 0 ; i < cells.length; i++ ) {
+        cells.each( function ( i ) {
             col = this.config.columns[i];
-            cells[i].innerHTML = bodyCellContent.call( this.config, col, this.dataItem );
-        }
-        gp.removeClass( this.elem, 'edit-mode' );
-        gp.removeClass( this.elem, 'create-mode' );
+            $( this ).html( bodyCellContent.call( self.config, col, self.dataItem ) );
+        } );
+        $( this.elem ).removeClass( 'edit-mode create-mode' );
     },
 
     invokeEditReady: function() {
@@ -1350,15 +1330,15 @@ gp.ModalEditor.prototype = {
         // append the modal to the top node so button clicks will be picked up by commandHandlder
         modal = $( html )
             .appendTo( this.config.node )
-            .one('shown.bs.modal', self.invokeEditReady.bind(self) )
-            .modal( {
-                show: true,
-                keyboard: true,
-                backdrop: 'static'
-            }
-        );
+            .one( 'shown.bs.modal', self.invokeEditReady.bind( self ) );
 
         this.elem = modal[0];
+
+        modal.modal( {
+            show: true,
+            keyboard: true,
+            backdrop: 'static'
+        } );
 
         gp.ModelSync.bindElements( this.dataItem, this.elem );
 
@@ -1375,26 +1355,27 @@ gp.ModalEditor.prototype = {
     },
 
     edit: function (dataItem) {
-
-        var self = this;
+        var self = this,
+            html,
+            modal;
 
         gp.Editor.prototype.edit.call( this, dataItem );
 
         // mode: create or update
-        var html = gp.helpers.bootstrapModal( this.config, dataItem, 'udpate' );
+        html = gp.helpers.bootstrapModal( this.config, dataItem, 'udpate' );
 
         // append the modal to the top node so button clicks will be picked up by commandHandlder
-        var modal = $( html )
+        modal = $( html )
             .appendTo( this.config.node )
-            .one( 'shown.bs.modal', self.invokeEditReady.bind( self ) )
-            .modal( {
-                show: true,
-                keyboard: true,
-                backdrop: 'static'
-            }
-        );
+            .one( 'shown.bs.modal', self.invokeEditReady.bind( self ) );
 
         this.elem = modal[0];
+
+        modal.modal( {
+            show: true,
+            keyboard: true,
+            backdrop: 'static'
+        } );
 
         gp.ModelSync.bindElements( dataItem, this.elem );
 
@@ -1420,18 +1401,18 @@ gp.ModalEditor.prototype = {
         this.removeCommandHandler();
     },
 
-    addBusy: function() {
-        gp.addClass( this.elem, 'busy' );
+    addBusy: function () {
+        $( this.elem ).addClass( 'busy' );
     },
 
-    removeBusy: function() {
-        gp.removeClass( this.elem, 'busy' );
+    removeBusy: function () {
+        $( this.elem ).removeClass( 'busy' );
     },
 
     updateUI: function () {
 
         var self = this,
-            tbody = this.config.node.querySelector( 'div.table-body > table > tbody' ),
+            tbody = this.$n.find( 'div.table-body > table > tbody' ),
             bodyCellContent = gp.helpers['bodyCellContent'],
             tableRow,
             cells,
@@ -1463,26 +1444,23 @@ gp.ModalEditor.prototype = {
 
             tableRow = builder.close();
 
-            gp.prependChild( tbody, tableRow );
+            $( tbody ).prepend( tableRow );
 
         }
         else {
             tableRow = gp.getTableRow( this.config.map, this.dataItem, this.config.node );
     
             if ( tableRow ) {
-                cells = tableRow.querySelectorAll( 'td.body-cell' );
-
-                for ( var i = 0 ; i < cells.length; i++ ) {
-                    col = this.config.columns[i];
-                    cells[i].innerHTML = bodyCellContent.call( this.config, col, this.dataItem );
-                }
+                $( tableRow ).find( 'td.body-cell' ).each( function ( i ) {
+                    col = self.config.columns[i];
+                    $( this ).html( bodyCellContent.call( self.config, col, self.dataItem ) );
+                } );
             }
         }
 
     }
 
 };
-
 /***************\
    formatter
 \***************/
@@ -1517,7 +1495,6 @@ gp.Formatter.prototype = {
         return val;
     }
 };
-
 /***************\
     helpers
 \***************/
@@ -1529,7 +1506,8 @@ gp.helpers = {
         var model = {
             title: ( mode == 'create' ? 'Add' : 'Edit' ),
             body: '',
-            footer: null
+            footer: null,
+            uid: config.map.getUid( dataItem )
         };
 
         var html = new gp.StringBuilder();
@@ -1765,14 +1743,13 @@ gp.helpers = {
 
     sortStyle: function ( config ) {
         // remove glyphicons from sort buttons
-        var spans = config.node.querySelectorAll( 'button.table-sort > spn.glyphicon-chevron-up,button.table-sort > span.glyphicon-chevron-down' );
-        gp.removeClass( spans, 'glyphicon-chevron-up' );
-        gp.removeClass( spans, 'glyphicon-chevron-down' );
+        var spans = $( config.node )
+            .find( 'button.table-sort > span.glyphicon-chevron-up,button.table-sort > span.glyphicon-chevron-down' )
+            .removeClass( 'glyphicon-chevron-up glyphicon-chevron-down' );
         if ( !gp.isNullOrEmpty( config.pageModel.sort ) ) {
-            var span = config.node.querySelector( 'button.table-sort[data-sort="' + config.pageModel.sort + '"] > span' );
-            if ( span ) {
-                gp.addClass( span, ( config.pageModel.desc ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up' ) );
-            }
+            $( config.node )
+                .find( 'button.table-sort[data-sort="' + config.pageModel.sort + '"] > span' )
+                .addClass(( config.pageModel.desc ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up' ) );
         }
     },
 
@@ -1863,12 +1840,11 @@ gp.helpers = {
 
 };
 
-
 /***************\
    Initializer
 \***************/
 gp.Initializer = function ( node ) {
-    this.parent = node;
+    this.parent = $( node );
 };
 
 gp.Initializer.prototype = {
@@ -1884,7 +1860,8 @@ gp.Initializer.prototype = {
         options.ID = gp.createUID();
         this.config = options;
         this.renderLayout( this.config, this.parent );
-        this.config.node = this.parent.querySelector( '.table-container' );
+        this.config.node = this.parent.find( '.table-container' )[0];
+        this.$n = this.parent.find( '.table-container' );
 
         this.config.map = new gp.DataMap();
         var dal = new gp.DataLayer( this.config );
@@ -1939,11 +1916,10 @@ gp.Initializer.prototype = {
     getConfig: function ( parentNode ) {
         var self = this,
             obj,
-            colNode,
             colConfig,
             templates,
             config = gp.getAttributes( parentNode ),
-            gpColumns = parentNode.querySelectorAll( 'gp-column' );
+            gpColumns = $( parentNode ).find( 'gp-column' );
 
         // modal or inline
         config.editmode = config.editmode || 'inline';
@@ -1952,12 +1928,11 @@ gp.Initializer.prototype = {
 
         // create the column configurations
         templates = 'header body edit footer'.split( ' ' );
-        for ( var i = 0; i < gpColumns.length; i++ ) {
-            colNode = gpColumns[i];
-            colConfig = gp.getAttributes( colNode );
+        gpColumns.each( function () {
+            colConfig = gp.getAttributes( this );
             config.columns.push( colConfig );
-            this.resolveTemplates( templates, colConfig, colNode );
-        }
+            self.resolveTemplates( templates, colConfig, this );
+        } );
 
         // resolve the top level configurations
         var options = 'rowselected searchfunction read create update destroy validate model'.split( ' ' );
@@ -1998,9 +1973,8 @@ gp.Initializer.prototype = {
     },
 
     renderLayout: function ( config, parentNode ) {
-        var self = this;
         try {
-            parentNode.innerHTML = gp.templates['gridponent']( config );
+            $( parentNode ).html( gp.templates['gridponent']( config ) );
         }
         catch ( ex ) {
             gp.error( ex );
@@ -2014,22 +1988,18 @@ gp.Initializer.prototype = {
 
             // inject table rows, footer, pager and header style.
 
-            var body = node.querySelector( 'div.table-body' );
-            var footer = node.querySelector( 'div.table-footer' );
-            var pager = node.querySelector( 'div.table-pager' );
+            var body = this.$n.find( 'div.table-body' );
+            var footer = this.$n.find( 'div.table-footer' );
+            var pager = this.$n.find( 'div.table-pager' );
 
-            body.innerHTML = gp.templates['gridponent-body']( config );
-            if ( footer ) {
-                footer.innerHTML = gp.templates['gridponent-table-footer']( config );
-            }
-            if ( pager ) {
-                pager.innerHTML = gp.templates['gridponent-pager']( config );
-            }
+            body.html( gp.templates['gridponent-body']( config ) );
+            footer.html( gp.templates['gridponent-table-footer']( config ) );
+            pager.html( gp.templates['gridponent-pager']( config ) );
             gp.helpers.sortStyle( config );
 
             // sync column widths
             if ( config.fixedheaders || config.fixedfooters ) {
-                var nodes = node.querySelectorAll( '.table-body > table > tbody > tr:first-child > td' );
+                var nodes = this.$n.find( '.table-body > table > tbody > tr:first-child > td' );
 
                 if ( gp.hasPositiveWidth( nodes ) ) {
                     // call syncColumnWidths twice because the first call causes things to shift around a bit
@@ -2049,7 +2019,7 @@ gp.Initializer.prototype = {
 
     syncColumnWidths: function ( config ) {
         var html = gp.helpers.columnWidthStyle.call( config );
-        config.node.querySelector( 'style.column-width-style' ).innerHTML = html;
+        this.$n.find( 'style.column-width-style' ).html( html );
     },
 
     resolveFooter: function ( config ) {
@@ -2107,7 +2077,6 @@ gp.Initializer.prototype = {
         } );
     }
 };
-
 /***************\
    mock-http
 \***************/
@@ -2181,7 +2150,7 @@ gp.Initializer.prototype = {
                 getData(model, callback);
             }
             else if ( routes.create.test( url ) ) {
-                data.products.push( model );
+                window.data.products.push( model );
                 callback( new gp.UpdateModel( model ) );
             }
             else if ( routes.update.test( url ) ) {
@@ -2193,7 +2162,7 @@ gp.Initializer.prototype = {
         },
         destroy: function ( url, model, callback, error ) {
             model = model || {};
-            var index = data.products.indexOf( model );
+            var index = window.data.products.indexOf( model );
             callback( {
                 Success: true,
                 Message: ''
@@ -2202,7 +2171,7 @@ gp.Initializer.prototype = {
     };
 
     var getData = function (model, callback) {
-        var count, d = data.products.slice( 0, this.data.length );
+        var count, d = window.data.products.slice( 0, window.data.length );
 
         if (!gp.isNullOrEmpty(model.search)) {
             var props = Object.getOwnPropertyNames(d[0]);
@@ -2279,7 +2248,6 @@ gp.Initializer.prototype = {
     };
 
 })(gridponent);
-
 /***************\
    ModelSync
 \***************/
@@ -2290,7 +2258,9 @@ gp.ModelSync = {
         rCRLF: /\r?\n/g,
         rsubmitterTypes: /^(?:submit|button|image|reset|file)$/i,
         rsubmittable: /^(?:input|select|textarea|keygen)/i,
-        rcheckableType: /^(?:checkbox|radio)$/i
+        rcheckableType: /^(?:checkbox|radio)$/i,
+        rTrue: /^true$/i,
+        rFalse: /^false$/i,
     },
 
     isDisabled: function ( elem ) {
@@ -2299,17 +2269,6 @@ gp.ModelSync = {
 
     isNumeric: function ( obj ) {
         return !Array.isArray( obj ) && ( obj - parseFloat( obj ) + 1 ) >= 0;
-    },
-
-    toArray: function ( arrayLike ) {
-        if ( arrayLike !== undefined && arrayLike.length != undefined ) {
-            var arr = [];
-            for ( var i = 0; i < arrayLike.length; i++ ) {
-                arr[i] = arrayLike[i];
-            }
-            return arr;
-        }
-        return null;
     },
 
     /*
@@ -2327,73 +2286,96 @@ gp.ModelSync = {
     */
 
     serialize: function ( form ) {
-        var inputs = form.querySelectorAll( '[name]' ),
-            arr = this.toArray( inputs ),
+        var inputs = $( form ).find( '[name]' ),
+            arr = inputs.toArray(),
+            filter = {},
             obj = {};
 
-        arr.filter( function (elem) {
-                var type = elem.type;
+        inputs.each( function () {
+            // add properties for each named element in the form
+            // so unsuccessful form elements are still explicitly represented
+            obj[this.name] = null;
+        } );
 
-                return elem.name && !this.isDisabled( elem ) &&
-                    this.rexp.rsubmittable.test( elem.nodeName ) && !this.rexp.rsubmitterTypes.test( type ) &&
-                    ( elem.checked || !this.rexp.rcheckableType.test( type ) );
-            }.bind(this) )
-		    .forEach( function ( elem ) {
+        arr.filter( function ( elem ) {
+            var type = elem.type;
 
-                // if there are multiple inputs with this name, take the first one
-		        if ( elem.name in obj ) return;
-
-		        var val = elem.value;
-		        obj[elem.name] =
+            return !this.isDisabled( elem )
+                && this.rexp.rsubmittable.test( elem.nodeName )
+                && !this.rexp.rsubmitterTypes.test( type )
+                && ( elem.checked || !this.rexp.rcheckableType.test( type ) );
+        }.bind( this ) )
+            .filter( function ( elem ) {
+                // if there are multiple elements with the same name, take the first one
+                if ( elem.name in filter ) return false;
+                return filter[elem.name] = true;
+            } )
+            .forEach( function ( elem ) {
+                var val = elem.value;
+                obj[elem.name] =
                     ( val == null ?
-				    null :
-    			    val.replace( this.rexp.rCRLF, "\r\n" ) );
-		    }.bind(this)
+                    null :
+                    val.replace( this.rexp.rCRLF, "\r\n" ) );
+            }.bind( this )
         );
 
         return obj;
     },
 
     bindElements: function ( model, context ) {
-        var value,
+        var self = this,
+            value,
+            clean,
             elem;
 
         Object.getOwnPropertyNames( model ).forEach( function ( prop ) {
 
             value = gp.hasValue( model[prop] ) ? model[prop].toString() : '';
 
-            clean = gp.escapeHTML( value ).replace( this.rexp.rCRLF, "\r\n" );
-
             // is there a checkbox or radio with this name and value?
-            elem = context.querySelector( '[type=checkbox][name="' + prop + '"][value="' + clean + '"],[type=radio][name="' + prop + '"][value="' + clean + '"]' );
+            // don't select the value because it might throw a syntax error
+            elem = $(context).find( '[type=checkbox][name="' + prop + '"],[type=radio][name="' + prop + '"]' );
 
-            if ( elem != null )
-            {
-                elem.checked = true;
-                return;
+            if ( elem.length > 0 ) {
+
+                clean = gp.escapeHTML( value );
+
+                for ( var i = 0; i < elem.length; i++ ) {
+                    if ( elem[i].value == value || elem[i].value == clean ) {
+                        elem[i].checked = true;
+                        return;
+                    }
+                }
             }
 
             // check for boolean
             if ( /^(true|false)$/i.test( value ) )
             {
-                elem = context.querySelector( '[type=checkbox][name="' + prop + '"][value=true]' );
+                elem = $(context).find( '[type=checkbox][name="' + prop + '"][value=true],[type=checkbox][name="' + prop + '"][value=false]' );
 
-                if ( elem != null ) {
-                    elem.checked = /^true$/i.test( value );
+                if ( elem.length > 0 ) {
+                    elem.each( function ( e ) {
+                        this.checked = (
+                            ( self.rexp.rTrue.test( value ) && self.rexp.rTrue.test( e.value ) )
+                            ||
+                            ( self.rexp.rFalse.test( value ) && self.rexp.rFalse.test( e.value ) )
+                        );
+                    });
+
                     return;
                 }
             }
 
-            elem = context.querySelector( '[name="' + prop + '"]' );
-            if ( elem != null ) {
+            elem = $(context).find( '[name="' + prop + '"]' );
+            if ( elem.length > 0 ) {
 
-                // inputs with a value attribute
-                if ( elem.value !== undefined ) {
-                    elem.value = value;
+                // inputs with a value property
+                if ( elem[0].value !== undefined ) {
+                    elem[0].value = value;
                 }
-                    // inputs with no value attribute (e.g. textarea)
-                else if ( elem.innerHTML !== undefined ) {
-                    elem.innerHTML = ( value == null ? '' : gp.escapeHTML( value ) );
+                // inputs without a value property (e.g. textarea)
+                else if ( elem[0].innerHTML !== undefined ) {
+                    elem.html ( value == null ? '' : gp.escapeHTML( value ) );
                 }
 
             }
@@ -2414,37 +2396,27 @@ gp.ModelSync = {
     },
 
     cast: function ( val, dataType ) {
-        var isArray = Array.isArray( val );
-        var arr = isArray ? val : [val];
         switch ( dataType ) {
             case 'number':
-                arr = arr.filter( this.isNumeric ).map( parseFloat );
+                if ( this.isNumeric( val ) ) return parseFloat( val );
                 break;
             case 'boolean':
-                arr = arr.map( function ( v ) {
-                    return v.toLowerCase() == 'true';
-                } );
+                return val != null && val.toLowerCase() == 'true';
                 break;
             case 'null':
             case 'undefined':
-                arr = arr.map( function ( v ) {
-                    if ( /true|false/i.test( v ) ) {
-                        // assume boolean
-                        return v.toLowerCase() === 'true';
-                    }
-                    return v === '' ? null : v;
-                } );
+                if ( /true|false/i.test( val ) ) {
+                    // assume boolean
+                    return val != null && val.toLowerCase() == 'true';
+                }
+                return val === '' ? null : val;
                 break;
             default:
-                arr = arr.map( function ( v ) {
-                    return v === '' ? null : v;
-                } );
+                return val === '' ? null : val;
                 break;
         }
-        return isArray ? arr : arr[0];
     }
 };
-
 /***************\
    NodeBuilder
 \***************/
@@ -2504,7 +2476,6 @@ gp.NodeBuilder.prototype = {
     }
 
 };
-
 /***************\
 server-side pager
 \***************/
@@ -2567,7 +2538,7 @@ gp.ClientPager.prototype = {
             // filter first
             if ( !gp.isNullOrEmpty( model.search ) ) {
                 // make sure searchTerm is a string and trim it
-                search = gp.trim( model.search.toString() );
+                search = $.trim( model.search.toString() );
                 model.data = model.data.filter(function (row) {
                     return self.searchFilter(row, search);
                 });
@@ -2718,7 +2689,6 @@ gp.FunctionPager.prototype = {
         }
     }
 };
-
 /***************\
   PagingModel
 \***************/
@@ -2754,92 +2724,6 @@ gp.PagingModel = function (data) {
         }
     });
 };
-
-// pilfered from JQuery
-/*!
- * jQuery JavaScript Library v2.1.4
- * http://jquery.com/
- *
- * Copyright 2005, 2014 jQuery Foundation, Inc. and other contributors
- * Released under the MIT license
- * http://jquery.org/license
- *
- * Date: 2015-04-28T16:01Z
- */
-gp.ready = function (fn) {
-
-    var isReady = false;
-
-    var completed = function (event) {
-        // readyState === "complete" is good enough for us to call the dom ready in oldIE
-        if (document.addEventListener || event.type === "load" || document.readyState === "complete") {
-            isReady = true;
-            detach();
-            fn();
-        }
-    };
-
-    var detach = function () {
-        if (document.addEventListener) {
-            document.removeEventListener("DOMContentLoaded", completed, false);
-            window.removeEventListener("load", completed, false);
-
-        } else {
-            document.detachEvent("onreadystatechange", completed);
-            window.detachEvent("onload", completed);
-        }
-    };
-
-    if (document.readyState === "complete") {
-        // Handle it asynchronously to allow scripts the opportunity to delay ready
-        setTimeout(fn);
-
-        // Standards-based browsers support DOMContentLoaded
-    } else if (document.addEventListener) {
-        // Use the handy event callback
-        document.addEventListener("DOMContentLoaded", completed, false);
-
-        // A fallback to window.onload, that will always work
-        window.addEventListener("load", completed, false);
-
-        // If IE event model is used
-    } else {
-        // Ensure firing before onload, maybe late but safe also for iframes
-        document.attachEvent("onreadystatechange", completed);
-
-        // A fallback to window.onload, that will always work
-        window.attachEvent("onload", completed);
-
-        // If IE and not a frame
-        // continually check to see if the document is ready
-        var top = false;
-
-        try {
-            top = window.frameElement == null && document.documentElement;
-        } catch (e) { }
-
-        if (top && top.doScroll) {
-            (function doScrollCheck() {
-                if (!isReady) {
-
-                    try {
-                        // Use the trick by Diego Perini
-                        // http://javascript.nwbox.com/IEContentLoaded/
-                        top.doScroll("left");
-                    } catch (e) {
-                        return setTimeout(doScrollCheck, 50);
-                    }
-
-                    // detach all dom ready events
-                    detach();
-
-                    fn();
-                }
-            })();
-        }
-    }
-};
-
 /***************\
   StringBuilder
 \***************/
@@ -2865,220 +2749,220 @@ gp.StringBuilder.prototype = {
     }
 
 };
-
 /***************\
     templates
 \***************/
 gp.templates = gp.templates || {};
-gp.templates['bootstrap-modal'] = function ( model, arg ) {
+gp.templates['bootstrap-modal'] = function(model, arg) {
     var out = [];
-    out.push( '<div class="modal fade" tabindex="-1" role="dialog">' );
-    out.push( '<div class="modal-dialog" role="document">' );
-    out.push( '<div class="modal-content">' );
-    out.push( '<div class="modal-header">' );
-    out.push( '<button type="button" class="close" aria-label="Close" value="cancel"><span aria-hidden="true">&times;</span></button>' );
-    out.push( '                <h4 class="modal-title">' );
-    out.push( model.title );
-    out.push( '</h4>' );
-    out.push( '</div>' );
-    out.push( '<div class="modal-body">' );
-    out.push( model.body );
-    out.push( '</div>' );
-    out.push( '<div class="modal-footer">' );
-    if ( model.footer ) {
-        out.push( model.footer );
-    } else {
-        out.push( '<div class="btn-group">' );
-        out.push( '<button type="button" class="btn btn-default" value="cancel">' );
-        out.push( '<span class="glyphicon glyphicon-remove"></span>Close' );
-        out.push( '</button>' );
-        out.push( '<button type="button" class="btn btn-primary" value="save">' );
-        out.push( '<span class="glyphicon glyphicon-save"></span>Save changes' );
-        out.push( '</button>' );
-        out.push( '</div>' );
+    out.push('<div class="modal fade" tabindex="-1" role="dialog" data-uid="');
+    out.push(model.uid);
+    out.push('">');
+    out.push('<div class="modal-dialog" role="document">');
+    out.push('<div class="modal-content">');
+    out.push('<div class="modal-header">');
+    out.push('<button type="button" class="close" aria-label="Close" value="cancel"><span aria-hidden="true">&times;</span></button>');
+    out.push('                <h4 class="modal-title">');
+    out.push(model.title);
+    out.push('</h4>');
+    out.push('</div>');
+    out.push('<div class="modal-body">');
+                        out.push(model.body);
+        out.push('</div>');
+    out.push('<div class="modal-footer">');
+                        if (model.footer) {
+                                out.push(model.footer);
+                            } else {
+        out.push('<div class="btn-group">');
+    out.push('<button type="button" class="btn btn-default" value="cancel">');
+    out.push('<span class="glyphicon glyphicon-remove"></span>Close');
+    out.push('</button>');
+    out.push('<button type="button" class="btn btn-primary" value="save">');
+    out.push('<span class="glyphicon glyphicon-save"></span>Save changes');
+    out.push('</button>');
+    out.push('</div>');
+                        }
+        out.push('</div>');
+    out.push('</div>');
+    out.push('<div class="gp-progress-overlay">');
+    out.push('<div class="gp-progress gp-progress-container">');
+    out.push('<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>');
+    out.push('</div>');
+    out.push('</div>');
+    out.push('</div>');
+    out.push('</div>');
+    return out.join('');
+};
+gp.templates['gridponent-body'] = function(model, arg) {
+    var out = [];
+    out.push('<table class="table" cellpadding="0" cellspacing="0">');
+            if (!model.fixedheaders) {
+                    out.push(gp.helpers['thead'].call(model));
+                }
+        out.push('<tbody>');
+                out.push(gp.helpers['tableRows'].call(model));
+        out.push('</tbody>');
+            if (model.footer && !model.fixedfooters) {
+                    out.push(gp.templates['gridponent-tfoot'](model));
+                }
+        out.push('</table>');
+    return out.join('');
+};
+gp.templates['gridponent-cells'] = function(model, arg) {
+    var out = [];
+    model.columns.forEach(function(col, index) {
+            out.push('    <td class="body-cell ');
+    if ((col.commands)) {
+    out.push('commands ');
     }
-    out.push( '</div>' );
-    out.push( '</div>' );
-    out.push( '<div class="gp-progress-overlay">' );
-    out.push( '<div class="gp-progress gp-progress-container">' );
-    out.push( '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>' );
-    out.push( '</div>' );
-    out.push( '</div>' );
-    out.push( '</div>' );
-    out.push( '</div>' );
-    return out.join( '' );
+        out.push(col.bodyclass);
+    out.push('">');
+                out.push(gp.helpers['bodyCellContent'].call(model, col));
+        out.push('</td>');
+    });
+            return out.join('');
 };
-gp.templates['gridponent-body'] = function ( model, arg ) {
+gp.templates['gridponent-pager'] = function(model, arg) {
     var out = [];
-    out.push( '<table class="table" cellpadding="0" cellspacing="0">' );
-    if ( !model.fixedheaders ) {
-        out.push( gp.helpers['thead'].call( model ) );
+    out.push(gp.helpers['setPagerFlags'].call(model));
+            if (model.pageModel.HasPages) {
+            out.push('<div class="btn-group">');
+    out.push('    <button class="ms-page-index btn btn-default ');
+    if (model.pageModel.IsFirstPage) {
+    out.push(' disabled ');
     }
-    out.push( '<tbody>' );
-    out.push( gp.helpers['tableRows'].call( model ) );
-    out.push( '</tbody>' );
-    if ( model.footer && !model.fixedfooters ) {
-        out.push( gp.templates['gridponent-tfoot']( model ) );
+    out.push('" title="First page" value="page" data-page="1">');
+    out.push('<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>');
+    out.push('</button>');
+        out.push('    <button class="ms-page-index btn btn-default ');
+    if (model.pageModel.IsFirstPage) {
+    out.push(' disabled ');
     }
-    out.push( '</table>' );
-    return out.join( '' );
-};
-gp.templates['gridponent-cells'] = function ( model, arg ) {
-    var out = [];
-    model.columns.forEach( function ( col, index ) {
-        out.push( '    <td class="body-cell ' );
-        if ( ( col.commands ) ) {
-            out.push( 'commands ' );
-        }
-        out.push( col.bodyclass );
-        out.push( '">' );
-        out.push( gp.helpers['bodyCellContent'].call( model, col ) );
-        out.push( '</td>' );
-    } );
-    return out.join( '' );
-};
-gp.templates['gridponent-pager'] = function ( model, arg ) {
-    var out = [];
-    out.push( gp.helpers['setPagerFlags'].call( model ) );
-    if ( model.pageModel.HasPages ) {
-        out.push( '<div class="btn-group">' );
-        out.push( '    <button class="ms-page-index btn btn-default ' );
-        if ( model.pageModel.IsFirstPage ) {
-            out.push( ' disabled ' );
-        }
-        out.push( '" title="First page" value="page" data-page="1">' );
-        out.push( '<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>' );
-        out.push( '</button>' );
-        out.push( '    <button class="ms-page-index btn btn-default ' );
-        if ( model.pageModel.IsFirstPage ) {
-            out.push( ' disabled ' );
-        }
-        out.push( '" title="Previous page" value="page" data-page="' );
-        out.push( model.pageModel.PreviousPage );
-        out.push( '">' );
-        out.push( '<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>' );
-        out.push( '</button>' );
-        out.push( '</div>' );
-        out.push( '<input type="number" name="page" value="' );
-        out.push( model.pageModel.page );
-        out.push( '" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />' );
-        out.push( '<span class="page-count">' );
-        out.push( '    of ' );
-        out.push( model.pageModel.pagecount );
-        out.push( '</span>' );
-        out.push( '<div class="btn-group">' );
-        out.push( '    <button class="ms-page-index btn btn-default ' );
-        if ( model.pageModel.IsLastPage ) {
-            out.push( ' disabled ' );
-        }
-        out.push( '" title="Next page" value="page" data-page="' );
-        out.push( model.pageModel.NextPage );
-        out.push( '">' );
-        out.push( '<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>' );
-        out.push( '</button>' );
-        out.push( '    <button class="ms-page-index btn btn-default ' );
-        if ( model.pageModel.IsLastPage ) {
-            out.push( ' disabled ' );
-        }
-        out.push( '" title="Last page" value="page" data-page="' );
-        out.push( model.pageModel.pagecount );
-        out.push( '">' );
-        out.push( '<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>' );
-        out.push( '</button>' );
-        out.push( '</div>' );
+    out.push('" title="Previous page" value="page" data-page="');
+    out.push(model.pageModel.PreviousPage);
+    out.push('">');
+    out.push('<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>');
+    out.push('</button>');
+    out.push('</div>');
+    out.push('<input type="number" name="page" value="');
+    out.push(model.pageModel.page);
+    out.push('" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />');
+    out.push('<span class="page-count">');
+    out.push('    of ');
+    out.push(model.pageModel.pagecount);
+        out.push('</span>');
+    out.push('<div class="btn-group">');
+    out.push('    <button class="ms-page-index btn btn-default ');
+    if (model.pageModel.IsLastPage) {
+    out.push(' disabled ');
     }
-    return out.join( '' );
+    out.push('" title="Next page" value="page" data-page="');
+    out.push(model.pageModel.NextPage);
+    out.push('">');
+    out.push('<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>');
+    out.push('</button>');
+        out.push('    <button class="ms-page-index btn btn-default ');
+    if (model.pageModel.IsLastPage) {
+    out.push(' disabled ');
+    }
+    out.push('" title="Last page" value="page" data-page="');
+    out.push(model.pageModel.pagecount);
+    out.push('">');
+    out.push('<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>');
+    out.push('</button>');
+    out.push('</div>');
+    }
+            return out.join('');
 };
-gp.templates['gridponent-table-footer'] = function ( model, arg ) {
+gp.templates['gridponent-table-footer'] = function(model, arg) {
     var out = [];
-    out.push( '<table class="table" cellpadding="0" cellspacing="0">' );
-    out.push( gp.templates['gridponent-tfoot']( model ) );
-    out.push( '</table>' );
-    return out.join( '' );
+    out.push('<table class="table" cellpadding="0" cellspacing="0">');
+            out.push(gp.templates['gridponent-tfoot'](model));
+        out.push('</table>');
+    return out.join('');
 };
-gp.templates['gridponent-tfoot'] = function ( model, arg ) {
+gp.templates['gridponent-tfoot'] = function(model, arg) {
     var out = [];
-    out.push( '<tfoot>' );
-    out.push( '<tr>' );
-    model.columns.forEach( function ( col, index ) {
-        out.push( '<td class="footer-cell">' );
-        out.push( gp.helpers['footerCell'].call( model, col ) );
-        out.push( '</td>' );
-    } );
-    out.push( '</tr>' );
-    out.push( '</tfoot>' );
-    return out.join( '' );
+    out.push('<tfoot>');
+    out.push('<tr>');
+                model.columns.forEach(function(col, index) {
+        out.push('<td class="footer-cell">');
+                    out.push(gp.helpers['footerCell'].call(model, col));
+        out.push('</td>');
+                });
+        out.push('</tr>');
+    out.push('</tfoot>');
+    return out.join('');
 };
-gp.templates['gridponent'] = function ( model, arg ) {
+gp.templates['gridponent'] = function(model, arg) {
     var out = [];
-    out.push( '<div class="gp table-container' );
-    out.push( gp.helpers['containerClasses'].call( model ) );
-    out.push( '" id="' );
-    out.push( model.ID );
-    out.push( '">' );
-    if ( model.search || model.create || model.toolbartemplate ) {
-        out.push( '<div class="table-toolbar">' );
-        if ( model.toolbartemplate ) {
-            out.push( gp.helpers['toolbartemplate'].call( model ) );
-        } else {
-            if ( model.search ) {
-                out.push( '<div class="input-group gridponent-searchbox">' );
-                out.push( '<input type="text" name="search" class="form-control" placeholder="Search...">' );
-                out.push( '<span class="input-group-btn">' );
-                out.push( '<button class="btn btn-default" type="button" value="search">' );
-                out.push( '<span class="glyphicon glyphicon-search"></span>' );
-                out.push( '</button>' );
-                out.push( '</span>' );
-                out.push( '</div>' );
+    out.push('<div class="gp table-container');
+    out.push(gp.helpers['containerClasses'].call(model));
+    out.push('" id="');
+    out.push(model.ID);
+    out.push('">');
+            if (model.search || model.create || model.toolbartemplate) {
+        out.push('<div class="table-toolbar">');
+                    if (model.toolbartemplate) {
+                            out.push(gp.helpers['toolbartemplate'].call(model));
+                        } else {
+                            if (model.search) {
+        out.push('<div class="input-group gridponent-searchbox">');
+    out.push('<input type="text" name="search" class="form-control" placeholder="Search...">');
+    out.push('<span class="input-group-btn">');
+    out.push('<button class="btn btn-default" type="button" value="search">');
+    out.push('<span class="glyphicon glyphicon-search"></span>');
+    out.push('</button>');
+    out.push('</span>');
+    out.push('</div>');
+                        }
+                            if (model.create) {
+        out.push('<button class="btn btn-default" type="button" value="AddRow">');
+    out.push('<span class="glyphicon glyphicon-plus"></span>Add');
+    out.push('</button>');
+                        }
+                        }
+        out.push('</div>');
             }
-            if ( model.create ) {
-                out.push( '<button class="btn btn-default" type="button" value="AddRow">' );
-                out.push( '<span class="glyphicon glyphicon-plus"></span>Add' );
-                out.push( '</button>' );
+                if (model.fixedheaders) {
+        out.push('<div class="table-header">');
+    out.push('<table class="table" cellpadding="0" cellspacing="0">');
+                        out.push(gp.helpers['thead'].call(model));
+        out.push('</table>');
+    out.push('</div>');
             }
-        }
-        out.push( '</div>' );
+        out.push('    <div class="table-body ');
+    if (model.fixedheaders) {
+    out.push('table-scroll');
     }
-    if ( model.fixedheaders ) {
-        out.push( '<div class="table-header">' );
-        out.push( '<table class="table" cellpadding="0" cellspacing="0">' );
-        out.push( gp.helpers['thead'].call( model ) );
-        out.push( '</table>' );
-        out.push( '</div>' );
-    }
-    out.push( '    <div class="table-body ' );
-    if ( model.fixedheaders ) {
-        out.push( 'table-scroll' );
-    }
-    out.push( '" style="' );
-    out.push( model.style );
-    out.push( '">' );
-    out.push( '<table class="table" cellpadding="0" cellspacing="0">' );
-    if ( !model.fixedheaders ) {
-        out.push( gp.helpers['thead'].call( model ) );
-    }
-    out.push( '</table>' );
-    out.push( '</div>' );
-    if ( model.fixedfooters ) {
-        out.push( '<div class="table-footer">' );
-        out.push( gp.templates['gridponent-table-footer']( model ) );
-        out.push( '</div>' );
-    }
-    if ( model.pager ) {
-        out.push( '<div class="table-pager"></div>' );
-    }
-    out.push( '<style type="text/css" class="column-width-style">' );
-    out.push( gp.helpers['columnWidthStyle'].call( model ) );
-    out.push( '</style>' );
-    out.push( '<div class="gp-progress-overlay">' );
-    out.push( '<div class="gp-progress gp-progress-container">' );
-    out.push( '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>' );
-    out.push( '</div>' );
-    out.push( '</div>' );
-    out.push( '</div>' );
-    return out.join( '' );
+    out.push('" style="');
+    out.push(model.style);
+    out.push('">');
+    out.push('<table class="table" cellpadding="0" cellspacing="0">');
+                    if (!model.fixedheaders) {
+                            out.push(gp.helpers['thead'].call(model));
+                        }
+        out.push('</table>');
+    out.push('</div>');
+            if (model.fixedfooters) {
+        out.push('<div class="table-footer">');
+                    out.push(gp.templates['gridponent-table-footer'](model));
+        out.push('</div>');
+            }
+                if (model.pager) {
+        out.push('<div class="table-pager"></div>');
+            }
+        out.push('<style type="text/css" class="column-width-style">');
+                out.push(gp.helpers['columnWidthStyle'].call(model));
+        out.push('</style>');
+    out.push('<div class="gp-progress-overlay">');
+    out.push('<div class="gp-progress gp-progress-container">');
+    out.push('<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>');
+    out.push('</div>');
+    out.push('</div>');
+    out.push('</div>');
+    return out.join('');
 };
-
 /***************\
    UpdateModel
 \***************/
@@ -3089,7 +2973,6 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
     this.original = gp.shallowCopy( dataItem );
 
 };
-
 /***************\
    utilities
 \***************/
@@ -3102,12 +2985,6 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
     for ( var i = 0; i < possibles.length && matches == null; i++ ) {
         if ( Element.prototype[possibles[i]] ) matches = possibles[i];
     }
-
-    gp.addClass = function ( el, cn ) {
-        if ( !gp.hasClass( el, cn ) ) {
-            el.className = ( el.className === '' ) ? cn : el.className + ' ' + cn;
-        }
-    };
 
     gp.applyFunc = function ( callback, context, args, error ) {
         if ( typeof callback !== 'function' ) return;
@@ -3129,10 +3006,6 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         }
     };
 
-    gp.attr = function ( el, name ) {
-        return el.attributes[name].value;
-    };
-
     gp.camelize = function ( str ) {
         if ( gp.isNullOrEmpty( str ) ) return str;
         return str
@@ -3145,29 +3018,6 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
             .replace( /^([A-Z])/, function ( _, c ) {
                 return c ? c.toLowerCase() : '';
             } );
-    };
-
-    gp.closest = function ( elem, selector, parentNode ) {
-        var e;
-        // parentNode is usually the grid's containing element
-        // we don't want to select elements outside the grid
-        parentNode = parentNode || document;
-
-        // if elem is a selector, convert it to an element
-        if ( typeof ( elem ) === 'string' ) {
-            elem = document.querySelector( elem );
-        }
-
-        e = elem;
-
-        while ( e ) {
-
-            if ( e[matches]( selector ) ) return e;
-
-            if ( e == parentNode ) return null;
-
-            e = e.parentElement;
-        }
     };
 
     gp.coalesce = function ( array ) {
@@ -3206,9 +3056,7 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
     };
 
     gp.disable = function ( elem, seconds ) {
-        elem.setAttribute( 'disabled', 'disabled' );
-        gp.addClass( elem, 'disabled' );
-        gp.addClass( elem, 'busy' );
+        $( elem ).attr( 'disabled', 'disabled' ).addClass( 'disabled busy' );
         if ( typeof seconds == 'number' && seconds > 0 ) {
             setTimeout( function () {
                 gp.enable( elem );
@@ -3216,17 +3064,8 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         }
     };
 
-    gp.each = function ( arrayLike, fn ) {
-        // I hate for loops
-        for ( var i = 0; i < arrayLike.length; i++ ) {
-            fn( arrayLike[i] );
-        }
-    };
-
     gp.enable = function ( elem ) {
-        elem.removeAttribute( 'disabled' );
-        gp.removeClass( elem, 'disabled' );
-        gp.removeClass( elem, 'busy' );
+        $( elem ).removeAttr( 'disabled' ).removeClass( 'disabled busy' );
     };
 
     var chars = [/&/g, /</g, />/g, /"/g, /'/g, /`/g];
@@ -3236,9 +3075,9 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         if ( typeof obj !== 'string' ) {
             return obj;
         }
-        for ( var i = 0; i < chars.length; i++ ) {
-            obj = obj.replace( chars[i], escaped[i] );
-        }
+        chars.forEach( function ( char, i ) {
+            obj = obj.replace( char, escaped[i] );
+        } );
         return obj;
     };
 
@@ -3341,7 +3180,7 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
     gp.getTableRow = function ( map, dataItem, node ) {
         var uid = map.getUid( dataItem );
         if ( uid == -1 ) return;
-        return node.querySelector( 'tr[data-uid="' + uid + '"]' );
+        return $( node ).find( 'tr[data-uid="' + uid + '"]' );
     };
 
     gp.getType = function ( a ) {
@@ -3366,10 +3205,6 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         return typeof ( a );
     };
 
-    gp.hasClass = function ( el, cn ) {
-        return ( ' ' + el.className + ' ' ).indexOf( ' ' + cn + ' ' ) !== -1;
-    };
-
     gp.hasPositiveWidth = function ( nodes ) {
         if ( gp.isNullOrEmpty( nodes ) ) return false;
         for ( var i = 0; i < nodes.length; i++ ) {
@@ -3386,109 +3221,6 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         // if a string or array is passed, it'll be tested for both null and zero length
         // if any other data type is passed (no length property), it'll only be tested for null
         return gp.hasValue( val ) === false || ( val.length != undefined && val.length === 0 );
-    };
-
-    var proxyListener = function ( elem, event, targetSelector, listener ) {
-
-        this.handler = function ( evt ) {
-
-            var e = evt.target;
-
-            // find the first element that matches targetSelector
-            // usually this will be the first one
-            while ( e && e != elem ) {
-                if ( e[matches]( targetSelector ) ) {
-                    // don't modify the listener's context to preserve the ability to use bind()
-                    // set selectedTarget to the matching element instead
-
-                    evt.selectedTarget = e;
-                    listener( evt );
-                    return;
-                }
-                e = e.parentElement;
-            }
-        };
-
-        this.remove = function () {
-            elem.removeEventListener( event, this.handler );
-        };
-
-        // handle event
-        elem.addEventListener( event, this.handler, false );
-    };
-
-    gp.off = function ( elem, event, listener ) {
-        // check for a matching listener stored on the element
-        var listeners = elem['gp-listeners-' + event];
-        if ( listeners ) {
-            for ( var i = 0; i < listeners.length; i++ ) {
-                if ( listeners[i].pub === listener ) {
-
-                    // remove the event handler
-                    listeners[i].priv.remove();
-
-                    // remove it from the listener store
-                    listeners.splice( i, 1 );
-                    return;
-                }
-            }
-        }
-        else {
-            elem.removeEventListener( event, listener );
-        }
-    };
-
-    // this allows us to attach an event handler to the document
-    // and handle events that match a selector
-    gp.on = function ( elem, event, targetSelector, listener ) {
-        // if elem is a selector, convert it to an element
-        if ( typeof ( elem ) === 'string' ) {
-            elem = document.querySelector( elem );
-        }
-
-        if ( !gp.hasValue( elem ) ) {
-            return;
-        }
-
-        if ( typeof targetSelector === 'function' ) {
-            elem.addEventListener( event, targetSelector, false );
-            return;
-        }
-
-        var proxy = new proxyListener( elem, event, targetSelector, listener );
-
-        // use an array to store privateListener 
-        // so we can remove the handler with gp.off
-        var propName = 'gp-listeners-' + event;
-        var listeners = elem[propName] || ( elem[propName] = [] );
-        listeners.push( {
-            pub: listener,
-            priv: proxy
-        } );
-
-        return elem;
-    };
-
-    gp.prependChild = function ( node, child ) {
-        if ( typeof node === 'string' ) node = document.querySelector( node );
-        if ( !node.firstChild ) {
-            node.appendChild( child );
-        }
-        else {
-            node.insertBefore( child, node.firstChild );
-        }
-        return child;
-    };
-
-    gp.removeClass = function ( el, cn ) {
-        if ( el instanceof NodeList ) {
-            for ( var i = 0; i < el.length; i++ ) {
-                el[i].className = $.trim(( ' ' + el[i].className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
-            }
-        }
-        else {
-            el.className = $.trim(( ' ' + el.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
-        }
     };
 
     gp.resolveTypes = function ( config ) {
@@ -3525,11 +3257,15 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         timestamp: /\/Date\((\d+)\)\//,
         quoted: /^['"].+['"]$/,
         trueFalse: /true|false/i,
-        json: /^\{.*\}$|^\[.*\]$/
+        json: /^\{.*\}$|^\[.*\]$/,
+        copyable: /^(object|date|array|function)$/
     };
 
     gp.shallowCopy = function ( from, to, camelize ) {
         to = to || {};
+        // IE is more strict about what it will accept
+        // as an argument to getOwnPropertyNames
+        if ( !gp.rexp.copyable.test( gp.getType( from ) ) ) return to;
         var p, props = Object.getOwnPropertyNames( from );
         props.forEach( function ( prop ) {
             p = camelize ? gp.camelize( prop ) : prop;
@@ -3566,65 +3302,6 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         );
     };
 
-    gp.syncChange = function (target, model, columns) {
-        // get name and value of target
-        var name = target.name,
-            val = target.value,
-            type,
-            col;
-
-        // attempt to resolve a type by examining the configuration first
-        if ( this.config ) {
-            col = gp.getColumnByField( columns, name );
-            if ( col ) type = col.Type;
-        }
-
-        if ( !name in model ) model[name] = null;
-
-        try {
-            // if there's no type in the columns, get one from the model
-            type = type || gp.getType( model[name] );
-            switch ( type ) {
-                case 'number':
-                    model[name] = parseFloat( val );
-                    break;
-                case 'boolean':
-                    if ( target.type == 'checkbox' ) {
-                        if ( val.toLowerCase() == 'true' ) val = target.checked;
-                        else if ( val.toLowerCase() == 'false' ) val = !target.checked;
-                        else val = target.checked ? val : null;
-                        model[name] = val;
-                    }
-                    else {
-                        model[name] = ( val.toLowerCase() == 'true' );
-                    }
-                    break;
-                default:
-                    model[name] = val;
-            }
-        }
-        catch ( e ) {
-            gp.error( e );
-        }
-    };
-
-    gp.syncModel = function ( parent, model, columns ) {
-        try {
-            var inputs = parent.querySelectorAll( '[name]' );
-            for ( var i = 0; i < inputs.length; i++ ) {
-                gp.syncChange( inputs[i], model, columns );
-            }
-        }
-        catch ( e ) {
-            gp.error( e );
-        }
-    };
-
-    gp.trim = function ( str ) {
-        if ( gp.isNullOrEmpty( str ) ) return str;
-        return str.trim ? str.trim() : str.replace( /^\s+|\s+$/g, '' );
-    };
-
     // logging
     gp.log = ( window.console ? window.console.log.bind( window.console ) : function () { } );
     gp.error = function ( e ) {
@@ -3634,7 +3311,6 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
     };
 
 } )( gridponent );
-
 // check for web component support
 if (document.registerElement) {
 
@@ -3659,13 +3335,16 @@ else {
     // provide a static function to initialize grid-ponent elements manually
     gp.initialize = function (root) {
         root = root || document;
+        // jQuery stalls here, so don't use it
         var node, nodes = root.querySelectorAll( 'grid-ponent' );
         for ( var i = 0; i < nodes.length; i++ ) {
             new gp.Initializer( nodes[i] ).initialize();
         }
     };
 
-    gp.ready( gp.initialize );
+    $(function(){
+        gp.initialize();
+    });
 }
 
 })(gridponent);

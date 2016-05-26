@@ -27,6 +27,7 @@ gp.events = {
 gp.api = function ( controller ) {
     this.controller = controller;
     this.config = controller.config;
+    this.$n = $( this.config.node );
 };
 
 gp.api.prototype = {

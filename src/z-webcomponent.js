@@ -22,13 +22,16 @@ else {
     // provide a static function to initialize grid-ponent elements manually
     gp.initialize = function (root) {
         root = root || document;
+        // jQuery stalls here, so don't use it
         var node, nodes = root.querySelectorAll( 'grid-ponent' );
         for ( var i = 0; i < nodes.length; i++ ) {
             new gp.Initializer( nodes[i] ).initialize();
         }
     };
 
-    gp.ready( gp.initialize );
+    $(function(){
+        gp.initialize();
+    });
 }
 
 })(gridponent);

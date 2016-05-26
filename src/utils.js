@@ -11,12 +11,6 @@
         if ( Element.prototype[possibles[i]] ) matches = possibles[i];
     }
 
-    gp.addClass = function ( el, cn ) {
-        if ( !gp.hasClass( el, cn ) ) {
-            el.className = ( el.className === '' ) ? cn : el.className + ' ' + cn;
-        }
-    };
-
     gp.applyFunc = function ( callback, context, args, error ) {
         if ( typeof callback !== 'function' ) return;
         // anytime there's the possibility of executing 
@@ -37,10 +31,6 @@
         }
     };
 
-    gp.attr = function ( el, name ) {
-        return el.attributes[name].value;
-    };
-
     gp.camelize = function ( str ) {
         if ( gp.isNullOrEmpty( str ) ) return str;
         return str
@@ -53,29 +43,6 @@
             .replace( /^([A-Z])/, function ( _, c ) {
                 return c ? c.toLowerCase() : '';
             } );
-    };
-
-    gp.closest = function ( elem, selector, parentNode ) {
-        var e;
-        // parentNode is usually the grid's containing element
-        // we don't want to select elements outside the grid
-        parentNode = parentNode || document;
-
-        // if elem is a selector, convert it to an element
-        if ( typeof ( elem ) === 'string' ) {
-            elem = document.querySelector( elem );
-        }
-
-        e = elem;
-
-        while ( e ) {
-
-            if ( e[matches]( selector ) ) return e;
-
-            if ( e == parentNode ) return null;
-
-            e = e.parentElement;
-        }
     };
 
     gp.coalesce = function ( array ) {
@@ -114,9 +81,7 @@
     };
 
     gp.disable = function ( elem, seconds ) {
-        elem.setAttribute( 'disabled', 'disabled' );
-        gp.addClass( elem, 'disabled' );
-        gp.addClass( elem, 'busy' );
+        $( elem ).attr( 'disabled', 'disabled' ).addClass( 'disabled busy' );
         if ( typeof seconds == 'number' && seconds > 0 ) {
             setTimeout( function () {
                 gp.enable( elem );
@@ -125,9 +90,7 @@
     };
 
     gp.enable = function ( elem ) {
-        elem.removeAttribute( 'disabled' );
-        gp.removeClass( elem, 'disabled' );
-        gp.removeClass( elem, 'busy' );
+        $( elem ).removeAttr( 'disabled' ).removeClass( 'disabled busy' );
     };
 
     var chars = [/&/g, /</g, />/g, /"/g, /'/g, /`/g];
@@ -242,7 +205,7 @@
     gp.getTableRow = function ( map, dataItem, node ) {
         var uid = map.getUid( dataItem );
         if ( uid == -1 ) return;
-        return node.querySelector( 'tr[data-uid="' + uid + '"]' );
+        return $( node ).find( 'tr[data-uid="' + uid + '"]' );
     };
 
     gp.getType = function ( a ) {
@@ -267,10 +230,6 @@
         return typeof ( a );
     };
 
-    gp.hasClass = function ( el, cn ) {
-        return ( ' ' + el.className + ' ' ).indexOf( ' ' + cn + ' ' ) !== -1;
-    };
-
     gp.hasPositiveWidth = function ( nodes ) {
         if ( gp.isNullOrEmpty( nodes ) ) return false;
         for ( var i = 0; i < nodes.length; i++ ) {
@@ -287,109 +246,6 @@
         // if a string or array is passed, it'll be tested for both null and zero length
         // if any other data type is passed (no length property), it'll only be tested for null
         return gp.hasValue( val ) === false || ( val.length != undefined && val.length === 0 );
-    };
-
-    var proxyListener = function ( elem, event, targetSelector, listener ) {
-
-        this.handler = function ( evt ) {
-
-            var e = evt.target;
-
-            // find the first element that matches targetSelector
-            // usually this will be the first one
-            while ( e && e != elem ) {
-                if ( e[matches]( targetSelector ) ) {
-                    // don't modify the listener's context to preserve the ability to use bind()
-                    // set selectedTarget to the matching element instead
-
-                    evt.selectedTarget = e;
-                    listener( evt );
-                    return;
-                }
-                e = e.parentElement;
-            }
-        };
-
-        this.remove = function () {
-            elem.removeEventListener( event, this.handler );
-        };
-
-        // handle event
-        elem.addEventListener( event, this.handler, false );
-    };
-
-    gp.off = function ( elem, event, listener ) {
-        // check for a matching listener stored on the element
-        var listeners = elem['gp-listeners-' + event];
-        if ( listeners ) {
-            for ( var i = 0; i < listeners.length; i++ ) {
-                if ( listeners[i].pub === listener ) {
-
-                    // remove the event handler
-                    listeners[i].priv.remove();
-
-                    // remove it from the listener store
-                    listeners.splice( i, 1 );
-                    return;
-                }
-            }
-        }
-        else {
-            elem.removeEventListener( event, listener );
-        }
-    };
-
-    // this allows us to attach an event handler to the document
-    // and handle events that match a selector
-    gp.on = function ( elem, event, targetSelector, listener ) {
-        // if elem is a selector, convert it to an element
-        if ( typeof ( elem ) === 'string' ) {
-            elem = document.querySelector( elem );
-        }
-
-        if ( !gp.hasValue( elem ) ) {
-            return;
-        }
-
-        if ( typeof targetSelector === 'function' ) {
-            elem.addEventListener( event, targetSelector, false );
-            return;
-        }
-
-        var proxy = new proxyListener( elem, event, targetSelector, listener );
-
-        // use an array to store privateListener 
-        // so we can remove the handler with gp.off
-        var propName = 'gp-listeners-' + event;
-        var listeners = elem[propName] || ( elem[propName] = [] );
-        listeners.push( {
-            pub: listener,
-            priv: proxy
-        } );
-
-        return elem;
-    };
-
-    gp.prependChild = function ( node, child ) {
-        if ( typeof node === 'string' ) node = document.querySelector( node );
-        if ( !node.firstChild ) {
-            node.appendChild( child );
-        }
-        else {
-            node.insertBefore( child, node.firstChild );
-        }
-        return child;
-    };
-
-    gp.removeClass = function ( el, cn ) {
-        if ( el instanceof NodeList ) {
-            gp.each( el, function ( node ) {
-                node.className = gp.trim(( ' ' + node.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
-            } );
-        }
-        else {
-            el.className = gp.trim(( ' ' + el.className + ' ' ).replace( ' ' + cn + ' ', ' ' ) );
-        }
     };
 
     gp.resolveTypes = function ( config ) {
@@ -469,11 +325,6 @@
                 return typeof r === 'function' ? gp.escapeHTML( gp.applyFunc( r, self, args ) ) : '';
             }
         );
-    };
-
-    gp.trim = function ( str ) {
-        if ( gp.isNullOrEmpty( str ) ) return str;
-        return str.trim ? str.trim() : str.replace( /^\s+|\s+$/g, '' );
     };
 
     // logging
