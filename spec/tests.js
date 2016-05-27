@@ -551,13 +551,13 @@ QUnit.test( 'busy class', function ( assert ) {
     options.onread = 'fns.afterRead';
 
     fns.beforeRead = function () {
-        var hasClass = gp.hasClass( this.config.node, 'busy' );
+        var hasClass = $(this.config.node).hasClass( 'busy' );
         assert.equal( hasClass, true );
         done1();
     };
 
     fns.afterRead = function () {
-        var hasClass = gp.hasClass( this.config.node, 'busy' );
+        var hasClass = $( this.config.node).hasClass( 'busy' );
         assert.equal( hasClass, false );
         done2();
     };
@@ -1864,27 +1864,6 @@ QUnit.test( 'gp.error', function ( assert ) {
 
 } );
 
-QUnit.test( 'gp.on', function ( assert ) {
-
-    var listener = function ( evt ) {
-
-    };
-
-    var selector = 'div';
-
-    var elem = gp.on( selector, 'click', 'button', listener );
-
-    assert.ok( typeof elem == 'object', 'should turn a selector into a DOM object' );
-
-    assert.ok( elem['gp-listeners-click'] != null, 'a list of listeners should be attached to the element' );
-
-    selector = 'does-not-exist';
-
-    elem = gp.on( selector, 'click', 'button', listener );
-
-    assert.ok( elem == undefined, 'non-existent elem should return undefined' );
-} );
-
 QUnit.test( 'CustomEvent', function ( assert ) {
 
     var done = assert.async();
@@ -1911,22 +1890,6 @@ QUnit.test( 'gp.getType', function ( assert ) {
     assert.equal( gp.getType( 3.0 ), 'number' );
     assert.equal( gp.getType( {} ), 'object' );
     assert.equal( gp.getType( [] ), 'array' );
-} );
-
-QUnit.test( 'gp.closest', function ( assert ) {
-
-    var body = gp.closest( div[0], 'body' );
-
-    assert.ok( body !== undefined );
-
-    var elem = gp.closest( 'div', 'body' );
-
-    assert.ok( typeof elem == 'object', 'should turn a selector into a DOM object' );
-
-    elem = gp.closest( 'does-not-exist', 'body' );
-
-    assert.ok( elem == undefined, 'non-existent elem should return undefined' );
-
 } );
 
 QUnit.test( 'gp.getObjectAtPath', function ( assert ) {
@@ -2746,20 +2709,6 @@ QUnit.test( 'number formatting', function ( assert ) {
 
     formatted = formatter.format( 1234.56 );
     assert.equal( formatted, '1,235' );
-} );
-
-QUnit.test( 'gp.prependChild', function ( assert ) {
-
-    $( '#div1' ).empty();
-
-    var child = document.createElement( 'span' );
-
-    gp.prependChild( '#div1', child );
-
-    var span = div[0].querySelector( 'span' );
-
-    assert.equal( span, div[0].firstChild );
-
 } );
 
 QUnit.test( 'gp.createUID', function ( assert ) {

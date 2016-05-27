@@ -1,5 +1,5 @@
 ﻿/***************\
-     model
+   DataLayer
 \***************/
 gp.DataLayer = function ( config ) {
     this.config = config;

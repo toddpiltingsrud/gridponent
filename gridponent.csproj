@@ -89,7 +89,6 @@
     <Content Include="src\x-object-proxy.js" />
     <Content Include="src\x-format.js" />
     <Content Include="src\mock-http.js" />
-    <Content Include="src\ready-check.js" />
     <Content Include="src\pagers.js" />
     <Content Include="src\utils.js" />
     <Content Include="src\paging-model.js" />

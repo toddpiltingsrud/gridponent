@@ -66,13 +66,5 @@ var gridponent = gridponent || function ( elem, options ) {
 
 };
 
-gridponent.toArray = function(arrayLike) {
-    return [].slice.call(arrayLike);
-};
-
-gridponent.each = function(arrayLike, fn) {
-    return [].forEach.call(arrayLike, fn);
-};
-
 (function(gp) { 
     'use strict';

@@ -36,15 +36,15 @@ gp.ModelSync = {
     */
 
     serialize: function ( form ) {
-        var inputs = form.querySelectorAll( '[name]' ),
-            arr = gp.toArray( inputs ),
+        var inputs = $( form ).find( '[name]' ),
+            arr = inputs.toArray(),
             filter = {},
             obj = {};
 
-        arr.forEach( function ( elem ) {
+        inputs.each( function () {
             // add properties for each named element in the form
             // so unsuccessful form elements are still explicitly represented
-            obj[elem.name] = null;
+            obj[this.name] = null;
         } );
 
         arr.filter( function ( elem ) {
@@ -73,7 +73,8 @@ gp.ModelSync = {
     },
 
     bindElements: function ( model, context ) {
-        var value,
+        var self = this,
+            value,
             clean,
             elem;
 
@@ -83,9 +84,9 @@ gp.ModelSync = {
 
             // is there a checkbox or radio with this name and value?
             // don't select the value because it might throw a syntax error
-            elem = context.querySelectorAll( '[type=checkbox][name="' + prop + '"],[type=radio][name="' + prop + '"]' );
+            elem = $(context).find( '[type=checkbox][name="' + prop + '"],[type=radio][name="' + prop + '"]' );
 
-            if ( elem != null  ) {
+            if ( elem.length > 0 ) {
 
                 clean = gp.escapeHTML( value );
 
@@ -100,31 +101,31 @@ gp.ModelSync = {
             // check for boolean
             if ( /^(true|false)$/i.test( value ) )
             {
-                elem = context.querySelectorAll( '[type=checkbox][name="' + prop + '"][value=true],[type=checkbox][name="' + prop + '"][value=false]' );
+                elem = $(context).find( '[type=checkbox][name="' + prop + '"][value=true],[type=checkbox][name="' + prop + '"][value=false]' );
 
-                if ( elem != null ) {
-                    gp.each( elem, function ( e ) {
-                        e.checked = (
-                            ( this.rexp.rTrue.test( value ) && this.rexp.rTrue.test( e.value ) )
+                if ( elem.length > 0 ) {
+                    elem.each( function ( e ) {
+                        this.checked = (
+                            ( self.rexp.rTrue.test( value ) && self.rexp.rTrue.test( e.value ) )
                             ||
-                            ( this.rexp.rFalse.test( value ) && this.rexp.rFalse.test( e.value ) )
+                            ( self.rexp.rFalse.test( value ) && self.rexp.rFalse.test( e.value ) )
                         );
-                    }.bind( this ) );
+                    });
 
                     return;
                 }
             }
 
-            elem = context.querySelector( '[name="' + prop + '"]' );
-            if ( elem != null ) {
+            elem = $(context).find( '[name="' + prop + '"]' );
+            if ( elem.length > 0 ) {
 
                 // inputs with a value property
-                if ( elem.value !== undefined ) {
-                    elem.value = value;
+                if ( elem[0].value !== undefined ) {
+                    elem[0].value = value;
                 }
                 // inputs without a value property (e.g. textarea)
-                else if ( elem.innerHTML !== undefined ) {
-                    elem.innerHTML = ( value == null ? '' : gp.escapeHTML( value ) );
+                else if ( elem[0].innerHTML !== undefined ) {
+                    elem.html ( value == null ? '' : gp.escapeHTML( value ) );
                 }
 
             }
