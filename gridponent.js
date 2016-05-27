@@ -1208,7 +1208,7 @@ gp.TableRowEditor.prototype = {
 
             if ( $( this.elem ).hasClass( 'create-mode' ) ) {
                 // remove elem
-                tbl.deleteRow( this.elem.rowIndex );
+                tbl[0].deleteRow( this.elem.rowIndex );
             }
             else {
                 // restore the dataItem to its original state
