@@ -33,4 +33,4 @@ Dependencies:
 - numeraljs
 
 
-* Shadow DOM is not used because it is not yet widely supported.
+*Shadow DOM is not used because it is not yet widely supported.
