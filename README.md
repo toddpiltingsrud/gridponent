@@ -1,25 +1,36 @@
-# gridponent (in development)
+# gridponent (beta)
 
-A grid web component
+A Bootstrap(http://getbootstrap.com/) grid component.
 
-This is a grid that makes use of the web component API. 
+Features:
 
-It has the following features:
-
-- Client side sorting, paging, and searching
-- Configurable server-side sorting, paging and searching
-- In place editing
+- Bootstrap-ready
+- Client side sorting, paging and searching
+- Server side sorting, paging and searching
+- Inline editing
+- Modal editing
 - Column templating
-- Internationalization formatting via the Intl global object
+- Toolbar templating
+- Cell value formatting using moment.js(http://momentjs.com/) and numeral.js(http://numeraljs.com/)
+- Specify custom CSS classes for header, body and footer
 - Fixed headers
 - Fixed footers
 - Responsive
 - Configurable search and pager positions
 - Row selection
-- bootstrap-ready
 - An extensible JavaScript API
+- Create grid instances via custom HTML markup or JavaScript
+- [Web component](http://webcomponents.org/) support*
 
-Support for IE9 is achieved by falling back to querying the DOM for grid-ponent elements and rendering them after the page loads.
-That means grid-ponent elements that are added dynamically after the page has loaded will not automatically be detected and rendered in IE9.
 
 See it in action [here](https://gridponent-demo.herokuapp.com/index.php).
+
+Dependencies:
+
+- jQuery
+- Bootstrap
+- momentjs
+- numeraljs
+
+
+* Shadow DOM is not used because it is not yet widely supported.
