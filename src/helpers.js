@@ -246,7 +246,7 @@ gp.helpers = {
 
     sortStyle: function ( config ) {
         // remove glyphicons from sort buttons
-        var spans = config.node.querySelectorAll( 'button.table-sort > spn.glyphicon-chevron-up,button.table-sort > span.glyphicon-chevron-down' );
+        var spans = config.node.querySelectorAll( 'button.table-sort > span.glyphicon-chevron-up,button.table-sort > span.glyphicon-chevron-down' );
         gp.removeClass( spans, 'glyphicon-chevron-up' );
         gp.removeClass( spans, 'glyphicon-chevron-down' );
         if ( !gp.isNullOrEmpty( config.pageModel.sort ) ) {

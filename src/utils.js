@@ -124,13 +124,6 @@
         }
     };
 
-    gp.each = function ( arrayLike, fn ) {
-        // I hate for loops
-        for ( var i = 0; i < arrayLike.length; i++ ) {
-            fn( arrayLike[i], i );
-        }
-    };
-
     gp.enable = function ( elem ) {
         elem.removeAttribute( 'disabled' );
         gp.removeClass( elem, 'disabled' );
@@ -433,11 +426,15 @@
         timestamp: /\/Date\((\d+)\)\//,
         quoted: /^['"].+['"]$/,
         trueFalse: /true|false/i,
-        json: /^\{.*\}$|^\[.*\]$/
+        json: /^\{.*\}$|^\[.*\]$/,
+        copyable: /^(object|date|array|function)$/
     };
 
     gp.shallowCopy = function ( from, to, camelize ) {
         to = to || {};
+        // IE is more strict about what it will accept
+        // as an argument to getOwnPropertyNames
+        if ( !gp.rexp.copyable.test( gp.getType( from ) ) ) return to;
         var p, props = Object.getOwnPropertyNames( from );
         props.forEach( function ( prop ) {
             p = camelize ? gp.camelize( prop ) : prop;
