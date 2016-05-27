@@ -191,15 +191,16 @@ gp.Initializer.prototype = {
         var selector,
             template,
             prop,
+            $node = $(node),
             selectorTemplate = 'script[type="text/html"][data-template*="{{name}}"],template[data-template*="{{name}}"]';
         names.forEach( function ( n ) {
             selector = gp.supplant( selectorTemplate, { name: n } );
-            template = node.querySelector( selector );
-            if ( template != null ) {
-                for ( var i = 0; i < node.children.length; i++ ) {
-                    if ( node.children[i] == template ) {
+            template = $node.find( selector );
+            if ( template.length ) {
+                for ( var i = 0; i < $node[0].children.length; i++ ) {
+                    if ( $node[0].children[i] == template[0] ) {
                         prop = gp.camelize( n ) + 'template';
-                        config[prop] = template.innerHTML;
+                        config[prop] = template[0].innerHTML;
                         return;
                     }
                 }

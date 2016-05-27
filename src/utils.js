@@ -109,7 +109,7 @@
     gp.formatter = new gp.Formatter();
 
     gp.getAttributes = function ( node ) {
-        var config = {}, name, attr, attrs = node.attributes;
+        var config = {}, name, attr, attrs = $(node)[0].attributes;
         for ( var i = attrs.length - 1; i >= 0; i-- ) {
             attr = attrs[i];
             name = attr.name.toLowerCase().replace('-', '');

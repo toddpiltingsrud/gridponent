@@ -329,9 +329,9 @@ gp.Controller.prototype = {
     commandHandler: function ( evt ) {
         // this function handles all the button clicks for the entire grid
         var lower,
-            $btn = $( evt.selectedTarget ),
+            $btn = $( evt.target ),
             rowOrModal = $btn.closest( 'tr[data-uid],div.modal', this.config.node ),
-            dataItem = rowOrModal ? this.config.map.get( rowOrModal ) : null,
+            dataItem = rowOrModal.length ? this.config.map.get( rowOrModal[0] ) : null,
             cmd = gp.getCommand( this.config.columns, $btn.val() ),
             model = this.config.pageModel;
 
@@ -427,7 +427,7 @@ gp.Controller.prototype = {
 
     rowSelectHandler: function ( evt ) {
         var config = this.config,
-            tr = $( evt.selectedTarget ).closest( 'tr', config.node ),
+            tr = $( evt.target ).closest( 'tr', config.node ),
             trs = this.$n.find( 'div.table-body > table > tbody > tr.selected' ),
             type = typeof config.rowselected,
             dataItem,
@@ -441,10 +441,6 @@ gp.Controller.prototype = {
         $( tr ).addClass( 'selected' );
         // get the dataItem for this tr
         dataItem = config.map.get( tr );
-
-        // ensure dataItem selection doesn't interfere with button clicks in the dataItem
-        // by making sure the evt target is a body cell
-        if ( evt.target != evt.selectedTarget ) return;
 
         proceed = this.invokeDelegates( gp.events.rowselected, {
             dataItem: dataItem,
@@ -1097,7 +1093,7 @@ gp.TableRowEditor = function ( config, dal ) {
         var command = $( this ).val();
 
         if ( /^(create|update|save)$/i.test( command ) ) {
-            self.button = evt.selectedTarget;
+            self.button = evt.target;
             // prevent double clicking
             gp.disable( self.button, 5 );
             self.save(null, self.httpErrorHandler);
@@ -1273,7 +1269,7 @@ gp.TableRowEditor.prototype = {
             cells = $( this.elem ).find( 'td.body-cell' );
 
         cells.each( function ( i ) {
-            col = this.config.columns[i];
+            col = self.config.columns[i];
             $( this ).html( bodyCellContent.call( self.config, col, self.dataItem ) );
         } );
         $( this.elem ).removeClass( 'edit-mode create-mode' );
@@ -2033,15 +2029,16 @@ gp.Initializer.prototype = {
         var selector,
             template,
             prop,
+            $node = $(node),
             selectorTemplate = 'script[type="text/html"][data-template*="{{name}}"],template[data-template*="{{name}}"]';
         names.forEach( function ( n ) {
             selector = gp.supplant( selectorTemplate, { name: n } );
-            template = node.querySelector( selector );
-            if ( template != null ) {
-                for ( var i = 0; i < node.children.length; i++ ) {
-                    if ( node.children[i] == template ) {
+            template = $node.find( selector );
+            if ( template.length ) {
+                for ( var i = 0; i < $node[0].children.length; i++ ) {
+                    if ( $node[0].children[i] == template[0] ) {
                         prop = gp.camelize( n ) + 'template';
-                        config[prop] = template.innerHTML;
+                        config[prop] = template[0].innerHTML;
                         return;
                     }
                 }
@@ -3084,7 +3081,7 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
     gp.formatter = new gp.Formatter();
 
     gp.getAttributes = function ( node ) {
-        var config = {}, name, attr, attrs = node.attributes;
+        var config = {}, name, attr, attrs = $(node)[0].attributes;
         for ( var i = attrs.length - 1; i >= 0; i-- ) {
             attr = attrs[i];
             name = attr.name.toLowerCase().replace('-', '');

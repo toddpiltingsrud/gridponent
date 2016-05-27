@@ -238,7 +238,7 @@ gp.TableRowEditor = function ( config, dal ) {
         var command = $( this ).val();
 
         if ( /^(create|update|save)$/i.test( command ) ) {
-            self.button = evt.selectedTarget;
+            self.button = evt.target;
             // prevent double clicking
             gp.disable( self.button, 5 );
             self.save(null, self.httpErrorHandler);
@@ -414,7 +414,7 @@ gp.TableRowEditor.prototype = {
             cells = $( this.elem ).find( 'td.body-cell' );
 
         cells.each( function ( i ) {
-            col = this.config.columns[i];
+            col = self.config.columns[i];
             $( this ).html( bodyCellContent.call( self.config, col, self.dataItem ) );
         } );
         $( this.elem ).removeClass( 'edit-mode create-mode' );

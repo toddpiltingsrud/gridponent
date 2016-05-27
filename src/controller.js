@@ -124,9 +124,9 @@ gp.Controller.prototype = {
     commandHandler: function ( evt ) {
         // this function handles all the button clicks for the entire grid
         var lower,
-            $btn = $( evt.selectedTarget ),
+            $btn = $( evt.target ),
             rowOrModal = $btn.closest( 'tr[data-uid],div.modal', this.config.node ),
-            dataItem = rowOrModal ? this.config.map.get( rowOrModal ) : null,
+            dataItem = rowOrModal.length ? this.config.map.get( rowOrModal[0] ) : null,
             cmd = gp.getCommand( this.config.columns, $btn.val() ),
             model = this.config.pageModel;
 
@@ -222,7 +222,7 @@ gp.Controller.prototype = {
 
     rowSelectHandler: function ( evt ) {
         var config = this.config,
-            tr = $( evt.selectedTarget ).closest( 'tr', config.node ),
+            tr = $( evt.target ).closest( 'tr', config.node ),
             trs = this.$n.find( 'div.table-body > table > tbody > tr.selected' ),
             type = typeof config.rowselected,
             dataItem,
@@ -236,10 +236,6 @@ gp.Controller.prototype = {
         $( tr ).addClass( 'selected' );
         // get the dataItem for this tr
         dataItem = config.map.get( tr );
-
-        // ensure dataItem selection doesn't interfere with button clicks in the dataItem
-        // by making sure the evt target is a body cell
-        if ( evt.target != evt.selectedTarget ) return;
 
         proceed = this.invokeDelegates( gp.events.rowselected, {
             dataItem: dataItem,

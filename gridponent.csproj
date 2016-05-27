@@ -34,15 +34,6 @@
     <RootNamespace>tp_table</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="gridponent.jquery.js">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>gridponent.jquery.tt</DependentUpon>
-    </Content>
-    <Content Include="gridponent.jquery.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>gridponent.jquery.js</LastGenOutput>
-    </Content>
     <Content Include="gridponent.js">
       <DependentUpon>gridponent.tt</DependentUpon>
       <DesignTime>True</DesignTime>

@@ -551,13 +551,13 @@ QUnit.test( 'busy class', function ( assert ) {
     options.onread = 'fns.afterRead';
 
     fns.beforeRead = function () {
-        var hasClass = gp.hasClass( this.config.node, 'busy' );
+        var hasClass = $(this.config.node).hasClass( 'busy' );
         assert.equal( hasClass, true );
         done1();
     };
 
     fns.afterRead = function () {
-        var hasClass = gp.hasClass( this.config.node, 'busy' );
+        var hasClass = $( this.config.node).hasClass( 'busy' );
         assert.equal( hasClass, false );
         done2();
     };
