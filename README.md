@@ -1,4 +1,4 @@
-# gridponent (beta)
+# gridponent v0.1-beta
 
 A [Bootstrap](http://getbootstrap.com/) grid component.
 
@@ -27,10 +27,11 @@ See it in action [here](https://gridponent-demo.herokuapp.com/index.php).
 
 Dependencies:
 
-- jQuery
-- Bootstrap
-- momentjs
-- numeraljs
+- jQuery >= 2.1.4
+- Bootstrap >= 3.0.0
+- momentjs >= 2.12.0
+- numeraljs >= 1.4.5
 
+[Semantic Versioning](http://semver.org/)
 
 *Shadow DOM is not used because it is not yet widely supported.
