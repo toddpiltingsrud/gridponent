@@ -4,32 +4,37 @@
 gp.DataLayer = function ( config ) {
     this.config = config;
     this.reader = null;
-    var type = gp.getType( config.read );
-    switch ( type ) {
-        case 'string':
-            this.reader = new gp.ServerPager( config.read );
-            break;
-        case 'function':
-            this.reader = new gp.FunctionPager( config );
-            break;
-        case 'object':
-            // read is a PagingModel
-            this.config.pageModel = config.read;
-            this.reader = new gp.ClientPager( this.config );
-            break;
-        case 'array':
-            this.config.pageModel.data = this.config.read;
-            this.reader = new gp.ClientPager( this.config );
-            break;
-        default:
-            throw 'Unsupported read configuration';
-    }
 };
 
 gp.DataLayer.prototype = {
-
+    getReader: function() {
+        var type = gp.getType( this.config.read );
+        switch ( type ) {
+            case 'string':
+                return new gp.ServerPager( this.config.read );
+                break;
+            case 'function':
+                return new gp.FunctionPager( this.config );
+                break;
+            case 'object':
+                // read is a PagingModel
+                this.config.pageModel = this.config.read;
+                return new gp.ClientPager( this.config );
+                break;
+            case 'array':
+                this.config.pageModel.data = this.config.read;
+                return new gp.ClientPager( this.config );
+                break;
+            default:
+                throw 'Unsupported read configuration';
+        }
+    },
     read: function ( requestModel, done, fail ) {
         var self = this;
+
+        if ( !this.reader ) {
+            this.reader = this.getReader();
+        }
 
         this.reader.read(
             requestModel,

@@ -30,14 +30,17 @@ gp.Initializer.prototype = {
         this.config.preload = this.config.preload === false ? this.config.preload : true;
 
         setTimeout( function () {
+            // do this here to give external scripts a chance to run first
+            self.resolveTopLevelOptions( self.config );
+
             self.addEventDelegates( self.config, controller );
 
             // provides a hook for extensions
             controller.invokeDelegates( gp.events.beforeInit, self.config );
 
             if ( self.config.preload ) {
-                // we need both beforeinit and beforeread because beforeread is used after every read in the controller
-                // and beforeinit happens just once after the node is created, but before first read
+                // we need both beforeInit and beforeread because beforeread is used after every read in the controller
+                // and beforeInit happens just once after the node is created, but before first read
                 controller.invokeDelegates( gp.events.beforeRead, self.config.pageModel );
 
                 dal.read( requestModel,
@@ -92,19 +95,6 @@ gp.Initializer.prototype = {
             self.resolveTemplates( templates, colConfig, this );
         } );
 
-        // resolve the top level configurations
-        var options = 'rowselected searchfunction read create update destroy validate model'.split( ' ' );
-        options.forEach( function ( option ) {
-
-            if ( gp.hasValue( config[option] ) ) {
-                // see if this config option points to an object
-                // otherwise it must be a URL
-                obj = gp.getObjectAtPath( config[option] );
-
-                if ( gp.hasValue( obj ) ) config[option] = obj;
-            }
-
-        } );
 
 
         // resolve the various templates
@@ -185,6 +175,23 @@ gp.Initializer.prototype = {
             if ( config.columns[i].footertemplate ) return true;
         }
         return false;
+    },
+
+    resolveTopLevelOptions: function(config) {
+        // resolve the top level configurations
+        var obj, options = 'rowselected searchfunction read create update destroy validate model'.split( ' ' );
+        options.forEach( function ( option ) {
+
+            if ( gp.hasValue( config[option] ) ) {
+                // see if this config option points to an object
+                // otherwise it must be a URL
+                obj = gp.getObjectAtPath( config[option] );
+
+                if ( gp.hasValue( obj ) ) config[option] = obj;
+            }
+
+        } );
+
     },
 
     resolveTemplates: function ( names, config, node ) {

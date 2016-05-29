@@ -5,7 +5,7 @@ if (document.registerElement) {
 
     gp.Gridponent.createdCallback = function () {
         var init = new gp.Initializer( this );
-        gp.ready( init.initialize.bind( init ) );
+        $( init.initialize.bind( init ) );
     };
 
     gp.Gridponent.detachedCallback = function () {

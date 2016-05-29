@@ -5,7 +5,7 @@
 gp.events = {
 
     rowSelected: 'rowselected',
-    beforeinit: 'beforeinit',
+    beforeInit: 'beforeinit',
     // turn progress indicator on
     beforeRead: 'beforeread',
     // turn progress indicator on
