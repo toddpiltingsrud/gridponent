@@ -1,4 +1,7 @@
-﻿Can we isolate the controllers commandHandler from the editors? Don't like relying on differences in command value.
+﻿Make sure boolean checkboxes can create an explicit false when creating new records.
+This might happen when the model for new records contains no default for a boolean property.
+
+Can we isolate the controllers commandHandler from the editors? Don't like relying on differences in command value.
 
 Eliminate setting config.dataItem.
 
