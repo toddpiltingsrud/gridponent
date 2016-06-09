@@ -173,15 +173,15 @@
     };
 
     gp.getObjectAtPath = function ( path, root ) {
-        if ( !path ) return path;
-
-        path = Array.isArray( path ) ? path : path.match( gp.rexp.splitPath );
-
-        if ( path[0] === 'window' ) path = path.splice( 1 );
+        if ( typeof path !== 'string' ) return path;
 
         // o is our placeholder
         var o = root || window,
             segment;
+
+        path = path.match( gp.rexp.splitPath );
+
+        if ( path[0] === 'window' ) path = path.splice( 1 );
 
         for ( var i = 0; i < path.length; i++ ) {
             // is this segment an array index?

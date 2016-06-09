@@ -65,6 +65,7 @@ gp.Initializer.prototype = {
                 );
             }
             else {
+                gp.resolveTypes( self.config );
                 self.resolveCommands( self.config );
                 controller.init();
             }
@@ -181,7 +182,6 @@ gp.Initializer.prototype = {
         // resolve the top level configurations
         var obj, options = 'rowselected searchfunction read create update destroy validate model'.split( ' ' );
         options.forEach( function ( option ) {
-
             if ( gp.hasValue( config[option] ) ) {
                 // see if this config option points to an object
                 // otherwise it must be a URL
@@ -189,9 +189,7 @@ gp.Initializer.prototype = {
 
                 if ( gp.hasValue( obj ) ) config[option] = obj;
             }
-
         } );
-
     },
 
     resolveTemplates: function ( names, config, node ) {

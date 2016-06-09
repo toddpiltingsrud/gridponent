@@ -49,6 +49,9 @@
   bottom: 0;
   right: 0;
 }
+.gp.search-bottom-right .gridponent-searchbox {
+  float: right;
+}
 .gp.search-top-right {
   padding-top: 40px;
 }
@@ -56,6 +59,9 @@
   position: absolute;
   top: 0;
   right: 0;
+}
+.gp.search-top-right .gridponent-searchbox {
+  float: right;
 }
 .gp.search-top-left {
   padding-top: 40px;

@@ -1,5 +1,11 @@
-﻿Make sure boolean checkboxes can create an explicit false when creating new records.
+﻿resolveTypes doesn't get called if preload is false.
+
+Make sure boolean checkboxes can create an explicit false when creating new records.
 This might happen when the model for new records contains no default for a boolean property.
+
+Test to make sure the script initialization method can contain objects and still survive the resolution process.
+
+gp.getType should always return a string type.
 
 Can we isolate the controllers commandHandler from the editors? Don't like relying on differences in command value.
 
@@ -18,3 +24,8 @@ Empty table template
 Eliminate the helpers' dependencies on config.
 
 Allow the http module to be configured to use JSON or application/x-www-form-urlencoded.
+
+Build a mechanism for ensuring the types of variables that are passed to functions.
+It'd be nice if we could also ensure the types of arrays.
+Example: if ( gp.getType(arr) === 'array<string>' ) // do something
+This would also ensure that the array is not empty.

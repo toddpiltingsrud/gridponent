@@ -288,6 +288,8 @@ QUnit.test( 'preload option', function ( assert ) {
 
     var options = gp.shallowCopy( configuration );
 
+    options.model = fns.model;
+
     options.preload = false;
 
     gridponent( '#table .box', options ).ready( function ( api ) {
@@ -304,7 +306,7 @@ QUnit.test( 'preload option', function ( assert ) {
             return col.Type != undefined;
         } );
 
-        assert.strictEqual( types.length, 0, 'there should be no types in the columns' );
+        assert.ok( types.length > 0, 'there should be types in the columns' );
 
         done1();
 
