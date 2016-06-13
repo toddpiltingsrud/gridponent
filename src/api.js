@@ -32,7 +32,7 @@ gp.api = function ( controller ) {
 
 gp.api.prototype = {
 
-    create: function ( dataItem, callback ) {
+    create: function ( dataItem ) {
         var model = this.controller.addRow( dataItem );
         return this;
     },
@@ -83,11 +83,6 @@ gp.api.prototype = {
         return this;
     },
 
-    saveChanges: function ( dataItem, done ) {
-        this.controller.updateRow( dataItem, done );
-        return this;
-    },
-
     search: function ( searchTerm, callback ) {
         // make sure we pass in a string
         searchTerm = gp.isNullOrEmpty( searchTerm ) ? '' : searchTerm.toString();
@@ -114,11 +109,6 @@ gp.api.prototype = {
             gp.removeClass( this.config.node, 'busy' );
         }
 
-        return this;
-    },
-
-    update: function ( dataItem, done ) {
-        this.controller.updateRow( dataItem, done );
         return this;
     }
 

@@ -29,7 +29,8 @@ gp.helpers = {
 
             var formGroupModel = {
                 label: null,
-                input: gp.helpers.editCellContent.call( config, col, dataItem, mode )
+                input: gp.helpers.editCellContent.call( config, col, dataItem, mode ),
+                editclass: col.editclass
             };
 
             // headers become labels
@@ -216,7 +217,7 @@ gp.helpers = {
     },
 
     formGroup: function ( model, arg ) {
-        var template = '<div class="form-group"><label class="col-sm-4 control-label">{{{label}}}</label><div class="col-sm-6">{{{input}}}</div></div>';
+        var template = '<div class="form-group {{editclass}}"><label class="col-sm-4 control-label">{{{label}}}</label><div class="col-sm-6">{{{input}}}</div></div>';
         return gp.supplant( template, model );
     },
 

@@ -289,6 +289,9 @@ gp.TableRowEditor.prototype = {
             if ( col.commands ) {
                 builder.addClass( 'commands' );
             }
+            if ( col.editclass ) {
+                builder.addClass( col.editclass );
+            }
             builder.endElem();
         } );
 
@@ -330,6 +333,9 @@ gp.TableRowEditor.prototype = {
             col = self.config.columns[i];
             if ( !col.readonly ) {
                 $( this ).html( editCellContent.call( self.config, col, dataItem, 'edit' ) );
+                if ( col.editclass ) {
+                    $( this ).addClass( col.editclass );
+                }
             }
         } );
 
@@ -416,6 +422,9 @@ gp.TableRowEditor.prototype = {
         cells.each( function ( i ) {
             col = self.config.columns[i];
             $( this ).html( bodyCellContent.call( self.config, col, self.dataItem ) );
+            if ( col.editclass ) {
+                $( this ).removeClass( col.editclass );
+            }
         } );
         $( this.elem ).removeClass( 'edit-mode create-mode' );
     },

@@ -106,18 +106,19 @@ gp.api = function ( controller ) {
 
 gp.api.prototype = {
 
-    create: function ( dataItem, callback ) {
+    create: function ( dataItem ) {
         var model = this.controller.addRow( dataItem );
-        if ( model != null ) this.controller.createRow( dataItem, model.elem, callback );
-        else callback( null );
+        return this;
     },
     
     destroy: function ( dataItem, callback ) {
         this.controller.deleteRow( dataItem, callback, true );
+        return this;
     },
 
     dispose: function () {
         this.controller.dispose();
+        return this;
     },
 
     find: function ( selector ) {
@@ -148,20 +149,19 @@ gp.api.prototype = {
 
     read: function ( requestModel, callback ) {
         this.controller.read( requestModel, callback );
+        return this;
     },
 
     refresh: function ( callback ) {
         this.controller.read( null, callback );
-    },
-
-    saveChanges: function ( dataItem, done ) {
-        this.controller.updateRow( dataItem, done );
+        return this;
     },
 
     search: function ( searchTerm, callback ) {
         // make sure we pass in a string
         searchTerm = gp.isNullOrEmpty( searchTerm ) ? '' : searchTerm.toString();
         this.controller.search( searchTerm, callback );
+        return this;
     },
 
     sort: function ( name, desc, callback ) {
@@ -169,6 +169,7 @@ gp.api.prototype = {
         name = gp.isNullOrEmpty( name ) ? '' : name.toString();
         typeof desc == 'boolean' ? desc : desc === 'false' ? false : !!desc;
         this.controller.sort( name, desc, callback );
+        return this;
     },
 
     toggleBusy: function ( isBusy ) {
@@ -183,10 +184,6 @@ gp.api.prototype = {
         }
 
         return this;
-    },
-
-    update: function ( dataItem, done ) {
-        this.controller.updateRow( dataItem, done );
     }
 
 };
@@ -426,7 +423,7 @@ gp.Controller.prototype = {
     },
 
     addRowSelectHandler: function ( config ) {
-        // always add click handler so we call api.rowSelected after grid is initialized
+        // always add click handler so we can call api.rowSelected after grid is initialized
         this.$n.on( 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
     },
 
@@ -514,64 +511,18 @@ gp.Controller.prototype = {
 
         var editor = this.getEditor( this.config.editmode );
 
-        var model = editor.add();
+        var model = editor.add(dataItem);
 
         return editor;
-    },
-
-    // elem is either a table row or a modal
-    createRow: function ( dataItem, elem, callback ) {
-        try {
-            var self = this,
-                returnedRow,
-                editor = this.getEditor();
-
-            // if there is no create configuration setting, we're done here
-            if ( !gp.hasValue( this.config.create ) ) {
-                gp.applyFunc( callback, self.config.node );
-                return;
-            }
-
-            editor.add( dataItem );
-
-            editor.save( callback, this.httpErrorHandler.bind( this ) );
-        }
-        catch ( e ) {
-            this.removeBusy();
-            this.httpErrorHandler( e );
-        }
     },
 
     editRow: function ( dataItem, elem ) {
 
         var editor = this.getEditor( this.config.editmode );
+
         var model = editor.edit( dataItem, elem );
 
-        //this.invokeDelegates( gp.events.editReady, model );
-
         return editor;
-    },
-
-    updateRow: function ( dataItem, callback ) {
-
-        try {
-            var self = this,
-                editor = this.getEditor();
-
-            // if there is no update configuration setting, we're done here
-            if ( !gp.hasValue( this.config.update ) ) {
-                gp.applyFunc( callback, self.config.node );
-                return;
-            }
-
-            editor.edit( dataItem );
-
-            editor.save( callback, this.httpErrorHandler.bind( this ) );
-        }
-        catch ( e ) {
-            this.removeBusy();
-            this.httpErrorHandler( e );
-        }
     },
 
     // we don't require a tr parameter because it may not be in the grid
@@ -1133,7 +1084,7 @@ gp.TableRowEditor.prototype = {
         $( this.elem ).off( 'click', this.commandHandler );
     },
 
-    add: function () {
+    add: function (dataItem) {
         var self = this,
             tbody = this.$n.find( 'div.table-body > table > tbody' ),
             bodyCellContent = gp.helpers['bodyCellContent'],
@@ -1141,7 +1092,7 @@ gp.TableRowEditor.prototype = {
             builder = new gp.NodeBuilder(),
             cellContent;
 
-        gp.Editor.prototype.add.call( this );
+        gp.Editor.prototype.add.call( this, dataItem );
 
         builder.create( 'tr' ).addClass( 'create-mode' ),
 
@@ -1153,6 +1104,9 @@ gp.TableRowEditor.prototype = {
             builder.create( 'td' ).addClass( 'body-cell' ).addClass( col.bodyclass ).html( cellContent );
             if ( col.commands ) {
                 builder.addClass( 'commands' );
+            }
+            if ( col.editclass ) {
+                builder.addClass( col.editclass );
             }
             builder.endElem();
         } );
@@ -1195,6 +1149,9 @@ gp.TableRowEditor.prototype = {
             col = self.config.columns[i];
             if ( !col.readonly ) {
                 $( this ).html( editCellContent.call( self.config, col, dataItem, 'edit' ) );
+                if ( col.editclass ) {
+                    $( this ).addClass( col.editclass );
+                }
             }
         } );
 
@@ -1281,6 +1238,9 @@ gp.TableRowEditor.prototype = {
         cells.each( function ( i ) {
             col = self.config.columns[i];
             $( this ).html( bodyCellContent.call( self.config, col, self.dataItem ) );
+            if ( col.editclass ) {
+                $( this ).removeClass( col.editclass );
+            }
         } );
         $( this.elem ).removeClass( 'edit-mode create-mode' );
     },
@@ -1323,12 +1283,12 @@ gp.ModalEditor.prototype = {
 
     invokeEditReady: gp.TableRowEditor.prototype.invokeEditReady,
 
-    add: function () {
+    add: function (dataItem) {
         var self = this,
             html,
             modal;
 
-        gp.Editor.prototype.add.call( this );
+        gp.Editor.prototype.add.call( this, dataItem );
 
         // mode: create or update
         html = gp.helpers.bootstrapModal( this.config, this.dataItem, 'create' );
@@ -1532,7 +1492,8 @@ gp.helpers = {
 
             var formGroupModel = {
                 label: null,
-                input: gp.helpers.editCellContent.call( config, col, dataItem, mode )
+                input: gp.helpers.editCellContent.call( config, col, dataItem, mode ),
+                editclass: col.editclass
             };
 
             // headers become labels
@@ -1719,7 +1680,7 @@ gp.helpers = {
     },
 
     formGroup: function ( model, arg ) {
-        var template = '<div class="form-group"><label class="col-sm-4 control-label">{{{label}}}</label><div class="col-sm-6">{{{input}}}</div></div>';
+        var template = '<div class="form-group {{editclass}}"><label class="col-sm-4 control-label">{{{label}}}</label><div class="col-sm-6">{{{input}}}</div></div>';
         return gp.supplant( template, model );
     },
 
@@ -1846,6 +1807,60 @@ gp.helpers = {
 
 };
 
+/***************\
+     http        
+\***************/
+gp.Http = function () { };
+
+gp.Http.prototype = {
+    serialize: function ( obj ) {
+        // creates a query string from a simple object
+        var props = Object.getOwnPropertyNames( obj );
+        var out = [];
+        props.forEach( function ( prop ) {
+            // don't send complex objects back to the server
+            // data should be flattened before it leaves the server
+            // editing complex objects is not supported
+            if ( /^(array|function|object)$/.test( gp.getType( obj[prop] ) ) == false ) {
+                out.push( encodeURIComponent( prop ) + '=' + ( gp.isNullOrEmpty( obj[prop] ) ? '' : encodeURIComponent( obj[prop] ) ) );
+            }
+        } );
+        return out.join( '&' );
+    },
+    createXhr: function ( type, url, callback, error ) {
+        var xhr = new XMLHttpRequest();
+        xhr.open(type.toUpperCase(), url, true);
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.onload = function () {
+            var response = ( gp.rexp.json.test( xhr.responseText ) ? JSON.parse( xhr.responseText ) : xhr.responseText );
+            if ( xhr.status == 200 ) {
+                callback( response, xhr );
+            }
+            else {
+                gp.applyFunc( error, xhr, response );
+            }
+        }
+        xhr.onerror = error;
+        return xhr;
+    },
+    get: function (url, callback, error) {
+        var xhr = this.createXhr('GET', url, callback, error);
+        xhr.send();
+    },
+    post: function ( url, data, callback, error ) {
+        var s = this.serialize( data );
+        var xhr = this.createXhr( 'POST', url, callback, error );
+        xhr.setRequestHeader( 'Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8' );
+        xhr.send( s );
+    },
+    destroy: function ( url, data, callback, error ) {
+        var s = this.serialize( data );
+        var xhr = this.createXhr( 'DELETE', url, callback, error );
+        xhr.setRequestHeader( 'Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8' );
+        xhr.send( s );
+    }
+
+};
 /***************\
    Initializer
 \***************/
@@ -2089,177 +2104,6 @@ gp.Initializer.prototype = {
         } );
     }
 };
-/***************\
-   mock-http
-\***************/
-(function (gp) {
-    gp.Http = function () { };
-
-    // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
-    var routes = {
-        read: /read/i,
-        update: /update/i,
-        create: /create/i,
-        destroy: /Delete/i
-    };
-
-    gp.Http.prototype = {
-        //serialize: function (obj, props) {
-        //    // creates a query string from a simple object
-        //    var self = this;
-        //    props = props || Object.getOwnPropertyNames(obj);
-        //    var out = [];
-        //    props.forEach(function (prop) {
-        //        out.push(encodeURIComponent(prop) + '=' + encodeURIComponent(obj[prop]));
-        //    });
-        //    return out.join('&');
-        //},
-        //deserialize: function (queryString) {
-        //    var nameValue, split = queryString.split( '&' );
-        //    var obj = {};
-        //    if ( !queryString ) return obj;
-        //    split.forEach( function ( s ) {
-        //        nameValue = s.split( '=' );
-        //        var val = nameValue[1];
-        //        if ( !val ) {
-        //            obj[nameValue[0]] = null;
-        //        }
-        //        else if ( /true|false/i.test( val ) ) {
-        //            obj[nameValue[0]] = ( /true/i.test( val ) );
-        //        }
-        //        else if ( parseFloat( val ).toString() === val ) {
-        //            obj[nameValue[0]] = parseFloat( val );
-        //        }
-        //        else {
-        //            obj[nameValue[0]] = val;
-        //        }
-        //    } );
-        //    return obj;
-        //},
-        //get: function (url, callback, error) {
-        //    if (routes.read.test(url)) {
-        //        var index = url.substring(url.indexOf('?'));
-        //        if (index !== -1) {
-        //            var queryString = url.substring(index + 1);
-        //            var model = this.deserialize(queryString);
-        //            this.post(url.substring(0, index), model, callback, error);
-        //        }
-        //        else {
-        //            this.post(url, null, callback, error);
-        //        }
-        //    }
-        //    else if (routes.create.test(url)) {
-        //        var result = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
-        //        callback(result);
-        //    }
-        //    else {
-        //        throw 'Not found: ' + url;
-        //    }
-        //},
-        post: function (url, model, callback, error) {
-            model = model || {};
-            if (routes.read.test(url)) {
-                getData(model, callback);
-            }
-            else if ( routes.create.test( url ) ) {
-                window.data.products.push( model );
-                callback( new gp.UpdateModel( model ) );
-            }
-            else if ( routes.update.test( url ) ) {
-                callback( new gp.UpdateModel(model) );
-            }
-            else {
-                throw '404 Not found: ' + url;
-            }
-        },
-        destroy: function ( url, model, callback, error ) {
-            model = model || {};
-            var index = window.data.products.indexOf( model );
-            callback( {
-                Success: true,
-                Message: ''
-            } );
-        }
-    };
-
-    var getData = function (model, callback) {
-        var count, d = window.data.products.slice( 0, window.data.length );
-
-        if (!gp.isNullOrEmpty(model.search)) {
-            var props = Object.getOwnPropertyNames(d[0]);
-            var search = model.search.toLowerCase();
-            d = d.filter(function (row) {
-                for (var i = 0; i < props.length; i++) {
-                    if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
-                        return true;
-                    }
-                }
-                return false;
-            });
-        }
-        if (!gp.isNullOrEmpty(model.sort)) {
-            if (model.desc) {
-                d.sort(function (row1, row2) {
-                    var a = row1[model.sort];
-                    var b = row2[model.sort];
-                    if (a === null) {
-                        if (b != null) {
-                            return 1;
-                        }
-                    }
-                    else if (b === null) {
-                        // we already know a isn't null
-                        return -1;
-                    }
-                    if (a > b) {
-                        return -1;
-                    }
-                    if (a < b) {
-                        return 1;
-                    }
-
-                    return 0;
-                });
-            }
-            else {
-                d.sort(function (row1, row2) {
-                    var a = row1[model.sort];
-                    var b = row2[model.sort];
-                    if (a === null) {
-                        if (b != null) {
-                            return -1;
-                        }
-                    }
-                    else if (b === null) {
-                        // we already know a isn't null
-                        return 1;
-                    }
-                    if (a > b) {
-                        return 1;
-                    }
-                    if (a < b) {
-                        return -1;
-                    }
-
-                    return 0;
-                });
-            }
-        }
-        count = d.length;
-        if (model.top !== -1) {
-            model.data = d.slice(model.skip).slice(0, model.top);
-        }
-        else {
-            model.data = d;
-        }
-        model.errors = [];
-        setTimeout(function () {
-            callback(model);
-        });
-
-    };
-
-})(gridponent);
 /***************\
    ModelSync
 \***************/
