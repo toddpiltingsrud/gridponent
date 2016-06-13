@@ -121,11 +121,8 @@ gp.api.prototype = {
     },
 
     find: function ( selector ) {
-        return this.controller.config.node.querySelector( selector );
-    },
-
-    findAll: function ( selector ) {
-        return this.controller.config.node.querySelectorAll( selector );
+        // include this.$n via addBack
+        return this.$n.find( selector ).addBack( selector );
     },
 
     getCommandIndex: function ( value ) {
@@ -196,8 +193,10 @@ gp.api.prototype = {
 
 Object.getOwnPropertyNames( gp.events ).forEach( function ( evt ) {
 
-    gp.api.prototype[evt] = function (callback) {
-        this.controller.addDelegate( gp.events[evt], callback );;
+    gp.api.prototype[evt] = function ( callback ) {
+        if ( typeof callback === 'function' ) {
+            this.controller.addDelegate( gp.events[evt], callback );
+        }
         return this;
     };
 
@@ -205,6 +204,14 @@ Object.getOwnPropertyNames( gp.events ).forEach( function ( evt ) {
 
 gp.api.prototype.ready = function ( callback ) {
     this.controller.ready( callback );
+    return this;
+};
+
+gp.api.prototype.rowSelected = function ( callback ) {
+    if ( typeof callback === 'function' ) {
+        this.controller.addDelegate( gp.events.rowSelected, callback );
+        this.$n.addClass( 'selectable' );
+    }
     return this;
 };
 /***************\
@@ -419,10 +426,8 @@ gp.Controller.prototype = {
     },
 
     addRowSelectHandler: function ( config ) {
-        if ( this.$n.hasClass( 'selectable' ) ) {
-            // add click handler
-            this.$n.on( 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
-        }
+        // always add click handler so we call api.rowSelected after grid is initialized
+        this.$n.on( 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
     },
 
     removeRowSelectHandler: function () {
@@ -446,18 +451,14 @@ gp.Controller.prototype = {
         // get the dataItem for this tr
         dataItem = config.map.get( tr );
 
-        proceed = this.invokeDelegates( gp.events.rowselected, {
+        proceed = this.invokeDelegates( gp.events.rowSelected, {
             dataItem: dataItem,
             elem: tr
         } );
 
         if ( proceed === false ) return;
 
-        if ( type === 'function' ) {
-            gp.applyFunc( config.rowselected, this.config.node.api, [dataItem] );
-        }
-        else {
-            // it's a urlTemplate
+        if ( type === 'urlTemplate' ) {
             window.location = gp.supplant.call( this.config.node.api, config.rowselected, dataItem );
         }
     },

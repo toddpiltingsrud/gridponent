@@ -78,8 +78,7 @@ var configOptions = {
     update: '/Products/update',
     destroy: '/Products/Delete',
     searchFilter: null,
-    customCommand: null,
-    orRowSelect: null
+    customCommand: null
 };
 
 var getTableConfig = function ( options, callback ) {
@@ -300,7 +299,7 @@ QUnit.test( 'preload option', function ( assert ) {
 
         var rows = api.find( 'div.table-body tbody > tr' );
 
-        assert.strictEqual( rows, null, 'there should not be any rows in the table' );
+        assert.strictEqual( rows.length, 0, 'there should not be any rows in the table' );
 
         var types = config.columns.filter( function ( col ) {
             return col.Type != undefined;
@@ -608,7 +607,7 @@ QUnit.test( 'paging', function ( assert ) {
     getTableConfig( options, function ( api ) {
 
         // find the ProductNumber column
-        var productNumber1 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).innerHTML;
+        var productNumber1 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).html();
 
         var pageNumber1 = api.config.pageModel.page;
 
@@ -616,7 +615,7 @@ QUnit.test( 'paging', function ( assert ) {
 
         clickButton( btn );
 
-        var productNumber2 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).innerHTML;
+        var productNumber2 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).html();
 
         var pageNumber2 = api.config.pageModel.page;
 
@@ -625,11 +624,11 @@ QUnit.test( 'paging', function ( assert ) {
 
 
         // search
-        var pageCount1 = api.find( 'span.page-count' ).innerHTML;
+        var pageCount1 = api.find( 'span.page-count' ).html();
 
         api.search( '$1' );
 
-        var pageCount2 = api.find( 'span.page-count' ).innerHTML;
+        var pageCount2 = api.find( 'span.page-count' ).html();
 
         assert.notStrictEqual( pageCount1, pageCount2, 'searching should change the page count' );
 
@@ -1003,33 +1002,33 @@ QUnit.test( 'commandHandler', function ( assert ) {
 
         var addBtn = api.find( '[value=AddRow]' );
 
-        clickButton( addBtn );
+        clickButton( addBtn[0] );
 
         var editRow = api.find( 'tr.create-mode' );
 
-        assert.ok( editRow != null, 'clicking the addrow button should create a dataItem in create mode' );
+        assert.ok( editRow.length > 0, 'clicking the addrow button should create a dataItem in create mode' );
 
-        var createBtn = editRow.querySelector( '[value=create]' );
+        var createBtn = editRow.find( '[value=create]' );
 
-        clickButton( createBtn );
+        clickButton( createBtn[0] );
 
-        clickButton( addBtn );
-
-        editRow = api.find( 'tr.create-mode' );
-
-        assert.ok( editRow != null, 'clicking the addrow button should create a dataItem in create mode' );
-
-        var cancelBtn = editRow.querySelector( '[value=cancel]' );
-
-        clickButton( cancelBtn );
+        clickButton( addBtn[0] );
 
         editRow = api.find( 'tr.create-mode' );
 
-        assert.ok( editRow == null, 'clicking cancel should remove the dataItem' );
+        assert.ok( editRow.length > 0, 'clicking the addrow button should create a dataItem in create mode' );
+
+        var cancelBtn = editRow.find( '[value=cancel]' );
+
+        clickButton( cancelBtn[0] );
+
+        editRow = api.find( 'tr.create-mode' );
+
+        assert.ok( editRow.length == 0, 'clicking cancel should remove the dataItem' );
 
         var destroyBtn = api.find( '[value=destroy],[value=delete],[value=Delete]' )
 
-        clickButton( destroyBtn );
+        clickButton( destroyBtn[0] );
 
         done1();
 
@@ -1589,20 +1588,20 @@ QUnit.test( 'api.sort', function ( assert ) {
         config.node.api.sort( 'Name', false );
 
         // take note of the content of the column before sorting
-        var content1 = api.find( 'tr[data-uid]:first-child td:nth-child(2)' ).innerHTML;
+        var content1 = api.find( 'tr[data-uid]:first-child td:nth-child(2)' ).html();
 
         // trigger another sort
         config.node.api.sort( 'Name', true );
 
         // take note of the content of the column after sorting
-        var content2 = api.find( 'tr[data-uid]:first-child td:nth-child(2)' ).innerHTML;
+        var content2 = api.find( 'tr[data-uid]:first-child td:nth-child(2)' ).html();
 
         assert.notStrictEqual( content1, content2, 'sorting should change the order' );
 
         config.node.api.sort( 'Name', false );
 
         // take note of the content of the column after sorting
-        content2 = api.find( 'tr[data-uid]:first-child td:nth-child(2)' ).innerHTML;
+        content2 = api.find( 'tr[data-uid]:first-child td:nth-child(2)' ).html();
 
         assert.strictEqual( content1, content2, 'sorting again should change it back' );
 
@@ -1764,9 +1763,11 @@ QUnit.test( 'pageModel.desc', function ( assert ) {
 
 //} );
 
-QUnit.test( 'dataItem selection', function ( assert ) {
 
-    var done = assert.async();
+QUnit.test( 'events.rowselected', function ( assert ) {
+
+    var done1 = assert.async();
+    var done2 = assert.async();
 
     var options = gp.shallowCopy( configOptions );
 
@@ -1774,33 +1775,38 @@ QUnit.test( 'dataItem selection', function ( assert ) {
 
     rowselected = function () {
         assert.ok( true, 'row selection works' );
-        done();
+        done1();
+    };
+
+    rowselected2 = function () {
+        assert.ok( true, 'post init row selection works' );
+        done2();
     };
 
     getTableConfig( options, function ( api ) {
 
         var config = api.config;
 
+        api.rowSelected( rowselected2 );
+
         assert.equal( config.rowselected, rowselected, 'rowselected can be a function' );
 
         var btn = api.find( 'td.body-cell' );
 
-        $( btn ).click();
+        clickButton( btn[0] );
 
     } );
 
 } );
 
-QUnit.test( 'events.rowselected', function ( assert ) {
+QUnit.test( 'events.rowselected 2', function ( assert ) {
 
     var done = assert.async();
 
     var options = gp.shallowCopy( configOptions );
 
-    options.rowselected = 'rowselected';
-
     rowselected = function () {
-        assert.ok( true, 'row selection works' );
+        assert.ok( true, 'Row selection can be added after the grid is initialized' );
         done();
     };
 
@@ -1808,11 +1814,19 @@ QUnit.test( 'events.rowselected', function ( assert ) {
 
         var config = api.config;
 
-        assert.equal( config.rowselected, rowselected, 'rowselected can be a function' );
+        var selectable = api.find( '.selectable' );
+
+        assert.equal( selectable.length, 0 );
+
+        api.rowSelected( rowselected );
+
+        selectable = api.find( '.selectable' );
+
+        assert.equal( selectable.length, 1 );
 
         var btn = api.find( 'td.body-cell' );
 
-        $( btn ).click();
+        clickButton( btn );
 
     } );
 
@@ -2373,7 +2387,7 @@ QUnit.test( 'gp.helpers.footerCell', function ( assert ) {
 
         var cell = api.find( '.table-body tfoot tr:first-child td.footer-cell:nth-child(1)' );
 
-        assert.ok( cell.querySelector( 'input[type=checkbox]' ) != null )
+        assert.ok( cell.find( 'input[type=checkbox]' ).length > 0 );
 
         done1();
 
@@ -2388,7 +2402,7 @@ QUnit.test( 'gp.helpers.footerCell', function ( assert ) {
 
         cell = api.find( '.table-footer tr:first-child td.footer-cell:nth-child(4)' );
 
-        assert.equal( isNaN( parseFloat( cell.textContent ) ), false );
+        assert.equal( isNaN( parseFloat( cell.text() ) ), false );
 
         // test a string template with a function reference
         var template = '<b>{{fns.average}}</b>';
@@ -2474,9 +2488,7 @@ QUnit.test( 'custom search filter', function ( assert ) {
         // find the search box
         var searchInput = api.find( 'input[name=search]' );
 
-        console.log( config.node );
-
-        searchInput.value = productNumber;
+        searchInput.val( productNumber );
 
         assert.equal( config.searchfunction, fns.searchFilter );
 
@@ -2488,7 +2500,7 @@ QUnit.test( 'custom search filter', function ( assert ) {
         } );
 
         // trigger a change event on the input
-        searchInput.dispatchEvent( event );
+        searchInput[0].dispatchEvent( event );
 
     } );
 
@@ -2590,8 +2602,7 @@ QUnit.test( 'edit and update', function ( assert ) {
         assert.ok( evt.elem != null );
         // change some of the values
         var input = this.find( '[name=StandardCost]' )
-        input.value = '5';
-        input.dispatchEvent( ChangeEvent() );
+        input.val('5');
         done1();
         var saveBtn = this.find( 'button[value=update]' );
         clickButton( saveBtn );
@@ -2600,10 +2611,10 @@ QUnit.test( 'edit and update', function ( assert ) {
     fns.onupdate = function ( evt ) {
         assert.ok( evt != null );
         assert.ok( evt.dataItem != null );
-        assert.strictEqual( evt.dataItem.StandardCost, 5, 'change monitor should update the model' );
+        assert.strictEqual( evt.dataItem.StandardCost, 5, 'clicking save button should update the model' );
 
         // make sure the grid is updated with the correct value
-        var updatedCellValue = this.find( 'td:nth-child(' + ( colIndex + 1 ) + ')' ).innerHTML;
+        var updatedCellValue = evt.elem.find( 'td:nth-child(' + ( colIndex + 1 ) + ')' ).html();
 
         var expectedValue = gp.getFormattedValue( evt.dataItem, col, true );
 
@@ -2628,9 +2639,9 @@ QUnit.test( 'edit and update', function ( assert ) {
         } )[0];
 
         // trigger a click event on an edit button
-        var btn = node.querySelector( 'button[value=edit]' );
+        var btn = api.find( 'button[value=edit]' );
 
-        clickButton( btn );
+        clickButton( btn[0] );
 
     } );
 
@@ -2738,7 +2749,7 @@ QUnit.test( 'readonly fields', function ( assert ) {
 
     fns.editready = function ( evt ) {
         var input = this.find( 'td:nth-child(' + ( index + 1 ).toString() + ') input' );
-        assert.equal( input, null, 'there should not be an input' );
+        assert.equal( input.length, 0, 'there should not be an input' );
         done();
     };
 
@@ -2761,13 +2772,7 @@ QUnit.test( 'readonly fields', function ( assert ) {
         // trigger a click event on an edit button
         var btn = api.find( 'button[value=edit]' );
 
-        var event = new CustomEvent( 'click', {
-            'view': window,
-            'bubbles': true,
-            'cancelable': true
-        } );
-
-        btn.dispatchEvent( event );
+        clickButton( btn[0] );
 
     } );
 
@@ -2866,24 +2871,24 @@ QUnit.test( 'controller.render', function ( assert ) {
 
 //} );
 
-QUnit.test( 'api.findAll', function ( assert ) {
+//QUnit.test( 'api.findAll', function ( assert ) {
 
-    var done = assert.async();
+//    var done = assert.async();
 
-    gridponent( '#table .box', configuration ).ready( function () {
+//    gridponent( '#table .box', configuration ).ready( function () {
 
-        // find all edit buttons
-        var btn = this.findAll( 'button[value=edit]' );
+//        // find all edit buttons
+//        var btn = this.findAll( 'button[value=edit]' );
 
-        assert.ok( btn.length > 1 );
+//        assert.ok( btn.length > 1 );
 
-        done();
+//        done();
 
-        this.dispose();
+//        this.dispose();
 
-    } );
+//    } );
 
-} );
+//} );
 
 QUnit.test( 'coverage report', function ( assert ) {
 

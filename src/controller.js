@@ -210,10 +210,8 @@ gp.Controller.prototype = {
     },
 
     addRowSelectHandler: function ( config ) {
-        if ( this.$n.hasClass( 'selectable' ) ) {
-            // add click handler
-            this.$n.on( 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
-        }
+        // always add click handler so we can call api.rowSelected after grid is initialized
+        this.$n.on( 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
     },
 
     removeRowSelectHandler: function () {
@@ -237,18 +235,14 @@ gp.Controller.prototype = {
         // get the dataItem for this tr
         dataItem = config.map.get( tr );
 
-        proceed = this.invokeDelegates( gp.events.rowselected, {
+        proceed = this.invokeDelegates( gp.events.rowSelected, {
             dataItem: dataItem,
             elem: tr
         } );
 
         if ( proceed === false ) return;
 
-        if ( type === 'function' ) {
-            gp.applyFunc( config.rowselected, this.config.node.api, [dataItem] );
-        }
-        else {
-            // it's a urlTemplate
+        if ( type === 'urlTemplate' ) {
             window.location = gp.supplant.call( this.config.node.api, config.rowselected, dataItem );
         }
     },
@@ -304,40 +298,16 @@ gp.Controller.prototype = {
 
         var editor = this.getEditor( this.config.editmode );
 
-        var model = editor.add();
+        var model = editor.add(dataItem);
 
         return editor;
-    },
-
-    // elem is either a table row or a modal
-    createRow: function ( dataItem, elem, callback ) {
-        try {
-            var self = this,
-                returnedRow,
-                editor = this.getEditor();
-
-            // if there is no create configuration setting, we're done here
-            if ( !gp.hasValue( this.config.create ) ) {
-                gp.applyFunc( callback, self.config.node );
-                return;
-            }
-
-            editor.add( dataItem );
-
-            editor.save( callback, this.httpErrorHandler.bind( this ) );
-        }
-        catch ( e ) {
-            this.removeBusy();
-            this.httpErrorHandler( e );
-        }
     },
 
     editRow: function ( dataItem, elem ) {
 
         var editor = this.getEditor( this.config.editmode );
-        var model = editor.edit( dataItem, elem );
 
-        //this.invokeDelegates( gp.events.editReady, model );
+        var model = editor.edit( dataItem, elem );
 
         return editor;
     },

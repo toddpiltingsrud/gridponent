@@ -268,7 +268,7 @@ gp.TableRowEditor.prototype = {
         $( this.elem ).off( 'click', this.commandHandler );
     },
 
-    add: function () {
+    add: function (dataItem) {
         var self = this,
             tbody = this.$n.find( 'div.table-body > table > tbody' ),
             bodyCellContent = gp.helpers['bodyCellContent'],
@@ -276,7 +276,7 @@ gp.TableRowEditor.prototype = {
             builder = new gp.NodeBuilder(),
             cellContent;
 
-        gp.Editor.prototype.add.call( this );
+        gp.Editor.prototype.add.call( this, dataItem );
 
         builder.create( 'tr' ).addClass( 'create-mode' ),
 
@@ -458,12 +458,12 @@ gp.ModalEditor.prototype = {
 
     invokeEditReady: gp.TableRowEditor.prototype.invokeEditReady,
 
-    add: function () {
+    add: function (dataItem) {
         var self = this,
             html,
             modal;
 
-        gp.Editor.prototype.add.call( this );
+        gp.Editor.prototype.add.call( this, dataItem );
 
         // mode: create or update
         html = gp.helpers.bootstrapModal( this.config, this.dataItem, 'create' );

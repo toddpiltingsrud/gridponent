@@ -1,4 +1,8 @@
-﻿resolveTypes doesn't get called if preload is false.
+﻿Currently it's not possible to pass a url to an event delegate call:
+gridponent('#theGrid').rowSelected('http://server/app/controller/action/{{id}}');
+Should this be supported?
+
+Return 'this' from as many API functions as possible.
 
 Make sure boolean checkboxes can create an explicit false when creating new records.
 This might happen when the model for new records contains no default for a boolean property.
@@ -15,17 +19,8 @@ What happens if a grid is rendered twice? Make sure the original is disposed if 
 
 Add page size config option (default to 25).
 
-Build a jQuery version.
-
 Footer template
 
 Empty table template
 
-Eliminate the helpers' dependencies on config.
-
 Allow the http module to be configured to use JSON or application/x-www-form-urlencoded.
-
-Build a mechanism for ensuring the types of variables that are passed to functions.
-It'd be nice if we could also ensure the types of arrays.
-Example: if ( gp.getType(arr) === 'array<string>' ) // do something
-This would also ensure that the array is not empty.

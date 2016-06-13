@@ -34,24 +34,22 @@ gp.api.prototype = {
 
     create: function ( dataItem, callback ) {
         var model = this.controller.addRow( dataItem );
-        if ( model != null ) this.controller.createRow( dataItem, model.elem, callback );
-        else callback( null );
+        return this;
     },
     
     destroy: function ( dataItem, callback ) {
         this.controller.deleteRow( dataItem, callback, true );
+        return this;
     },
 
     dispose: function () {
         this.controller.dispose();
+        return this;
     },
 
     find: function ( selector ) {
-        return this.controller.config.node.querySelector( selector );
-    },
-
-    findAll: function ( selector ) {
-        return this.controller.config.node.querySelectorAll( selector );
+        // include this.$n via addBack
+        return this.$n.find( selector ).addBack( selector );
     },
 
     getCommandIndex: function ( value ) {
@@ -77,20 +75,24 @@ gp.api.prototype = {
 
     read: function ( requestModel, callback ) {
         this.controller.read( requestModel, callback );
+        return this;
     },
 
     refresh: function ( callback ) {
         this.controller.read( null, callback );
+        return this;
     },
 
     saveChanges: function ( dataItem, done ) {
         this.controller.updateRow( dataItem, done );
+        return this;
     },
 
     search: function ( searchTerm, callback ) {
         // make sure we pass in a string
         searchTerm = gp.isNullOrEmpty( searchTerm ) ? '' : searchTerm.toString();
         this.controller.search( searchTerm, callback );
+        return this;
     },
 
     sort: function ( name, desc, callback ) {
@@ -98,6 +100,7 @@ gp.api.prototype = {
         name = gp.isNullOrEmpty( name ) ? '' : name.toString();
         typeof desc == 'boolean' ? desc : desc === 'false' ? false : !!desc;
         this.controller.sort( name, desc, callback );
+        return this;
     },
 
     toggleBusy: function ( isBusy ) {
@@ -116,14 +119,17 @@ gp.api.prototype = {
 
     update: function ( dataItem, done ) {
         this.controller.updateRow( dataItem, done );
+        return this;
     }
 
 };
 
 Object.getOwnPropertyNames( gp.events ).forEach( function ( evt ) {
 
-    gp.api.prototype[evt] = function (callback) {
-        this.controller.addDelegate( gp.events[evt], callback );;
+    gp.api.prototype[evt] = function ( callback ) {
+        if ( typeof callback === 'function' ) {
+            this.controller.addDelegate( gp.events[evt], callback );
+        }
         return this;
     };
 
@@ -131,5 +137,13 @@ Object.getOwnPropertyNames( gp.events ).forEach( function ( evt ) {
 
 gp.api.prototype.ready = function ( callback ) {
     this.controller.ready( callback );
+    return this;
+};
+
+gp.api.prototype.rowSelected = function ( callback ) {
+    if ( typeof callback === 'function' ) {
+        this.controller.addDelegate( gp.events.rowSelected, callback );
+        this.$n.addClass( 'selectable' );
+    }
     return this;
 };
