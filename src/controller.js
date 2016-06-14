@@ -235,10 +235,7 @@ gp.Controller.prototype = {
         // get the dataItem for this tr
         dataItem = config.map.get( tr );
 
-        proceed = this.invokeDelegates( gp.events.rowSelected, {
-            dataItem: dataItem,
-            elem: tr
-        } );
+        proceed = this.invokeDelegates( gp.events.rowSelected, dataItem );
 
         if ( proceed === false ) return;
 

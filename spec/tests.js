@@ -249,7 +249,43 @@ var configuration = {
     ]
 };
 
-fns.model = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "blue", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "C", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": "<p>Product's name: \"Adjustable Race\"</p>" };
+fns.model = { "ProductID": 0, "Name": "Adjustable Race", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "blue", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "C", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": "<p>Product's name: \"Adjustable Race\"</p>" };
+
+QUnit.test( 'Template', function ( assert ) {
+
+    var model = {
+        btnClass: 'btn-default',
+        text: function ( obj ) {
+            return '<p>Test</p>';
+        },
+        mode: 'create'
+    };
+
+    fns.getGlyphicon = function (obj) {
+        return ( obj.mode == 'create' ? 'glyphicon-plus' : 'glyphicon-remove' );
+    };
+
+    var template = '<button type="button" class="btn {{btnClass}}" value="{{mode}}"><span class="glyphicon {{fns.getGlyphicon}}"></span>{{{text}}}</button>';
+
+    var t = new gp.Template( template );
+
+    var html = t.render( model );
+
+    assert.equal( t.dict['fns.getGlyphicon'], fns.getGlyphicon );
+
+    var shouldBe = '<button type="button" class="btn btn-default" value="create"><span class="glyphicon glyphicon-plus"></span><p>Test</p></button>';
+
+    assert.equal( html, shouldBe );
+
+    model.mode = 'update';
+
+    shouldBe = '<button type="button" class="btn btn-default" value="update"><span class="glyphicon glyphicon-remove"></span><p>Test</p></button>';
+
+    html = t.render( model );
+
+    assert.equal( html, shouldBe );
+
+} );
 
 QUnit.test( 'shallowCopy', function ( assert ) {
 

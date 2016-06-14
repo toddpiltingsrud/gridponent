@@ -61,7 +61,7 @@ gp.templates['gridponent-cells'] = function(model, arg) {
     var out = [];
     model.columns.forEach(function(col, index) {
             out.push('    <td class="body-cell ');
-    if ((col.commands)) {
+    if (col.commands) {
     out.push('commands ');
     }
         out.push(col.bodyclass);

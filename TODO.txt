@@ -1,4 +1,12 @@
-﻿Currently it's not possible to pass a url to an event delegate call:
+﻿Should we compile the templates? It might be faster than resolving functions on every call to supplant.
+Or we could simply create a dictionary for each template, calling getObjectAtPath on each one.
+Create a Template class. Instantiate it with the original string template.
+The constructor would compile the template by creating a dictionary of functions for each token.
+The Template class would have standard functions for returning data properties, either escaped or raw.
+It would first call getObjectAtPath and assign what it finds to the dictionary.
+If nothing is found, it would assume it's a property name.
+
+Currently it's not possible to pass a url to an event delegate call:
 gridponent('#theGrid').rowSelected('http://server/app/controller/action/{{id}}');
 Should this be supported?
 
@@ -24,3 +32,18 @@ Footer template
 Empty table template
 
 Allow the http module to be configured to use JSON or application/x-www-form-urlencoded.
+
+Perform a survey of everything the templating engine needs to do its job.
+Convert all templates and helpers into standard functions.
+Each function should have a mechanism for declaring what arguments it needs.
+Create a templating engine module that is supplied with some grid-specific resources:
+- the datamap
+- columns
+- data
+- pageModel
+- node
+- the current data item
+- config object
+- the templating engine itself
+- etc
+The engine uses dependency injection to supply each function with arguments.

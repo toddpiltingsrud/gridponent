@@ -1,5 +1,5 @@
 ﻿{{#each model.columns as |col|}}
-    <td class="body-cell {{#if (col.commands)}}commands {{/if}}{{col.bodyclass}}">
+    <td class="body-cell {{#if col.commands}}commands {{/if}}{{col.bodyclass}}">
         {{helper bodyCellContent col}}
     </td>
 {{/each}}
