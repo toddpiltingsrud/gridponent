@@ -21,7 +21,7 @@ else {
     // no web component support
     // provide a static function to initialize grid-ponent elements manually
     gp.initialize = function (root) {
-        root = root || document;
+        root = $(root || document)[0];
         // jQuery stalls here, so don't use it
         var nodes = root.querySelectorAll( 'grid-ponent' );
         for ( var i = 0; i < nodes.length; i++ ) {
