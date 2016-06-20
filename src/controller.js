@@ -114,7 +114,7 @@ gp.Controller.prototype = {
 
     addCommandHandlers: function ( node ) {
         // listen for command button clicks at the grid level
-        $( node ).on( 'click', 'button[value]', this.handlers.commandHandler );
+        $( node ).on( 'click', 'button[value],a[value]', this.handlers.commandHandler );
     },
 
     removeCommandHandlers: function ( node ) {
@@ -127,7 +127,8 @@ gp.Controller.prototype = {
             $btn = $( evt.target ),
             rowOrModal = $btn.closest( 'tr[data-uid],div.modal', this.config.node ),
             dataItem = rowOrModal.length ? this.config.map.get( rowOrModal[0] ) : null,
-            cmd = gp.getCommand( this.config.columns, $btn.val() ),
+            value = $btn.attr('value'),
+            cmd = gp.getCommand( this.config.columns, value ),
             model = this.config.pageModel;
 
         // check for a user-defined command
@@ -136,7 +137,7 @@ gp.Controller.prototype = {
             return;
         };
 
-        lower = ( $btn.val() || '' ).toLowerCase();
+        lower = ( value || '' ).toLowerCase();
 
         switch ( lower ) {
             case 'addrow':

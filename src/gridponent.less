@@ -75,6 +75,7 @@
         }
 
         .gridponent-searchbox {
+            max-width:220px;
             float: right;
         }
     }
@@ -217,7 +218,7 @@
         }
     }
 
-    button.table-sort {
+    a:link[value].table-sort {
         color: #337ab7;
         cursor: pointer;
         margin: 0;
@@ -228,9 +229,15 @@
 
         > span.glyphicon {
             margin-left:2px;
+            display:none;
+
+            &.glyphicon-chevron-up,.glyphicon-chevron-down {
+                display:inline;
+            }
         }
 
-        &:hover {
+        &:hover,&:active,&:focus {
+            text-decoration:none;
         }
 
         & > input {

@@ -61,6 +61,7 @@
   right: 0;
 }
 .gp.search-top-right .gridponent-searchbox {
+  max-width: 220px;
   float: right;
 }
 .gp.search-top-left {
@@ -177,7 +178,7 @@
   border: solid 1px #ccc;
   border-radius: 4px;
 }
-.gp button.table-sort {
+.gp a:link[value].table-sort {
   color: #337ab7;
   cursor: pointer;
   margin: 0;
@@ -186,13 +187,23 @@
   border: none;
   padding: 0;
 }
-.gp button.table-sort > span.glyphicon {
+.gp a:link[value].table-sort > span.glyphicon {
   margin-left: 2px;
-}
-.gp button.table-sort > input {
   display: none;
 }
-.gp button.table-sort:after {
+.gp a:link[value].table-sort > span.glyphicon.glyphicon-chevron-up,
+.gp a:link[value].table-sort > span.glyphicon .glyphicon-chevron-down {
+  display: inline;
+}
+.gp a:link[value].table-sort:hover,
+.gp a:link[value].table-sort:active,
+.gp a:link[value].table-sort:focus {
+  text-decoration: none;
+}
+.gp a:link[value].table-sort > input {
+  display: none;
+}
+.gp a:link[value].table-sort:after {
   font-family: 'Glyphicons Halflings';
   font-style: normal;
   font-weight: 400;

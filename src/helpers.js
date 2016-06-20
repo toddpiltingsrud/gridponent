@@ -248,11 +248,11 @@ gp.helpers = {
     sortStyle: function ( config ) {
         // remove glyphicons from sort buttons
         var spans = $( config.node )
-            .find( 'button.table-sort > span.glyphicon-chevron-up,button.table-sort > span.glyphicon-chevron-down' )
+            .find( 'a.table-sort > span.glyphicon-chevron-up,a.table-sort > span.glyphicon-chevron-down' )
             .removeClass( 'glyphicon-chevron-up glyphicon-chevron-down' );
         if ( !gp.isNullOrEmpty( config.pageModel.sort ) ) {
             $( config.node )
-                .find( 'button.table-sort[data-sort="' + config.pageModel.sort + '"] > span' )
+                .find( 'a.table-sort[data-sort="' + config.pageModel.sort + '"] > span' )
                 .addClass(( config.pageModel.desc ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up' ) );
         }
     },
@@ -314,12 +314,12 @@ gp.helpers = {
                 }
             }
             else if ( !gp.isNullOrEmpty(sort) ) {
-                html.add( '<button class="table-sort" value="sort" data-sort="' )
+                html.add( '<a href="javascript:void(0);" class="table-sort" value="sort" data-sort="' )
                     .escape( sort )
                     .add( '">' )
                     .escape( gp.coalesce( [col.header, col.field, sort] ) )
                     .add( '<span class="glyphicon"></span>' )
-                    .add( '</button>' );
+                    .add( '</a>' );
             }
             else {
                 html.escape( gp.coalesce( [col.header, col.field, ''] ) );
