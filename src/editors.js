@@ -455,6 +455,10 @@ gp.ModalEditor.prototype = {
 
     save: gp.Editor.prototype.save,
 
+    addBusy: gp.Editor.prototype.addBusy,
+
+    removeBusy: gp.Editor.prototype.removeBusy,
+
     httpErrorHandler: gp.Editor.prototype.httpErrorHandler,
 
     addCommandHandler: gp.TableRowEditor.prototype.addCommandHandler,
@@ -549,14 +553,6 @@ gp.ModalEditor.prototype = {
             gp.shallowCopy( this.originalDataItem, this.dataItem );
         }
         this.removeCommandHandler();
-    },
-
-    addBusy: function () {
-        $( this.elem ).addClass( 'busy' );
-    },
-
-    removeBusy: function () {
-        $( this.elem ).removeClass( 'busy' );
     },
 
     updateUI: function () {

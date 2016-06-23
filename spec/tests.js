@@ -271,7 +271,7 @@ QUnit.test( 'Template', function ( assert ) {
 
     var html = t.render( model );
 
-    assert.equal( t.dict['fns.getGlyphicon'], fns.getGlyphicon );
+    assert.equal( t.dict['{{fns.getGlyphicon}}'], fns.getGlyphicon );
 
     var shouldBe = '<button type="button" class="btn btn-default" value="create"><span class="glyphicon glyphicon-plus"></span><p>Test</p></button>';
 
@@ -470,8 +470,6 @@ QUnit.test( 'ModelSync.serialize', function ( assert ) {
 
     div.append( gp.helpers.input( 'boolean', 'IsSelected', true ) );
 
-    div.append( gp.helpers.input( 'hidden', 'IsSelected', false ) );
-
     div.append( gp.helpers.input( 'number', 'Total', 123.5 ) );
 
     var d = new Date( 1463069066619 ); // 5/12/2016
@@ -482,11 +480,15 @@ QUnit.test( 'ModelSync.serialize', function ( assert ) {
 
     div.append( gp.helpers.input( 'string', 'FirstName', 'Todd' ) );
 
-    div.append( gp.helpers.input( 'radio', 'FirstName', 'Todd' ) );
+    //div.append( gp.helpers.input( 'radio', 'FirstName', 'Todd' ) );
 
     div.append( '<input type="radio" name="Color" value="red" />' );
     div.append( '<input type="radio" name="Color" value="blue" checked />' );
     div.append( '<input type="radio" name="Color" value="green" />' );
+
+    div.append( '<input type="checkbox" name="Flavor" value="chocolate" checked />' );
+    div.append( '<input type="checkbox" name="Flavor" value="vanilla" checked />' );
+    div.append( '<input type="checkbox" name="Flavor" value="strawberry" />' );
 
     div.append( '<textarea name="Markup">some text</textarea>' );
 
@@ -499,13 +501,16 @@ QUnit.test( 'ModelSync.serialize', function ( assert ) {
     assert.strictEqual( obj.FirstName, 'Todd' );
     assert.strictEqual( obj.Color, 'blue' );
     assert.strictEqual( obj.Markup, 'some text' );
+    assert.strictEqual( obj.Flavor.length, 2 );
+    assert.strictEqual( obj.Flavor[0], 'chocolate' );
+    assert.strictEqual( obj.Flavor[1], 'vanilla' );
 
     // uncheck the IsSelected box
     div.find( 'input[type=checkbox]' ).prop( 'checked', false );
 
     var obj = gp.ModelSync.serialize( div[0] );
 
-    assert.strictEqual( obj.IsSelected, 'false' );
+    assert.strictEqual( obj.IsSelected, null );
 
     div.empty();
 

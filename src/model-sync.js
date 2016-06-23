@@ -21,24 +21,9 @@ gp.ModelSync = {
         return !Array.isArray( obj ) && ( obj - parseFloat( obj ) + 1 ) >= 0;
     },
 
-    /*
-        jQuery's serializeArray function fails under the following scenario:
-        There are two inputs with the same name.
-        One of them is a checkbox with a value of true, the other is a hidden with a value of false.
-
-        What should happen:
-        If the checkbox is checked, both are submitted and only the first one (checkbox) is used by the server resulting in a value of true.
-        If the checkbox is unchecked, only the hidden is submitted resulting in a value of false.
-        ASP.NET uses this technique to submit an explicit true or false instead of true or nothing.
-
-        What actually happens:
-        jQuery's serializeArray function always submits true regardless of checked state.
-    */
-
     serialize: function ( form ) {
         var inputs = $( form ).find( '[name]' ),
-            arr = inputs.toArray(),
-            filter = {},
+            arr,
             obj = {};
 
         inputs.each( function () {
@@ -47,27 +32,19 @@ gp.ModelSync = {
             obj[this.name] = null;
         } );
 
-        arr.filter( function ( elem ) {
-            var type = elem.type;
+        arr = $( inputs ).serializeArray();
 
-            return !this.isDisabled( elem )
-                && this.rexp.rsubmittable.test( elem.nodeName )
-                && !this.rexp.rsubmitterTypes.test( type )
-                && ( elem.checked || !this.rexp.rcheckableType.test( type ) );
-        }.bind( this ) )
-            .filter( function ( elem ) {
-                // if there are multiple elements with the same name, take the first one
-                if ( elem.name in filter ) return false;
-                return filter[elem.name] = true;
-            } )
-            .forEach( function ( elem ) {
-                var val = elem.value;
-                obj[elem.name] =
-                    ( val == null ?
-                    null :
-                    val.replace( this.rexp.rCRLF, "\r\n" ) );
-            }.bind( this )
-        );
+        arr.forEach( function ( item ) {
+            if (obj[item.name] !== null && !Array.isArray(obj[item.name])) {
+                obj[item.name] = [obj[item.name]];
+            }
+            if(Array.isArray(obj[item.name])) {
+                obj[item.name].push(item.value);
+            }
+            else {
+                obj[item.name] = item.value;
+            }
+        } );
 
         return obj;
     },
