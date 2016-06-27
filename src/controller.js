@@ -343,11 +343,8 @@ gp.Controller.prototype = {
                         var index = self.config.pageModel.data.indexOf( dataItem );
                         if ( index != -1 ) {
                             self.config.pageModel.data.splice( index, 1 );
-                            // if the dataItem is currently being displayed, refresh the grid
-                            if ( tr ) {
-                                self.refresh( self.config );
-                            }
                         }
+                        self.refresh( self.config );
                     }
                 }
                 catch ( err ) {

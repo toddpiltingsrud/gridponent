@@ -101,7 +101,6 @@ gp.DataLayer.prototype = {
             var http = new gp.Http();
             http.destroy(
                 url,
-                dataItem,
                 function ( arg ) { gp.applyFunc( done, self, arg ); },
                 function ( arg ) { gp.applyFunc( fail, self, arg ); }
             );
