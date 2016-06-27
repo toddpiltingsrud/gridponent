@@ -63,9 +63,10 @@
     <Content Include="spec\styles\bootstrap-theme.min.css" />
     <Content Include="src\datamap.js" />
     <Content Include="src\editors.js" />
+    <Content Include="src\injector.js" />
     <Content Include="src\template.js" />
     <Content Include="src\model-sync.js" />
-    <Content Include="src\templates\bootstrap-modal.html" />
+    <Content Include="src\templates.js" />
     <Content Include="src\x-column-filter.js" />
     <Content Include="src\z-webcomponent.js" />
     <Content Include="src\gridponent.css">
@@ -74,7 +75,6 @@
     <Content Include="src\gridponent.min.css">
       <DependentUpon>gridponent.css</DependentUpon>
     </Content>
-    <Content Include="src\templates\gridponent-table-footer.html" />
     <Content Include="src\format.js" />
     <Content Include="src\update-model.js" />
     <Content Include="src\string-builder.js" />
@@ -110,16 +110,6 @@
     </None>
     <None Include="spec\validation-errors.json" />
     <None Include="src\gridponent.less" />
-    <Content Include="src\templates\gridponent-body.html" />
-    <Content Include="src\templates\templates.js">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>templates.tt</DependentUpon>
-    </Content>
-    <Content Include="src\templates\templates.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>templates.js</LastGenOutput>
-    </Content>
     <Content Include="src\helpers.js" />
     <Content Include="spec\SpecRunner.html" />
     <Content Include="spec\tests.js" />
@@ -130,10 +120,6 @@
   <ItemGroup>
     <Content Include="data\products.js" />
     <None Include="data\stops.json" />
-    <Content Include="src\templates\gridponent-tfoot.html" />
-    <Content Include="src\templates\gridponent-cells.html" />
-    <Content Include="src\templates\gridponent-pager.html" />
-    <Content Include="src\templates\gridponent.html" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />

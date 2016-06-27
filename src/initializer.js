@@ -14,17 +14,26 @@ gp.Initializer.prototype = {
 
     initializeOptions: function ( options, callback ) {
         var self = this;
+        var requestModel = new gp.PagingModel();
         options.pageModel = {};
         options.ID = gp.createUID();
         this.config = options;
+        this.config.map = new gp.DataMap();
+
+        this.injector = new gp.Injector( {
+            $config: this.config,
+            $columns: this.config.columns,
+            $node: this.config.node,
+            $pageModel: requestModel,
+            $map: this.config.map,
+        }, gp.templates );
+
         this.renderLayout( this.config, this.parent );
         this.config.node = this.parent.find( '.table-container' )[0];
         this.$n = this.parent.find( '.table-container' );
 
-        this.config.map = new gp.DataMap();
         var dal = new gp.DataLayer( this.config );
-        var requestModel = new gp.PagingModel();
-        var controller = new gp.Controller( self.config, dal, requestModel );
+        var controller = new gp.Controller( this.config, dal, requestModel );
         this.config.node.api = new gp.api( controller );
         this.config.footer = this.resolveFooter( this.config );
         this.config.preload = this.config.preload === false ? this.config.preload : true;
@@ -123,7 +132,7 @@ gp.Initializer.prototype = {
 
     renderLayout: function ( config, parentNode ) {
         try {
-            $( parentNode ).html( gp.templates['gridponent']( config ) );
+            $( parentNode ).html( this.injector.exec('gridponent') );
         }
         catch ( ex ) {
             gp.error( ex );
