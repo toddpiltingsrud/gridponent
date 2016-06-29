@@ -216,7 +216,7 @@ gp.helpers = {
         return html.toString();
     },
 
-    formGroup: function ( model, arg ) {
+    formGroup: function ( model ) {
         var template = '<div class="form-group {{editclass}}"><label class="col-sm-4 control-label">{{{label}}}</label><div class="col-sm-6">{{{input}}}</div></div>';
         return gp.supplant( template, model );
     },
@@ -278,9 +278,9 @@ gp.helpers = {
     },
 
     thead: function () {
-        var self = this;
-        var html = new gp.StringBuilder();
-        var sort, template, classes;
+        var self = this,
+            html = new gp.StringBuilder(),
+            sort, template, classes;
         html.add( '<thead>' );
         html.add( '<tr>' );
         this.columns.forEach( function ( col ) {
@@ -329,6 +329,18 @@ gp.helpers = {
         html.add( '</tr>' )
             .add( '</thead>' );
         return html.toString();
+    },
+
+    theadFixed: function () {
+        if ( this.fixedheaders ) {
+            return gp.helpers['thead'].call( $config );
+        }
+    },
+
+    theadUnfixed: function () {
+        if ( !this.fixedheaders ) {
+            return gp.helpers['thead'].call( $config );
+        }
     },
 
     toolbartemplate: function () {

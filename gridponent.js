@@ -556,11 +556,8 @@ gp.Controller.prototype = {
                         var index = self.config.pageModel.data.indexOf( dataItem );
                         if ( index != -1 ) {
                             self.config.pageModel.data.splice( index, 1 );
-                            // if the dataItem is currently being displayed, refresh the grid
-                            if ( tr ) {
-                                self.refresh( self.config );
-                            }
                         }
+                        self.refresh( self.config );
                     }
                 }
                 catch ( err ) {
@@ -720,7 +717,6 @@ gp.DataLayer.prototype = {
             var http = new gp.Http();
             http.destroy(
                 url,
-                dataItem,
                 function ( arg ) { gp.applyFunc( done, self, arg ); },
                 function ( arg ) { gp.applyFunc( fail, self, arg ); }
             );
@@ -1269,6 +1265,10 @@ gp.ModalEditor.prototype = {
 
     save: gp.Editor.prototype.save,
 
+    addBusy: gp.Editor.prototype.addBusy,
+
+    removeBusy: gp.Editor.prototype.removeBusy,
+
     httpErrorHandler: gp.Editor.prototype.httpErrorHandler,
 
     addCommandHandler: gp.TableRowEditor.prototype.addCommandHandler,
@@ -1363,14 +1363,6 @@ gp.ModalEditor.prototype = {
             gp.shallowCopy( this.originalDataItem, this.dataItem );
         }
         this.removeCommandHandler();
-    },
-
-    addBusy: function () {
-        $( this.elem ).addClass( 'busy' );
-    },
-
-    removeBusy: function () {
-        $( this.elem ).removeClass( 'busy' );
     },
 
     updateUI: function () {
@@ -1821,17 +1813,26 @@ gp.Initializer.prototype = {
 
     initializeOptions: function ( options, callback ) {
         var self = this;
+        var requestModel = new gp.PagingModel();
         options.pageModel = {};
         options.ID = gp.createUID();
         this.config = options;
+        this.config.map = new gp.DataMap();
+
+        this.injector = new gp.Injector( {
+            $config: this.config,
+            $columns: this.config.columns,
+            $node: this.config.node,
+            $pageModel: requestModel,
+            $map: this.config.map,
+        }, gp.templates );
+
         this.renderLayout( this.config, this.parent );
         this.config.node = this.parent.find( '.table-container' )[0];
         this.$n = this.parent.find( '.table-container' );
 
-        this.config.map = new gp.DataMap();
         var dal = new gp.DataLayer( this.config );
-        var requestModel = new gp.PagingModel();
-        var controller = new gp.Controller( self.config, dal, requestModel );
+        var controller = new gp.Controller( this.config, dal, requestModel );
         this.config.node.api = new gp.api( controller );
         this.config.footer = this.resolveFooter( this.config );
         this.config.preload = this.config.preload === false ? this.config.preload : true;
@@ -1930,7 +1931,7 @@ gp.Initializer.prototype = {
 
     renderLayout: function ( config, parentNode ) {
         try {
-            $( parentNode ).html( gp.templates['gridponent']( config ) );
+            $( parentNode ).html( this.injector.exec('gridponent') );
         }
         catch ( ex ) {
             gp.error( ex );
@@ -2058,6 +2059,68 @@ gp.Initializer.prototype = {
             }
         } );
     }
+};
+/***************\
+    Injector
+\***************/
+
+gp.Injector = function ( resources, root ) {
+    this.resources = resources;
+    this.root = root || window;
+};
+
+gp.Injector.prototype = {
+    addResource: function(name, value) {
+        this.resources[name] = value;
+    },
+    exec: function ( funcOrName, model ) {
+        var args;
+        if ( typeof funcOrName == 'string' ) {
+            funcOrName = gp.getObjectAtPath( funcOrName, this.root );
+        }
+        if ( typeof funcOrName == 'function' ) {
+            args = this.inject( func );
+            if ( gp.hasValue( model ) ) {
+                args.push( model );
+            }
+            return funcOrName.call( this, args );
+        }
+        throw "Could not resolve function dependencies: " + funcOrName.toString();
+    },
+    inject: function ( func ) {
+        var self,
+            params,
+            args = [];
+
+        if ( func.$inject ) {
+            params = func.$inject;
+        }
+        else {
+            params = this.getParamNames( func );
+        }
+
+        params.forEach( function ( param ) {
+            if ( self.resources.hasOwnProperty( param ) ) {
+                args.push( self.resources[param] );
+            }
+            else {
+                throw "Unrecognized dependency: " + param;
+            }
+        } );
+
+        return args;
+    },
+    // http://stackoverflow.com/questions/1007981/how-to-get-function-parameter-names-values-dynamically-from-javascript
+    getParamNames: function ( func ) {
+        var STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
+        var ARGUMENT_NAMES = /([^\s,]+)/g;
+        var fnStr = func.toString().replace( STRIP_COMMENTS, '' );
+        var result = fnStr.slice( fnStr.indexOf( '(' ) + 1, fnStr.indexOf( ')' ) ).match( ARGUMENT_NAMES );
+        if ( result === null )
+            result = [];
+        return result;
+    }
+
 };
 /***************\
    mock-http
@@ -2253,24 +2316,9 @@ gp.ModelSync = {
         return !Array.isArray( obj ) && ( obj - parseFloat( obj ) + 1 ) >= 0;
     },
 
-    /*
-        jQuery's serializeArray function fails under the following scenario:
-        There are two inputs with the same name.
-        One of them is a checkbox with a value of true, the other is a hidden with a value of false.
-
-        What should happen:
-        If the checkbox is checked, both are submitted and only the first one (checkbox) is used by the server resulting in a value of true.
-        If the checkbox is unchecked, only the hidden is submitted resulting in a value of false.
-        ASP.NET uses this technique to submit an explicit true or false instead of true or nothing.
-
-        What actually happens:
-        jQuery's serializeArray function always submits true regardless of checked state.
-    */
-
     serialize: function ( form ) {
         var inputs = $( form ).find( '[name]' ),
             arr,
-            filter = {},
             obj = {};
 
         inputs.each( function () {
@@ -2292,28 +2340,6 @@ gp.ModelSync = {
                 obj[item.name] = item.value;
             }
         } );
-
-        //arr.filter( function ( elem ) {
-        //    var type = elem.type;
-
-        //    return !this.isDisabled( elem )
-        //        && this.rexp.rsubmittable.test( elem.nodeName )
-        //        && !this.rexp.rsubmitterTypes.test( type )
-        //        && ( elem.checked || !this.rexp.rcheckableType.test( type ) );
-        //}.bind( this ) )
-        //    .filter( function ( elem ) {
-        //        // if there are multiple elements with the same name, take the first one
-        //        if ( elem.name in filter ) return false;
-        //        return filter[elem.name] = true;
-        //    } )
-        //    .forEach( function ( elem ) {
-        //        var val = elem.value;
-        //        obj[elem.name] =
-        //            ( val == null ?
-        //            null :
-        //            val.replace( this.rexp.rCRLF, "\r\n" ) );
-        //    }.bind( this )
-        //);
 
         return obj;
     },
@@ -2822,216 +2848,217 @@ gp.Template.prototype = {
     templates
 \***************/
 gp.templates = gp.templates || {};
-gp.templates['bootstrap-modal'] = function(model, arg) {
-    var out = [];
-    out.push('<div class="modal fade" tabindex="-1" role="dialog" data-uid="');
-    out.push(model.uid);
-    out.push('">');
-    out.push('<div class="modal-dialog" role="document">');
-    out.push('<div class="modal-content">');
-    out.push('<div class="modal-header">');
-    out.push('<button type="button" class="close" aria-label="Close" value="cancel"><span aria-hidden="true">&times;</span></button>');
-    out.push('                <h4 class="modal-title">');
-    out.push(model.title);
-    out.push('</h4>');
-    out.push('</div>');
-    out.push('<div class="modal-body">');
-                        out.push(model.body);
-        out.push('</div>');
-    out.push('<div class="modal-footer">');
-                        if (model.footer) {
-                                out.push(model.footer);
-                            } else {
-        out.push('<div class="btn-group">');
-    out.push('<button type="button" class="btn btn-default" value="cancel">');
-    out.push('<span class="glyphicon glyphicon-remove"></span>Close');
-    out.push('</button>');
-    out.push('<button type="button" class="btn btn-primary" value="save">');
-    out.push('<span class="glyphicon glyphicon-save"></span>Save changes');
-    out.push('</button>');
-    out.push('</div>');
-                        }
-        out.push('</div>');
-    out.push('</div>');
-    out.push('<div class="gp-progress-overlay">');
-    out.push('<div class="gp-progress gp-progress-container">');
-    out.push('<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>');
-    out.push('</div>');
-    out.push('</div>');
-    out.push('</div>');
-    out.push('</div>');
-    return out.join('');
+gp.templates['bootstrap-modal'] = function ( model ) {
+    model.footer = model.footer ||
+        '<div class="btn-group"><button type="button" class="btn btn-default" value="cancel"><span class="glyphicon glyphicon-remove"></span>Close</button><button type="button" class="btn btn-primary" value="save"><span class="glyphicon glyphicon-save"></span>Save changes</button></div>';
+
+    var html = new gp.StringBuilder();
+    html.add( '<div class="modal fade" tabindex="-1" role="dialog" data-uid="{{uid}}">' )
+        .add( '<div class="modal-dialog" role="document">' )
+        .add( '<div class="modal-content">' )
+        .add( '<div class="modal-header">' )
+        .add( '<button type="button" class="close" aria-label="Close" value="cancel"><span aria-hidden="true">&times;</span></button>' )
+        .add( '<h4 class="modal-title">{{title}}</h4>' )
+        .add( '</div>' )
+        .add( '<div class="modal-body">{{{body}}}</div>' )
+        .add( '<div class="modal-footer">{{{footer}}}</div>' )
+        .add( '</div>' )
+        .add( '<div class="gp-progress-overlay">' )
+        .add( '<div class="gp-progress gp-progress-container">' )
+        .add( '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>' )
+        .add( '</div>' )
+        .add( '</div>' )
+        .add( '</div>' )
+        .add( '</div>' );
+
+    return gp.supplant( html.toString(), model );
 };
-gp.templates['gridponent-body'] = function(model, arg) {
-    var out = [];
-    out.push('<table class="table" cellpadding="0" cellspacing="0">');
-            if (!model.fixedheaders) {
-                    out.push(gp.helpers['thead'].call(model));
-                }
-        out.push('<tbody>');
-                out.push(gp.helpers['tableRows'].call(model));
-        out.push('</tbody>');
-            if (model.footer && !model.fixedfooters) {
-                    out.push(gp.templates['gridponent-tfoot'](model));
-                }
-        out.push('</table>');
-    return out.join('');
+gp.templates['gridponent-body'] = function ( $config ) {
+    var html = new gp.StringBuilder();
+    html.add( '<table class="table" cellpadding="0" cellspacing="0">' );
+    if ( !$config.fixedheaders ) {
+        html.add( gp.helpers['thead'].call( $config ) );
+    }
+    html.add( '<tbody>' )
+        .add( gp.helpers['tableRows'].call( $config ) )
+        .add( '</tbody>' );
+    if ( $config.footer && !$config.fixedfooters ) {
+        html.add( gp.templates['gridponent-tfoot']( $config ) );
+    }
+    html.add( '</table>' );
+    return html.toString();
 };
-gp.templates['gridponent-cells'] = function(model, arg) {
-    var out = [];
-    model.columns.forEach(function(col, index) {
-            out.push('    <td class="body-cell ');
-    if (col.commands) {
-    out.push('commands ');
-    }
-        out.push(col.bodyclass);
-    out.push('">');
-                out.push(gp.helpers['bodyCellContent'].call(model, col));
-        out.push('</td>');
-    });
-            return out.join('');
+
+gp.templates['gridponent-body'].$inject = ['$config'];
+
+gp.templates['gridponent-cells'] = function ( model ) {
+    var html = new gp.StringBuilder();
+    model.columns.forEach( function ( col, index ) {
+        html.add( '    <td class="body-cell ' );
+        if ( col.commands ) {
+            html.add( 'commands ' );
+        }
+        html.add( col.bodyclass )
+            .add( '">' )
+            .add( gp.helpers['bodyCellContent'].call( model, col ) )
+            .add( '</td>' );
+    } );
+    return html.toString();
 };
-gp.templates['gridponent-pager'] = function(model, arg) {
-    var out = [];
-    out.push(gp.helpers['setPagerFlags'].call(model));
-            if (model.pageModel.HasPages) {
-            out.push('<div class="btn-group">');
-    out.push('    <button class="ms-page-index btn btn-default ');
-    if (model.pageModel.IsFirstPage) {
-    out.push(' disabled ');
+
+gp.templates['gridponent-cells'].$inject = ['$columns'];
+
+
+gp.templates['gridponent-pager'] = function ( model ) {
+    var html = new gp.StringBuilder();
+    html.add( gp.helpers['setPagerFlags'].call( model ) );
+    if ( model.pageModel.HasPages ) {
+        html.add( '<div class="btn-group">' )
+            .add( '    <button class="ms-page-index btn btn-default ' );
+        if ( model.pageModel.IsFirstPage ) {
+            html.add( ' disabled ' );
+        }
+        html.add( '" title="First page" value="page" data-page="1">' )
+            .add( '<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>' )
+            .add( '</button>' )
+            .add( '    <button class="ms-page-index btn btn-default ' );
+        if ( model.pageModel.IsFirstPage ) {
+            html.add( ' disabled ' );
+        }
+        html.add( '" title="Previous page" value="page" data-page="' )
+            .add( model.pageModel.PreviousPage )
+            .add( '">' )
+            .add( '<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>' )
+            .add( '</button>' )
+            .add( '</div>' )
+            .add( '<input type="number" name="page" value="' )
+            .add( model.pageModel.page )
+            .add( '" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />' )
+            .add( '<span class="page-count">' )
+            .add( '    of ' )
+            .add( model.pageModel.pagecount )
+            .add( '</span>' )
+            .add( '<div class="btn-group">' )
+            .add( '    <button class="ms-page-index btn btn-default ' );
+        if ( model.pageModel.IsLastPage ) {
+            html.add( ' disabled ' );
+        }
+        html.add( '" title="Next page" value="page" data-page="' );
+            .add( model.pageModel.NextPage )
+            .add( '">' )
+            .add( '<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>' )
+            .add( '</button>' )
+            .add( '    <button class="ms-page-index btn btn-default ' );
+        if ( model.pageModel.IsLastPage ) {
+            html.add( ' disabled ' );
+        }
+        html.add( '" title="Last page" value="page" data-page="' )
+            .add( model.pageModel.pagecount )
+            .add( '">' )
+            .add( '<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>' )
+            .add( '</button>' )
+            .add( '</div>' );
     }
-    out.push('" title="First page" value="page" data-page="1">');
-    out.push('<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>');
-    out.push('</button>');
-        out.push('    <button class="ms-page-index btn btn-default ');
-    if (model.pageModel.IsFirstPage) {
-    out.push(' disabled ');
-    }
-    out.push('" title="Previous page" value="page" data-page="');
-    out.push(model.pageModel.PreviousPage);
-    out.push('">');
-    out.push('<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>');
-    out.push('</button>');
-    out.push('</div>');
-    out.push('<input type="number" name="page" value="');
-    out.push(model.pageModel.page);
-    out.push('" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />');
-    out.push('<span class="page-count">');
-    out.push('    of ');
-    out.push(model.pageModel.pagecount);
-        out.push('</span>');
-    out.push('<div class="btn-group">');
-    out.push('    <button class="ms-page-index btn btn-default ');
-    if (model.pageModel.IsLastPage) {
-    out.push(' disabled ');
-    }
-    out.push('" title="Next page" value="page" data-page="');
-    out.push(model.pageModel.NextPage);
-    out.push('">');
-    out.push('<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>');
-    out.push('</button>');
-        out.push('    <button class="ms-page-index btn btn-default ');
-    if (model.pageModel.IsLastPage) {
-    out.push(' disabled ');
-    }
-    out.push('" title="Last page" value="page" data-page="');
-    out.push(model.pageModel.pagecount);
-    out.push('">');
-    out.push('<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>');
-    out.push('</button>');
-    out.push('</div>');
-    }
-            return out.join('');
+    return html.toString();
 };
-gp.templates['gridponent-table-footer'] = function(model, arg) {
-    var out = [];
-    out.push('<table class="table" cellpadding="0" cellspacing="0">');
-            out.push(gp.templates['gridponent-tfoot'](model));
-        out.push('</table>');
-    return out.join('');
+
+gp.templates['gridponent-pager'].$inject = ['$pageModel'];
+
+gp.templates['gridponent-table-footer'] = function ( model ) {
+    var html = new StringBuilder();
+    html.add( '<table class="table" cellpadding="0" cellspacing="0">' )
+        .add( gp.templates['gridponent-tfoot']( model ) )
+        .add( '</table>' );
+    return html.toString();
 };
-gp.templates['gridponent-tfoot'] = function(model, arg) {
-    var out = [];
-    out.push('<tfoot>');
-    out.push('<tr>');
-                model.columns.forEach(function(col, index) {
-        out.push('<td class="footer-cell">');
-                    out.push(gp.helpers['footerCell'].call(model, col));
-        out.push('</td>');
-                });
-        out.push('</tr>');
-    out.push('</tfoot>');
-    return out.join('');
+
+gp.templates['gridponent-tfoot'] = function ( model ) {
+    var html = new StringBuilder();
+    html.add( '<tfoot>' )
+        .add( '<tr>' )
+    model.columns.forEach( function ( col, index ) {
+        html.add( '<td class="footer-cell">' )
+            .add( gp.helpers['footerCell'].call( model, col ) )
+            .add( '</td>' );
+    } );
+    html.add( '</tr>' )
+        .add( '</tfoot>' );
+    return html.toString();
 };
-gp.templates['gridponent'] = function(model, arg) {
-    var out = [];
-    out.push('<div class="gp table-container');
-    out.push(gp.helpers['containerClasses'].call(model));
-    out.push('" id="');
-    out.push(model.ID);
-    out.push('">');
-            if (model.search || model.create || model.toolbartemplate) {
-        out.push('<div class="table-toolbar">');
-                    if (model.toolbartemplate) {
-                            out.push(gp.helpers['toolbartemplate'].call(model));
-                        } else {
-                            if (model.search) {
-        out.push('<div class="input-group gridponent-searchbox">');
-    out.push('<input type="text" name="search" class="form-control" placeholder="Search...">');
-    out.push('<span class="input-group-btn">');
-    out.push('<button class="btn btn-default" type="button" value="search">');
-    out.push('<span class="glyphicon glyphicon-search"></span>');
-    out.push('</button>');
-    out.push('</span>');
-    out.push('</div>');
-                        }
-                            if (model.create) {
-        out.push('<button class="btn btn-default" type="button" value="AddRow">');
-    out.push('<span class="glyphicon glyphicon-plus"></span>Add');
-    out.push('</button>');
-                        }
-                        }
-        out.push('</div>');
+
+gp.templates['gridponent-tfoot'].$inject = ['$columns'];
+
+gp.templates['gridponent'] = function ( model ) {
+    var html = new StringBuilder();
+    html.add( '<div class="gp table-container' )
+        .add( gp.helpers['containerClasses'].call( model ) )
+        .add( '" id="' )
+        .add( model.ID )
+        .add( '">' );
+    if ( model.search || model.create || model.toolbartemplate ) {
+        html.add( '<div class="table-toolbar">' );
+        if ( model.toolbartemplate ) {
+            html.add( gp.helpers['toolbartemplate'].call( model ) );
+        } else {
+            if ( model.search ) {
+                html.add( '<div class="input-group gridponent-searchbox">' )
+                    .add( '<input type="text" name="search" class="form-control" placeholder="Search...">' )
+                    .add( '<span class="input-group-btn">' )
+                    .add( '<button class="btn btn-default" type="button" value="search">' )
+                    .add( '<span class="glyphicon glyphicon-search"></span>' )
+                    .add( '</button>' )
+                    .add( '</span>' )
+                    .add( '</div>' );
             }
-                if (model.fixedheaders) {
-        out.push('<div class="table-header">');
-    out.push('<table class="table" cellpadding="0" cellspacing="0">');
-                        out.push(gp.helpers['thead'].call(model));
-        out.push('</table>');
-    out.push('</div>');
+            if ( model.create ) {
+                html.add( '<button class="btn btn-default" type="button" value="AddRow">' )
+                    .add( '<span class="glyphicon glyphicon-plus"></span>Add' )
+                    .add( '</button>' );
             }
-        out.push('    <div class="table-body ');
-    if (model.fixedheaders) {
-    out.push('table-scroll');
+        }
+        html.add( '</div>' );
     }
-    out.push('" style="');
-    out.push(model.style);
-    out.push('">');
-    out.push('<table class="table" cellpadding="0" cellspacing="0">');
-                    if (!model.fixedheaders) {
-                            out.push(gp.helpers['thead'].call(model));
-                        }
-        out.push('</table>');
-    out.push('</div>');
-            if (model.fixedfooters) {
-        out.push('<div class="table-footer">');
-                    out.push(gp.templates['gridponent-table-footer'](model));
-        out.push('</div>');
-            }
-                if (model.pager) {
-        out.push('<div class="table-pager"></div>');
-            }
-        out.push('<style type="text/css" class="column-width-style">');
-                out.push(gp.helpers['columnWidthStyle'].call(model));
-        out.push('</style>');
-    out.push('<div class="gp-progress-overlay">');
-    out.push('<div class="gp-progress gp-progress-container">');
-    out.push('<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>');
-    out.push('</div>');
-    out.push('</div>');
-    out.push('</div>');
-    return out.join('');
+    if ( model.fixedheaders ) {
+        html.add( '<div class="table-header">' )
+            .add( '<table class="table" cellpadding="0" cellspacing="0">' )
+            .add( gp.helpers['thead'].call( model ) )
+            .add( '</table>' )
+            .add( '</div>' );
+    }
+    html.add( '    <div class="table-body ' );
+    if ( model.fixedheaders ) {
+        html.add( 'table-scroll' );
+    }
+    html.add( '" style="' )
+        .add( model.style )
+        .add( '">' )
+        .add( '<table class="table" cellpadding="0" cellspacing="0">' );
+    if ( !model.fixedheaders ) {
+        html.add( gp.helpers['thead'].call( model ) );
+    }
+    html.add( '</table>' )
+        .add( '</div>' );
+    if ( model.fixedfooters ) {
+        html.add( '<div class="table-footer">' )
+            .add( gp.templates['gridponent-table-footer']( model ) )
+            .add( '</div>' );
+    }
+    if ( model.pager ) {
+        html.add( '<div class="table-pager"></div>' );
+    }
+    html.add( '<style type="text/css" class="column-width-style">' )
+        .add( gp.helpers['columnWidthStyle'].call( model ) )
+        .add( '</style>' )
+        .add( '<div class="gp-progress-overlay">' )
+        .add( '<div class="gp-progress gp-progress-container">' )
+        .add( '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>' )
+        .add( '</div>' )
+        .add( '</div>' )
+        .add( '</div>' );
+    return html.toString();
 };
+
+gp.templates['gridponent'].$inject = ['$config'];
 /***************\
    UpdateModel
 \***************/

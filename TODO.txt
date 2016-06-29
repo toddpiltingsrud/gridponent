@@ -18,10 +18,21 @@ Create a templating engine module that is supplied with some grid-specific resou
 - the current data item
 - config object
 - the templating engine itself
+- any of the other templates and/or helpers
 - etc
 The engine uses dependency injection to supply each function with arguments.
 Instead of calling the template functions directly, set some properties on the templating engine and call a render function, 
 passing in the template name.
+
+Invert the templates so none of them call other templates or helpers.
+Instead, inject whatever they need. Example, gridponent-body needs thead, tableRows, and tfoot.
+Pass these into the template via a model or inject them. 
+Problem: thead and tfoot are dependent on whether or not there are fixed headers and/or footers.
+Can we conditionally inject these easily? 
+Create separate templates for fixed/unfixed header and fixed/unfixed footer.
+The only difference between them is that they would either render or not depending on how the grid is configured.
+Modify the injector so it constructs a model object from the dependent resources and passes it in.
+That way we can use a static template and can call supplant with it.
 
 Currently it's not possible to pass a url to an event delegate call:
 gridponent('#theGrid').rowSelected('http://server/app/controller/action/{{id}}');
