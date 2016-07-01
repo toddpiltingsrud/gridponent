@@ -73,8 +73,8 @@ gp.templates['gridponent-pager'] = function ( model ) {
     pageModel.PreviousPage = pageModel.page === 1 ? 1 : pageModel.page - 1;
     pageModel.NextPage = pageModel.page === pageModel.pagecount ? pageModel.pagecount : pageModel.page + 1;
 
-    pageModel.firstPageClass = (pageModel.pageModel.IsFirstPage ? 'disabled' : '');
-    pageModel.lastPageClass = (pageModel.pageModel.IsLastPage ? 'disabled' : '');
+    pageModel.firstPageClass = (pageModel.IsFirstPage ? 'disabled' : '');
+    pageModel.lastPageClass = (pageModel.IsLastPage ? 'disabled' : '');
 
     if ( pageModel.HasPages ) {
         html.add( '<div class="btn-group">' )
@@ -102,7 +102,7 @@ gp.templates['gridponent-pager'] = function ( model ) {
 gp.templates['gridponent-pager'].$inject = ['$pageModel'];
 
 gp.templates['gridponent-table-footer'] = function ( model ) {
-    var html = new StringBuilder();
+    var html = new gp.StringBuilder();
     html.add( '<table class="table" cellpadding="0" cellspacing="0">' )
         .add( gp.templates['gridponent-tfoot']( model ) )
         .add( '</table>' );
@@ -110,7 +110,7 @@ gp.templates['gridponent-table-footer'] = function ( model ) {
 };
 
 gp.templates['gridponent-tfoot'] = function ( model ) {
-    var html = new StringBuilder();
+    var html = new gp.StringBuilder();
     html.add( '<tfoot>' )
         .add( '<tr>' )
     model.columns.forEach( function ( col, index ) {
@@ -126,7 +126,7 @@ gp.templates['gridponent-tfoot'] = function ( model ) {
 gp.templates['gridponent-tfoot'].$inject = ['$columns'];
 
 gp.templates['gridponent'] = function ( model ) {
-    var html = new StringBuilder();
+    var html = new gp.StringBuilder();
     html.add( '<div class="gp table-container' )
         .add( gp.helpers['containerClasses'].call( model ) )
         .add( '" id="' )

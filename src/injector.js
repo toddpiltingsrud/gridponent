@@ -17,16 +17,16 @@ gp.Injector.prototype = {
             funcOrName = gp.getObjectAtPath( funcOrName, this.root );
         }
         if ( typeof funcOrName == 'function' ) {
-            args = this.inject( func );
+            args = this.inject( funcOrName );
             if ( gp.hasValue( model ) ) {
                 args.push( model );
             }
-            return funcOrName.call( this, args );
+            return funcOrName.apply( this, args );
         }
         throw "Could not resolve function dependencies: " + funcOrName.toString();
     },
     inject: function ( func ) {
-        var self,
+        var self = this,
             params,
             args = [];
 

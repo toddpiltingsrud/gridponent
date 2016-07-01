@@ -34,6 +34,8 @@ The only difference between them is that they would either render or not dependi
 Modify the injector so it constructs a model object from the dependent resources and passes it in.
 That way we can use a static template and can call supplant with it.
 
+Change the commands so it can be either a comma-separated string or an array of objects.
+
 Currently it's not possible to pass a url to an event delegate call:
 gridponent('#theGrid').rowSelected('http://server/app/controller/action/{{id}}');
 Should this be supported?

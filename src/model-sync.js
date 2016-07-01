@@ -5,24 +5,12 @@
 gp.ModelSync = {
 
     rexp: {
-        rCRLF: /\r?\n/g,
-        rsubmitterTypes: /^(?:submit|button|image|reset|file)$/i,
-        rsubmittable: /^(?:input|select|textarea|keygen)/i,
-        rcheckableType: /^(?:checkbox|radio)$/i,
         rTrue: /^true$/i,
         rFalse: /^false$/i,
     },
 
-    isDisabled: function ( elem ) {
-        return elem.disabled == true;
-    },
-
-    isNumeric: function ( obj ) {
-        return !Array.isArray( obj ) && ( obj - parseFloat( obj ) + 1 ) >= 0;
-    },
-
     serialize: function ( form ) {
-        var inputs = $( form ).find( '[name]' ),
+        var inputs = $( form ).find( ':input[name]' ),
             arr,
             obj = {};
 
@@ -35,11 +23,12 @@ gp.ModelSync = {
         arr = $( inputs ).serializeArray();
 
         arr.forEach( function ( item ) {
-            if (obj[item.name] !== null && !Array.isArray(obj[item.name])) {
+            // if there are multiple elements with this name assume an array
+            if ( obj[item.name] !== null && !Array.isArray( obj[item.name] ) ) {
                 obj[item.name] = [obj[item.name]];
             }
-            if(Array.isArray(obj[item.name])) {
-                obj[item.name].push(item.value);
+            if ( Array.isArray( obj[item.name] ) ) {
+                obj[item.name].push( item.value );
             }
             else {
                 obj[item.name] = item.value;
@@ -125,7 +114,7 @@ gp.ModelSync = {
     cast: function ( val, dataType ) {
         switch ( dataType ) {
             case 'number':
-                if ( this.isNumeric( val ) ) return parseFloat( val );
+                if ( $.isNumeric( val ) ) return parseFloat( val );
                 break;
             case 'boolean':
                 return val != null && val.toLowerCase() == 'true';

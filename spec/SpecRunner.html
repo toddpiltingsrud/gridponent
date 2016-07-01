@@ -10,7 +10,7 @@
     <link href="styles/bootstrap.min.css" rel="stylesheet">
     <link href="styles/styles.css" rel="stylesheet">
     <link href="../src/gridponent.css" rel="stylesheet">
-    <script src="scripts/jquery-2.1.4.min.js"></script>
+    <script src="scripts/jquery-2.1.4.js"></script>
     <script src="scripts/qunit-1.20.0.js"></script>
     <script src="scripts/moment.min.js"></script>
     <script src="scripts/numeral.min.js"></script>
@@ -36,7 +36,7 @@
         var val = dataItem[column.field];
         var data = fns.getData().data;
         var out = [];
-        out.push('<select name="MakeFlag" class="form-control">');
+        out.push('<select name="MakeFlag2" class="form-control">');
         data.forEach(function (r) {
             if (val == r[column.field]) {
                 out.push('<option value="' + r[column.field] + '" selected="selected">' + gridponent.escapeHTML(r.Name) + '</option>');

@@ -516,23 +516,6 @@ QUnit.test( 'ModelSync.serialize', function ( assert ) {
 
 } );
 
-
-QUnit.test( 'ModelSync.isDisabled', function ( assert ) {
-
-    var elem = $( '<input type="text" />' );
-
-    var isDisabled = gp.ModelSync.isDisabled( elem[0] );
-
-    assert.strictEqual( isDisabled, false );
-
-    elem.attr( 'disabled', true );
-
-    isDisabled = gp.ModelSync.isDisabled( elem[0] );
-
-    assert.strictEqual( isDisabled, true );
-
-} );
-
 QUnit.test( 'Initializer.resolveCommands', function ( assert ) {
 
     var fn = gp.Initializer.prototype.resolveCommands;
@@ -620,7 +603,7 @@ QUnit.test( 'sorting', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var lbl = api.find( 'button.table-sort' );
+        var lbl = api.find( 'a.table-sort' );
 
         clickButton( lbl );
 
@@ -1743,7 +1726,7 @@ QUnit.test( 'pageModel.desc', function ( assert ) {
         var config = api.config;
 
         // set one of the radio buttons a couple of times
-        var sortInput = api.find( 'button.table-sort' );
+        var sortInput = api.find( 'a.table-sort' );
 
         clickButton( sortInput );
 
@@ -1751,7 +1734,7 @@ QUnit.test( 'pageModel.desc', function ( assert ) {
 
         // Need a fresh reference to the input or the second change event won't do anything.
         // This happens when thead is inside div.table-body (no fixed headers) because thead gets rendered again.
-        sortInput = api.find( 'button.table-sort' );
+        sortInput = api.find( 'a.table-sort' );
 
         clickButton( sortInput );
 
@@ -2271,6 +2254,76 @@ QUnit.test( 'gp.Table.getConfig', function ( assert ) {
 
 } );
 
+QUnit.test( 'edit and update', function ( assert ) {
+
+    var done1 = assert.async();
+    var done2 = assert.async();
+
+    var options = gp.shallowCopy( configOptions );
+    options.fixedheaders = true;
+    options.sorting = true;
+    options.editready = 'fns.editready';
+    options.onedit = 'fns.onupdate';
+    var colIndex = -1;
+    var col = null;
+
+    var changeEvent = new CustomEvent( 'change', {
+        'view': window,
+        'bubbles': true,
+        'cancelable': true
+    } );
+
+    fns.editready = function ( evt ) {
+        assert.ok( evt != null );
+        assert.ok( evt.dataItem != null );
+        assert.ok( evt.elem != null );
+        // change some of the values
+        var input = this.find( '[name=StandardCost]' );
+        input.val( '5' );
+        done1();
+        var saveBtn = this.find( 'button[value=update]' );
+        clickButton( saveBtn );
+    };
+
+    fns.onupdate = function ( evt ) {
+        assert.ok( evt != null );
+        assert.ok( evt.dataItem != null );
+        assert.strictEqual( evt.dataItem.StandardCost, 5, 'clicking save button should update the model' );
+
+        // make sure the grid is updated with the correct value
+        var updatedCellValue = evt.elem.find( 'td:nth-child(' + ( colIndex + 1 ) + ')' ).html();
+
+        var expectedValue = gp.getFormattedValue( evt.dataItem, col, true );
+
+        assert.equal( updatedCellValue, expectedValue, 'grid should be updated with the correct value' );
+
+        done2();
+    };
+
+    getTableConfig( options, function ( api ) {
+
+        var config = api.config;
+
+        var node = config.node;
+
+        // find the StandardCost column
+        col = config.columns.filter( function ( col, index ) {
+            if ( col.field == "StandardCost" ) {
+                colIndex = index;
+                return true;
+            }
+            return false;
+        } )[0];
+
+        // trigger a click event on an edit button
+        var btn = api.find( 'button[value=edit]' );
+
+        clickButton( btn[0] );
+
+    } );
+
+} );
+
 QUnit.test( 'gp.helpers.thead', function ( assert ) {
 
     var done1 = assert.async(),
@@ -2280,9 +2333,9 @@ QUnit.test( 'gp.helpers.thead', function ( assert ) {
     function testHeaders( headers ) {
         assert.ok( headers[0].querySelector( 'input[type=checkbox]' ) != null );
 
-        assert.ok( headers[1].querySelector( 'button.table-sort' ) != null );
+        assert.ok( headers[1].querySelector( 'a.table-sort' ) != null );
 
-        assert.equal( headers[6].querySelector( 'button.table-sort' ).textContent, 'Markup' );
+        assert.equal( headers[6].querySelector( 'a.table-sort' ).textContent, 'Markup' );
     }
 
     // fixed headers, with sorting
@@ -2616,75 +2669,6 @@ QUnit.test( 'editready event', function ( assert ) {
 
 } );
 
-QUnit.test( 'edit and update', function ( assert ) {
-
-    var done1 = assert.async();
-    var done2 = assert.async();
-
-    var options = gp.shallowCopy( configOptions );
-    options.fixedheaders = true;
-    options.sorting = true;
-    options.editready = 'fns.editready';
-    options.onedit = 'fns.onupdate';
-    var colIndex = -1;
-    var col = null;
-
-    var changeEvent = new CustomEvent( 'change', {
-        'view': window,
-        'bubbles': true,
-        'cancelable': true
-    } );
-
-    fns.editready = function ( evt ) {
-        assert.ok( evt != null );
-        assert.ok( evt.dataItem != null );
-        assert.ok( evt.elem != null );
-        // change some of the values
-        var input = this.find( '[name=StandardCost]' )
-        input.val('5');
-        done1();
-        var saveBtn = this.find( 'button[value=update]' );
-        clickButton( saveBtn );
-    };
-
-    fns.onupdate = function ( evt ) {
-        assert.ok( evt != null );
-        assert.ok( evt.dataItem != null );
-        assert.strictEqual( evt.dataItem.StandardCost, 5, 'clicking save button should update the model' );
-
-        // make sure the grid is updated with the correct value
-        var updatedCellValue = evt.elem.find( 'td:nth-child(' + ( colIndex + 1 ) + ')' ).html();
-
-        var expectedValue = gp.getFormattedValue( evt.dataItem, col, true );
-
-        assert.equal( updatedCellValue, expectedValue, 'grid should be updated with the correct value' );
-
-        done2();
-    };
-
-    getTableConfig( options, function ( api ) {
-
-        var config = api.config;
-
-        var node = config.node;
-
-        // find the StandardCost column
-        col = config.columns.filter( function ( col, index ) {
-            if ( col.field == "StandardCost" ) {
-                colIndex = index;
-                return true;
-            }
-            return false;
-        } )[0];
-
-        // trigger a click event on an edit button
-        var btn = api.find( 'button[value=edit]' );
-
-        clickButton( btn[0] );
-
-    } );
-
-} );
 
 QUnit.test( 'date formatting', function ( assert ) {
 

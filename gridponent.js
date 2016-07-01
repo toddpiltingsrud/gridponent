@@ -1669,7 +1669,7 @@ gp.helpers = {
         return html.toString();
     },
 
-    formGroup: function ( model, arg ) {
+    formGroup: function ( model ) {
         var template = '<div class="form-group {{editclass}}"><label class="col-sm-4 control-label">{{{label}}}</label><div class="col-sm-6">{{{input}}}</div></div>';
         return gp.supplant( template, model );
     },
@@ -1731,9 +1731,9 @@ gp.helpers = {
     },
 
     thead: function () {
-        var self = this;
-        var html = new gp.StringBuilder();
-        var sort, template, classes;
+        var self = this,
+            html = new gp.StringBuilder(),
+            sort, template, classes;
         html.add( '<thead>' );
         html.add( '<tr>' );
         this.columns.forEach( function ( col ) {
@@ -1782,6 +1782,18 @@ gp.helpers = {
         html.add( '</tr>' )
             .add( '</thead>' );
         return html.toString();
+    },
+
+    theadFixed: function () {
+        if ( this.fixedheaders ) {
+            return gp.helpers['thead'].call( $config );
+        }
+    },
+
+    theadUnfixed: function () {
+        if ( !this.fixedheaders ) {
+            return gp.helpers['thead'].call( $config );
+        }
     },
 
     toolbartemplate: function () {
@@ -2079,16 +2091,16 @@ gp.Injector.prototype = {
             funcOrName = gp.getObjectAtPath( funcOrName, this.root );
         }
         if ( typeof funcOrName == 'function' ) {
-            args = this.inject( func );
+            args = this.inject( funcOrName );
             if ( gp.hasValue( model ) ) {
                 args.push( model );
             }
-            return funcOrName.call( this, args );
+            return funcOrName.apply( this, args );
         }
         throw "Could not resolve function dependencies: " + funcOrName.toString();
     },
     inject: function ( func ) {
-        var self,
+        var self = this,
             params,
             args = [];
 
@@ -2137,58 +2149,6 @@ gp.Injector.prototype = {
     };
 
     gp.Http.prototype = {
-        //serialize: function (obj, props) {
-        //    // creates a query string from a simple object
-        //    var self = this;
-        //    props = props || Object.getOwnPropertyNames(obj);
-        //    var out = [];
-        //    props.forEach(function (prop) {
-        //        out.push(encodeURIComponent(prop) + '=' + encodeURIComponent(obj[prop]));
-        //    });
-        //    return out.join('&');
-        //},
-        //deserialize: function (queryString) {
-        //    var nameValue, split = queryString.split( '&' );
-        //    var obj = {};
-        //    if ( !queryString ) return obj;
-        //    split.forEach( function ( s ) {
-        //        nameValue = s.split( '=' );
-        //        var val = nameValue[1];
-        //        if ( !val ) {
-        //            obj[nameValue[0]] = null;
-        //        }
-        //        else if ( /true|false/i.test( val ) ) {
-        //            obj[nameValue[0]] = ( /true/i.test( val ) );
-        //        }
-        //        else if ( parseFloat( val ).toString() === val ) {
-        //            obj[nameValue[0]] = parseFloat( val );
-        //        }
-        //        else {
-        //            obj[nameValue[0]] = val;
-        //        }
-        //    } );
-        //    return obj;
-        //},
-        //get: function (url, callback, error) {
-        //    if (routes.read.test(url)) {
-        //        var index = url.substring(url.indexOf('?'));
-        //        if (index !== -1) {
-        //            var queryString = url.substring(index + 1);
-        //            var model = this.deserialize(queryString);
-        //            this.post(url.substring(0, index), model, callback, error);
-        //        }
-        //        else {
-        //            this.post(url, null, callback, error);
-        //        }
-        //    }
-        //    else if (routes.create.test(url)) {
-        //        var result = { "ProductID": 0, "Name": "", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": null };
-        //        callback(result);
-        //    }
-        //    else {
-        //        throw 'Not found: ' + url;
-        //    }
-        //},
         post: function (url, model, callback, error) {
             model = model || {};
             if (routes.read.test(url)) {
@@ -2205,9 +2165,7 @@ gp.Injector.prototype = {
                 throw '404 Not found: ' + url;
             }
         },
-        destroy: function ( url, model, callback, error ) {
-            model = model || {};
-            var index = window.data.products.indexOf( model );
+        destroy: function ( url, callback, error ) {
             callback( {
                 Success: true,
                 Message: ''
@@ -2300,24 +2258,12 @@ gp.Injector.prototype = {
 gp.ModelSync = {
 
     rexp: {
-        rCRLF: /\r?\n/g,
-        rsubmitterTypes: /^(?:submit|button|image|reset|file)$/i,
-        rsubmittable: /^(?:input|select|textarea|keygen)/i,
-        rcheckableType: /^(?:checkbox|radio)$/i,
         rTrue: /^true$/i,
         rFalse: /^false$/i,
     },
 
-    isDisabled: function ( elem ) {
-        return elem.disabled == true;
-    },
-
-    isNumeric: function ( obj ) {
-        return !Array.isArray( obj ) && ( obj - parseFloat( obj ) + 1 ) >= 0;
-    },
-
     serialize: function ( form ) {
-        var inputs = $( form ).find( '[name]' ),
+        var inputs = $( form ).find( ':input[name]' ),
             arr,
             obj = {};
 
@@ -2330,11 +2276,12 @@ gp.ModelSync = {
         arr = $( inputs ).serializeArray();
 
         arr.forEach( function ( item ) {
-            if (obj[item.name] !== null && !Array.isArray(obj[item.name])) {
+            // if there are multiple elements with this name assume an array
+            if ( obj[item.name] !== null && !Array.isArray( obj[item.name] ) ) {
                 obj[item.name] = [obj[item.name]];
             }
-            if(Array.isArray(obj[item.name])) {
-                obj[item.name].push(item.value);
+            if ( Array.isArray( obj[item.name] ) ) {
+                obj[item.name].push( item.value );
             }
             else {
                 obj[item.name] = item.value;
@@ -2420,7 +2367,7 @@ gp.ModelSync = {
     cast: function ( val, dataType ) {
         switch ( dataType ) {
             case 'number':
-                if ( this.isNumeric( val ) ) return parseFloat( val );
+                if ( $.isNumeric( val ) ) return parseFloat( val );
                 break;
             case 'boolean':
                 return val != null && val.toLowerCase() == 'true';
@@ -2910,62 +2857,45 @@ gp.templates['gridponent-cells'].$inject = ['$columns'];
 
 
 gp.templates['gridponent-pager'] = function ( model ) {
-    var html = new gp.StringBuilder();
-    html.add( gp.helpers['setPagerFlags'].call( model ) );
-    if ( model.pageModel.HasPages ) {
+    var pageModel = gp.shallowCopy(model.pageModel),
+        html = new gp.StringBuilder();
+
+    pageModel.IsFirstPage = pageModel.page === 1;
+    pageModel.IsLastPage = pageModel.page === pageModel.pagecount;
+    pageModel.HasPages = pageModel.pagecount > 1;
+    pageModel.PreviousPage = pageModel.page === 1 ? 1 : pageModel.page - 1;
+    pageModel.NextPage = pageModel.page === pageModel.pagecount ? pageModel.pagecount : pageModel.page + 1;
+
+    pageModel.firstPageClass = (pageModel.IsFirstPage ? 'disabled' : '');
+    pageModel.lastPageClass = (pageModel.IsLastPage ? 'disabled' : '');
+
+    if ( pageModel.HasPages ) {
         html.add( '<div class="btn-group">' )
-            .add( '    <button class="ms-page-index btn btn-default ' );
-        if ( model.pageModel.IsFirstPage ) {
-            html.add( ' disabled ' );
-        }
-        html.add( '" title="First page" value="page" data-page="1">' )
+            .add( '    <button class="ms-page-index btn btn-default {{firstPageClass}}" title="First page" value="page" data-page="1">' )
             .add( '<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>' )
             .add( '</button>' )
-            .add( '    <button class="ms-page-index btn btn-default ' );
-        if ( model.pageModel.IsFirstPage ) {
-            html.add( ' disabled ' );
-        }
-        html.add( '" title="Previous page" value="page" data-page="' )
-            .add( model.pageModel.PreviousPage )
-            .add( '">' )
+            .add( '    <button class="ms-page-index btn btn-default {{firstPageClass}}" title="Previous page" value="page" data-page="{{PreviousPage}}">' )
             .add( '<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>' )
             .add( '</button>' )
             .add( '</div>' )
-            .add( '<input type="number" name="page" value="' )
-            .add( model.pageModel.page )
-            .add( '" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />' )
-            .add( '<span class="page-count">' )
-            .add( '    of ' )
-            .add( model.pageModel.pagecount )
-            .add( '</span>' )
+            .add( '<input type="number" name="page" value="{{page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />' )
+            .add( '<span class="page-count"> of {{pagecount}}</span>' )
             .add( '<div class="btn-group">' )
-            .add( '    <button class="ms-page-index btn btn-default ' );
-        if ( model.pageModel.IsLastPage ) {
-            html.add( ' disabled ' );
-        }
-        html.add( '" title="Next page" value="page" data-page="' );
-            .add( model.pageModel.NextPage )
-            .add( '">' )
+            .add( '    <button class="ms-page-index btn btn-default {{lastPageClass}}" title="Next page" value="page" data-page="{{NextPage}}">' )
             .add( '<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>' )
             .add( '</button>' )
-            .add( '    <button class="ms-page-index btn btn-default ' );
-        if ( model.pageModel.IsLastPage ) {
-            html.add( ' disabled ' );
-        }
-        html.add( '" title="Last page" value="page" data-page="' )
-            .add( model.pageModel.pagecount )
-            .add( '">' )
+            .add( '    <button class="ms-page-index btn btn-default {{lastPageClass}}" title="Last page" value="page" data-page="{{pagecount}}">' )
             .add( '<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>' )
             .add( '</button>' )
             .add( '</div>' );
     }
-    return html.toString();
+    return gp.supplant( html.toString(), pageModel );
 };
 
 gp.templates['gridponent-pager'].$inject = ['$pageModel'];
 
 gp.templates['gridponent-table-footer'] = function ( model ) {
-    var html = new StringBuilder();
+    var html = new gp.StringBuilder();
     html.add( '<table class="table" cellpadding="0" cellspacing="0">' )
         .add( gp.templates['gridponent-tfoot']( model ) )
         .add( '</table>' );
@@ -2973,7 +2903,7 @@ gp.templates['gridponent-table-footer'] = function ( model ) {
 };
 
 gp.templates['gridponent-tfoot'] = function ( model ) {
-    var html = new StringBuilder();
+    var html = new gp.StringBuilder();
     html.add( '<tfoot>' )
         .add( '<tr>' )
     model.columns.forEach( function ( col, index ) {
@@ -2989,7 +2919,7 @@ gp.templates['gridponent-tfoot'] = function ( model ) {
 gp.templates['gridponent-tfoot'].$inject = ['$columns'];
 
 gp.templates['gridponent'] = function ( model ) {
-    var html = new StringBuilder();
+    var html = new gp.StringBuilder();
     html.add( '<div class="gp table-container' )
         .add( gp.helpers['containerClasses'].call( model ) )
         .add( '" id="' )

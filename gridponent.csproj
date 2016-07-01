@@ -47,6 +47,7 @@
     <Content Include="spec\scratchpad.html" />
     <Content Include="spec\scripts\bootstrap-datepicker.min.js" />
     <Content Include="spec\scripts\bootstrap.min.js" />
+    <Content Include="spec\scripts\jquery-2.1.4.js" />
     <Content Include="spec\scripts\jquery-2.1.4.min.js" />
     <Content Include="spec\scripts\modernizr-custom-3.0.0.min.js" />
     <Content Include="spec\scripts\moment.min.js" />

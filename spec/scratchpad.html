@@ -22,30 +22,54 @@
 </head>
 <body>
 
+    <grid-ponent 
+                 fixed-headers 
+                 sorting 
+                 read="data.products" create="/Products/create" update="/Products/update" destroy="/Products/Delete" 
+                 editready="fns.editready" onedit="fns.onupdate" pager="top-right" search="top-left">
 
-
-
-    <div class="table-toolbar">
-        <button class="btn btn-default" type="button" value="AddRow"><span class="glyphicon glyphicon-plus"></span>Add</button>
-    </div>
-    <div class="table-body " style="">
-        <table class="table" cellpadding="0" cellspacing="0">
-            <thead>
-                <tr>
-                    <th class="header-cell " data-sort="">Current</th>
-                    <th class="header-cell " data-sort="">Address</th>
-                    <th class="header-cell " data-sort="">City</th>
-                    <th class="header-cell " data-sort="">State</th>
-                    <th class="header-cell " data-sort="">Zip</th>
-                    <th class="header-cell " data-sort="">Years</th>
-                    <th class="header-cell " data-sort="">Months</th>
-                    <th class="header-cell " data-sort=""></th>
-                </tr>
-            </thead>
-        </table>
-    </div>
-    <style type="text/css" class="sort-style"></style>
-
+        <gp-column>
+            <script type="text/html" data-template="header body edit footer">
+                <input type="checkbox" name="test" />
+            </script>
+        </gp-column>
+        <gp-column sort="Name" header="ID">
+            <script type="text/html" data-template="body">
+                {{fns.getName}}
+            </script>
+            <script type="text/html" data-template="edit">
+                {{{fns.dropdown}}}
+            </script>
+        </gp-column>    
+        <gp-column header="Make" width="75px" field="MakeFlag"></gp-column>    
+        <gp-column header="Safety Stock Level" field="SafetyStockLevel">
+            <script type="text/html" data-template="body">
+                <button class="btn"><span class="glyphicon glyphicon-search"></span>{{SafetyStockLevel}}</button>
+            </script>
+            <script type="text/html" data-template="footer">
+                {{fns.average}}
+            </script>
+        </gp-column>    
+        <gp-column header="Standard Cost" field="StandardCost" format="$0"></gp-column>    
+        <gp-column header="Sell Start Date" field="SellStartDate" format="d MMMM, YYYY"></gp-column>    
+        <gp-column readonly="" field="Markup" header-class="hidden-xs" body-class="hidden-xs"></gp-column>    
+        <gp-column>
+            <script type="text/html" data-template="header">
+                Test header
+                <input type="checkbox" />
+            </script>
+        </gp-column>    
+        <gp-column sort="Color" body-style="border:solid 1px #ccc;">
+            <script type="text/html" data-template="header">
+                <button class="btn" value="">{{fns.getHeaderText}}</button>
+            </script>
+            <script type="text/html" data-template="body">
+                <button class="btn" value="{{fns.getButtonText}}"><span class="glyphicon {{fns.getButtonIcon}}"></span>{{fns.getButtonText}}</button>
+            </script>
+        </gp-column>
+        <gp-column header="Product #" field="ProductNumber"></gp-column>    
+        <gp-column commands="Edit,Delete"></gp-column>
+    </grid-ponent>
 
 </body>
 </html>
