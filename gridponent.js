@@ -2115,7 +2115,7 @@ gp.Injector.prototype = {
             if ( self.resources.hasOwnProperty( param ) ) {
                 args.push( self.resources[param] );
             }
-            else {
+            else if ( param[0] === '$' ) {
                 throw "Unrecognized dependency: " + param;
             }
         } );

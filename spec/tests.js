@@ -251,6 +251,52 @@ var configuration = {
 
 fns.model = { "ProductID": 0, "Name": "Adjustable Race", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "blue", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "C", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": "<p>Product's name: \"Adjustable Race\"</p>" };
 
+QUnit.test( 'Injector', function ( assert ) {
+
+    var resources = {
+        $config: { fixedheaders: false },
+        $columns: [],
+        $pageModel: { pagecount: 15 }
+    };
+
+    var injector = new gp.Injector( resources );
+
+
+    // test $inject property
+
+    var func = function ( c, p ) {
+        assert.strictEqual( resources.$config, c );
+
+        assert.strictEqual( resources.$pageModel, p );
+
+        return c.fixedheaders;
+    };
+
+    func.$inject = ['$config', '$pageModel'];
+
+    var result = injector.exec( func );
+
+    assert.strictEqual( result, false );
+
+
+    // test getParamNames and optional second arg
+
+    func = function ( $pageModel, obj ) {
+
+        assert.strictEqual( resources.$pageModel, $pageModel );
+
+        assert.strictEqual( obj.test, true );
+
+        return $pageModel.pagecount;
+    }
+
+    result = injector.exec( func, { test: true } );
+
+    assert.strictEqual( result, 15 );
+
+
+} );
+
 QUnit.test( 'Template', function ( assert ) {
 
     var model = {
