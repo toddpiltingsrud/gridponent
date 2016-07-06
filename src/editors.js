@@ -6,6 +6,7 @@ gp.Editor = function ( config, dal ) {
 
     this.config = config;
     this.dal = dal;
+    this.uid = null;
     this.dataItem = null;
     this.originalDataItem = null;
     this.mode = null;
@@ -22,8 +23,16 @@ gp.Editor.prototype = {
     add: function ( dataItem ) {
         this.dataItem = dataItem || this.createDataItem();
         this.mode = 'create';
+
+        // add the data item to the internal data array
+        this.config.pageModel.data.push( this.dataItem );
+
+        // map it
+        this.uid = this.config.map.assign( this.dataItem );
+
         return {
-            dataItem: this.dataItem
+            dataItem: this.dataItem,
+            uid: this.uid
         };
     },
 
@@ -34,6 +43,24 @@ gp.Editor.prototype = {
         return {
             dataItem: dataItem,
         };
+    },
+
+    cancel: function () {
+        if ( this.mode === 'create' ) {
+            // unmap the dataItem
+            this.config.map.remove( this.uid );
+            // remove the dataItem from the internal array
+            var index = this.config.pageModel.data.indexOf( this.dataItem );
+            if ( index !== -1 ) {
+                this.config.pageModel.data.slice( index, 1 );
+            }
+        }
+        else if ( this.mode == 'update' && this.originalDataItem ) {
+            //restore the dataItem to its original state
+            gp.shallowCopy( this.originalDataItem, this.dataItem );
+        }
+
+        this.removeCommandHandler();
     },
 
     httpErrorHandler: function ( e ) {
@@ -90,14 +117,14 @@ gp.Editor.prototype = {
                         returnedDataItem = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem : ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] : self.dataItem;
 
                         // add the new dataItem to the internal data array
-                        self.config.pageModel.data.push( returnedDataItem );
+                        //self.config.pageModel.data.push( returnedDataItem );
 
                         // copy to local dataItem so updateUI will bind to current data
                         gp.shallowCopy( returnedDataItem, self.dataItem );
 
                         // It's important to map the dataItem after it's saved because user could cancel.
                         // Also the returned dataItem will likely have additional information added by the server.
-                        uid = self.config.map.assign( returnedDataItem, self.elem );
+                        //uid = self.config.map.assign( returnedDataItem, self.elem );
 
                         self.updateUI( self.config, self.dataItem, self.elem );
 
@@ -276,9 +303,9 @@ gp.TableRowEditor.prototype = {
             builder = new gp.NodeBuilder(),
             cellContent;
 
-        gp.Editor.prototype.add.call( this, dataItem );
+        var obj = gp.Editor.prototype.add.call( this, dataItem );
 
-        builder.create( 'tr' ).addClass( 'create-mode' ),
+        builder.create( 'tr' ).addClass( 'create-mode' ).attr( 'data-uid', obj.uid );
 
         // add td.body-cell elements to the tr
         this.config.columns.forEach( function ( col ) {
@@ -352,6 +379,8 @@ gp.TableRowEditor.prototype = {
     },
 
     cancel: function () {
+        
+        gp.Editor.prototype.cancel.call( this );
 
         try {
             var tbl = $(this.elem).closest( 'table', this.$n ),
@@ -362,13 +391,8 @@ gp.TableRowEditor.prototype = {
                 tbl[0].deleteRow( this.elem.rowIndex );
             }
             else {
-                // restore the dataItem to its original state
-                gp.shallowCopy( this.originalDataItem, this.dataItem );
                 this.updateUI();
             }
-
-            this.removeCommandHandler();
-
         }
         catch ( ex ) {
             gp.error( ex );
@@ -547,12 +571,10 @@ gp.ModalEditor.prototype = {
     },
 
     cancel: function () {
-        $( this.elem ).modal('hide');
-        //restore the dataItem to its original state
-        if ( this.mode == 'update' && this.originalDataItem ) {
-            gp.shallowCopy( this.originalDataItem, this.dataItem );
-        }
-        this.removeCommandHandler();
+
+        gp.Editor.prototype.cancel.call( this );
+
+        $( this.elem ).modal( 'hide' );
     },
 
     updateUI: function () {

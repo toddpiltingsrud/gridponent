@@ -251,6 +251,89 @@ var configuration = {
 
 fns.model = { "ProductID": 0, "Name": "Adjustable Race", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "blue", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "C", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": "<p>Product's name: \"Adjustable Race\"</p>" };
 
+QUnit.test( 'get a reference to a new dataItem via the API', function ( assert ) {
+
+    var done1 = assert.async();
+    var done2 = assert.async();
+
+    var options = gp.shallowCopy( configOptions );
+
+    var api1, api2;
+
+    options.editready = 'fns.editReady';
+
+    fns.editReady = function ( model ) {
+
+        // use the api to find the dataItem
+        var uid = $(model.elem).attr( 'data-uid' );
+
+        assert.ok( uid != null && uid != '' );
+
+        var dataItem = api1.getData( uid );
+
+        assert.ok( dataItem != null );
+
+        // cancel it
+        var cancelBtn = $( model.elem ).find( 'button[value=cancel]' );
+        clickButton( cancelBtn[0] );
+
+        dataItem = api1.getData( uid );
+
+        assert.ok( dataItem == null );
+
+        done1();
+    };
+
+    getTableConfig( options, function ( api ) {
+
+        api1 = api;
+
+        var addBtn = api.find( '[value=AddRow]' );
+
+        clickButton( addBtn[0] );
+
+    } );
+
+    // now try it with a modal
+
+    options.editmode = 'modal';
+    options.editready = 'fns.editReady2';
+    fns.editReady2 = function ( model ) {
+
+        // use the api to find the dataItem
+        var uid = $( model.elem ).attr( 'data-uid' );
+
+        assert.ok( uid != null && uid != '' );
+
+        var dataItem = api2.getData( uid );
+
+        assert.ok( dataItem != null );
+
+        // cancel it
+        var cancelBtn = $( model.elem ).find( 'button[value=cancel]' );
+        clickButton( cancelBtn[0] );
+
+        dataItem = api2.getData( uid );
+
+        assert.ok( dataItem == null );
+
+        done2();
+    };
+
+    getTableConfig( options, function ( api ) {
+
+        api2 = api;
+
+        var addBtn = api.find( '[value=AddRow]' );
+
+        clickButton( addBtn[0] );
+
+    } );
+
+
+} );
+
+
 QUnit.test( 'Injector', function ( assert ) {
 
     var resources = {

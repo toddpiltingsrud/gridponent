@@ -1,4 +1,7 @@
-﻿Should we compile the templates? It might be faster than resolving functions on every call to supplant.
+﻿Perhaps we should make it easier to obtain a reference to the dataItem by allowing the argument to be any element inside the editor.
+The API would call $(elem).closest('[data-uid]').attr('data-uid') to obtain the UID.
+
+Should we compile the templates? It might be faster than resolving functions on every call to supplant.
 Or we could simply create a dictionary for each template, calling getObjectAtPath on each one.
 Create a Template class. Instantiate it with the original string template.
 The constructor would compile the template by creating a dictionary of functions for each token.

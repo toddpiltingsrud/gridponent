@@ -33,7 +33,7 @@ gp.api = function ( controller ) {
 gp.api.prototype = {
 
     create: function ( dataItem ) {
-        var model = this.controller.addRow( dataItem );
+        this.controller.addRow( dataItem );
         return this;
     },
     
