@@ -23,7 +23,7 @@ Features:
 - [Web component](http://webcomponents.org/) support*
 
 
-See it in action [here](https://gridponent-demo.herokuapp.com/index.php).
+See it in action [here](https://gridponent-demo.herokuapp.com/).
 
 Dependencies:
 
