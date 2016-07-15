@@ -14,7 +14,7 @@ gp.ServerPager.prototype = {
                 delete copy[prop];
             }
         } );
-        var url = gp.supplant( this.url, copy, copy );
+        var url = gp.supplant( this.url, model, model );
         var h = new gp.Http();
         h.post(url, copy, callback, error);
     }

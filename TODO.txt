@@ -1,4 +1,13 @@
-﻿Perhaps we should make it easier to obtain a reference to the dataItem by allowing the argument to be any element inside the editor.
+﻿If creating a row errors out, the save button keeps spinning. Make sure to remove the busy class on http errors.
+
+Would it be beneficial to be able to override any of the built-in templates?
+Example: override the tableRow template to provide alternative column layouts.
+This is where the dependency injection mechanism would come in handy.
+
+The mechanism we're using to populate the model for the read template doesn't work on the initial read.
+That's because it gets populated in the change event handler.
+
+Perhaps we should make it easier to obtain a reference to the dataItem by allowing the argument to be any element inside the editor.
 The API would call $(elem).closest('[data-uid]').attr('data-uid') to obtain the UID.
 
 Should we compile the templates? It might be faster than resolving functions on every call to supplant.
@@ -37,18 +46,9 @@ The only difference between them is that they would either render or not dependi
 Modify the injector so it constructs a model object from the dependent resources and passes it in.
 That way we can use a static template and can call supplant with it.
 
-Change the commands so it can be either a comma-separated string or an array of objects.
-
 Currently it's not possible to pass a url to an event delegate call:
 gridponent('#theGrid').rowSelected('http://server/app/controller/action/{{id}}');
 Should this be supported?
-
-Return 'this' from as many API functions as possible.
-
-Make sure boolean checkboxes can create an explicit false when creating new records.
-This might happen when the model for new records contains no default for a boolean property.
-
-Test to make sure the script initialization method can contain objects and still survive the resolution process.
 
 gp.getType should always return a string type.
 

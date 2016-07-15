@@ -30,6 +30,8 @@ gp.Initializer.prototype = {
 
         this.renderLayout( this.config, this.parent );
         this.config.node = this.parent.find( '.table-container' )[0];
+        this.config.editmode = this.config.editmode || 'inline';
+        this.config.newrowposition = this.config.newrowposition || 'top';
         this.$n = this.parent.find( '.table-container' );
 
         var dal = new gp.DataLayer( this.config );
@@ -92,9 +94,6 @@ gp.Initializer.prototype = {
             config = gp.getAttributes( parentNode ),
             gpColumns = $( parentNode ).find( 'gp-column' );
 
-        // modal or inline
-        config.editmode = config.editmode || 'inline';
-
         config.columns = [];
 
         // create the column configurations
@@ -104,8 +103,6 @@ gp.Initializer.prototype = {
             config.columns.push( colConfig );
             self.resolveTemplates( templates, colConfig, this );
         } );
-
-
 
         // resolve the various templates
         this.resolveTemplates( ['toolbar', 'footer'], config, parentNode );

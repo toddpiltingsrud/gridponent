@@ -3,14 +3,6 @@
 \***************/
 ( function ( gp ) {
 
-    var matches = null;
-
-    var possibles = ['matches', 'matchesSelector', 'mozMatchesSelector', 'webkitMatchesSelector', 'msMatchesSelector', 'oMatchesSelector'];
-
-    for ( var i = 0; i < possibles.length && matches == null; i++ ) {
-        if ( Element.prototype[possibles[i]] ) matches = possibles[i];
-    }
-
     gp.applyFunc = function ( callback, context, args, error ) {
         if ( typeof callback !== 'function' ) return;
         // anytime there's the possibility of executing 
@@ -294,7 +286,12 @@
         var p, props = Object.getOwnPropertyNames( from );
         props.forEach( function ( prop ) {
             p = camelize ? gp.camelize( prop ) : prop;
-            to[p] = from[prop];
+            if ( typeof from[prop] === 'function' ) {
+                to[p] = from[prop]();
+            }
+            else {
+                to[p] = from[prop];
+            }
         } );
         return to;
     };

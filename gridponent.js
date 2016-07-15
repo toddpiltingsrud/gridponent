@@ -1863,6 +1863,7 @@ gp.Initializer.prototype = {
 
         this.renderLayout( this.config, this.parent );
         this.config.node = this.parent.find( '.table-container' )[0];
+        this.config.editmode = this.config.editmode || 'inline';
         this.$n = this.parent.find( '.table-container' );
 
         var dal = new gp.DataLayer( this.config );
@@ -1925,9 +1926,6 @@ gp.Initializer.prototype = {
             config = gp.getAttributes( parentNode ),
             gpColumns = $( parentNode ).find( 'gp-column' );
 
-        // modal or inline
-        config.editmode = config.editmode || 'inline';
-
         config.columns = [];
 
         // create the column configurations
@@ -1937,8 +1935,6 @@ gp.Initializer.prototype = {
             config.columns.push( colConfig );
             self.resolveTemplates( templates, colConfig, this );
         } );
-
-
 
         // resolve the various templates
         this.resolveTemplates( ['toolbar', 'footer'], config, parentNode );
@@ -2316,63 +2312,75 @@ gp.ModelSync = {
 
     bindElements: function ( model, context ) {
         var self = this,
-            value,
+            value;
+
+        Object.getOwnPropertyNames( model ).forEach( function ( prop ) {
+            value = model[prop];
+            if ( Array.isArray( value ) ) {
+                value.forEach( function ( val ) {
+                    self.bindElement( prop, val, context );
+                } );
+            }
+            else {
+                self.bindElement( prop, value, context );
+            }
+        } );
+    },
+
+    bindElement: function ( prop, value, context ) {
+        var self = this,
             clean,
             elem;
 
-        Object.getOwnPropertyNames( model ).forEach( function ( prop ) {
+        value = gp.hasValue( value ) ? value.toString() : '';
 
-            value = gp.hasValue( model[prop] ) ? model[prop].toString() : '';
+        // is there a checkbox or radio with this name and value?
+        // don't select the value because it might throw a syntax error
+        elem = $(context).find( '[type=checkbox][name="' + prop + '"],[type=radio][name="' + prop + '"]' );
 
-            // is there a checkbox or radio with this name and value?
-            // don't select the value because it might throw a syntax error
-            elem = $(context).find( '[type=checkbox][name="' + prop + '"],[type=radio][name="' + prop + '"]' );
+        if ( elem.length > 0) {
 
-            if ( elem.length > 0 ) {
+            clean = gp.escapeHTML( value );
 
-                clean = gp.escapeHTML( value );
-
-                for ( var i = 0; i < elem.length; i++ ) {
-                    if ( elem[i].value == value || elem[i].value == clean ) {
-                        elem[i].checked = true;
-                        return;
-                    }
-                }
-            }
-
-            // check for boolean
-            if ( /^(true|false)$/i.test( value ) )
-            {
-                elem = $(context).find( '[type=checkbox][name="' + prop + '"][value=true],[type=checkbox][name="' + prop + '"][value=false]' );
-
-                if ( elem.length > 0 ) {
-                    elem.each( function ( e ) {
-                        this.checked = (
-                            ( self.rexp.rTrue.test( value ) && self.rexp.rTrue.test( e.value ) )
-                            ||
-                            ( self.rexp.rFalse.test( value ) && self.rexp.rFalse.test( e.value ) )
-                        );
-                    });
-
+            for ( var i = 0; i < elem.length; i++ ) {
+                if ( elem[i].value == value || elem[i].value == clean ) {
+                    elem[i].checked = true;
                     return;
                 }
             }
+        }
 
-            elem = $(context).find( '[name="' + prop + '"]' );
+        // check for boolean
+        if ( /^(true|false)$/i.test( value ) ) {
+            elem = $( context ).find( '[type=checkbox][name="' + prop + '"][value=true],[type=checkbox][name="' + prop + '"][value=false]' );
+
             if ( elem.length > 0 ) {
+                elem.each( function ( e ) {
+                    this.checked = (
+                        ( self.rexp.rTrue.test( value ) && self.rexp.rTrue.test( e.value ) )
+                        ||
+                        ( self.rexp.rFalse.test( value ) && self.rexp.rFalse.test( e.value ) )
+                    );
+                } );
 
-                // inputs with a value property
-                if ( elem[0].value !== undefined ) {
-                    elem[0].value = value;
-                }
+                return;
+            }
+        }
+
+        elem = $( context ).find( '[name="' + prop + '"]' );
+        if ( elem.length > 0 ) {
+
+            // inputs with a value property
+            if ( elem[0].value !== undefined ) {
+                elem.val( value );
+            }
                 // inputs without a value property (e.g. textarea)
-                else if ( elem[0].innerHTML !== undefined ) {
-                    elem.html ( value == null ? '' : gp.escapeHTML( value ) );
-                }
-
+            else if ( elem[0].innerHTML !== undefined ) {
+                elem.html( value == null ? '' : gp.escapeHTML( value ) );
             }
 
-        }.bind( this ) );
+        }
+
     },
 
     castValues: function ( model, columns ) {
@@ -2484,7 +2492,7 @@ gp.ServerPager.prototype = {
                 delete copy[prop];
             }
         } );
-        var url = gp.supplant( this.url, copy, copy );
+        var url = gp.supplant( this.url, model, model );
         var h = new gp.Http();
         h.post(url, copy, callback, error);
     }
@@ -3318,7 +3326,12 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         var p, props = Object.getOwnPropertyNames( from );
         props.forEach( function ( prop ) {
             p = camelize ? gp.camelize( prop ) : prop;
-            to[p] = from[prop];
+            if ( typeof from[prop] === 'function' ) {
+                to[p] = from[prop]();
+            }
+            else {
+                to[p] = from[prop];
+            }
         } );
         return to;
     };

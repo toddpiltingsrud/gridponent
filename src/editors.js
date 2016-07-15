@@ -328,7 +328,12 @@ gp.TableRowEditor.prototype = {
 
         this.addCommandHandler();
 
-        tbody.prepend( this.elem );
+        if ( this.config.newrowposition === 'top' ) {
+            tbody.prepend( this.elem );
+        }
+        else {
+            tbody.append( this.elem );
+        }
 
         this.invokeEditReady();
 
@@ -612,8 +617,12 @@ gp.ModalEditor.prototype = {
 
             tableRow = builder.close();
 
-            $( tbody ).prepend( tableRow );
-
+            if ( this.config.newrowposition === 'top' ) {
+                tbody.prepend( tableRow );
+            }
+            else {
+                tbody.append( tableRow );
+            }
         }
         else {
             tableRow = gp.getTableRow( this.config.map, this.dataItem, this.config.node );
