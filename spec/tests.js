@@ -261,6 +261,39 @@ fns.model = {
     "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "C", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": "<p>Product's name: \"Adjustable Race\"</p>"
 };
 
+QUnit.test( 'column fields can be functions', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    var functionCalled = false;
+
+    options.columns.push( {
+        field: function ( dataItem ) {
+            functionCalled = true;
+            return data.products.indexOf( dataItem );
+        },
+        header: 'index',
+        format: '$0,0.00'
+    } );
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var config = api.config;
+
+        assert.ok( functionCalled, 'function was called' );
+
+        var lastColumn = api.find( 'td.body-cell:last-child' ).first().text();
+
+        assert.ok( /^\$\d\.00/.test(lastColumn), 'field function results can still be formatted'  );
+
+        done1();
+
+    } );
+
+} );
+
 QUnit.test( 'get a reference to a new dataItem via the API', function ( assert ) {
 
     var done1 = assert.async();
@@ -1531,7 +1564,6 @@ QUnit.test( 'refresh-event', function ( assert ) {
     var done1 = assert.async();
 
     var options = gp.shallowCopy( configOptions );
-    var config;
     options.refreshevent = 'data-changed';
     options.onread = 'fns.onread';
 
@@ -1540,6 +1572,7 @@ QUnit.test( 'refresh-event', function ( assert ) {
     var refreshevent = new CustomEvent( options.refreshevent, { detail: 'test', bubbles: true } );
 
     fns.onread = function () {
+        var config = this.config;
         reads++;
 
         // trigger the refresh event after the grid fully initializes
@@ -1547,6 +1580,7 @@ QUnit.test( 'refresh-event', function ( assert ) {
             document.dispatchEvent( refreshevent );
         }
         else {
+
             assert.ok( true, 'triggering the refresh event should cause the grid to read' );
             // remove the event handler
             config.node.api.controller.removeRefreshEventHandler( config );
@@ -1555,10 +1589,7 @@ QUnit.test( 'refresh-event', function ( assert ) {
         }
     };
 
-    getTableConfig( options, function ( api ) {
-        config = api.config;
-        $( '#table .box' ).append( config.node );
-    } );
+    getTableConfig( options, function ( api ) {} );
 
 } );
 

@@ -147,14 +147,16 @@
 
     gp.getFormattedValue = function ( row, col, escapeHTML ) {
         var type = ( col.Type || '' ).toLowerCase();
-        var val = row[col.field];
+        // if type equals function, col.field is the function
+        var val = ( type === 'function' ? col.field( row ) : row[col.field] );
 
         if ( /^(date|datestring|timestamp)$/.test( type ) ) {
             return gp.formatter.format( val, col.format );
         }
-        if ( type === 'number' && col.format ) {
+        if ( /^(number|function)$/.test( type ) && col.format ) {
             return gp.formatter.format( val, col.format );
         }
+        // if there's no type and there's a format and val is numeric then parse and format
         if ( type === '' && col.format && /^(?:\d*\.)?\d+$/.test( val ) ) {
             return gp.formatter.format( parseFloat( val ), col.format );
         }
@@ -242,12 +244,19 @@
 
     gp.resolveTypes = function ( config ) {
         var field,
+            val,
             hasData = config && config.pageModel && config.pageModel.data && config.pageModel.data.length;
 
         config.columns.forEach( function ( col ) {
             if ( gp.hasValue( col.Type ) ) return;
             field = gp.hasValue( col.field ) ? col.field : col.sort;
             if ( gp.isNullOrEmpty( field ) ) return;
+            if ( typeof field === 'function' ) {
+                // don't execute the function here to find the type
+                // it should only be executed once by getFormattedValue
+                col.Type = 'function';
+                return;
+            }
             if ( config.model ) {
                 // look for a type by field first, then by sort
                 if ( gp.hasValue( config.model[field] ) ) {
@@ -257,8 +266,9 @@
             if ( !gp.hasValue( col.Type ) && hasData ) {
                 // if we haven't found a value after 25 iterations, give up
                 for ( var i = 0; i < config.pageModel.data.length && i < 25 ; i++ ) {
-                    if ( config.pageModel.data[i][field] !== null ) {
-                        col.Type = gp.getType( config.pageModel.data[i][field] );
+                    val = config.pageModel.data[i][field];
+                    if ( val !== null ) {
+                        col.Type = gp.getType( val );
                         break;
                     }
                 }
