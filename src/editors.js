@@ -2,7 +2,7 @@
      Editor
 \***************/
 
-gp.Editor = function ( config, dal ) {
+gp.Editor = function ( config, dal, injector ) {
 
     this.config = config;
     this.dal = dal;
@@ -15,6 +15,7 @@ gp.Editor = function ( config, dal ) {
     this.editReady = null;
     this.button = null;
     this.$n = $( config.node );
+    this.injector = injector;
 
 };
 
@@ -22,6 +23,9 @@ gp.Editor.prototype = {
 
     add: function ( dataItem ) {
         this.dataItem = dataItem || this.createDataItem();
+        this.injector
+            .setResource( '$dataItem', this.dataItem )
+            .setResource( '$mode', 'create' );
         this.mode = 'create';
 
         // add the data item to the internal data array
@@ -38,6 +42,8 @@ gp.Editor.prototype = {
 
     edit: function ( dataItem ) {
         this.dataItem = dataItem;
+        this.injector.setResource( '$dataItem', dataItem )
+            .setResource( '$mode', 'update' );
         this.originalDataItem = gp.shallowCopy( dataItem );
         this.mode = 'update';
         return {
@@ -253,11 +259,11 @@ gp.Editor.prototype = {
  TableRowEditor
 \***************/
 
-gp.TableRowEditor = function ( config, dal ) {
+gp.TableRowEditor = function ( config, dal, injector ) {
 
     var self = this;
 
-    gp.Editor.call( this, config, dal );
+    gp.Editor.call( this, config, dal, injector );
 
     this.elem = null;
     this.commandHandler = function ( evt ) {
@@ -298,8 +304,6 @@ gp.TableRowEditor.prototype = {
     add: function (dataItem) {
         var self = this,
             tbody = this.$n.find( 'div.table-body > table > tbody' ),
-            bodyCellContent = gp.helpers['bodyCellContent'],
-            editCellContent = gp.helpers['editCellContent'],
             builder = new gp.NodeBuilder(),
             cellContent;
 
@@ -309,9 +313,12 @@ gp.TableRowEditor.prototype = {
 
         // add td.body-cell elements to the tr
         this.config.columns.forEach( function ( col ) {
+            self.injector
+                .setResource( '$column', col )
+                .setResource( '$mode', 'create' );
             cellContent = col.readonly ?
-                bodyCellContent.call( self.config, col, self.dataItem ) :
-                editCellContent.call( self.config, col, self.dataItem, 'create' );
+                self.injector.exec( 'bodyCellContent' ) :
+                self.injector.exec( 'editCellContent' );
             builder.create( 'td' ).addClass( 'body-cell' ).addClass( col.bodyclass ).html( cellContent );
             if ( col.commands ) {
                 builder.addClass( 'commands' );
@@ -344,7 +351,6 @@ gp.TableRowEditor.prototype = {
 
         var self = this,
             col,
-            editCellContent = gp.helpers['editCellContent'],
             cells = $( tr ).find( 'td.body-cell' ),
             uid;
 
@@ -358,8 +364,11 @@ gp.TableRowEditor.prototype = {
         // besides, that way we can just skip readonly cells
         cells.each( function ( i ) {
             col = self.config.columns[i];
+            self.injector
+                .setResource( '$column', col )
+                .setResource( '$mode', 'edit' );
             if ( !col.readonly ) {
-                $( this ).html( editCellContent.call( self.config, col, dataItem, 'edit' ) );
+                $( this ).html( self.injector.exec(' editCellContent ') );
                 if ( col.editclass ) {
                     $( this ).addClass( col.editclass );
                 }
@@ -440,12 +449,12 @@ gp.TableRowEditor.prototype = {
         // take the table row out of edit mode
         var self = this,
             col,
-            bodyCellContent = gp.helpers['bodyCellContent'],
             cells = $( this.elem ).find( 'td.body-cell' );
 
         cells.each( function ( i ) {
             col = self.config.columns[i];
-            $( this ).html( bodyCellContent.call( self.config, col, self.dataItem ) );
+            self.injector.setResource( '$column', col );
+            $( this ).html( self.injector.exec( 'bodyCellContent' ) );
             if ( col.editclass ) {
                 $( this ).removeClass( col.editclass );
             }
@@ -469,9 +478,9 @@ gp.TableRowEditor.prototype = {
    ModalEditor
 \***************/
 
-gp.ModalEditor = function ( config, dal ) {
+gp.ModalEditor = function ( config, dal, injector ) {
 
-    gp.TableRowEditor.call( this, config, dal );
+    gp.TableRowEditor.call( this, config, dal, injector );
 
 };
 
@@ -503,7 +512,7 @@ gp.ModalEditor.prototype = {
         gp.Editor.prototype.add.call( this, dataItem );
 
         // mode: create or update
-        html = gp.helpers.bootstrapModal( this.config, this.dataItem, 'create' );
+        html = this.injector.exec( 'bootstrapModalContent' );
 
         // append the modal to the top node so button clicks will be picked up by commandHandlder
         modal = $( html )
@@ -540,7 +549,7 @@ gp.ModalEditor.prototype = {
         gp.Editor.prototype.edit.call( this, dataItem );
 
         // mode: create or update
-        html = gp.helpers.bootstrapModal( this.config, dataItem, 'udpate' );
+        html = this.injector.exec( 'bootstrapModalContent' );
 
         // append the modal to the top node so button clicks will be picked up by commandHandlder
         modal = $( html )
@@ -581,7 +590,6 @@ gp.ModalEditor.prototype = {
 
         var self = this,
             tbody = this.$n.find( 'div.table-body > table > tbody' ),
-            bodyCellContent = gp.helpers['bodyCellContent'],
             tableRow,
             cells,
             col,
@@ -606,7 +614,7 @@ gp.ModalEditor.prototype = {
 
             // add td.body-cell elements to the tr
             this.config.columns.forEach( function ( col ) {
-                cellContent = bodyCellContent.call( self.config, col, self.dataItem );
+                cellContent = self.injector.setResource( '$column', col ).exec( 'bodyCellContent' );
                 builder.create( 'td' ).addClass( 'body-cell' ).addClass( col.bodyclass ).html( cellContent ).endElem();
             } );
 
@@ -621,7 +629,8 @@ gp.ModalEditor.prototype = {
             if ( tableRow ) {
                 $( tableRow ).find( 'td.body-cell' ).each( function ( i ) {
                     col = self.config.columns[i];
-                    $( this ).html( bodyCellContent.call( self.config, col, self.dataItem ) );
+                    self.injector.setResource( '$column', col );
+                    $( this ).html( self.injector.exec( 'bodyCellContent' ) );
                 } );
             }
         }

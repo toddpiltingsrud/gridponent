@@ -52,14 +52,6 @@ gp.api.prototype = {
         return this.$n.find( selector ).addBack( selector );
     },
 
-    getCommandIndex: function ( value ) {
-        for ( var i = 0; i < this.config.commands.length; i++ ) {
-            if ( this.config.commands[i].value === value ) {
-                return i;
-            }
-        }
-    },
-
     getData: function ( uidOrTableRow ) {
         if ( uidOrTableRow != undefined ) return this.config.map.get( uidOrTableRow );
         return this.controller.config.pageModel.data;
@@ -103,10 +95,10 @@ gp.api.prototype = {
         isBusy = ( isBusy === true || isBusy === false ? isBusy : !gp.hasClass( this.config.node, 'busy' ) );
 
         if ( isBusy ) {
-            gp.addClass( this.config.node, 'busy' );
+            this.$n.addClass( 'busy' );
         }
         else {
-            gp.removeClass( this.config.node, 'busy' );
+            this.$n.removeClass( 'busy' );
         }
 
         return this;

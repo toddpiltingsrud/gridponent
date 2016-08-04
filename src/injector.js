@@ -8,8 +8,9 @@ gp.Injector = function ( resources, root ) {
 };
 
 gp.Injector.prototype = {
-    addResource: function(name, value) {
+    setResource: function(name, value) {
         this.resources[name] = value;
+        return this;
     },
     exec: function ( funcOrName, model ) {
         var args;
@@ -21,9 +22,11 @@ gp.Injector.prototype = {
             if ( gp.hasValue( model ) ) {
                 args.push( model );
             }
+            // supply this injector as the context
             return funcOrName.apply( this, args );
         }
         throw "Could not resolve function dependencies: " + funcOrName.toString();
+        return this;
     },
     inject: function ( func ) {
         var self = this,

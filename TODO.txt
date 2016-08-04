@@ -28,7 +28,7 @@ Instead of calling the template functions directly, set some properties on the t
 passing in the template name.
 
 Invert the templates so none of them call other templates or helpers.
-Instead, inject whatever they need. Example, gridponent-body needs thead, tableRows, and tfoot.
+Instead, inject whatever they need. Example, tableBody needs thead, tableRows, and tfoot.
 Pass these into the template via a model or inject them. 
 Problem: thead and tfoot are dependent on whether or not there are fixed headers and/or footers.
 Can we conditionally inject these easily? 

@@ -1,11 +1,12 @@
 ﻿/***************\
    controller
 \***************/
-gp.Controller = function ( config, model, requestModel ) {
+gp.Controller = function ( config, model, requestModel, injector ) {
     this.config = config;
     this.model = model;
     this.$n = $( config.node );
     this.requestModel = requestModel;
+    this.injector = injector;
     if ( config.pager ) {
         this.requestModel.top = 25;
     }
@@ -186,13 +187,13 @@ gp.Controller.prototype = {
         var self = this, editor;
 
         if ( mode == undefined ) {
-            editor = new gp.Editor( this.config, this.model );
+            editor = new gp.Editor( this.config, this.model, this.injector );
         }
         else if ( mode == 'modal' ) {
-            editor = new gp.ModalEditor( this.config, this.model );
+            editor = new gp.ModalEditor( this.config, this.model, this.injector );
         }
         else {
-            editor = new gp.TableRowEditor( this.config, this.model );
+            editor = new gp.TableRowEditor( this.config, this.model, this.injector );
         }
 
         editor.beforeEdit = function ( model ) {
@@ -280,6 +281,7 @@ gp.Controller.prototype = {
             try {
                 // standardize capitalization of incoming data
                 gp.shallowCopy( model, self.config.pageModel, true );
+                self.injector.setResource( '$data', self.config.pageModel.data );
                 self.config.map.clear();
                 gp.resolveTypes( self.config );
                 self.refresh( self.config );
@@ -376,9 +378,9 @@ gp.Controller.prototype = {
 
             this.config.map.clear();
 
-            body.html( gp.templates['gridponent-body']( this.config ) );
-            footer.html( gp.templates['gridponent-table-footer']( this.config ) );
-            pager.html( gp.templates['gridponent-pager']( this.config ) );
+            body.html( this.injector.exec( 'tableBody' ) );
+            footer.html( this.injector.exec( 'footerTable' ) );
+            pager.html( this.injector.exec( 'pager' ) );
 
             gp.helpers.sortStyle( this.config );
         }

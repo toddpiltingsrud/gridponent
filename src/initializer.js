@@ -14,26 +14,27 @@ gp.Initializer.prototype = {
 
     initializeOptions: function ( options, callback ) {
         var self = this;
-        var requestModel = new gp.PagingModel();
         options.pageModel = {};
         options.ID = gp.createUID();
         this.config = options;
         this.config.map = new gp.DataMap();
+        this.config.pageModel = new gp.PagingModel();
 
         this.injector = new gp.Injector( {
             $config: this.config,
             $columns: this.config.columns,
             $node: this.config.node,
-            $pageModel: requestModel,
+            $pageModel: this.config.pageModel,
             $map: this.config.map,
-        }, gp.templates );
+            $data: this.config.pageModel.data
+        }, gp.templates ); // specify gp.templates object as root
 
         this.renderLayout( this.config, this.parent );
         this.config.node = this.parent.find( '.table-container' )[0];
         this.$n = this.parent.find( '.table-container' );
 
         var dal = new gp.DataLayer( this.config );
-        var controller = new gp.Controller( this.config, dal, requestModel );
+        var controller = new gp.Controller( this.config, dal, this.config.pageModel, this.injector );
         this.config.node.api = new gp.api( controller );
         this.config.footer = this.resolveFooter( this.config );
         this.config.preload = this.config.preload === false ? this.config.preload : true;
@@ -52,10 +53,11 @@ gp.Initializer.prototype = {
                 // and beforeInit happens just once after the node is created, but before first read
                 controller.invokeDelegates( gp.events.beforeRead, self.config.pageModel );
 
-                dal.read( requestModel,
+                dal.read( self.config.pageModel,
                     function ( data ) {
                         try {
                             gp.shallowCopy( data, self.config.pageModel, true );
+                            self.injector.setResource( '$data', self.config.pageModel.data );
                             gp.resolveTypes( self.config );
                             self.resolveCommands( self.config );
                             self.render( self.config );
@@ -132,7 +134,7 @@ gp.Initializer.prototype = {
 
     renderLayout: function ( config, parentNode ) {
         try {
-            $( parentNode ).html( this.injector.exec('gridponent') );
+            $( parentNode ).html( this.injector.exec('container') );
         }
         catch ( ex ) {
             gp.error( ex );
@@ -150,9 +152,9 @@ gp.Initializer.prototype = {
             var footer = this.$n.find( 'div.table-footer' );
             var pager = this.$n.find( 'div.table-pager' );
 
-            body.html( gp.templates['gridponent-body']( config ) );
-            footer.html( gp.templates['gridponent-table-footer']( config ) );
-            pager.html( gp.templates['gridponent-pager']( config ) );
+            body.html( self.injector.exec( 'tableBody' ) );
+            footer.html( self.injector.exec( 'footerTable' ) );
+            pager.html( self.injector.exec( 'pager' ) );
             gp.helpers.sortStyle( config );
 
             // sync column widths
@@ -176,7 +178,7 @@ gp.Initializer.prototype = {
     },
 
     syncColumnWidths: function ( config ) {
-        var html = gp.helpers.columnWidthStyle.call( config );
+        var html = this.injector.exec( 'columnWidthStyle' );
         this.$n.find( 'style.column-width-style' ).html( html );
     },
 

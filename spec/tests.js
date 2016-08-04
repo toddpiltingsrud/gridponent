@@ -527,12 +527,21 @@ QUnit.test( 'custom toolbar button', function ( assert ) {
 
 } );
 
+function getInput( type, name, value ) {
+    var model = {
+        type: type,
+        name: name,
+        value: value
+    };
+
+    return gp.templates.input( model );
+}
 
 QUnit.test( 'ModelSync.bindElements', function ( assert ) {
 
-    div.append( gp.helpers.input( 'string', 'ProductID', "" ) );
-    div.append( gp.helpers.input( 'number', 'SafetyStockLevel', -1 ) );
-    div.append( gp.helpers.input( 'date', 'SellEndDate', "" ) );
+    div.append( getInput( 'string', 'ProductID', "" ) );
+    div.append( getInput( 'number', 'SafetyStockLevel', -1 ) );
+    div.append( getInput( 'date', 'SellEndDate', "" ) );
 
     div.append( '<input type="checkbox" name="MakeFlag" value="true" />' );
     div.append( '<input type="checkbox" name="MakeFlag" value="false" />' );
@@ -597,19 +606,19 @@ QUnit.test( 'ModelSync.bindElements', function ( assert ) {
 
 QUnit.test( 'ModelSync.serialize', function ( assert ) {
 
-    div.append( gp.helpers.input( 'boolean', 'IsSelected', true ) );
+    div.append( getInput( 'boolean', 'IsSelected', true ) );
 
-    div.append( gp.helpers.input( 'number', 'Total', 123.5 ) );
+    div.append( getInput( 'number', 'Total', 123.5 ) );
 
     var d = new Date( 1463069066619 ); // 5/12/2016
 
-    div.append( gp.helpers.input( 'date', 'Date', d ) );
+    div.append( getInput( 'date', 'Date', d ) );
 
-    div.append( gp.helpers.input( 'datestring', 'Date2', '2016-04-03' ) );
+    div.append( getInput( 'datestring', 'Date2', '2016-04-03' ) );
 
-    div.append( gp.helpers.input( 'string', 'FirstName', 'Todd' ) );
+    div.append( getInput( 'string', 'FirstName', 'Todd' ) );
 
-    //div.append( gp.helpers.input( 'radio', 'FirstName', 'Todd' ) );
+    //div.append( getInput( 'radio', 'FirstName', 'Todd' ) );
 
     div.append( '<input type="radio" name="Color" value="red" />' );
     div.append( '<input type="radio" name="Color" value="blue" checked />' );
@@ -815,6 +824,16 @@ QUnit.test( 'model', function ( assert ) {
 
 } );
 
+function getInjector( config ) {
+    return new gp.Injector( {
+        $config: config,
+        $columns: config.columns,
+        $node: config.node,
+        $pageModel: config.pageModel,
+        $map: config.map,
+        $data: config.pageModel.data
+    }, gp.templates ); // specify gp.templates object as root
+}
 
 QUnit.test( 'ModalEditor', function ( assert ) {
 
@@ -830,7 +849,9 @@ QUnit.test( 'ModalEditor', function ( assert ) {
 
         var config = api.config;
 
-        var editor = new gp.ModalEditor( config, api.controller.model );
+        var injector = getInjector( config );
+
+        var editor = new gp.ModalEditor( config, api.controller.model, injector );
 
         var model = editor.add();
 
@@ -920,30 +941,30 @@ QUnit.test( 'modal edit', function ( assert ) {
 
 QUnit.test( 'helpers.input', function ( assert ) {
 
-    var input = gp.helpers.input( 'boolean', 'IsSelected', false );
+    var input = getInput( 'boolean', 'IsSelected', false );
 
     assert.equal( input, '<input type="checkbox" name="IsSelected" value="true" class="form-control" />' );
 
-    input = gp.helpers.input( 'boolean', 'IsSelected', true );
+    input = getInput( 'boolean', 'IsSelected', true );
 
     assert.equal( input, '<input type="checkbox" name="IsSelected" value="true" class="form-control" checked />' );
 
-    input = gp.helpers.input( 'number', 'Total', 123.5 );
+    input = getInput( 'number', 'Total', 123.5 );
 
     assert.equal( input, '<input type="number" name="Total" value="123.5" class="form-control" />' );
 
     var d = new Date();
     var s = moment( d ).format( 'YYYY-MM-DD' );
 
-    input = gp.helpers.input( 'date', 'Date', d );
+    input = getInput( 'date', 'Date', d );
 
     assert.equal( input, '<input type="text" name="Date" value="' + s + '" class="form-control" data-type="date" />' );
 
-    input = gp.helpers.input( 'datestring', 'Date', '2016-04-03' );
+    input = getInput( 'datestring', 'Date', '2016-04-03' );
 
     assert.equal( input, '<input type="text" name="Date" value="2016-04-03" class="form-control" data-type="date" />' );
 
-    input = gp.helpers.input( 'string', 'FirstName', 'Todd' );
+    input = getInput( 'string', 'FirstName', 'Todd' );
 
     assert.equal( input, '<input type="text" name="FirstName" value="Todd" class="form-control" />' );
 } );
@@ -1547,6 +1568,8 @@ QUnit.test( 'api.create 1', function ( assert ) {
     var dataItem = { "ProductID": 0, "Name": "test", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": null, "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0.0000, "ListPrice": 0.0000, "Size": null, "SizeUnitMeasureCode": null, "WeightUnitMeasureCode": null, "Weight": null, "DaysToManufacture": 0, "ProductLine": null, "Class": null, "Style": null, "ProductSubcategoryID": null, "ProductModelID": null, "SellStartDate": new Date(), "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "694215b7-70dd-4c0d-acb1-d734ba44c0c8", "ModifiedDate": null, "Markup": "" };
 
     getTableConfig( configOptions, function ( api ) {
+
+        $( '#table .box' ).append( api.config.node );
 
         var config = api.config;
 
@@ -2430,6 +2453,8 @@ QUnit.test( 'edit and update', function ( assert ) {
     };
 
     getTableConfig( options, function ( api ) {
+
+        $( '#table .box' ).append( api.config.node );
 
         var config = api.config;
 
