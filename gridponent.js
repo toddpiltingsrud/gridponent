@@ -2524,7 +2524,7 @@ gp.templates.bodyCellContent = function ( $column, $dataItem ) {
     else if ( $column.commands && $column.commands.length ) {
         html.add( '<div class="btn-group btn-group-xs" role="group">' );
         $column.commands.forEach( function ( cmd, index ) {
-            html.add( gp.templates.button( cmd ) );
+            html.add( self.exec( 'button', cmd ) );
         } );
         html.add( '</div>' );
     }

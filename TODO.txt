@@ -9,23 +9,14 @@ The Template class would have standard functions for returning data properties, 
 It would first call getObjectAtPath and assign what it finds to the dictionary.
 If nothing is found, it would assume it's a property name.
 
-Perform a survey of everything the templating engine needs to do its job.
-Convert all templates and helpers into standard functions.
-Each function should have a mechanism for declaring what arguments it needs.
-Create a templating engine module that is supplied with some grid-specific resources:
-- the datamap
-- columns
-- data
-- pageModel
-- node
-- the current data item
-- config object
-- the templating engine itself
-- any of the other templates and/or helpers
-- etc
-The engine uses dependency injection to supply each function with arguments.
-Instead of calling the template functions directly, set some properties on the templating engine and call a render function, 
-passing in the template name.
+The templating engine uses a dependency injector to supply each template function with arguments.
+Instead of calling the template functions directly, callers add resources to the injector and call its 'exec' function, 
+passing in the template name and a single optional model argument.
+
+By invoking templates through an injector instead of calling them directly, we can easily add the ability to override
+individual templates by adding this feature to the injector. When executing a template, the injector first checks the 
+config object for a template of the same name. If it finds one, it uses the same dependency injection pattern to call it.
+If a template is not found in the config object, the default template is executed instead.
 
 Invert the templates so none of them call other templates or helpers.
 Instead, inject whatever they need. Example, tableBody needs thead, tableRows, and tfoot.

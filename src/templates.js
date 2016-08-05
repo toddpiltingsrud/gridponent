@@ -30,7 +30,7 @@ gp.templates.bodyCellContent = function ( $column, $dataItem ) {
     else if ( $column.commands && $column.commands.length ) {
         html.add( '<div class="btn-group btn-group-xs" role="group">' );
         $column.commands.forEach( function ( cmd, index ) {
-            html.add( gp.templates.button( cmd ) );
+            html.add( self.exec( 'button', cmd ) );
         } );
         html.add( '</div>' );
     }
@@ -171,7 +171,7 @@ gp.templates.container = function ( $config ) {
             .add( '</table>' )
             .add( '</div>' );
     }
-    html.add( '    <div class="table-body ' );
+    html.add( '<div class="table-body ' );
     if ( $config.fixedheaders ) {
         html.add( 'table-scroll' );
     }
@@ -372,20 +372,20 @@ gp.templates.pager = function ( $pageModel ) {
 
     if ( pageModel.HasPages ) {
         html.add( '<div class="btn-group">' )
-            .add( '    <button class="ms-page-index btn btn-default {{firstPageClass}}" title="First page" value="page" data-page="1">' )
+            .add( '<button class="ms-page-index btn btn-default {{firstPageClass}}" title="First page" value="page" data-page="1">' )
             .add( '<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>' )
             .add( '</button>' )
-            .add( '    <button class="ms-page-index btn btn-default {{firstPageClass}}" title="Previous page" value="page" data-page="{{PreviousPage}}">' )
+            .add( '<button class="ms-page-index btn btn-default {{firstPageClass}}" title="Previous page" value="page" data-page="{{PreviousPage}}">' )
             .add( '<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>' )
             .add( '</button>' )
             .add( '</div>' )
             .add( '<input type="number" name="page" value="{{page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />' )
             .add( '<span class="page-count"> of {{pagecount}}</span>' )
             .add( '<div class="btn-group">' )
-            .add( '    <button class="ms-page-index btn btn-default {{lastPageClass}}" title="Next page" value="page" data-page="{{NextPage}}">' )
+            .add( '<button class="ms-page-index btn btn-default {{lastPageClass}}" title="Next page" value="page" data-page="{{NextPage}}">' )
             .add( '<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>' )
             .add( '</button>' )
-            .add( '    <button class="ms-page-index btn btn-default {{lastPageClass}}" title="Last page" value="page" data-page="{{pagecount}}">' )
+            .add( '<button class="ms-page-index btn btn-default {{lastPageClass}}" title="Last page" value="page" data-page="{{pagecount}}">' )
             .add( '<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>' )
             .add( '</button>' )
             .add( '</div>' );
