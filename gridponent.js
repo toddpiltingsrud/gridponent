@@ -1139,7 +1139,12 @@ gp.TableRowEditor.prototype = {
 
         this.addCommandHandler();
 
-        tbody.prepend( this.elem );
+        if ( this.config.newrowposition === 'top' ) {
+            tbody.prepend( this.elem );
+        }
+        else {
+            tbody.append( this.elem );
+        }
 
         this.invokeEditReady();
 
@@ -1424,8 +1429,12 @@ gp.ModalEditor.prototype = {
 
             tableRow = builder.close();
 
-            $( tbody ).prepend( tableRow );
-
+            if ( this.config.newrowposition === 'top' ) {
+                tbody.prepend( tableRow );
+            }
+            else {
+                tbody.append( tableRow );
+            }
         }
         else {
             tableRow = gp.getTableRow( this.config.map, this.dataItem, this.config.node );
@@ -1537,6 +1546,8 @@ gp.Initializer.prototype = {
 
         this.renderLayout( this.config, this.parent );
         this.config.node = this.parent.find( '.table-container' )[0];
+        this.config.editmode = this.config.editmode || 'inline';
+        this.config.newrowposition = this.config.newrowposition || 'top';
         this.$n = this.parent.find( '.table-container' );
 
         var dal = new gp.DataLayer( this.config );
@@ -1600,9 +1611,6 @@ gp.Initializer.prototype = {
             config = gp.getAttributes( parentNode ),
             gpColumns = $( parentNode ).find( 'gp-column' );
 
-        // modal or inline
-        config.editmode = config.editmode || 'inline';
-
         config.columns = [];
 
         // create the column configurations
@@ -1612,8 +1620,6 @@ gp.Initializer.prototype = {
             config.columns.push( colConfig );
             self.resolveTemplates( templates, colConfig, this );
         } );
-
-
 
         // resolve the various templates
         this.resolveTemplates( ['toolbar', 'footer'], config, parentNode );
@@ -1994,63 +2000,75 @@ gp.ModelSync = {
 
     bindElements: function ( model, context ) {
         var self = this,
-            value,
+            value;
+
+        Object.getOwnPropertyNames( model ).forEach( function ( prop ) {
+            value = model[prop];
+            if ( Array.isArray( value ) ) {
+                value.forEach( function ( val ) {
+                    self.bindElement( prop, val, context );
+                } );
+            }
+            else {
+                self.bindElement( prop, value, context );
+            }
+        } );
+    },
+
+    bindElement: function ( prop, value, context ) {
+        var self = this,
             clean,
             elem;
 
-        Object.getOwnPropertyNames( model ).forEach( function ( prop ) {
+        value = gp.hasValue( value ) ? value.toString() : '';
 
-            value = gp.hasValue( model[prop] ) ? model[prop].toString() : '';
+        // is there a checkbox or radio with this name and value?
+        // don't select the value because it might throw a syntax error
+        elem = $(context).find( '[type=checkbox][name="' + prop + '"],[type=radio][name="' + prop + '"]' );
 
-            // is there a checkbox or radio with this name and value?
-            // don't select the value because it might throw a syntax error
-            elem = $(context).find( '[type=checkbox][name="' + prop + '"],[type=radio][name="' + prop + '"]' );
+        if ( elem.length > 0) {
 
-            if ( elem.length > 0 ) {
+            clean = gp.escapeHTML( value );
 
-                clean = gp.escapeHTML( value );
-
-                for ( var i = 0; i < elem.length; i++ ) {
-                    if ( elem[i].value == value || elem[i].value == clean ) {
-                        elem[i].checked = true;
-                        return;
-                    }
-                }
-            }
-
-            // check for boolean
-            if ( /^(true|false)$/i.test( value ) )
-            {
-                elem = $(context).find( '[type=checkbox][name="' + prop + '"][value=true],[type=checkbox][name="' + prop + '"][value=false]' );
-
-                if ( elem.length > 0 ) {
-                    elem.each( function ( e ) {
-                        this.checked = (
-                            ( self.rexp.rTrue.test( value ) && self.rexp.rTrue.test( e.value ) )
-                            ||
-                            ( self.rexp.rFalse.test( value ) && self.rexp.rFalse.test( e.value ) )
-                        );
-                    });
-
+            for ( var i = 0; i < elem.length; i++ ) {
+                if ( elem[i].value == value || elem[i].value == clean ) {
+                    elem[i].checked = true;
                     return;
                 }
             }
+        }
 
-            elem = $(context).find( '[name="' + prop + '"]' );
+        // check for boolean
+        if ( /^(true|false)$/i.test( value ) ) {
+            elem = $( context ).find( '[type=checkbox][name="' + prop + '"][value=true],[type=checkbox][name="' + prop + '"][value=false]' );
+
             if ( elem.length > 0 ) {
+                elem.each( function ( e ) {
+                    this.checked = (
+                        ( self.rexp.rTrue.test( value ) && self.rexp.rTrue.test( e.value ) )
+                        ||
+                        ( self.rexp.rFalse.test( value ) && self.rexp.rFalse.test( e.value ) )
+                    );
+                } );
 
-                // inputs with a value property
-                if ( elem[0].value !== undefined ) {
-                    elem[0].value = value;
-                }
+                return;
+            }
+        }
+
+        elem = $( context ).find( '[name="' + prop + '"]' );
+        if ( elem.length > 0 ) {
+
+            // inputs with a value property
+            if ( elem[0].value !== undefined ) {
+                elem.val( value );
+            }
                 // inputs without a value property (e.g. textarea)
-                else if ( elem[0].innerHTML !== undefined ) {
-                    elem.html ( value == null ? '' : gp.escapeHTML( value ) );
-                }
-
+            else if ( elem[0].innerHTML !== undefined ) {
+                elem.html( value == null ? '' : gp.escapeHTML( value ) );
             }
 
-        }.bind( this ) );
+        }
+
     },
 
     castValues: function ( model, columns ) {
@@ -2162,7 +2180,7 @@ gp.ServerPager.prototype = {
                 delete copy[prop];
             }
         } );
-        var url = gp.supplant( this.url, copy, copy );
+        var url = gp.supplant( this.url, model, model );
         var h = new gp.Http();
         h.post(url, copy, callback, error);
     }
@@ -3051,14 +3069,6 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
 \***************/
 ( function ( gp ) {
 
-    var matches = null;
-
-    var possibles = ['matches', 'matchesSelector', 'mozMatchesSelector', 'webkitMatchesSelector', 'msMatchesSelector', 'oMatchesSelector'];
-
-    for ( var i = 0; i < possibles.length && matches == null; i++ ) {
-        if ( Element.prototype[possibles[i]] ) matches = possibles[i];
-    }
-
     gp.applyFunc = function ( callback, context, args, error ) {
         if ( typeof callback !== 'function' ) return;
         // anytime there's the possibility of executing 
@@ -3203,14 +3213,16 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
 
     gp.getFormattedValue = function ( row, col, escapeHTML ) {
         var type = ( col.Type || '' ).toLowerCase();
-        var val = row[col.field];
+        // if type equals function, col.field is the function
+        var val = ( type === 'function' ? col.field( row ) : row[col.field] );
 
         if ( /^(date|datestring|timestamp)$/.test( type ) ) {
             return gp.formatter.format( val, col.format );
         }
-        if ( type === 'number' && col.format ) {
+        if ( /^(number|function)$/.test( type ) && col.format ) {
             return gp.formatter.format( val, col.format );
         }
+        // if there's no type and there's a format and val is numeric then parse and format
         if ( type === '' && col.format && /^(?:\d*\.)?\d+$/.test( val ) ) {
             return gp.formatter.format( parseFloat( val ), col.format );
         }
@@ -3298,12 +3310,19 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
 
     gp.resolveTypes = function ( config ) {
         var field,
+            val,
             hasData = config && config.pageModel && config.pageModel.data && config.pageModel.data.length;
 
         config.columns.forEach( function ( col ) {
             if ( gp.hasValue( col.Type ) ) return;
             field = gp.hasValue( col.field ) ? col.field : col.sort;
             if ( gp.isNullOrEmpty( field ) ) return;
+            if ( typeof field === 'function' ) {
+                // don't execute the function here to find the type
+                // it should only be executed once by getFormattedValue
+                col.Type = 'function';
+                return;
+            }
             if ( config.model ) {
                 // look for a type by field first, then by sort
                 if ( gp.hasValue( config.model[field] ) ) {
@@ -3313,8 +3332,9 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
             if ( !gp.hasValue( col.Type ) && hasData ) {
                 // if we haven't found a value after 25 iterations, give up
                 for ( var i = 0; i < config.pageModel.data.length && i < 25 ; i++ ) {
-                    if ( config.pageModel.data[i][field] !== null ) {
-                        col.Type = gp.getType( config.pageModel.data[i][field] );
+                    val = config.pageModel.data[i][field];
+                    if ( val !== null ) {
+                        col.Type = gp.getType( val );
                         break;
                     }
                 }
@@ -3342,7 +3362,12 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         var p, props = Object.getOwnPropertyNames( from );
         props.forEach( function ( prop ) {
             p = camelize ? gp.camelize( prop ) : prop;
-            to[p] = from[prop];
+            if ( typeof from[prop] === 'function' ) {
+                to[p] = from[prop]();
+            }
+            else {
+                to[p] = from[prop];
+            }
         } );
         return to;
     };

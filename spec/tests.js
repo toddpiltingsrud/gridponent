@@ -249,7 +249,50 @@ var configuration = {
     ]
 };
 
-fns.model = { "ProductID": 0, "Name": "Adjustable Race", "ProductNumber": "", "MakeFlag": false, "FinishedGoodsFlag": false, "Color": "blue", "SafetyStockLevel": 0, "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "C", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": "<p>Product's name: \"Adjustable Race\"</p>" };
+fns.model = {
+    "ProductID": 0,
+    "State": ['MN', 'WI'],
+    "Name": "Adjustable Race",
+    "ProductNumber": "",
+    "MakeFlag": false,
+    "FinishedGoodsFlag": false,
+    "Color": "blue",
+    "SafetyStockLevel": 0,
+    "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "C", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": "<p>Product's name: \"Adjustable Race\"</p>"
+};
+
+QUnit.test( 'column fields can be functions', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    var functionCalled = false;
+
+    options.columns.push( {
+        field: function ( dataItem ) {
+            functionCalled = true;
+            return data.products.indexOf( dataItem );
+        },
+        header: 'index',
+        format: '$0,0.00'
+    } );
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var config = api.config;
+
+        assert.ok( functionCalled, 'function was called' );
+
+        var lastColumn = api.find( 'td.body-cell:last-child' ).first().text();
+
+        assert.ok( /^\$\d\.00/.test(lastColumn), 'field function results can still be formatted'  );
+
+        done1();
+
+    } );
+
+} );
 
 QUnit.test( 'get a reference to a new dataItem via the API', function ( assert ) {
 
@@ -420,14 +463,17 @@ QUnit.test( 'shallowCopy', function ( assert ) {
 
     var to = fns.model;
 
+    // uncopyable (primitive) types should just return the target untouched
     assert.equal( gp.shallowCopy( true, to ), to );
     assert.equal( gp.shallowCopy( 1, to ), to );
     assert.equal( gp.shallowCopy( "", to ), to );
     assert.equal( gp.shallowCopy( null, to ), to );
 
-    gp.shallowCopy( { test: 'test' }, to );
+    gp.shallowCopy( { test: 'test', number: function () { return 5; } }, to );
     assert.equal( to.test, 'test' );
+    assert.equal( to.number, 5 );
     delete to.test;
+    delete to.number;
 
     var d = new Date();
     gp.shallowCopy( d, to );
@@ -441,7 +487,7 @@ QUnit.test( 'shallowCopy', function ( assert ) {
     Object.getOwnPropertyNames(rexp).forEach(function(prop){
         assert.equal( rexp[prop], to[prop] );
         delete to[prop];
-    });
+    } );
 
 } );
 
@@ -557,14 +603,18 @@ QUnit.test( 'ModelSync.bindElements', function ( assert ) {
 
     var select = [];
     select.push( '<select name="Style">' );
-
     (['A', 'B', 'C']).forEach( function ( style ) {
         select.push( '<option value="' + style + '">' + style + '</option>' );
     } );
-
     select.push( '</select>' )
-
     div.append( select.join( '' ) );
+
+    // array of values
+    var checkboxList = [];
+    (['MN', 'IA', 'WI', 'SD', 'ND']).forEach( function ( item ) {
+        checkboxList.push( '<input name="State" type="checkbox" value="' + item + '" />' );
+    } );
+    div.append( checkboxList.join( '' ) );
 
     gp.ModelSync.bindElements( fns.model, div[0] );
 
@@ -594,6 +644,11 @@ QUnit.test( 'ModelSync.bindElements', function ( assert ) {
 
     input = div.find( '[name=Markup]' ).val();
     assert.equal( input, fns.model.Markup );
+
+    input = div.find( '[name=State]:checked' );
+    assert.strictEqual( input.length, 2 );
+    assert.ok( input[0].value == 'MN' );
+    assert.ok( input[1].value == 'WI' );
 
     fns.model.FinishedGoodsFlag = true;
     gp.ModelSync.bindElements( fns.model, div[0] );
@@ -1530,7 +1585,6 @@ QUnit.test( 'refresh-event', function ( assert ) {
     var done1 = assert.async();
 
     var options = gp.shallowCopy( configOptions );
-    var config;
     options.refreshevent = 'data-changed';
     options.onread = 'fns.onread';
 
@@ -1539,6 +1593,7 @@ QUnit.test( 'refresh-event', function ( assert ) {
     var refreshevent = new CustomEvent( options.refreshevent, { detail: 'test', bubbles: true } );
 
     fns.onread = function () {
+        var config = this.config;
         reads++;
 
         // trigger the refresh event after the grid fully initializes
@@ -1546,6 +1601,7 @@ QUnit.test( 'refresh-event', function ( assert ) {
             document.dispatchEvent( refreshevent );
         }
         else {
+
             assert.ok( true, 'triggering the refresh event should cause the grid to read' );
             // remove the event handler
             config.node.api.controller.removeRefreshEventHandler( config );
@@ -1554,10 +1610,7 @@ QUnit.test( 'refresh-event', function ( assert ) {
         }
     };
 
-    getTableConfig( options, function ( api ) {
-        config = api.config;
-        $( '#table .box' ).append( config.node );
-    } );
+    getTableConfig( options, function ( api ) {} );
 
 } );
 
