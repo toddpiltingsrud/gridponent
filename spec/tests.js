@@ -261,6 +261,14 @@ fns.model = {
     "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "C", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": "<p>Product's name: \"Adjustable Race\"</p>"
 };
 
+// creete a read-only property on the model
+Object.defineProperty( fns.model, 'ReadOnlyProp', {
+    get: function () {
+        return 'value';
+    }
+} );
+
+
 QUnit.test( 'column fields can be functions', function ( assert ) {
 
     var done1 = assert.async();
@@ -482,12 +490,16 @@ QUnit.test( 'shallowCopy', function ( assert ) {
         delete to[prop];
     } );
 
+    // now try to copy it back
+    gp.shallowCopy( to, fns.model );
+
     var rexp = /test/;
     gp.shallowCopy( rexp, to );
     Object.getOwnPropertyNames(rexp).forEach(function(prop){
         assert.equal( rexp[prop], to[prop] );
         delete to[prop];
     } );
+
 
 } );
 

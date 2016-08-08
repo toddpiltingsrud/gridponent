@@ -293,9 +293,14 @@
         // IE is more strict about what it will accept
         // as an argument to getOwnPropertyNames
         if ( !gp.rexp.copyable.test( gp.getType( from ) ) ) return to;
-        var p, props = Object.getOwnPropertyNames( from );
+        var desc, p, props = Object.getOwnPropertyNames( from );
         props.forEach( function ( prop ) {
             p = camelize ? gp.camelize( prop ) : prop;
+            if ( to.hasOwnProperty( prop ) ) {
+                // check for a read-only property
+                desc = Object.getOwnPropertyDescriptor( to, prop );
+                if ( !desc.writable ) return;
+            }
             if ( typeof from[prop] === 'function' ) {
                 to[p] = from[prop]();
             }

@@ -1514,6 +1514,45 @@ gp.helpers = {
 };
 
 /***************\
+     http        
+\***************/
+gp.Http = function () { };
+
+gp.Http.prototype = {
+    get: function ( url, callback, error ) {
+        $.get( url ).done( callback ).fail( error );
+    },
+    post: function ( url, data, callback, error ) {
+        this.ajax( url, data, callback, error, 'POST' );
+    },
+    destroy: function ( url, callback, error ) {
+        this.ajax( url, null, callback, error, 'DELETE' );
+    },
+    ajax: function ( url, data, callback, error, httpVerb ) {
+        $.ajax( {
+            url: url,
+            type: httpVerb.toUpperCase(),
+            data: data,
+            contentType: 'application/x-www-form-urlencoded; charset=UTF-8'
+        } )
+            .done( callback )
+            .fail( function ( response ) {
+                if ( response.status ) {
+                    // don't know why jQuery calls fail on DELETE
+                    if ( response.status == 200 ) {
+                        callback( response );
+                        return;
+                    }
+                    // filter out authentication errors, those are usually handled by the browser
+                    if ( /401|403|407/.test( response.status ) == false && typeof error == 'function' ) {
+                        error( response );
+                    }
+                }
+            } );
+    }
+
+};
+/***************\
    Initializer
 \***************/
 gp.Initializer = function ( node ) {
@@ -1841,123 +1880,6 @@ gp.Injector.prototype = {
     }
 
 };
-/***************\
-   mock-http
-\***************/
-(function (gp) {
-    gp.Http = function () { };
-
-    // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
-    var routes = {
-        read: /read/i,
-        update: /update/i,
-        create: /create/i,
-        destroy: /Delete/i
-    };
-
-    gp.Http.prototype = {
-        post: function (url, model, callback, error) {
-            model = model || {};
-            if (routes.read.test(url)) {
-                getData(model, callback);
-            }
-            else if ( routes.create.test( url ) ) {
-                window.data.products.push( model );
-                callback( new gp.UpdateModel( model ) );
-            }
-            else if ( routes.update.test( url ) ) {
-                callback( new gp.UpdateModel(model) );
-            }
-            else {
-                throw '404 Not found: ' + url;
-            }
-        },
-        destroy: function ( url, callback, error ) {
-            callback( {
-                Success: true,
-                Message: ''
-            } );
-        }
-    };
-
-    var getData = function (model, callback) {
-        var count, d = window.data.products.slice( 0, window.data.length );
-
-        if (!gp.isNullOrEmpty(model.search)) {
-            var props = Object.getOwnPropertyNames(d[0]);
-            var search = model.search.toLowerCase();
-            d = d.filter(function (row) {
-                for (var i = 0; i < props.length; i++) {
-                    if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
-                        return true;
-                    }
-                }
-                return false;
-            });
-        }
-        if (!gp.isNullOrEmpty(model.sort)) {
-            if (model.desc) {
-                d.sort(function (row1, row2) {
-                    var a = row1[model.sort];
-                    var b = row2[model.sort];
-                    if (a === null) {
-                        if (b != null) {
-                            return 1;
-                        }
-                    }
-                    else if (b === null) {
-                        // we already know a isn't null
-                        return -1;
-                    }
-                    if (a > b) {
-                        return -1;
-                    }
-                    if (a < b) {
-                        return 1;
-                    }
-
-                    return 0;
-                });
-            }
-            else {
-                d.sort(function (row1, row2) {
-                    var a = row1[model.sort];
-                    var b = row2[model.sort];
-                    if (a === null) {
-                        if (b != null) {
-                            return -1;
-                        }
-                    }
-                    else if (b === null) {
-                        // we already know a isn't null
-                        return 1;
-                    }
-                    if (a > b) {
-                        return 1;
-                    }
-                    if (a < b) {
-                        return -1;
-                    }
-
-                    return 0;
-                });
-            }
-        }
-        count = d.length;
-        if (model.top !== -1) {
-            model.data = d.slice(model.skip).slice(0, model.top);
-        }
-        else {
-            model.data = d;
-        }
-        model.errors = [];
-        setTimeout(function () {
-            callback(model);
-        });
-
-    };
-
-})(gridponent);
 /***************\
    ModelSync
 \***************/
@@ -2683,7 +2605,7 @@ gp.templates.container = function ( $config ) {
             .add( '</table>' )
             .add( '</div>' );
     }
-    html.add( '    <div class="table-body ' );
+    html.add( '<div class="table-body ' );
     if ( $config.fixedheaders ) {
         html.add( 'table-scroll' );
     }
@@ -2884,20 +2806,20 @@ gp.templates.pager = function ( $pageModel ) {
 
     if ( pageModel.HasPages ) {
         html.add( '<div class="btn-group">' )
-            .add( '    <button class="ms-page-index btn btn-default {{firstPageClass}}" title="First page" value="page" data-page="1">' )
+            .add( '<button class="ms-page-index btn btn-default {{firstPageClass}}" title="First page" value="page" data-page="1">' )
             .add( '<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>' )
             .add( '</button>' )
-            .add( '    <button class="ms-page-index btn btn-default {{firstPageClass}}" title="Previous page" value="page" data-page="{{PreviousPage}}">' )
+            .add( '<button class="ms-page-index btn btn-default {{firstPageClass}}" title="Previous page" value="page" data-page="{{PreviousPage}}">' )
             .add( '<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>' )
             .add( '</button>' )
             .add( '</div>' )
             .add( '<input type="number" name="page" value="{{page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />' )
             .add( '<span class="page-count"> of {{pagecount}}</span>' )
             .add( '<div class="btn-group">' )
-            .add( '    <button class="ms-page-index btn btn-default {{lastPageClass}}" title="Next page" value="page" data-page="{{NextPage}}">' )
+            .add( '<button class="ms-page-index btn btn-default {{lastPageClass}}" title="Next page" value="page" data-page="{{NextPage}}">' )
             .add( '<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>' )
             .add( '</button>' )
-            .add( '    <button class="ms-page-index btn btn-default {{lastPageClass}}" title="Last page" value="page" data-page="{{pagecount}}">' )
+            .add( '<button class="ms-page-index btn btn-default {{lastPageClass}}" title="Last page" value="page" data-page="{{pagecount}}">' )
             .add( '<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>' )
             .add( '</button>' )
             .add( '</div>' );
@@ -3359,9 +3281,14 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         // IE is more strict about what it will accept
         // as an argument to getOwnPropertyNames
         if ( !gp.rexp.copyable.test( gp.getType( from ) ) ) return to;
-        var p, props = Object.getOwnPropertyNames( from );
+        var desc, p, props = Object.getOwnPropertyNames( from );
         props.forEach( function ( prop ) {
             p = camelize ? gp.camelize( prop ) : prop;
+            if ( prop in to ) {
+                // check for a read-only property
+                desc = Object.getOwnPropertyDescriptor( to, prop );
+                if ( !desc.writable ) return;
+            }
             if ( typeof from[prop] === 'function' ) {
                 to[p] = from[prop]();
             }
