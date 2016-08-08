@@ -42,16 +42,13 @@ gp.DataMap.prototype = {
     },
 
     resolveUid: function ( uidOrElem ) {
-
         var uid = -1;
 
-        if ( uidOrElem.attributes ) {
-            if ( uidOrElem.attributes['data-uid'] && uidOrElem.attributes['data-uid'].value ) {
-                uid = parseInt( uidOrElem.attributes['data-uid'].value );
-            }
-        }
-        else {
+        if ( $.isNumeric( uidOrElem ) ) {
             uid = parseInt( uidOrElem );
+        }
+        else if ( $( uidOrElem ).is( '[data-uid]' ) ) {
+            uid = parseInt( $( uidOrElem ).attr( 'data-uid' ) );
         }
 
         if ( isNaN( uid ) ) return -1;

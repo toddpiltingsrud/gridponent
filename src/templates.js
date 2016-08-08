@@ -273,7 +273,7 @@ gp.templates.containerClasses = function ( $config ) {
 
 gp.templates.containerClasses.$inject = ['$config'];
 
-gp.templates.editCellContent = function ( $column, $dataItem, $mode ) {
+gp.templates.editCellContent = function ( $column, $dataItem, $mode, $config ) {
     var template,
         col = $column,
         html = new gp.StringBuilder();
@@ -289,7 +289,7 @@ gp.templates.editCellContent = function ( $column, $dataItem, $mode ) {
     }
     else if ( col.commands ) {
         html.add( '<div class="btn-group' )
-            .add( this.editmode == 'inline' ? ' btn-group-xs' : '' )
+            .add( $config.editmode == 'inline' ? ' btn-group-xs' : '' )
             .add('">')
             .add( this.exec('button', {
                 btnClass: 'btn-primary',
@@ -311,7 +311,7 @@ gp.templates.editCellContent = function ( $column, $dataItem, $mode ) {
     return html.toString();
 };
 
-gp.templates.editCellContent.$inject = ['$column', '$dataItem', '$mode'];
+gp.templates.editCellContent.$inject = ['$column', '$dataItem', '$mode', '$config'];
 
 gp.templates.footerCell = function ( $data, col ) {
     var html = new gp.StringBuilder();
