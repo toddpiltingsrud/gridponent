@@ -20,6 +20,7 @@ gp.Initializer.prototype = {
         this.config.map = new gp.DataMap();
         this.config.pageModel = new gp.PagingModel();
 
+        // this has to be defined before renderLayout
         this.injector = new gp.Injector( {
             $config: this.config,
             $columns: this.config.columns,
@@ -29,7 +30,9 @@ gp.Initializer.prototype = {
             $data: this.config.pageModel.data
         }, gp.templates ); // specify gp.templates object as root
 
+        // this has to happen here so we can find the table-container
         this.renderLayout( this.config, this.parent );
+
         this.config.node = this.parent.find( '.table-container' )[0];
         this.config.editmode = this.config.editmode || 'inline';
         this.config.newrowposition = this.config.newrowposition || 'top';
@@ -40,6 +43,7 @@ gp.Initializer.prototype = {
         this.config.node.api = new gp.api( controller );
         this.config.footer = this.resolveFooter( this.config );
         this.config.preload = this.config.preload === false ? this.config.preload : true;
+        this.injector.context = this.config.node.api;
 
         setTimeout( function () {
             // do this here to give external scripts a chance to run first

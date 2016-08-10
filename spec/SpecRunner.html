@@ -49,7 +49,9 @@
         return out.join('');
     };
 
-    fns.average = function (column, data) {
+    fns.average = function ( column, data ) {
+        if ( !column ) throw 'no column';
+        if ( !data ) throw 'no data';
         return 10;
     };
 

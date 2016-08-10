@@ -2,9 +2,11 @@
     Injector
 \***************/
 
-gp.Injector = function ( resources, root ) {
+gp.Injector = function ( resources, root, context ) {
     this.resources = resources;
+    resources.$injector = this;
     this.root = root || window;
+    this.context = context || this;
 };
 
 gp.Injector.prototype = {
@@ -23,7 +25,7 @@ gp.Injector.prototype = {
                 args.push( model );
             }
             // supply this injector as the context
-            return funcOrName.apply( this, args );
+            return funcOrName.apply( this.context, args );
         }
         throw "Could not resolve function dependencies: " + funcOrName.toString();
         return this;

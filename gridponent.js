@@ -584,6 +584,7 @@ gp.Controller.prototype = {
             this.config.map.clear();
 
             body.html( this.injector.exec( 'tableBody' ) );
+            // if we're not using fixed footers this will have no effect
             footer.html( this.injector.exec( 'footerTable' ) );
             pager.html( this.injector.exec( 'pager' ) );
 
@@ -771,16 +772,13 @@ gp.DataMap.prototype = {
     },
 
     resolveUid: function ( uidOrElem ) {
-
         var uid = -1;
 
-        if ( uidOrElem.attributes ) {
-            if ( uidOrElem.attributes['data-uid'] && uidOrElem.attributes['data-uid'].value ) {
-                uid = parseInt( uidOrElem.attributes['data-uid'].value );
-            }
-        }
-        else {
+        if ( $.isNumeric( uidOrElem ) ) {
             uid = parseInt( uidOrElem );
+        }
+        else if ( $( uidOrElem ).is( '[data-uid]' ) ) {
+            uid = parseInt( $( uidOrElem ).attr( 'data-uid' ) );
         }
 
         if ( isNaN( uid ) ) return -1;
@@ -1514,45 +1512,6 @@ gp.helpers = {
 };
 
 /***************\
-     http        
-\***************/
-gp.Http = function () { };
-
-gp.Http.prototype = {
-    get: function ( url, callback, error ) {
-        $.get( url ).done( callback ).fail( error );
-    },
-    post: function ( url, data, callback, error ) {
-        this.ajax( url, data, callback, error, 'POST' );
-    },
-    destroy: function ( url, callback, error ) {
-        this.ajax( url, null, callback, error, 'DELETE' );
-    },
-    ajax: function ( url, data, callback, error, httpVerb ) {
-        $.ajax( {
-            url: url,
-            type: httpVerb.toUpperCase(),
-            data: data,
-            contentType: 'application/x-www-form-urlencoded; charset=UTF-8'
-        } )
-            .done( callback )
-            .fail( function ( response ) {
-                if ( response.status ) {
-                    // don't know why jQuery calls fail on DELETE
-                    if ( response.status == 200 ) {
-                        callback( response );
-                        return;
-                    }
-                    // filter out authentication errors, those are usually handled by the browser
-                    if ( /401|403|407/.test( response.status ) == false && typeof error == 'function' ) {
-                        error( response );
-                    }
-                }
-            } );
-    }
-
-};
-/***************\
    Initializer
 \***************/
 gp.Initializer = function ( node ) {
@@ -1574,6 +1533,7 @@ gp.Initializer.prototype = {
         this.config.map = new gp.DataMap();
         this.config.pageModel = new gp.PagingModel();
 
+        // this has to be defined before renderLayout
         this.injector = new gp.Injector( {
             $config: this.config,
             $columns: this.config.columns,
@@ -1583,7 +1543,9 @@ gp.Initializer.prototype = {
             $data: this.config.pageModel.data
         }, gp.templates ); // specify gp.templates object as root
 
+        // this has to happen here so we can find the table-container
         this.renderLayout( this.config, this.parent );
+
         this.config.node = this.parent.find( '.table-container' )[0];
         this.config.editmode = this.config.editmode || 'inline';
         this.config.newrowposition = this.config.newrowposition || 'top';
@@ -1594,6 +1556,7 @@ gp.Initializer.prototype = {
         this.config.node.api = new gp.api( controller );
         this.config.footer = this.resolveFooter( this.config );
         this.config.preload = this.config.preload === false ? this.config.preload : true;
+        this.injector.context = this.config.node.api;
 
         setTimeout( function () {
             // do this here to give external scripts a chance to run first
@@ -1818,9 +1781,11 @@ gp.Initializer.prototype = {
     Injector
 \***************/
 
-gp.Injector = function ( resources, root ) {
+gp.Injector = function ( resources, root, context ) {
     this.resources = resources;
+    resources.$injector = this;
     this.root = root || window;
+    this.context = context || this;
 };
 
 gp.Injector.prototype = {
@@ -1839,7 +1804,7 @@ gp.Injector.prototype = {
                 args.push( model );
             }
             // supply this injector as the context
-            return funcOrName.apply( this, args );
+            return funcOrName.apply( this.context, args );
         }
         throw "Could not resolve function dependencies: " + funcOrName.toString();
         return this;
@@ -1880,6 +1845,123 @@ gp.Injector.prototype = {
     }
 
 };
+/***************\
+   mock-http
+\***************/
+(function (gp) {
+    gp.Http = function () { };
+
+    // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
+    var routes = {
+        read: /read/i,
+        update: /update/i,
+        create: /create/i,
+        destroy: /Delete/i
+    };
+
+    gp.Http.prototype = {
+        post: function (url, model, callback, error) {
+            model = model || {};
+            if (routes.read.test(url)) {
+                getData(model, callback);
+            }
+            else if ( routes.create.test( url ) ) {
+                window.data.products.push( model );
+                callback( new gp.UpdateModel( model ) );
+            }
+            else if ( routes.update.test( url ) ) {
+                callback( new gp.UpdateModel(model) );
+            }
+            else {
+                throw '404 Not found: ' + url;
+            }
+        },
+        destroy: function ( url, callback, error ) {
+            callback( {
+                Success: true,
+                Message: ''
+            } );
+        }
+    };
+
+    var getData = function (model, callback) {
+        var count, d = window.data.products.slice( 0, window.data.length );
+
+        if (!gp.isNullOrEmpty(model.search)) {
+            var props = Object.getOwnPropertyNames(d[0]);
+            var search = model.search.toLowerCase();
+            d = d.filter(function (row) {
+                for (var i = 0; i < props.length; i++) {
+                    if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+        }
+        if (!gp.isNullOrEmpty(model.sort)) {
+            if (model.desc) {
+                d.sort(function (row1, row2) {
+                    var a = row1[model.sort];
+                    var b = row2[model.sort];
+                    if (a === null) {
+                        if (b != null) {
+                            return 1;
+                        }
+                    }
+                    else if (b === null) {
+                        // we already know a isn't null
+                        return -1;
+                    }
+                    if (a > b) {
+                        return -1;
+                    }
+                    if (a < b) {
+                        return 1;
+                    }
+
+                    return 0;
+                });
+            }
+            else {
+                d.sort(function (row1, row2) {
+                    var a = row1[model.sort];
+                    var b = row2[model.sort];
+                    if (a === null) {
+                        if (b != null) {
+                            return -1;
+                        }
+                    }
+                    else if (b === null) {
+                        // we already know a isn't null
+                        return 1;
+                    }
+                    if (a > b) {
+                        return 1;
+                    }
+                    if (a < b) {
+                        return -1;
+                    }
+
+                    return 0;
+                });
+            }
+        }
+        count = d.length;
+        if (model.top !== -1) {
+            model.data = d.slice(model.skip).slice(0, model.top);
+        }
+        else {
+            model.data = d;
+        }
+        model.errors = [];
+        setTimeout(function () {
+            callback(model);
+        });
+
+    };
+
+})(gridponent);
 /***************\
    ModelSync
 \***************/
@@ -2437,7 +2519,7 @@ gp.Template.prototype = {
 \***************/
 gp.templates = gp.templates || {};
 
-gp.templates.bodyCellContent = function ( $column, $dataItem ) {
+gp.templates.bodyCellContent = function ( $column, $dataItem, $injector ) {
     var self = this,
         template,
         format,
@@ -2464,7 +2546,7 @@ gp.templates.bodyCellContent = function ( $column, $dataItem ) {
     else if ( $column.commands && $column.commands.length ) {
         html.add( '<div class="btn-group btn-group-xs" role="group">' );
         $column.commands.forEach( function ( cmd, index ) {
-            html.add( self.exec( 'button', cmd ) );
+            html.add( $injector.exec( 'button', cmd ) );
         } );
         html.add( '</div>' );
     }
@@ -2483,7 +2565,7 @@ gp.templates.bodyCellContent = function ( $column, $dataItem ) {
     return html.toString();
 };
 
-gp.templates.bodyCellContent.$inject = ['$column', '$dataItem'];
+gp.templates.bodyCellContent.$inject = ['$column', '$dataItem', '$injector'];
 
 gp.templates.bootstrapModal = function ( model ) {
     model.footer = model.footer ||
@@ -2508,10 +2590,10 @@ gp.templates.bootstrapModal = function ( model ) {
         .add( '</div>' )
         .add( '</div>' );
 
-    return gp.supplant( html.toString(), model );
+    return gp.supplant.call( this,  html.toString(), model );
 };
 
-gp.templates.bootstrapModalContent = function ( $config, $dataItem, $mode ) {
+gp.templates.bootstrapModalContent = function ( $config, $dataItem, $mode, $injector ) {
 
     var self = this,
         model = {
@@ -2528,9 +2610,9 @@ gp.templates.bootstrapModalContent = function ( $config, $dataItem, $mode ) {
     html.add( '<div class="form-horizontal">' );
 
     $config.columns.forEach( function ( col ) {
-        self.setResource( '$column', col );
+        $injector.setResource( '$column', col );
         if ( col.commands ) {
-            model.footer = self.exec( 'editCellContent' );
+            model.footer = $injector.exec( 'editCellContent' );
             return;
         }
         var canEdit = !col.readonly && ( gp.hasValue( col.field ) || gp.hasValue( col.edittemplate ) );
@@ -2538,7 +2620,7 @@ gp.templates.bootstrapModalContent = function ( $config, $dataItem, $mode ) {
 
         var formGroupModel = {
             label: null,
-            input: self.exec( 'editCellContent' ),
+            input: $injector.exec( 'editCellContent' ),
             editclass: col.editclass
         };
 
@@ -2549,36 +2631,36 @@ gp.templates.bootstrapModalContent = function ( $config, $dataItem, $mode ) {
                 formGroupModel.label = ( gp.applyFunc( col.headertemplate, self, [col] ) );
             }
             else {
-                formGroupModel.label = ( gp.supplant.call( this, col.headertemplate, [col] ) );
+                formGroupModel.label = ( gp.supplant.call( self, col.headertemplate, [col] ) );
             }
         }
         else {
             formGroupModel.label = gp.escapeHTML( gp.coalesce( [col.header, col.field, ''] ) );
         }
 
-        html.add( self.exec( 'formGroup', formGroupModel ) );
+        html.add( $injector.exec( 'formGroup', formGroupModel ) );
     } );
 
     html.add( '</div>' );
 
     model.body = html.toString();
 
-    return this.exec( 'bootstrapModal', model );
+    return $injector.exec( 'bootstrapModal', model );
 };
 
-gp.templates.bootstrapModalContent.$inject = ['$config', '$dataItem', '$mode'];
+gp.templates.bootstrapModalContent.$inject = ['$config', '$dataItem', '$mode', '$injector'];
 
-gp.templates.container = function ( $config ) {
+gp.templates.container = function ( $config, $injector ) {
     var html = new gp.StringBuilder();
     html.add( '<div class="gp table-container' )
-        .add( this.exec( 'containerClasses' ) )
+        .add( $injector.exec( 'containerClasses' ) )
         .add( '" id="' )
         .add( $config.ID )
         .add( '">' );
     if ( $config.search || $config.create || $config.toolbartemplate ) {
         html.add( '<div class="table-toolbar">' );
         if ( $config.toolbartemplate ) {
-            html.add( this.exec( 'toolbar' ) );
+            html.add( $injector.exec( 'toolbar' ) );
         } else {
             if ( $config.search ) {
                 html.add( '<div class="input-group gridponent-searchbox">' )
@@ -2601,7 +2683,7 @@ gp.templates.container = function ( $config ) {
     if ( $config.fixedheaders ) {
         html.add( '<div class="table-header">' )
             .add( '<table class="table" cellpadding="0" cellspacing="0">' )
-            .add( this.exec( 'thead' ) )
+            .add( $injector.exec( 'thead' ) )
             .add( '</table>' )
             .add( '</div>' );
     }
@@ -2614,20 +2696,18 @@ gp.templates.container = function ( $config ) {
         .add( '">' )
         .add( '<table class="table" cellpadding="0" cellspacing="0">' );
     if ( !$config.fixedheaders ) {
-        html.add( this.exec( 'thead' ) );
+        html.add( $injector.exec( 'thead' ) );
     }
     html.add( '</table>' )
         .add( '</div>' );
     if ( $config.fixedfooters ) {
-        html.add( '<div class="table-footer">' )
-            .add( this.exec( 'footerTable' ) )
-            .add( '</div>' );
+        html.add( '<div class="table-footer"></div>' );
     }
     if ( $config.pager ) {
         html.add( '<div class="table-pager"></div>' );
     }
     html.add( '<style type="text/css" class="column-width-style">' )
-        .add( this.exec( 'columnWidthStyle' ) )
+        .add( $injector.exec( 'columnWidthStyle' ) )
         .add( '</style>' )
         .add( '<div class="gp-progress-overlay">' )
         .add( '<div class="gp-progress gp-progress-container">' )
@@ -2638,11 +2718,11 @@ gp.templates.container = function ( $config ) {
     return html.toString();
 };
 
-gp.templates.container.$inject = ['$config'];
+gp.templates.container.$inject = ['$config', '$injector'];
 
 gp.templates.button = function ( model ) {
     var template = '<button type="button" class="btn {{btnClass}}" value="{{value}}"><span class="glyphicon {{glyphicon}}"></span>{{text}}</button>';
-    return gp.supplant( template, model );
+    return gp.supplant.call( this,  template, model );
 };
 
 gp.templates.columnWidthStyle = function ( $config, $columns ) {
@@ -2707,7 +2787,7 @@ gp.templates.containerClasses = function ( $config ) {
 
 gp.templates.containerClasses.$inject = ['$config'];
 
-gp.templates.editCellContent = function ( $column, $dataItem, $mode ) {
+gp.templates.editCellContent = function ( $column, $dataItem, $mode, $config, $injector ) {
     var template,
         col = $column,
         html = new gp.StringBuilder();
@@ -2723,9 +2803,9 @@ gp.templates.editCellContent = function ( $column, $dataItem, $mode ) {
     }
     else if ( col.commands ) {
         html.add( '<div class="btn-group' )
-            .add( this.editmode == 'inline' ? ' btn-group-xs' : '' )
+            .add( $config.editmode == 'inline' ? ' btn-group-xs' : '' )
             .add('">')
-            .add( this.exec('button', {
+            .add( $injector.exec('button', {
                 btnClass: 'btn-primary',
                 value: ( $mode == 'create' ? 'create' : 'update' ),
                 glyphicon: 'glyphicon-save',
@@ -2740,39 +2820,41 @@ gp.templates.editCellContent = function ( $column, $dataItem, $mode ) {
         var val = $dataItem[col.field];
         // render undefined/null as empty string
         if ( !gp.hasValue( val ) ) val = '';
-        html.add( this.exec( 'input', { type: col.Type, name: col.field, value: "" } ) );
+        html.add( $injector.exec( 'input', { type: col.Type, name: col.field, value: "" } ) );
     }
     return html.toString();
 };
 
-gp.templates.editCellContent.$inject = ['$column', '$dataItem', '$mode'];
+gp.templates.editCellContent.$inject = ['$column', '$dataItem', '$mode', '$config', '$injector'];
 
-gp.templates.footerCell = function ( $data, col ) {
+gp.templates.footerCell = function ( $data, $column ) {
     var html = new gp.StringBuilder();
-    if ( col.footertemplate ) {
-        if ( typeof ( col.footertemplate ) === 'function' ) {
-            html.add( gp.applyFunc( col.footertemplate, this, [col, $data] ) );
+    if ( $column.footertemplate ) {
+        if ( typeof ( $column.footertemplate ) === 'function' ) {
+            html.add( gp.applyFunc( $column.footertemplate, this, [$column, $data] ) );
         }
         else {
-            html.add( gp.supplant.call( this, col.footertemplate, col, [col, $data] ) );
+            html.add( gp.supplant.call( this, $column.footertemplate, $column, [$column, $data] ) );
         }
     }
     return html.toString();
 };
 
-gp.templates.footerCell.$inject = ['$data'];
+gp.templates.footerCell.$inject = ['$data', '$column'];
 
-gp.templates.footerTable = function () {
+gp.templates.footerTable = function ($injector) {
     var html = new gp.StringBuilder();
     html.add( '<table class="table" cellpadding="0" cellspacing="0">' )
-        .add( this.exec( 'tfoot' ) )
+        .add( $injector.exec( 'tfoot' ) )
         .add( '</table>' );
     return html.toString();
 };
 
+gp.templates.footerTable.$inject = ['$injector'];
+
 gp.templates.formGroup = function ( model ) {
     var template = '<div class="form-group {{editclass}}"><label class="col-sm-4 control-label">{{{label}}}</label><div class="col-sm-6">{{{input}}}</div></div>';
-    return gp.supplant( template, model );
+    return gp.supplant.call( this,  template, model );
 };
 
 gp.templates.input = function ( model ) {
@@ -2788,7 +2870,7 @@ gp.templates.input = function ( model ) {
         dataType: ( /^date/.test( model.type ) ? ' data-type="date"' : '' )
     };
 
-    return gp.supplant( '<input type="{{type}}" name="{{name}}" value="{{value}}" class="form-control"{{{dataType}}}{{checked}} />', obj );
+    return gp.supplant.call( this,  '<input type="{{type}}" name="{{name}}" value="{{value}}" class="form-control"{{{dataType}}}{{checked}} />', obj );
 };
 
 gp.templates.pager = function ( $pageModel ) {
@@ -2824,81 +2906,82 @@ gp.templates.pager = function ( $pageModel ) {
             .add( '</button>' )
             .add( '</div>' );
     }
-    return gp.supplant( html.toString(), pageModel );
+    return gp.supplant.call( this,  html.toString(), pageModel );
 };
 
 gp.templates.pager.$inject = ['$pageModel'];
 
-gp.templates.tableBody = function ( $config ) {
+gp.templates.tableBody = function ( $config, $injector ) {
     var html = new gp.StringBuilder();
     html.add( '<table class="table" cellpadding="0" cellspacing="0">' );
     if ( !$config.fixedheaders ) {
-        html.add( this.exec( 'thead' ) );
+        html.add( $injector.exec( 'thead' ) );
     }
     html.add( '<tbody>' )
-        .add( this.exec( 'tableRows' ) )
+        .add( $injector.exec( 'tableRows' ) )
         .add( '</tbody>' );
     if ( $config.footer && !$config.fixedfooters ) {
-        html.add( this.exec( 'tfoot' ) );
+        html.add( $injector.exec( 'tfoot' ) );
     }
     html.add( '</table>' );
     return html.toString();
 };
 
-gp.templates.tableBody.$inject = ['$config'];
+gp.templates.tableBody.$inject = ['$config', '$injector'];
 
-gp.templates.tableRowCells = function ( $columns ) {
+gp.templates.tableRowCells = function ( $columns, $injector ) {
     var self = this,
         html = new gp.StringBuilder();
     $columns.forEach( function ( col ) {
         // set the current column for bodyCellContent template
-        self.setResource( '$column', col );
+        $injector.setResource( '$column', col );
         html.add( '<td class="body-cell ' );
         if ( col.commands ) {
             html.add( 'commands ' );
         }
         html.add( col.bodyclass )
             .add( '">' )
-            .add( self.exec( 'bodyCellContent' ) )
+            .add( $injector.exec( 'bodyCellContent' ) )
             .add( '</td>' );
     } );
     return html.toString();
 };
 
-gp.templates.tableRowCells.$inject = ['$columns'];
+gp.templates.tableRowCells.$inject = ['$columns', '$injector'];
 
-gp.templates.tableRows = function ( $data, $map ) {
+gp.templates.tableRows = function ( $data, $map, $injector ) {
     var self = this,
         html = new gp.StringBuilder(),
         uid;
     if ( !$map ) {
         $map = new gp.DataMap();
-        this.setResource( '$map', $map );
+        $injector.setResource( '$map', $map );
     }
     if ( $data == null ) return '';
     $data.forEach( function ( dataItem ) {
         uid = $map.assign( dataItem );
         // set the current data item on the injector
-        self.setResource( '$dataItem', dataItem );
+        $injector.setResource( '$dataItem', dataItem );
         html.add( '<tr data-uid="' )
         .add( uid )
         .add( '">' )
-        .add( self.exec( 'tableRowCells' ) )
+        .add( $injector.exec( 'tableRowCells' ) )
         .add( '</tr>' );
     } );
     return html.toString();
 };
 
-gp.templates.tableRows.$inject = ['$data', '$map'];
+gp.templates.tableRows.$inject = ['$data', '$map', '$injector'];
 
-gp.templates.tfoot = function ( $columns ) {
+gp.templates.tfoot = function ( $columns, $injector ) {
     var self = this,
         html = new gp.StringBuilder();
     html.add( '<tfoot>' )
         .add( '<tr>' )
     $columns.forEach( function ( col ) {
+        $injector.setResource( '$column', col );
         html.add( '<td class="footer-cell">' )
-            .add( self.exec( 'footerCell', col ) )
+            .add( $injector.exec( 'footerCell' ) )
             .add( '</td>' );
     } );
     html.add( '</tr>' )
@@ -2906,7 +2989,7 @@ gp.templates.tfoot = function ( $columns ) {
     return html.toString();
 };
 
-gp.templates.tfoot.$inject = ['$columns'];
+gp.templates.tfoot.$inject = ['$columns', '$injector'];
 
 gp.templates.thead = function ( $columns, $config ) {
     var self = this,
@@ -2941,7 +3024,7 @@ gp.templates.thead = function ( $columns, $config ) {
                 html.add( gp.applyFunc( col.headertemplate, self, [col] ) );
             }
             else {
-                html.add( gp.supplant.call( this, col.headertemplate, col, [col] ) );
+                html.add( gp.supplant.call( self, col.headertemplate, col, [col] ) );
             }
         }
         else if ( !gp.isNullOrEmpty( sort ) ) {
@@ -3284,7 +3367,7 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         var desc, p, props = Object.getOwnPropertyNames( from );
         props.forEach( function ( prop ) {
             p = camelize ? gp.camelize( prop ) : prop;
-            if ( prop in to ) {
+            if ( to.hasOwnProperty( prop ) ) {
                 // check for a read-only property
                 desc = Object.getOwnPropertyDescriptor( to, prop );
                 if ( !desc.writable ) return;

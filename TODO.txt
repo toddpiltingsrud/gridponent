@@ -1,8 +1,6 @@
-﻿If creating a row errors out, the save button keeps spinning. Make sure to remove the busy class on http errors.
+﻿When calling a function inside a template, make sure the API is always set as the context.
 
-Would it be beneficial to be able to override any of the built-in templates?
-Example: override the tableRow template to provide alternative column layouts.
-This is where the dependency injection mechanism would come in handy.
+If creating a row errors out, the save button keeps spinning. Make sure to remove the busy class on http errors.
 
 The mechanism we're using to populate the model for the read template doesn't work on the initial read.
 That's because it gets populated in the change event handler.
@@ -25,7 +23,7 @@ passing in the template name and a single optional model argument.
 By invoking templates through an injector instead of calling them directly, we can easily add the ability to override
 individual templates by adding this feature to the injector. When executing a template, the injector first checks the 
 config object for a template of the same name. If it finds one, it uses the same dependency injection pattern to call it.
-If a template is not found in the config object, the default template is executed instead.
+If a template is not found in the config object, the default template is used instead.
 
 Invert the templates so none of them call other templates or helpers.
 Instead, inject whatever they need. Example, tableBody needs thead, tableRows, and tfoot.

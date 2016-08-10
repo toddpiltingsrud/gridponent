@@ -379,6 +379,7 @@ gp.Controller.prototype = {
             this.config.map.clear();
 
             body.html( this.injector.exec( 'tableBody' ) );
+            // if we're not using fixed footers this will have no effect
             footer.html( this.injector.exec( 'footerTable' ) );
             pager.html( this.injector.exec( 'pager' ) );
 

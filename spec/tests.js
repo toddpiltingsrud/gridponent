@@ -298,6 +298,8 @@ QUnit.test( 'column fields can be functions', function ( assert ) {
 
         done1();
 
+        $( '#table .box' ).empty();
+
     } );
 
 } );
@@ -469,6 +471,8 @@ QUnit.test( 'Template', function ( assert ) {
 
 QUnit.test( 'shallowCopy', function ( assert ) {
 
+    var backup = gp.shallowCopy( fns.model );
+
     var to = fns.model;
 
     // uncopyable (primitive) types should just return the target untouched
@@ -500,6 +504,8 @@ QUnit.test( 'shallowCopy', function ( assert ) {
         delete to[prop];
     } );
 
+    // restore the model
+    fns.model = backup;
 
 } );
 
@@ -1006,7 +1012,7 @@ QUnit.test( 'modal edit', function ( assert ) {
 
 } );
 
-QUnit.test( 'helpers.input', function ( assert ) {
+QUnit.test( 'templates.input', function ( assert ) {
 
     var input = getInput( 'boolean', 'IsSelected', false );
 
@@ -2543,7 +2549,7 @@ QUnit.test( 'edit and update', function ( assert ) {
 
 } );
 
-QUnit.test( 'gp.helpers.thead', function ( assert ) {
+QUnit.test( 'gp.templates.thead', function ( assert ) {
 
     var done1 = assert.async(),
         done2 = assert.async(),
@@ -2636,7 +2642,7 @@ QUnit.test( 'gp.helpers.thead', function ( assert ) {
 
 } );
 
-QUnit.test( 'gp.helpers.bodyCell', function ( assert ) {
+QUnit.test( 'gp.templates.bodyCell', function ( assert ) {
 
     var done = assert.async();
 
@@ -2685,7 +2691,7 @@ QUnit.test( 'gp.helpers.bodyCell', function ( assert ) {
 
 } );
 
-QUnit.test( 'gp.helpers.footerCell', function ( assert ) {
+QUnit.test( 'gp.templates.footerCell', function ( assert ) {
 
     var done1 = assert.async(),
         done2 = assert.async();
@@ -2704,8 +2710,20 @@ QUnit.test( 'gp.helpers.footerCell', function ( assert ) {
 
     } );
 
+    var beforeReadCalled = false;
+
+    fns.beforeread = function () {
+
+        beforeReadCalled = true;
+
+        cell = this.find( '.table-footer tr:first-child td.footer-cell:nth-child(4)' );
+
+        assert.equal( cell.length, 0, 'table footer should not be rendered before data is requested' );
+
+    };
 
     options.fixedFooters = true;
+    options.beforeread = 'fns.beforeread';
 
     getTableConfig( options, function ( api ) {
 
@@ -2715,12 +2733,9 @@ QUnit.test( 'gp.helpers.footerCell', function ( assert ) {
 
         assert.equal( isNaN( parseFloat( cell.text() ) ), false );
 
-        // test a string template with a function reference
-        var template = '<b>{{fns.average}}</b>';
+        assert.equal( cell.text(), '10' );
 
-        var result = gp.supplant( template, config.columns[0], [config.columns[0], data.products] );
-
-        assert.equal( result, '<b>10</b>' )
+        assert.ok( beforeReadCalled );
 
         done2();
 
