@@ -11,7 +11,7 @@ gp.PagingModel = function (data) {
     this.sort = '';
     this.desc = false;
     this.search = '';
-    this.data = data;
+    this.data = data || [];
     this.totalrows = ( data != undefined && data.length ) ? data.length : 0;
     this.pagecount = 0;
 

@@ -34,6 +34,12 @@
     <RootNamespace>tp_table</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="gridponent.es5.js">
+      <DependentUpon>gridponent.js</DependentUpon>
+    </Content>
+    <Content Include="gridponent.es5.min.js">
+      <DependentUpon>gridponent.es5.js</DependentUpon>
+    </Content>
     <Content Include="gridponent.js">
       <DependentUpon>gridponent.tt</DependentUpon>
       <DesignTime>True</DesignTime>

@@ -2394,7 +2394,7 @@ gp.PagingModel = function (data) {
     this.sort = '';
     this.desc = false;
     this.search = '';
-    this.data = data;
+    this.data = data || [];
     this.totalrows = ( data != undefined && data.length ) ? data.length : 0;
     this.pagecount = 0;
 
@@ -2650,6 +2650,11 @@ gp.templates.bootstrapModalContent = function ( $config, $dataItem, $mode, $inje
 
 gp.templates.bootstrapModalContent.$inject = ['$config', '$dataItem', '$mode', '$injector'];
 
+gp.templates.button = function ( model ) {
+    var template = '<button type="button" class="btn {{btnClass}}" value="{{value}}"><span class="glyphicon {{glyphicon}}"></span>{{text}}</button>';
+    return gp.supplant.call( this, template, model );
+};
+
 gp.templates.container = function ( $config, $injector ) {
     var html = new gp.StringBuilder();
     html.add( '<div class="gp table-container' )
@@ -2691,14 +2696,8 @@ gp.templates.container = function ( $config, $injector ) {
     if ( $config.fixedheaders ) {
         html.add( 'table-scroll' );
     }
-    html.add( '" style="' )
-        .add( $config.style )
-        .add( '">' )
-        .add( '<table class="table" cellpadding="0" cellspacing="0">' );
-    if ( !$config.fixedheaders ) {
-        html.add( $injector.exec( 'thead' ) );
-    }
-    html.add( '</table>' )
+    html.add( '">' )
+        .add( '<table class="table" cellpadding="0" cellspacing="0"><tbody></tbody></table>' )
         .add( '</div>' );
     if ( $config.fixedfooters ) {
         html.add( '<div class="table-footer"></div>' );
@@ -2719,11 +2718,6 @@ gp.templates.container = function ( $config, $injector ) {
 };
 
 gp.templates.container.$inject = ['$config', '$injector'];
-
-gp.templates.button = function ( model ) {
-    var template = '<button type="button" class="btn {{btnClass}}" value="{{value}}"><span class="glyphicon {{glyphicon}}"></span>{{text}}</button>';
-    return gp.supplant.call( this,  template, model );
-};
 
 gp.templates.columnWidthStyle = function ( $config, $columns ) {
     var html = new gp.StringBuilder(),
@@ -2781,6 +2775,9 @@ gp.templates.containerClasses = function ( $config ) {
     }
     if ( $config.rowselected ) {
         html.add( ' selectable' );
+    }
+    if ( $config.containerclass ) {
+        html.add( ' ' + $config.containerclass ); 
     }
     return html.toString();
 };

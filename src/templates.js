@@ -181,7 +181,7 @@ gp.templates.container = function ( $config, $injector ) {
         html.add( 'table-scroll' );
     }
     html.add( '">' )
-        .add( '<table class="table" cellpadding="0" cellspacing="0"></table>' )
+        .add( '<table class="table" cellpadding="0" cellspacing="0"><tbody></tbody></table>' )
         .add( '</div>' );
     if ( $config.fixedfooters ) {
         html.add( '<div class="table-footer"></div>' );

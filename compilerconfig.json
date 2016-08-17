@@ -2,5 +2,9 @@
   {
     "outputFile": "src/gridponent.css",
     "inputFile": "src/gridponent.less"
+  },
+  {
+    "outputFile": "gridponent.es5.js",
+    "inputFile": "gridponent.js"
   }
 ]

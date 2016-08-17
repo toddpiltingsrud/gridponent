@@ -298,6 +298,8 @@ QUnit.test( 'column fields can be functions', function ( assert ) {
 
         done1();
 
+        api.dispose();
+
         $( '#table .box' ).empty();
 
     } );
@@ -335,6 +337,8 @@ QUnit.test( 'get a reference to a new dataItem via the API', function ( assert )
         assert.ok( dataItem == null );
 
         done1();
+
+        api1.dispose();
     };
 
     getTableConfig( options, function ( api ) {
@@ -371,6 +375,11 @@ QUnit.test( 'get a reference to a new dataItem via the API', function ( assert )
         assert.ok( dataItem == null );
 
         done2();
+
+        api2.dispose();
+
+        $( '#table .box' ).empty();
+
     };
 
     getTableConfig( options, function ( api ) {
@@ -535,6 +544,13 @@ QUnit.test( 'preload option', function ( assert ) {
         } );
 
         assert.ok( types.length > 0, 'there should be types in the columns' );
+
+        // we should still be able to add a row with the API
+        api.create( fns.model );
+
+        rows = api.find( 'div.table-body tbody > tr' );
+
+        assert.strictEqual( rows.length, 1, 'there should be one row in the table' );
 
         done1();
 
