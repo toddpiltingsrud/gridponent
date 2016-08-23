@@ -28,7 +28,7 @@ gp.Initializer.prototype = {
             $pageModel: this.config.pageModel,
             $map: this.config.map,
             $data: this.config.pageModel.data
-        }, gp.templates ); // specify gp.templates object as root
+        }, gp.templates, null, this.config ); // specify gp.templates as root, null for context, config as override source
 
         // this has to happen here so we can find the table-container
         this.renderLayout( this.config, this.parent );
@@ -155,7 +155,7 @@ gp.Initializer.prototype = {
 
             body.html( self.injector.exec( 'tableBody' ) );
             footer.html( self.injector.exec( 'footerTable' ) );
-            pager.html( self.injector.exec( 'pager' ) );
+            pager.html( self.injector.exec( 'pagerBar' ) );
             gp.helpers.sortStyle( config );
 
             // sync column widths

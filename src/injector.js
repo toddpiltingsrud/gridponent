@@ -2,11 +2,12 @@
     Injector
 \***************/
 
-gp.Injector = function ( resources, root, context ) {
+gp.Injector = function ( resources, root, context, overrides ) {
     this.resources = resources;
     resources.$injector = this;
     this.root = root || window;
     this.context = context || this;
+    this.overrides = overrides || {};
 };
 
 gp.Injector.prototype = {
@@ -14,10 +15,17 @@ gp.Injector.prototype = {
         this.resources[name] = value;
         return this;
     },
-    exec: function ( funcOrName, model ) {
+    exec: function ( funcOrName, model, base ) {
         var args;
         if ( typeof funcOrName == 'string' ) {
-            funcOrName = gp.getObjectAtPath( funcOrName, this.root );
+            if ( base ) {
+                // call the base function
+                funcOrName = gp.getObjectAtPath( funcOrName, this.root );
+            }
+            else {
+                // check for override
+                funcOrName = gp.getObjectAtPath( funcOrName, this.overrides ) || gp.getObjectAtPath( funcOrName, this.root );
+            }
         }
         if ( typeof funcOrName == 'function' ) {
             args = this.inject( funcOrName );

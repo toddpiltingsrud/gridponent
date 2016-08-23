@@ -106,6 +106,11 @@ gp.api = function ( controller ) {
 
 gp.api.prototype = {
 
+    // this provides a way to call a base template from an override
+    baseTemplate: function ( name, model ) {
+        return this.controller.injector.exec( name, model, true );
+    },
+
     create: function ( dataItem ) {
         this.controller.addRow( dataItem );
         return this;
@@ -586,7 +591,7 @@ gp.Controller.prototype = {
             body.html( this.injector.exec( 'tableBody' ) );
             // if we're not using fixed footers this will have no effect
             footer.html( this.injector.exec( 'footerTable' ) );
-            pager.html( this.injector.exec( 'pager' ) );
+            pager.html( this.injector.exec( 'pagerBar' ) );
 
             gp.helpers.sortStyle( this.config );
         }
@@ -1541,7 +1546,7 @@ gp.Initializer.prototype = {
             $pageModel: this.config.pageModel,
             $map: this.config.map,
             $data: this.config.pageModel.data
-        }, gp.templates ); // specify gp.templates object as root
+        }, gp.templates, null, this.config ); // specify gp.templates as root, null for context, config as override source
 
         // this has to happen here so we can find the table-container
         this.renderLayout( this.config, this.parent );
@@ -1668,7 +1673,7 @@ gp.Initializer.prototype = {
 
             body.html( self.injector.exec( 'tableBody' ) );
             footer.html( self.injector.exec( 'footerTable' ) );
-            pager.html( self.injector.exec( 'pager' ) );
+            pager.html( self.injector.exec( 'pagerBar' ) );
             gp.helpers.sortStyle( config );
 
             // sync column widths
@@ -1781,11 +1786,12 @@ gp.Initializer.prototype = {
     Injector
 \***************/
 
-gp.Injector = function ( resources, root, context ) {
+gp.Injector = function ( resources, root, context, overrides ) {
     this.resources = resources;
     resources.$injector = this;
     this.root = root || window;
     this.context = context || this;
+    this.overrides = overrides || {};
 };
 
 gp.Injector.prototype = {
@@ -1793,10 +1799,17 @@ gp.Injector.prototype = {
         this.resources[name] = value;
         return this;
     },
-    exec: function ( funcOrName, model ) {
+    exec: function ( funcOrName, model, base ) {
         var args;
         if ( typeof funcOrName == 'string' ) {
-            funcOrName = gp.getObjectAtPath( funcOrName, this.root );
+            if ( base ) {
+                // call the base function
+                funcOrName = gp.getObjectAtPath( funcOrName, this.root );
+            }
+            else {
+                // check for override
+                funcOrName = gp.getObjectAtPath( funcOrName, this.overrides ) || gp.getObjectAtPath( funcOrName, this.root );
+            }
         }
         if ( typeof funcOrName == 'function' ) {
             args = this.inject( funcOrName );
@@ -2870,7 +2883,7 @@ gp.templates.input = function ( model ) {
     return gp.supplant.call( this,  '<input type="{{type}}" name="{{name}}" value="{{value}}" class="form-control"{{{dataType}}}{{checked}} />', obj );
 };
 
-gp.templates.pager = function ( $pageModel ) {
+gp.templates.pagerBar = function ( $pageModel ) {
     var pageModel = gp.shallowCopy($pageModel),
         html = new gp.StringBuilder();
 
@@ -2906,7 +2919,7 @@ gp.templates.pager = function ( $pageModel ) {
     return gp.supplant.call( this,  html.toString(), pageModel );
 };
 
-gp.templates.pager.$inject = ['$pageModel'];
+gp.templates.pagerBar.$inject = ['$pageModel'];
 
 gp.templates.tableBody = function ( $config, $injector ) {
     var html = new gp.StringBuilder();

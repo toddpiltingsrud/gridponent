@@ -268,6 +268,36 @@ Object.defineProperty( fns.model, 'ReadOnlyProp', {
     }
 } );
 
+QUnit.test( 'override bodyCellContent', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    options.bodyCellContent = function ( $column, $dataItem ) {
+        if ( $column.field == 'MakeFlag' ) {
+            return $dataItem.MakeFlag ? '<span class="glyphicon glyphicon-thumbs-up"></span>' : '';
+        }
+        else {
+            return this.baseTemplate( 'bodyCellContent' );
+        }
+    };
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var spans = api.find( 'td.body-cell span.glyphicon-thumbs-up' );
+
+        assert.ok( spans.length > 0, 'bodyCellContent can be overidden' );
+
+        done1();
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+} );
 
 QUnit.test( 'column fields can be functions', function ( assert ) {
 

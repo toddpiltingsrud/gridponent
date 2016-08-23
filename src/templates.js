@@ -354,7 +354,7 @@ gp.templates.input = function ( model ) {
     return gp.supplant.call( this,  '<input type="{{type}}" name="{{name}}" value="{{value}}" class="form-control"{{{dataType}}}{{checked}} />', obj );
 };
 
-gp.templates.pager = function ( $pageModel ) {
+gp.templates.pagerBar = function ( $pageModel ) {
     var pageModel = gp.shallowCopy($pageModel),
         html = new gp.StringBuilder();
 
@@ -390,7 +390,7 @@ gp.templates.pager = function ( $pageModel ) {
     return gp.supplant.call( this,  html.toString(), pageModel );
 };
 
-gp.templates.pager.$inject = ['$pageModel'];
+gp.templates.pagerBar.$inject = ['$pageModel'];
 
 gp.templates.tableBody = function ( $config, $injector ) {
     var html = new gp.StringBuilder();

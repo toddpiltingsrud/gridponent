@@ -22,6 +22,7 @@ By invoking templates through an injector instead of calling them directly, we c
 individual templates by adding this feature to the injector. When executing a template, the injector first checks the 
 config object for a template of the same name. If it finds one, it uses the same dependency injection pattern to call it.
 If a template is not found in the config object, the default template is used instead.
+We should implement the ability to call base templates from overrides.
 
 Invert the templates so none of them call other templates or helpers.
 Instead, inject whatever they need. Example, tableBody needs thead, tableRows, and tfoot.
