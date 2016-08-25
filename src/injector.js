@@ -35,7 +35,9 @@ gp.Injector.prototype = {
             // supply this injector as the context
             return funcOrName.apply( this.context, args );
         }
-        throw "Could not resolve function dependencies: " + funcOrName.toString();
+        else {
+            return gp.supplant( funcOrName, this.resources );
+        }
         return this;
     },
     inject: function ( func ) {

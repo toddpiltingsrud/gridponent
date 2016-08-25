@@ -41,7 +41,7 @@ gp.Initializer.prototype = {
         var dal = new gp.DataLayer( this.config );
         var controller = new gp.Controller( this.config, dal, this.config.pageModel, this.injector );
         this.config.node.api = new gp.api( controller );
-        this.config.footer = this.resolveFooter( this.config );
+        this.config.hasFooter = this.resolveFooter( this.config );
         this.config.preload = this.config.preload === false ? this.config.preload : true;
         this.injector.context = this.config.node.api;
 

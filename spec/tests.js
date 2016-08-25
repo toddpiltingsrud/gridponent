@@ -1,42 +1,40 @@
-//QUnit.test( 'override containerClasses', function ( assert ) {
+QUnit.test( 'override tableRowCell', function ( assert ) {
 
-//    var done1 = assert.async();
+    var done1 = assert.async();
 
-//    var options = gp.shallowCopy( configuration );
+    var options = gp.shallowCopy( configuration );
 
-//    options.tableRowCells = function ( $columns, $injector ) {
-//        var self = this,
-//            html = new gp.StringBuilder();
-//        $columns.forEach( function ( col ) {
-//            // set the current column for bodyCellContent template
-//            $injector.setResource( '$column', col );
-//            html.add( '<td class="body-cell ' );
-//            if ( col.commands ) {
-//                html.add( 'commands ' );
-//            }
-//            html.add( col.bodyclass )
-//                .add( '">' )
-//                .add( self.baseTemplate( 'bodyCellContent' ) )
-//                .add( '</td>' );
-//        } );
-//        return html.toString();
-//    };
+    options.tableRowCell = function ( $column, $injector, $dataItem ) {
+        if ( $column.field == 'MakeFlag' ) {
+            var html = new gp.StringBuilder();
+            html.add( '<td class="body-cell makeflag-' )
+                .add( $dataItem.MakeFlag )
+                .add( '">' )
+                .add( $injector.exec( 'bodyCellContent' ) )
+                .add( '</td>' );
 
-//    gridponent( '#table .box', options ).ready( function ( api ) {
+            return html.toString();
+        }
+        else {
+            return this.baseTemplate( 'tableRowCell' );
+        }
+    };
 
-//        var element = api.find( 'div.custom-class' );
+    gridponent( '#table .box', options ).ready( function ( api ) {
 
-//        assert.ok( element.length > 0, 'containerClasses can be overidden' );
+        var element = api.find( 'td.body-cell.makeflag-true' );
 
-//        done1();
+        assert.ok( element.length > 0, 'tableRowCell can be overidden' );
 
-//        api.dispose();
+        done1();
 
-//        $( '#table .box' ).empty();
+        api.dispose();
 
-//    } );
+        $( '#table .box' ).empty();
 
-//} );
+    } );
+
+} );
 
 QUnit.test( 'override bodyCellContent', function ( assert ) {
 
@@ -1270,13 +1268,13 @@ QUnit.test( 'gp.ClientPager', function ( assert ) {
 
 } );
 
-QUnit.test( 'toolbartemplate', function ( assert ) {
+QUnit.test( 'toolbar', function ( assert ) {
 
     var done = assert.async();
 
     var options = gp.shallowCopy( configOptions );
 
-    options.toolbartemplate = true;
+    options.toolbar = true;
 
     getTableConfig( options, function ( api ) {
 
@@ -3128,7 +3126,7 @@ var getTableConfig = function ( options, callback ) {
     if ( options.editmode ) out.push( '        edit-mode="' + options.editmode + '"' );
     out.push( '             pager="top-right"' );
     out.push( '             search="top-left">' );
-    if ( options.toolbartemplate )
+    if ( options.toolbar )
         out.push( '    <script type="text/html" data-template="toolbar"><button class="btn" value="xyz"></button></script>' );
     out.push( '    <gp-column>' );
     out.push( '        <script type="text/html" data-template="header body edit footer"><input type="checkbox" name="test" /></script>' );

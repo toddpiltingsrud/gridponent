@@ -139,70 +139,6 @@ gp.templates.button = function ( model ) {
     return gp.supplant.call( this, template, model );
 };
 
-gp.templates.container = function ( $config, $injector ) {
-    var html = new gp.StringBuilder();
-    html.add( '<div class="gp table-container' )
-        .add( $injector.exec( 'containerClasses' ) )
-        .add( '" id="' )
-        .add( $config.ID )
-        .add( '">' );
-    if ( $config.search || $config.create || $config.toolbartemplate ) {
-        html.add( '<div class="table-toolbar">' );
-        if ( $config.toolbartemplate ) {
-            html.add( $injector.exec( 'toolbar' ) );
-        } else {
-            if ( $config.search ) {
-                html.add( '<div class="input-group gridponent-searchbox">' )
-                    .add( '<input type="text" name="search" class="form-control" placeholder="Search...">' )
-                    .add( '<span class="input-group-btn">' )
-                    .add( '<button class="btn btn-default" type="button" value="search">' )
-                    .add( '<span class="glyphicon glyphicon-search"></span>' )
-                    .add( '</button>' )
-                    .add( '</span>' )
-                    .add( '</div>' );
-            }
-            if ( $config.create ) {
-                html.add( '<button class="btn btn-default" type="button" value="AddRow">' )
-                    .add( '<span class="glyphicon glyphicon-plus"></span>Add' )
-                    .add( '</button>' );
-            }
-        }
-        html.add( '</div>' );
-    }
-    if ( $config.fixedheaders ) {
-        html.add( '<div class="table-header">' )
-            .add( '<table class="table" cellpadding="0" cellspacing="0">' )
-            .add( $injector.exec( 'thead' ) )
-            .add( '</table>' )
-            .add( '</div>' );
-    }
-    html.add( '<div class="table-body ' );
-    if ( $config.fixedheaders ) {
-        html.add( 'table-scroll' );
-    }
-    html.add( '">' )
-        .add( '<table class="table" cellpadding="0" cellspacing="0"><tbody></tbody></table>' )
-        .add( '</div>' );
-    if ( $config.fixedfooters ) {
-        html.add( '<div class="table-footer"></div>' );
-    }
-    if ( $config.pager ) {
-        html.add( '<div class="table-pager"></div>' );
-    }
-    html.add( '<style type="text/css" class="column-width-style">' )
-        .add( $injector.exec( 'columnWidthStyle' ) )
-        .add( '</style>' )
-        .add( '<div class="gp-progress-overlay">' )
-        .add( '<div class="gp-progress gp-progress-container">' )
-        .add( '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>' )
-        .add( '</div>' )
-        .add( '</div>' )
-        .add( '</div>' );
-    return html.toString();
-};
-
-gp.templates.container.$inject = ['$config', '$injector'];
-
 gp.templates.columnWidthStyle = function ( $config, $columns ) {
     var html = new gp.StringBuilder(),
         width,
@@ -239,6 +175,52 @@ gp.templates.columnWidthStyle = function ( $config, $columns ) {
 };
 
 gp.templates.columnWidthStyle.$inject = ['$config', '$columns'];
+
+gp.templates.container = function ( $config, $injector ) {
+    var html = new gp.StringBuilder();
+    html.add( '<div class="gp table-container' )
+        .add( $injector.exec( 'containerClasses' ) )
+        .add( '" id="' )
+        .add( $config.ID )
+        .add( '">' );
+    if ( $config.search || $config.create || $config.toolbartemplate ) {
+        html.add( '<div class="table-toolbar">' );
+        html.add( $injector.exec( 'toolbartemplate' ) );
+        html.add( '</div>' );
+    }
+    if ( $config.fixedheaders ) {
+        html.add( '<div class="table-header">' )
+            .add( '<table class="table" cellpadding="0" cellspacing="0">' )
+            .add( $injector.exec( 'header' ) )
+            .add( '</table>' )
+            .add( '</div>' );
+    }
+    html.add( '<div class="table-body ' );
+    if ( $config.fixedheaders ) {
+        html.add( 'table-scroll' );
+    }
+    html.add( '">' )
+        .add( '<table class="table" cellpadding="0" cellspacing="0"><tbody></tbody></table>' )
+        .add( '</div>' );
+    if ( $config.fixedfooters ) {
+        html.add( '<div class="table-footer"></div>' );
+    }
+    if ( $config.pager ) {
+        html.add( '<div class="table-pager"></div>' );
+    }
+    html.add( '<style type="text/css" class="column-width-style">' )
+        .add( $injector.exec( 'columnWidthStyle' ) )
+        .add( '</style>' )
+        .add( '<div class="gp-progress-overlay">' )
+        .add( '<div class="gp-progress gp-progress-container">' )
+        .add( '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>' )
+        .add( '</div>' )
+        .add( '</div>' )
+        .add( '</div>' );
+    return html.toString();
+};
+
+gp.templates.container.$inject = ['$config', '$injector'];
 
 gp.templates.containerClasses = function ( $config ) {
     var html = new gp.StringBuilder();
@@ -308,7 +290,33 @@ gp.templates.editCellContent = function ( $column, $dataItem, $mode, $config, $i
 
 gp.templates.editCellContent.$inject = ['$column', '$dataItem', '$mode', '$config', '$injector'];
 
-gp.templates.footerCell = function ( $data, $column ) {
+gp.templates.footer = function ( $columns, $injector ) {
+    var self = this,
+        html = new gp.StringBuilder();
+    html.add( '<tfoot>' )
+        .add( '<tr>' )
+    $columns.forEach( function ( col ) {
+        $injector.setResource( '$column', col );
+        html.add( $injector.exec( 'footerCell' ) );
+    } );
+    html.add( '</tr>' )
+        .add( '</tfoot>' );
+    return html.toString();
+};
+
+gp.templates.footer.$inject = ['$columns', '$injector'];
+
+gp.templates.footerCell = function ( $injector ) {
+    var html = new gp.StringBuilder();
+        html.add( '<td class="footer-cell">' )
+            .add( $injector.exec( 'footerCellContent' ) )
+            .add( '</td>' );
+    return html.toString();
+};
+
+gp.templates.footerCell.$inject = ['$injector'];
+
+gp.templates.footerCellContent = function ( $data, $column ) {
     var html = new gp.StringBuilder();
     if ( $column.footertemplate ) {
         if ( typeof ( $column.footertemplate ) === 'function' ) {
@@ -321,12 +329,12 @@ gp.templates.footerCell = function ( $data, $column ) {
     return html.toString();
 };
 
-gp.templates.footerCell.$inject = ['$data', '$column'];
+gp.templates.footerCellContent.$inject = ['$data', '$column'];
 
 gp.templates.footerTable = function ($injector) {
     var html = new gp.StringBuilder();
     html.add( '<table class="table" cellpadding="0" cellspacing="0">' )
-        .add( $injector.exec( 'tfoot' ) )
+        .add( $injector.exec( 'footer' ) )
         .add( '</table>' );
     return html.toString();
 };
@@ -351,7 +359,7 @@ gp.templates.input = function ( model ) {
         dataType: ( /^date/.test( model.type ) ? ' data-type="date"' : '' )
     };
 
-    return gp.supplant.call( this,  '<input type="{{type}}" name="{{name}}" value="{{value}}" class="form-control"{{{dataType}}}{{checked}} />', obj );
+    return gp.supplant.call( this, '<input type="{{type}}" name="{{name}}" value="{{value}}" class="form-control"{{{dataType}}}{{checked}} />', obj );
 };
 
 gp.templates.pagerBar = function ( $pageModel ) {
@@ -396,13 +404,13 @@ gp.templates.tableBody = function ( $config, $injector ) {
     var html = new gp.StringBuilder();
     html.add( '<table class="table" cellpadding="0" cellspacing="0">' );
     if ( !$config.fixedheaders ) {
-        html.add( $injector.exec( 'thead' ) );
+        html.add( $injector.exec( 'header' ) );
     }
     html.add( '<tbody>' )
         .add( $injector.exec( 'tableRows' ) )
         .add( '</tbody>' );
-    if ( $config.footer && !$config.fixedfooters ) {
-        html.add( $injector.exec( 'tfoot' ) );
+    if ( $config.hasFooter && !$config.fixedfooters ) {
+        html.add( $injector.exec( 'footer' ) );
     }
     html.add( '</table>' );
     return html.toString();
@@ -410,20 +418,33 @@ gp.templates.tableBody = function ( $config, $injector ) {
 
 gp.templates.tableBody.$inject = ['$config', '$injector'];
 
+gp.templates.tableRowCell = function ( $column, $injector ) {
+    var self = this,
+        html = new gp.StringBuilder();
+
+    // set the current column for bodyCellContent template
+    $injector.setResource( '$column', $column );
+    html.add( '<td class="body-cell ' );
+    if ( $column.commands ) {
+        html.add( 'commands ' );
+    }
+    html.add( $column.bodyclass )
+        .add( '">' )
+        .add( $injector.exec( 'bodyCellContent' ) )
+        .add( '</td>' );
+
+    return html.toString();
+};
+
+gp.templates.tableRowCell.$inject = ['$column', '$injector'];
+
 gp.templates.tableRowCells = function ( $columns, $injector ) {
     var self = this,
         html = new gp.StringBuilder();
     $columns.forEach( function ( col ) {
         // set the current column for bodyCellContent template
         $injector.setResource( '$column', col );
-        html.add( '<td class="body-cell ' );
-        if ( col.commands ) {
-            html.add( 'commands ' );
-        }
-        html.add( col.bodyclass )
-            .add( '">' )
-            .add( $injector.exec( 'bodyCellContent' ) )
-            .add( '</td>' );
+        html.add( $injector.exec( 'tableRowCell' ) );
     } );
     return html.toString();
 };
@@ -454,89 +475,118 @@ gp.templates.tableRows = function ( $data, $map, $injector ) {
 
 gp.templates.tableRows.$inject = ['$data', '$map', '$injector'];
 
-gp.templates.tfoot = function ( $columns, $injector ) {
-    var self = this,
-        html = new gp.StringBuilder();
-    html.add( '<tfoot>' )
-        .add( '<tr>' )
+gp.templates.header = function ( $columns, $config, $injector ) {
+    var html = new gp.StringBuilder();
+    html.add( '<thead><tr>' );
     $columns.forEach( function ( col ) {
-        $injector.setResource( '$column', col );
-        html.add( '<td class="footer-cell">' )
-            .add( $injector.exec( 'footerCell' ) )
-            .add( '</td>' );
+        html.add( $injector.setResource( '$column', col ).exec( 'headerCell' ) );
     } );
-    html.add( '</tr>' )
-        .add( '</tfoot>' );
+    html.add( '</tr></thead>' );
     return html.toString();
 };
 
-gp.templates.tfoot.$inject = ['$columns', '$injector'];
+gp.templates.header.$inject = ['$columns', '$config', '$injector'];
 
-gp.templates.thead = function ( $columns, $config ) {
+gp.templates.headerCell = function ( $column, $config, $injector ) {
     var self = this,
         html = new gp.StringBuilder(),
-        sort, template, classes;
-    html.add( '<thead>' );
-    html.add( '<tr>' );
-    $columns.forEach( function ( col ) {
         sort = '';
-        if ( $config.sorting ) {
-            // if sort isn't specified, use the field
-            sort = gp.escapeHTML( gp.coalesce( [col.sort, col.field] ) );
-        }
-        else {
-            // only provide sorting where it is explicitly specified
-            if ( gp.hasValue( col.sort ) ) {
-                sort = gp.escapeHTML( col.sort );
-            }
-        }
 
-        html.add( '<th class="header-cell ' + ( col.headerclass || '' ) + '"' );
-
-        if ( gp.hasValue( sort ) ) {
-            html.add( ' data-sort="' + sort + '"' );
-        }
-
-        html.add( '>' );
-
-        // check for a template
-        if ( col.headertemplate ) {
-            if ( typeof ( col.headertemplate ) === 'function' ) {
-                html.add( gp.applyFunc( col.headertemplate, self, [col] ) );
-            }
-            else {
-                html.add( gp.supplant.call( self, col.headertemplate, col, [col] ) );
-            }
-        }
-        else if ( !gp.isNullOrEmpty( sort ) ) {
-            html.add( '<a href="javascript:void(0);" class="table-sort" value="sort" data-sort="' )
-                .escape( sort )
-                .add( '">' )
-                .escape( gp.coalesce( [col.header, col.field, sort] ) )
-                .add( '<span class="glyphicon"></span>' )
-                .add( '</a>' );
-        }
-        else {
-            html.escape( gp.coalesce( [col.header, col.field, ''] ) );
-        }
-        html.add( '</th>' );
-    } );
-    html.add( '</tr>' )
-        .add( '</thead>' );
-    return html.toString();
-};
-
-gp.templates.thead.$inject = ['$columns', '$config'];
-
-gp.templates.toolbar = function ( $config ) {
-    var html = new gp.StringBuilder();
-    if ( typeof ( $config.toolbartemplate ) === 'function' ) {
-        html.add( gp.applyFunc( $config.toolbartemplate, $config ) );
+    if ( $config.sorting ) {
+        // if sort isn't specified, use the field
+        sort = gp.escapeHTML( gp.coalesce( [$column.sort, $column.field] ) );
     }
     else {
-        html.add( $config.toolbartemplate );
+        // only provide sorting where it is explicitly specified
+        if ( gp.hasValue( $column.sort ) ) {
+            sort = gp.escapeHTML( $column.sort );
+        }
     }
+
+    html.add( '<th class="header-cell ' + ( $column.headerclass || '' ) + '"' );
+
+    if ( gp.hasValue( sort ) ) {
+        html.add( ' data-sort="' + sort + '"' );
+    }
+
+    html.add( '>' );
+    html.add( $injector.exec( 'headerCellContent' ) );
+    html.add( '</th>' );
+
     return html.toString();
 };
 
-gp.templates.toolbar.$inject = ['$config'];
+gp.templates.headerCell.$inject = ['$column', '$config', '$injector'];
+
+gp.templates.headerCellContent = function ( $column, $config ) {
+
+    var self = this,
+        html = new gp.StringBuilder(),
+        sort = '';
+
+    if ( $config.sorting ) {
+        // if sort isn't specified, use the field
+        sort = gp.escapeHTML( gp.coalesce( [$column.sort, $column.field] ) );
+    }
+    else {
+        // only provide sorting where it is explicitly specified
+        if ( gp.hasValue( $column.sort ) ) {
+            sort = gp.escapeHTML( $column.sort );
+        }
+    }
+
+    // check for a template
+    if ( $column.headertemplate ) {
+        if ( typeof ( $column.headertemplate ) === 'function' ) {
+            html.add( gp.applyFunc( $column.headertemplate, self, [$column] ) );
+        }
+        else {
+            html.add( gp.supplant.call( self, $column.headertemplate, $column, [$column] ) );
+        }
+    }
+    else if ( !gp.isNullOrEmpty( sort ) ) {
+        html.add( '<a href="javascript:void(0);" class="table-sort" value="sort" data-sort="' )
+            .escape( sort )
+            .add( '">' )
+            .escape( gp.coalesce( [$column.header, $column.field, sort] ) )
+            .add( '<span class="glyphicon"></span>' )
+            .add( '</a>' );
+    }
+    else {
+        html.escape( gp.coalesce( [$column.header, $column.field, ''] ) );
+    }
+
+    return html.toString();
+};
+
+gp.templates.headerCellContent.$inject = ['$column', '$config'];
+
+gp.templates.toolbartemplate = function ( $config, $injector ) {
+    var html = new gp.StringBuilder();
+
+    if ( $config.search ) {
+        html.add( '<div class="input-group gridponent-searchbox">' )
+            .add( '<input type="text" name="search" class="form-control" placeholder="Search...">' )
+            .add( '<span class="input-group-btn">' )
+            .add( $injector.exec( 'button', {
+                btnClass: 'btn-default',
+                value: 'search',
+                glyphicon: 'glyphicon-search'
+            } ) )
+            .add( '</span>' )
+            .add( '</div>' );
+    }
+    if ( $config.create ) {
+        html.add( $injector.exec( 'button',
+            {
+                btnClass: 'btn-default',
+                value: 'AddRow',
+                glyphicon: 'glyphicon-plus',
+                text: 'Add'
+            } ) );
+    }
+
+    return html.toString();
+};
+
+gp.templates.toolbartemplate.$inject = ['$config', '$injector'];
