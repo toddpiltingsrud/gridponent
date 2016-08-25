@@ -1,4 +1,16 @@
-﻿If creating a row errors out, the save button keeps spinning. Make sure to remove the busy class on http errors.
+﻿Problem: the injector needs a reference to the api. The api needs a reference to the controller. 
+The controller needs a reference to the injector. Circular reference.
+The controller should render the container. 
+Perhaps the container should not even be a template since the app relies on it to build everything else.
+Overriding it won't be of much benefit, and rendering it incorrectly will cause problems.
+Don't render the toolbar in the container. Just provide a spot for it to be injected later.
+
+Instead of providing config options for templates and checking for them, just use the template override mechanism.
+Allow template overrides to be either an HTML string or a function that returns a string.
+We can't inject a string template. In this case we could supply the default injection parameters to the supplant function as an object.
+Resources could be referenced by name: {{$dataItem.propName}}.
+
+If creating a row errors out, the save button keeps spinning. Make sure to remove the busy class on http errors.
 
 The mechanism we're using to populate the model for the read template doesn't work on the initial read.
 That's because it gets populated in the change event handler.

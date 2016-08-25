@@ -1,272 +1,42 @@
-var div = null;
+//QUnit.test( 'override containerClasses', function ( assert ) {
 
-$( function () {
-    div = $( '<div id="div1" style="display:none"></div>' ).appendTo( 'body' );
-} );
+//    var done1 = assert.async();
 
-function ChangeEvent() {
-    return new CustomEvent( 'change', {
-        'view': window,
-        'bubbles': true,
-        'cancelable': true
-    } );
-}
+//    var options = gp.shallowCopy( configuration );
 
-var gridponent = gridponent || {};
+//    options.tableRowCells = function ( $columns, $injector ) {
+//        var self = this,
+//            html = new gp.StringBuilder();
+//        $columns.forEach( function ( col ) {
+//            // set the current column for bodyCellContent template
+//            $injector.setResource( '$column', col );
+//            html.add( '<td class="body-cell ' );
+//            if ( col.commands ) {
+//                html.add( 'commands ' );
+//            }
+//            html.add( col.bodyclass )
+//                .add( '">' )
+//                .add( self.baseTemplate( 'bodyCellContent' ) )
+//                .add( '</td>' );
+//        } );
+//        return html.toString();
+//    };
 
-var gp = gridponent;
+//    gridponent( '#table .box', options ).ready( function ( api ) {
 
-var fns = fns || {};
+//        var element = api.find( 'div.custom-class' );
 
-var clickButton = function ( btn ) {
+//        assert.ok( element.length > 0, 'containerClasses can be overidden' );
 
-    var evt = new CustomEvent( 'click', {
-        'view': window,
-        'bubbles': true,
-        'cancelable': true
-    } );
+//        done1();
 
-    $( btn )[0].dispatchEvent( evt );
+//        api.dispose();
 
-};
+//        $( '#table .box' ).empty();
 
-var changeInput = function ( input ) {
+//    } );
 
-    var evt = new CustomEvent( 'change', {
-        'view': window,
-        'bubbles': true,
-        'cancelable': true
-    } );
-
-    $( input )[0].dispatchEvent( evt );
-
-};
-
-fns.checkbox = function ( col ) {
-    return '<input type="checkbox" name="test" />';
-};
-
-fns.getButtonIcon = function ( dataItem, col ) {
-    if ( dataItem.MakeFlag ) {
-        return 'glyphicon-edit';
-    }
-    return 'glyphicon-remove';
-};
-
-fns.getButtonText = function ( dataItem, col ) {
-    if ( dataItem.MakeFlag ) {
-        return 'edit';
-    }
-    return 'Remove';
-};
-
-fns.searchFilter = function ( dataItem, search ) {
-    return dataItem.ProductNumber == search;
-};
-
-fns.getHeaderText = function ( col ) {
-    return col.toString();
-};
-
-var configOptions = {
-    fixedheaders: false,
-    fixedFooters: false,
-    responsive: false,
-    sorting: false,
-    read: null,
-    create: '/Products/create',
-    update: '/Products/update',
-    destroy: '/Products/Delete',
-    searchFilter: null,
-    customCommand: null
-};
-
-var getTableConfig = function ( options, callback ) {
-    options = options || configOptions;
-    options.read = options.read || 'data.products';
-
-    var out = [];
-
-    out.push( '<grid-ponent ' );
-    if ( options.fixedheaders ) out.push( '    fixed-headers' );
-    if ( options.fixedFooters ) out.push( '    fixed-footers="true"' );
-    if ( options.responsive ) out.push( '      responsive="true"' );
-    if ( options.sorting ) out.push( '         sorting ' );
-    if ( options.pager ) out.push( '           pager ' );
-    if ( options.rowselected ) out.push( '     rowselected="' + options.rowselected + '"' );
-    if ( options.searchFilter ) out.push( '    search-function="' + options.searchFilter + '"' );
-    if ( options.read ) out.push( '            read="' + options.read + '"' );
-    if ( options.create ) out.push( '          create="' + options.create + '"' );
-    if ( options.update ) out.push( '          update="' + options.update + '"' );
-    if ( options.destroy ) out.push( '         destroy="' + options.destroy + '"' );
-    if ( options.refreshevent ) out.push( '    refresh-event="' + options.refreshevent + '"' );
-    if ( options.validate ) out.push( '        validate="' + options.validate + '"' );
-    if ( options.onread ) out.push( '          onread="' + options.onread + '"' );
-    if ( options.editready ) out.push( '       editready="' + options.editready + '"' );
-    if ( options.onedit ) out.push( '          onedit="' + options.onedit + '"' );
-    if ( options.model ) out.push( '           model="' + options.model + '"' );
-    if ( options.beforeread ) out.push( '      beforeread="' + options.beforeread + '"' );
-    if ( options.editmode ) out.push( '        edit-mode="' + options.editmode + '"' );
-    out.push( '             pager="top-right"' );
-    out.push( '             search="top-left">' );
-    if ( options.toolbartemplate )
-        out.push( '    <script type="text/html" data-template="toolbar"><button class="btn" value="xyz"></button></script>' );
-    out.push( '    <gp-column>' );
-    out.push( '        <script type="text/html" data-template="header body edit footer"><input type="checkbox" name="test" /></script>' );
-    out.push( '    </gp-column>' );
-    out.push( '    <gp-column header="ID" sort="Name">' );
-    out.push( '        <script type="text/html" data-template="body">{{fns.getName}}</script>' );
-    out.push( '        <script type="text/html" data-template="edit">{{{fns.dropdown}}}</script>' );
-    out.push( '    </gp-column>' );
-    out.push( '    <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>' );
-    out.push( '    <gp-column field="SafetyStockLevel" header="Safety Stock Level">' );
-    out.push( '        <script type="text/html" data-template="body"><button class="btn"><span class="glyphicon glyphicon-search"></span>{{SafetyStockLevel}}</button></script>' );
-    out.push( '        <script type="text/html" data-template="footer">{{fns.average}}</script>' );
-    out.push( '    </gp-column>' );
-    out.push( '    <gp-column field="StandardCost" header="Standard Cost" format="$0"></gp-column>' );
-    out.push( '    <gp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, YYYY"></gp-column>' );
-    out.push( '    <gp-column field="Markup" readonly body-class="hidden-xs" header-class="hidden-xs"></gp-column>' );
-    out.push( '    <gp-column>' );
-    out.push( '        <script type="text/html" data-template="header">Test header<input type="checkbox"/></script>' );
-    out.push( '    </gp-column>' );
-    out.push( '    <gp-column sort="Color" body-style="border:solid 1px #ccc;">' );
-    out.push( '        <script type="text/html" data-template="header"><button class="btn" value="">{{fns.getHeaderText}}</button></script>' );
-    out.push( '        <script type="text/html" data-template="body"><button class="btn" value="{{fns.getButtonText}}"><span class="glyphicon {{fns.getButtonIcon}}"></span>{{fns.getButtonText}}</button></script>' );
-    out.push( '    </gp-column>' );
-    out.push( '    <gp-column field="ProductNumber" header="Product #"></gp-column>' );
-    out.push( '    <gp-column commands="Edit,Delete"></gp-column>' );
-    if ( options.customCommand ) {
-        out.push( '    <gp-column commands="' + options.customCommand + '"></gp-column>' );
-    }
-    out.push( '</grid-ponent>' );
-
-    // if we have web component support, this line will initialize the component automatically
-    // otherwise trigger initialization manually
-    var $node = $( out.join( '' ) );
-
-    if ( document.registerElement ) {
-        setTimeout( function () {
-            gridponent( $node[0] ).ready( callback );
-        } );
-    }
-    else {
-        config = new gp.Initializer( $node[0] ).initialize();
-        config.node.api.ready( callback );
-    }
-};
-
-var getValidationErrors = function () {
-    return {
-        "Name": {
-            "errors": [
-                "Required"
-            ]
-        },
-        "ProductNumber": {
-            "errors": [
-                "Required"
-            ]
-        },
-        "SafetyStockLevel": {
-            "errors": [
-                "The value 'non' is not valid for Safety Stock Level."
-            ]
-        }
-    };
-};
-
-var configuration = {
-    read: '/products/read?page={{page}}',
-    create: '/products/create',
-    update: '/products/update',
-    destroy: '/products/delete',
-    search: 'top-left',
-    pager: 'bottom-left',
-    columns: [
-        {
-            headertemplate: '<input type="checkbox" name="test" />',
-            bodytemplate: '<input type="checkbox" name="test" />',
-            footertemplate: '<input type="checkbox" name="test" />'
-        },
-        {
-            sort: 'Name',
-            header: 'ID',
-            bodytemplate: fns.getname,
-            edittemplate: fns.dropdown
-        },
-        {
-            width: '75px',
-            header: 'Make',
-            field: 'MakeFlag',
-            edittemplate: '<input type="radio" name="MakeFlag" value="true" /><input type="radio" name="MakeFlag" value="false" />'
-        },
-        {
-            header: 'Safety Stock Level',
-            field: 'SafetyStockLevel',
-            bodytemplate: '<button class="btn"><span class="glyphicon glyphicon-search"></span>{{SafetyStockLevel}}</button>',
-            footertemplate: fns.average
-        },
-        {
-            format: 'c',
-            header: 'Standard Cost',
-            field: 'StandardCost'
-        },
-        {
-            format: 'D MMMM, YYYY',
-            header: 'Sell Start Date',
-            field: 'SellStartDate'
-        },
-        {
-            headerclass: 'hidden-xs',
-            bodyclass: 'hidden-xs',
-            readonly: true,
-            field: 'Markup'
-        },
-        {
-            headertemplate: 'Test Header<input type="checkbox"/>'
-        },
-        {
-            sort: 'Color',
-            headertemplate: '<button class="btn" value="">{{fns.getHeaderText}}</button>',
-            bodytemplate: '<button class="btn" value="{{fns.getButtonText}}"><span class="glyphicon {{fns.getButtonIcon}}"></span>{{fns.getButtonText}}</button>'
-        },
-        {
-            header: 'Product #',
-            field: 'ProductNumber'
-        },
-        {
-            commands: [
-                { text: 'Edit' },
-                { text: 'Delete' },
-                {
-                    text: 'View',
-                    func: function ( dataItem ) {
-                        fns.viewed = true;
-                    }
-                }
-            ]
-        }
-    ]
-};
-
-fns.model = {
-    "ProductID": 0,
-    "State": ['MN', 'WI'],
-    "Name": "Adjustable Race",
-    "ProductNumber": "",
-    "MakeFlag": false,
-    "FinishedGoodsFlag": false,
-    "Color": "blue",
-    "SafetyStockLevel": 0,
-    "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "C", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": "<p>Product's name: \"Adjustable Race\"</p>"
-};
-
-// creete a read-only property on the model
-Object.defineProperty( fns.model, 'ReadOnlyProp', {
-    get: function () {
-        return 'value';
-    }
-} );
+//} );
 
 QUnit.test( 'override bodyCellContent', function ( assert ) {
 
@@ -3245,4 +3015,274 @@ QUnit.test( 'coverage report', function ( assert ) {
         } );
     }
 
+} );
+
+var div = null;
+
+$( function () {
+    div = $( '<div id="div1" style="display:none"></div>' ).appendTo( 'body' );
+} );
+
+function ChangeEvent() {
+    return new CustomEvent( 'change', {
+        'view': window,
+        'bubbles': true,
+        'cancelable': true
+    } );
+}
+
+var gridponent = gridponent || {};
+
+var gp = gridponent;
+
+var fns = fns || {};
+
+var clickButton = function ( btn ) {
+
+    var evt = new CustomEvent( 'click', {
+        'view': window,
+        'bubbles': true,
+        'cancelable': true
+    } );
+
+    $( btn )[0].dispatchEvent( evt );
+
+};
+
+var changeInput = function ( input ) {
+
+    var evt = new CustomEvent( 'change', {
+        'view': window,
+        'bubbles': true,
+        'cancelable': true
+    } );
+
+    $( input )[0].dispatchEvent( evt );
+
+};
+
+fns.checkbox = function ( col ) {
+    return '<input type="checkbox" name="test" />';
+};
+
+fns.getButtonIcon = function ( dataItem, col ) {
+    if ( dataItem.MakeFlag ) {
+        return 'glyphicon-edit';
+    }
+    return 'glyphicon-remove';
+};
+
+fns.getButtonText = function ( dataItem, col ) {
+    if ( dataItem.MakeFlag ) {
+        return 'edit';
+    }
+    return 'Remove';
+};
+
+fns.searchFilter = function ( dataItem, search ) {
+    return dataItem.ProductNumber == search;
+};
+
+fns.getHeaderText = function ( col ) {
+    return col.toString();
+};
+
+var configOptions = {
+    fixedheaders: false,
+    fixedFooters: false,
+    responsive: false,
+    sorting: false,
+    read: null,
+    create: '/Products/create',
+    update: '/Products/update',
+    destroy: '/Products/Delete',
+    searchFilter: null,
+    customCommand: null
+};
+
+var getTableConfig = function ( options, callback ) {
+    options = options || configOptions;
+    options.read = options.read || 'data.products';
+
+    var out = [];
+
+    out.push( '<grid-ponent ' );
+    if ( options.fixedheaders ) out.push( '    fixed-headers' );
+    if ( options.fixedFooters ) out.push( '    fixed-footers="true"' );
+    if ( options.responsive ) out.push( '      responsive="true"' );
+    if ( options.sorting ) out.push( '         sorting ' );
+    if ( options.pager ) out.push( '           pager ' );
+    if ( options.rowselected ) out.push( '     rowselected="' + options.rowselected + '"' );
+    if ( options.searchFilter ) out.push( '    search-function="' + options.searchFilter + '"' );
+    if ( options.read ) out.push( '            read="' + options.read + '"' );
+    if ( options.create ) out.push( '          create="' + options.create + '"' );
+    if ( options.update ) out.push( '          update="' + options.update + '"' );
+    if ( options.destroy ) out.push( '         destroy="' + options.destroy + '"' );
+    if ( options.refreshevent ) out.push( '    refresh-event="' + options.refreshevent + '"' );
+    if ( options.validate ) out.push( '        validate="' + options.validate + '"' );
+    if ( options.onread ) out.push( '          onread="' + options.onread + '"' );
+    if ( options.editready ) out.push( '       editready="' + options.editready + '"' );
+    if ( options.onedit ) out.push( '          onedit="' + options.onedit + '"' );
+    if ( options.model ) out.push( '           model="' + options.model + '"' );
+    if ( options.beforeread ) out.push( '      beforeread="' + options.beforeread + '"' );
+    if ( options.editmode ) out.push( '        edit-mode="' + options.editmode + '"' );
+    out.push( '             pager="top-right"' );
+    out.push( '             search="top-left">' );
+    if ( options.toolbartemplate )
+        out.push( '    <script type="text/html" data-template="toolbar"><button class="btn" value="xyz"></button></script>' );
+    out.push( '    <gp-column>' );
+    out.push( '        <script type="text/html" data-template="header body edit footer"><input type="checkbox" name="test" /></script>' );
+    out.push( '    </gp-column>' );
+    out.push( '    <gp-column header="ID" sort="Name">' );
+    out.push( '        <script type="text/html" data-template="body">{{fns.getName}}</script>' );
+    out.push( '        <script type="text/html" data-template="edit">{{{fns.dropdown}}}</script>' );
+    out.push( '    </gp-column>' );
+    out.push( '    <gp-column field="MakeFlag" header="Make" width="75px"></gp-column>' );
+    out.push( '    <gp-column field="SafetyStockLevel" header="Safety Stock Level">' );
+    out.push( '        <script type="text/html" data-template="body"><button class="btn"><span class="glyphicon glyphicon-search"></span>{{SafetyStockLevel}}</button></script>' );
+    out.push( '        <script type="text/html" data-template="footer">{{fns.average}}</script>' );
+    out.push( '    </gp-column>' );
+    out.push( '    <gp-column field="StandardCost" header="Standard Cost" format="$0"></gp-column>' );
+    out.push( '    <gp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, YYYY"></gp-column>' );
+    out.push( '    <gp-column field="Markup" readonly body-class="hidden-xs" header-class="hidden-xs"></gp-column>' );
+    out.push( '    <gp-column>' );
+    out.push( '        <script type="text/html" data-template="header">Test header<input type="checkbox"/></script>' );
+    out.push( '    </gp-column>' );
+    out.push( '    <gp-column sort="Color" body-style="border:solid 1px #ccc;">' );
+    out.push( '        <script type="text/html" data-template="header"><button class="btn" value="">{{fns.getHeaderText}}</button></script>' );
+    out.push( '        <script type="text/html" data-template="body"><button class="btn" value="{{fns.getButtonText}}"><span class="glyphicon {{fns.getButtonIcon}}"></span>{{fns.getButtonText}}</button></script>' );
+    out.push( '    </gp-column>' );
+    out.push( '    <gp-column field="ProductNumber" header="Product #"></gp-column>' );
+    out.push( '    <gp-column commands="Edit,Delete"></gp-column>' );
+    if ( options.customCommand ) {
+        out.push( '    <gp-column commands="' + options.customCommand + '"></gp-column>' );
+    }
+    out.push( '</grid-ponent>' );
+
+    // if we have web component support, this line will initialize the component automatically
+    // otherwise trigger initialization manually
+    var $node = $( out.join( '' ) );
+
+    if ( document.registerElement ) {
+        setTimeout( function () {
+            gridponent( $node[0] ).ready( callback );
+        } );
+    }
+    else {
+        config = new gp.Initializer( $node[0] ).initialize();
+        config.node.api.ready( callback );
+    }
+};
+
+var getValidationErrors = function () {
+    return {
+        "Name": {
+            "errors": [
+                "Required"
+            ]
+        },
+        "ProductNumber": {
+            "errors": [
+                "Required"
+            ]
+        },
+        "SafetyStockLevel": {
+            "errors": [
+                "The value 'non' is not valid for Safety Stock Level."
+            ]
+        }
+    };
+};
+
+var configuration = {
+    read: '/products/read?page={{page}}',
+    create: '/products/create',
+    update: '/products/update',
+    destroy: '/products/delete',
+    search: 'top-left',
+    pager: 'bottom-left',
+    columns: [
+        {
+            headertemplate: '<input type="checkbox" name="test" />',
+            bodytemplate: '<input type="checkbox" name="test" />',
+            footertemplate: '<input type="checkbox" name="test" />'
+        },
+        {
+            sort: 'Name',
+            header: 'ID',
+            bodytemplate: fns.getname,
+            edittemplate: fns.dropdown
+        },
+        {
+            width: '75px',
+            header: 'Make',
+            field: 'MakeFlag',
+            edittemplate: '<input type="radio" name="MakeFlag" value="true" /><input type="radio" name="MakeFlag" value="false" />'
+        },
+        {
+            header: 'Safety Stock Level',
+            field: 'SafetyStockLevel',
+            bodytemplate: '<button class="btn"><span class="glyphicon glyphicon-search"></span>{{SafetyStockLevel}}</button>',
+            footertemplate: fns.average
+        },
+        {
+            format: 'c',
+            header: 'Standard Cost',
+            field: 'StandardCost'
+        },
+        {
+            format: 'D MMMM, YYYY',
+            header: 'Sell Start Date',
+            field: 'SellStartDate'
+        },
+        {
+            headerclass: 'hidden-xs',
+            bodyclass: 'hidden-xs',
+            readonly: true,
+            field: 'Markup'
+        },
+        {
+            headertemplate: 'Test Header<input type="checkbox"/>'
+        },
+        {
+            sort: 'Color',
+            headertemplate: '<button class="btn" value="">{{fns.getHeaderText}}</button>',
+            bodytemplate: '<button class="btn" value="{{fns.getButtonText}}"><span class="glyphicon {{fns.getButtonIcon}}"></span>{{fns.getButtonText}}</button>'
+        },
+        {
+            header: 'Product #',
+            field: 'ProductNumber'
+        },
+        {
+            commands: [
+                { text: 'Edit' },
+                { text: 'Delete' },
+                {
+                    text: 'View',
+                    func: function ( dataItem ) {
+                        fns.viewed = true;
+                    }
+                }
+            ]
+        }
+    ]
+};
+
+fns.model = {
+    "ProductID": 0,
+    "State": ['MN', 'WI'],
+    "Name": "Adjustable Race",
+    "ProductNumber": "",
+    "MakeFlag": false,
+    "FinishedGoodsFlag": false,
+    "Color": "blue",
+    "SafetyStockLevel": 0,
+    "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "C", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": "<p>Product's name: \"Adjustable Race\"</p>"
+};
+
+// creete a read-only property on the model
+Object.defineProperty( fns.model, 'ReadOnlyProp', {
+    get: function () {
+        return 'value';
+    }
 } );

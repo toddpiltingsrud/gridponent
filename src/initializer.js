@@ -19,6 +19,8 @@ gp.Initializer.prototype = {
         this.config = options;
         this.config.map = new gp.DataMap();
         this.config.pageModel = new gp.PagingModel();
+        this.config.editmode = this.config.editmode || 'inline';
+        this.config.newrowposition = this.config.newrowposition || 'top';
 
         // this has to be defined before renderLayout
         this.injector = new gp.Injector( {
@@ -34,8 +36,6 @@ gp.Initializer.prototype = {
         this.renderLayout( this.config, this.parent );
 
         this.config.node = this.parent.find( '.table-container' )[0];
-        this.config.editmode = this.config.editmode || 'inline';
-        this.config.newrowposition = this.config.newrowposition || 'top';
         this.$n = this.parent.find( '.table-container' );
 
         var dal = new gp.DataLayer( this.config );

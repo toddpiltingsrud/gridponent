@@ -316,7 +316,7 @@
         // raw: 3 curly braces
         str = str.replace( /{{{([^{}]*)}}}/g,
             function ( a, b ) {
-                r = o[b];
+                r = gp.getObjectAtPath( b, o );
                 if ( types.test( typeof r ) ) return r;
                 // models can contain functions
                 if ( typeof r === 'function' ) return gp.applyFunc( r, self, args );
@@ -328,7 +328,7 @@
         // escape HTML: 2 curly braces
         return str.replace( /{{([^{}]*)}}/g,
             function ( a, b ) {
-                r = o[b];
+                r = gp.getObjectAtPath( b, o );
                 if ( types.test( typeof r ) ) return gp.escapeHTML( r );
                 // models can contain functions
                 if ( typeof r === 'function' ) return gp.escapeHTML( gp.applyFunc( r, self, args ) );
