@@ -1512,6 +1512,45 @@ gp.helpers = {
 };
 
 /***************\
+     http        
+\***************/
+gp.Http = function () { };
+
+gp.Http.prototype = {
+    get: function ( url, callback, error ) {
+        $.get( url ).done( callback ).fail( error );
+    },
+    post: function ( url, data, callback, error ) {
+        this.ajax( url, data, callback, error, 'POST' );
+    },
+    destroy: function ( url, callback, error ) {
+        this.ajax( url, null, callback, error, 'DELETE' );
+    },
+    ajax: function ( url, data, callback, error, httpVerb ) {
+        $.ajax( {
+            url: url,
+            type: httpVerb.toUpperCase(),
+            data: data,
+            contentType: 'application/x-www-form-urlencoded; charset=UTF-8'
+        } )
+            .done( callback )
+            .fail( function ( response ) {
+                if ( response.status ) {
+                    // don't know why jQuery calls fail on DELETE
+                    if ( response.status == 200 ) {
+                        callback( response );
+                        return;
+                    }
+                    // filter out authentication errors, those are usually handled by the browser
+                    if ( /401|403|407/.test( response.status ) == false && typeof error == 'function' ) {
+                        error( response );
+                    }
+                }
+            } );
+    }
+
+};
+/***************\
    Initializer
 \***************/
 gp.Initializer = function ( node ) {
@@ -1858,123 +1897,6 @@ gp.Injector.prototype = {
     }
 
 };
-/***************\
-   mock-http
-\***************/
-(function (gp) {
-    gp.Http = function () { };
-
-    // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
-    var routes = {
-        read: /read/i,
-        update: /update/i,
-        create: /create/i,
-        destroy: /Delete/i
-    };
-
-    gp.Http.prototype = {
-        post: function (url, model, callback, error) {
-            model = model || {};
-            if (routes.read.test(url)) {
-                getData(model, callback);
-            }
-            else if ( routes.create.test( url ) ) {
-                window.data.products.push( model );
-                callback( new gp.UpdateModel( model ) );
-            }
-            else if ( routes.update.test( url ) ) {
-                callback( new gp.UpdateModel(model) );
-            }
-            else {
-                throw '404 Not found: ' + url;
-            }
-        },
-        destroy: function ( url, callback, error ) {
-            callback( {
-                Success: true,
-                Message: ''
-            } );
-        }
-    };
-
-    var getData = function (model, callback) {
-        var count, d = window.data.products.slice( 0, window.data.length );
-
-        if (!gp.isNullOrEmpty(model.search)) {
-            var props = Object.getOwnPropertyNames(d[0]);
-            var search = model.search.toLowerCase();
-            d = d.filter(function (row) {
-                for (var i = 0; i < props.length; i++) {
-                    if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
-                        return true;
-                    }
-                }
-                return false;
-            });
-        }
-        if (!gp.isNullOrEmpty(model.sort)) {
-            if (model.desc) {
-                d.sort(function (row1, row2) {
-                    var a = row1[model.sort];
-                    var b = row2[model.sort];
-                    if (a === null) {
-                        if (b != null) {
-                            return 1;
-                        }
-                    }
-                    else if (b === null) {
-                        // we already know a isn't null
-                        return -1;
-                    }
-                    if (a > b) {
-                        return -1;
-                    }
-                    if (a < b) {
-                        return 1;
-                    }
-
-                    return 0;
-                });
-            }
-            else {
-                d.sort(function (row1, row2) {
-                    var a = row1[model.sort];
-                    var b = row2[model.sort];
-                    if (a === null) {
-                        if (b != null) {
-                            return -1;
-                        }
-                    }
-                    else if (b === null) {
-                        // we already know a isn't null
-                        return 1;
-                    }
-                    if (a > b) {
-                        return 1;
-                    }
-                    if (a < b) {
-                        return -1;
-                    }
-
-                    return 0;
-                });
-            }
-        }
-        count = d.length;
-        if (model.top !== -1) {
-            model.data = d.slice(model.skip).slice(0, model.top);
-        }
-        else {
-            model.data = d;
-        }
-        model.errors = [];
-        setTimeout(function () {
-            callback(model);
-        });
-
-    };
-
-})(gridponent);
 /***************\
    ModelSync
 \***************/
@@ -2875,6 +2797,94 @@ gp.templates.formGroup = function ( model ) {
     return gp.supplant.call( this,  template, model );
 };
 
+gp.templates.header = function ( $columns, $config, $injector ) {
+    // depending on whether or not fixedheaders has been specified
+    // this template is rendered either in a table by itself or inside the main table
+    var html = new gp.StringBuilder();
+    html.add( '<thead><tr>' );
+    $columns.forEach( function ( col ) {
+        html.add( $injector.setResource( '$column', col ).exec( 'headerCell' ) );
+    } );
+    html.add( '</tr></thead>' );
+    return html.toString();
+};
+
+gp.templates.header.$inject = ['$columns', '$config', '$injector'];
+
+gp.templates.headerCell = function ( $column, $config, $injector ) {
+    var self = this,
+        html = new gp.StringBuilder(),
+        sort = '';
+
+    if ( $config.sorting ) {
+        // if sort isn't specified, use the field
+        sort = gp.escapeHTML( gp.coalesce( [$column.sort, $column.field] ) );
+    }
+    else {
+        // only provide sorting where it is explicitly specified
+        if ( gp.hasValue( $column.sort ) ) {
+            sort = gp.escapeHTML( $column.sort );
+        }
+    }
+
+    html.add( '<th class="header-cell ' + ( $column.headerclass || '' ) + '"' );
+
+    if ( gp.hasValue( sort ) ) {
+        html.add( ' data-sort="' + sort + '"' );
+    }
+
+    html.add( '>' );
+    html.add( $injector.exec( 'headerCellContent' ) );
+    html.add( '</th>' );
+
+    return html.toString();
+};
+
+gp.templates.headerCell.$inject = ['$column', '$config', '$injector'];
+
+gp.templates.headerCellContent = function ( $column, $config ) {
+
+    var self = this,
+        html = new gp.StringBuilder(),
+        sort = '';
+
+    if ( $config.sorting ) {
+        // if sort isn't specified, use the field
+        sort = gp.escapeHTML( gp.coalesce( [$column.sort, $column.field] ) );
+    }
+    else {
+        // only provide sorting where it is explicitly specified
+        if ( gp.hasValue( $column.sort ) ) {
+            sort = gp.escapeHTML( $column.sort );
+        }
+    }
+
+    // check for a template
+    if ( $column.headertemplate ) {
+        if ( typeof ( $column.headertemplate ) === 'function' ) {
+            html.add( gp.applyFunc( $column.headertemplate, self, [$column] ) );
+        }
+        else {
+            html.add( gp.supplant.call( self, $column.headertemplate, $column, [$column] ) );
+        }
+    }
+    else if ( !gp.isNullOrEmpty( sort ) ) {
+        html.add( '<a href="javascript:void(0);" class="table-sort" value="sort" data-sort="' )
+            .escape( sort )
+            .add( '">' )
+            .escape( gp.coalesce( [$column.header, $column.field, sort] ) )
+            .add( '<span class="glyphicon"></span>' )
+            .add( '</a>' );
+    }
+    else {
+        html.escape( gp.coalesce( [$column.header, $column.field, ''] ) );
+    }
+
+    return html.toString();
+};
+
+gp.templates.headerCellContent.$inject = ['$column', '$config'];
+
 gp.templates.input = function ( model ) {
     var obj = {
         type: ( model.type == 'boolean' ? 'checkbox' : ( model.type == 'number' ? 'number' : 'text' ) ),
@@ -3013,92 +3023,6 @@ gp.templates.tableRows = function ( $data, $map, $injector ) {
 };
 
 gp.templates.tableRows.$inject = ['$data', '$map', '$injector'];
-
-gp.templates.header = function ( $columns, $config, $injector ) {
-    var html = new gp.StringBuilder();
-    html.add( '<thead><tr>' );
-    $columns.forEach( function ( col ) {
-        html.add( $injector.setResource( '$column', col ).exec( 'headerCell' ) );
-    } );
-    html.add( '</tr></thead>' );
-    return html.toString();
-};
-
-gp.templates.header.$inject = ['$columns', '$config', '$injector'];
-
-gp.templates.headerCell = function ( $column, $config, $injector ) {
-    var self = this,
-        html = new gp.StringBuilder(),
-        sort = '';
-
-    if ( $config.sorting ) {
-        // if sort isn't specified, use the field
-        sort = gp.escapeHTML( gp.coalesce( [$column.sort, $column.field] ) );
-    }
-    else {
-        // only provide sorting where it is explicitly specified
-        if ( gp.hasValue( $column.sort ) ) {
-            sort = gp.escapeHTML( $column.sort );
-        }
-    }
-
-    html.add( '<th class="header-cell ' + ( $column.headerclass || '' ) + '"' );
-
-    if ( gp.hasValue( sort ) ) {
-        html.add( ' data-sort="' + sort + '"' );
-    }
-
-    html.add( '>' );
-    html.add( $injector.exec( 'headerCellContent' ) );
-    html.add( '</th>' );
-
-    return html.toString();
-};
-
-gp.templates.headerCell.$inject = ['$column', '$config', '$injector'];
-
-gp.templates.headerCellContent = function ( $column, $config ) {
-
-    var self = this,
-        html = new gp.StringBuilder(),
-        sort = '';
-
-    if ( $config.sorting ) {
-        // if sort isn't specified, use the field
-        sort = gp.escapeHTML( gp.coalesce( [$column.sort, $column.field] ) );
-    }
-    else {
-        // only provide sorting where it is explicitly specified
-        if ( gp.hasValue( $column.sort ) ) {
-            sort = gp.escapeHTML( $column.sort );
-        }
-    }
-
-    // check for a template
-    if ( $column.headertemplate ) {
-        if ( typeof ( $column.headertemplate ) === 'function' ) {
-            html.add( gp.applyFunc( $column.headertemplate, self, [$column] ) );
-        }
-        else {
-            html.add( gp.supplant.call( self, $column.headertemplate, $column, [$column] ) );
-        }
-    }
-    else if ( !gp.isNullOrEmpty( sort ) ) {
-        html.add( '<a href="javascript:void(0);" class="table-sort" value="sort" data-sort="' )
-            .escape( sort )
-            .add( '">' )
-            .escape( gp.coalesce( [$column.header, $column.field, sort] ) )
-            .add( '<span class="glyphicon"></span>' )
-            .add( '</a>' );
-    }
-    else {
-        html.escape( gp.coalesce( [$column.header, $column.field, ''] ) );
-    }
-
-    return html.toString();
-};
-
-gp.templates.headerCellContent.$inject = ['$column', '$config'];
 
 gp.templates.toolbartemplate = function ( $config, $injector ) {
     var html = new gp.StringBuilder();
