@@ -1,3 +1,69 @@
+QUnit.test( 'override container', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    options.container = function ( $config, $injector ) {
+        var html = new gp.StringBuilder();
+        html.add( '<div class="gp table-container' )
+            .add( $injector.exec( 'containerClasses' ) )
+            .add( '" id="' )
+            .add( $config.ID )
+            .add( '">' );
+        if ( $config.search || $config.create || $config.toolbartemplate ) {
+            html.add( '<div class="table-toolbar">' );
+            html.add( $injector.exec( 'toolbartemplate' ) );
+            html.add( '</div>' );
+        }
+        if ( $config.fixedheaders ) {
+            html.add( '<div class="table-header">' )
+                .add( '<table class="table" cellpadding="0" cellspacing="0">' )
+                .add( $injector.exec( 'header' ) )
+                .add( '</table>' )
+                .add( '</div>' );
+        }
+        html.add( '<div class="table-body ' );
+        if ( $config.fixedheaders ) {
+            html.add( 'table-scroll' );
+        }
+        html.add( '">' )
+            .add( '<table class="table" cellpadding="0" cellspacing="0"><tbody></tbody></table>' )
+            .add( '</div>' );
+        if ( $config.fixedfooters ) {
+            html.add( '<div class="table-footer"></div>' );
+        }
+        if ( $config.pager ) {
+            html.add( '<div class="table-pager"></div>' );
+        }
+        html.add( '<style type="text/css" class="column-width-style">' )
+            .add( $injector.exec( 'columnWidthStyle' ) )
+            .add( '</style>' )
+            .add( '<div class="gp-progress-overlay">' )
+            .add( '<div class="gp-progress gp-progress-container">' )
+            .add( '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>' )
+            .add( '</div>' )
+            .add( '</div>' )
+            .add( '</div>' );
+        return html.toString();
+    };
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var element = api.find( 'td.body-cell.makeflag-true' );
+
+        assert.ok( element.length > 0, 'tableRowCell can be overidden' );
+
+        done1();
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+} );
+
 QUnit.test( 'override tableRowCell', function ( assert ) {
 
     var done1 = assert.async();

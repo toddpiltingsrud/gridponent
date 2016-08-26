@@ -223,29 +223,29 @@ gp.templates.container = function ( $config, $injector ) {
 gp.templates.container.$inject = ['$config', '$injector'];
 
 gp.templates.containerClasses = function ( $config ) {
-    var html = new gp.StringBuilder();
+    var classes = [];
     if ( $config.fixedheaders ) {
-        html.add( ' fixed-headers' );
+        classes.push( 'fixed-headers' );
     }
     if ( $config.fixedfooters ) {
-        html.add( ' fixed-footers' );
+        classes.push( 'fixed-footers' );
     }
     if ( $config.pager ) {
-        html.add( ' pager-' + $config.pager );
+        classes.push( 'pager-' + $config.pager );
     }
     if ( $config.responsive ) {
-        html.add( ' table-responsive' );
+        classes.push( 'table-responsive' );
     }
     if ( $config.search ) {
-        html.add( ' search-' + $config.search );
+        classes.push( 'search-' + $config.search );
     }
     if ( $config.rowselected ) {
-        html.add( ' selectable' );
+        classes.push( 'selectable' );
     }
     if ( $config.containerclass ) {
-        html.add( ' ' + $config.containerclass ); 
+        classes.push( $config.containerclass ); 
     }
-    return html.toString();
+    return classes.join( ' ' );
 };
 
 gp.templates.containerClasses.$inject = ['$config'];
