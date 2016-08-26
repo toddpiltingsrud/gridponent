@@ -106,11 +106,6 @@ gp.api = function ( controller ) {
 
 gp.api.prototype = {
 
-    // this provides a way to call a base template from an override
-    baseTemplate: function ( name, model ) {
-        return this.controller.injector.exec( name, model, true );
-    },
-
     create: function ( dataItem ) {
         this.controller.addRow( dataItem );
         return this;
@@ -1799,6 +1794,9 @@ gp.Injector.prototype = {
         this.resources[name] = value;
         return this;
     },
+    base: function ( funcOrName, model ) {
+        return this.exec( funcOrName, model, true );
+    },
     exec: function ( funcOrName, model, base ) {
         var args;
         if ( typeof funcOrName == 'string' ) {
@@ -1820,7 +1818,7 @@ gp.Injector.prototype = {
             return funcOrName.apply( this.context, args );
         }
         else {
-            return gp.supplant( funcOrName, this.resources );
+            return gp.supplant.call( this.context, funcOrName, this.resources );
         }
         return this;
     },
@@ -2709,7 +2707,7 @@ gp.templates.columnWidthStyle.$inject = ['$config', '$columns'];
 
 gp.templates.container = function ( $config, $injector ) {
     var html = new gp.StringBuilder();
-    html.add( '<div class="gp table-container' )
+    html.add( '<div class="gp table-container ' )
         .add( $injector.exec( 'containerClasses' ) )
         .add( '" id="' )
         .add( $config.ID )
@@ -2754,29 +2752,29 @@ gp.templates.container = function ( $config, $injector ) {
 gp.templates.container.$inject = ['$config', '$injector'];
 
 gp.templates.containerClasses = function ( $config ) {
-    var html = new gp.StringBuilder();
+    var classes = [];
     if ( $config.fixedheaders ) {
-        html.add( ' fixed-headers' );
+        classes.push( 'fixed-headers' );
     }
     if ( $config.fixedfooters ) {
-        html.add( ' fixed-footers' );
+        classes.push( 'fixed-footers' );
     }
     if ( $config.pager ) {
-        html.add( ' pager-' + $config.pager );
+        classes.push( 'pager-' + $config.pager );
     }
     if ( $config.responsive ) {
-        html.add( ' table-responsive' );
+        classes.push( 'table-responsive' );
     }
     if ( $config.search ) {
-        html.add( ' search-' + $config.search );
+        classes.push( 'search-' + $config.search );
     }
     if ( $config.rowselected ) {
-        html.add( ' selectable' );
+        classes.push( 'selectable' );
     }
     if ( $config.containerclass ) {
-        html.add( ' ' + $config.containerclass ); 
+        classes.push( $config.containerclass ); 
     }
-    return html.toString();
+    return classes.join( ' ' );
 };
 
 gp.templates.containerClasses.$inject = ['$config'];
@@ -2949,6 +2947,19 @@ gp.templates.tableBody = function ( $config, $injector ) {
 
 gp.templates.tableBody.$inject = ['$config', '$injector'];
 
+gp.templates.tableRow = function ( $injector, uid ) {
+    var self = this,
+        html = new gp.StringBuilder();
+    html.add( '<tr data-uid="' )
+        .add( uid )
+        .add( '">' )
+        .add( $injector.exec( 'tableRowCells' ) )
+        .add( '</tr>' );
+    return html.toString();
+};
+
+gp.templates.tableRow.$inject = ['$injector'];
+
 gp.templates.tableRowCell = function ( $column, $injector ) {
     var self = this,
         html = new gp.StringBuilder();
@@ -2992,14 +3003,11 @@ gp.templates.tableRows = function ( $data, $map, $injector ) {
     }
     if ( $data == null ) return '';
     $data.forEach( function ( dataItem ) {
-        uid = $map.assign( dataItem );
         // set the current data item on the injector
         $injector.setResource( '$dataItem', dataItem );
-        html.add( '<tr data-uid="' )
-        .add( uid )
-        .add( '">' )
-        .add( $injector.exec( 'tableRowCells' ) )
-        .add( '</tr>' );
+        // assign a uid to the dataItem, pass it to the tableRow template
+        uid = $map.assign( dataItem );
+        html.add( $injector.exec( 'tableRow', uid ) );
     } );
     return html.toString();
 };

@@ -15,6 +15,9 @@ gp.Injector.prototype = {
         this.resources[name] = value;
         return this;
     },
+    base: function ( funcOrName, model ) {
+        return this.exec( funcOrName, model, true );
+    },
     exec: function ( funcOrName, model, base ) {
         var args;
         if ( typeof funcOrName == 'string' ) {
@@ -36,7 +39,7 @@ gp.Injector.prototype = {
             return funcOrName.apply( this.context, args );
         }
         else {
-            return gp.supplant( funcOrName, this.resources );
+            return gp.supplant.call( this.context, funcOrName, this.resources );
         }
         return this;
     },

@@ -1,3 +1,590 @@
+QUnit.test( 'override headerCellContent', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    options.headerCellContent = function ( $column, $injector ) {
+        if ( $column.field == 'MakeFlag' ) {
+            return '<div class="custom-header-content">Make Flag</div>';
+        }
+        else {
+            return $injector.base( 'headerCellContent' );
+        }
+    };
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var element = api.find( 'div.custom-header-content' );
+
+        assert.ok( element.length > 0, 'headerCellContent can be overridden' );
+
+        done1();
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+} );
+
+QUnit.test( 'override headerCell', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    options.headerCell = function ( $column, $injector ) {
+        if ( $column.field == 'MakeFlag' ) {
+            return '<th class="header-cell custom-header-cell">Make Flag</th>';
+        }
+        else {
+            return $injector.base( 'headerCell' );
+        }
+    };
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var element = api.find( 'th.custom-header-cell' );
+
+        assert.ok( element.length > 0, 'headerCell can be overridden' );
+
+        done1();
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+} );
+
+QUnit.test( 'override header', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    options.header = function ( $columns, $config, $injector ) {
+        // depending on whether or not fixedheaders has been specified
+        // this template is rendered either in a table by itself or inside the main table
+        var html = new gp.StringBuilder();
+        html.add( '<thead><tr class="custom-header-row">' );
+        $columns.forEach( function ( col ) {
+            html.add( $injector.setResource( '$column', col ).exec( 'headerCell' ) );
+        } );
+        html.add( '</tr></thead>' );
+        return html.toString();
+    };
+
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var element = api.find( 'tr.custom-header-row' );
+
+        assert.ok( element.length > 0, 'header can be overridden' );
+
+        done1();
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+} );
+
+QUnit.test( 'override tableRow', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    options.tableRow = function ( $injector, uid ) {
+        var self = this,
+            html = new gp.StringBuilder();
+        html.add( '<tr class="custom-table-row" data-uid="' )
+            .add( uid )
+            .add( '">' )
+            .add( $injector.exec( 'tableRowCells' ) )
+            .add( '</tr>' );
+        return html.toString();
+    };
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var element = api.find( 'tr.custom-table-row' );
+
+        assert.ok( element.length > 0, 'tableRow can be overridden' );
+
+        done1();
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+} );
+
+QUnit.test( 'override tableRowCells', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    options.tableRowCells = function ( $columns, $injector ) {
+        var self = this,
+            html = new gp.StringBuilder(),
+            makeFlagColumn = $columns.filter( function ( col ) { return col.field == 'MakeFlag'; } )[0];
+        
+        html.add( '<td class="body-cell" colspan="2">' )
+            .add( $injector.setResource( '$column', makeFlagColumn ).exec( 'bodyCellContent' ) );
+
+        $columns.forEach( function ( col ) {
+            if ( col.field != 'MakeFlag' ) {
+                // set the current column for bodyCellContent template
+                $injector.setResource( '$column', col );
+                html.add( $injector.exec( 'tableRowCell' ) );
+            }
+        } );
+        return html.toString();
+    };
+
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var element = api.find( 'td.body-cell[colspan=2]' );
+
+        assert.ok( element.length > 0, 'tableRowCells can be overridden' );
+
+        done1();
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+} );
+
+QUnit.test( 'override tableRowCell', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    options.tableRowCell = function ( $column, $injector ) {
+        var self = this,
+            html = new gp.StringBuilder();
+
+        // set the current column for bodyCellContent template
+        $injector.setResource( '$column', $column );
+        html.add( '<td class="body-cell custom-body-cell ' );
+        if ( $column.commands ) {
+            html.add( 'commands ' );
+        }
+        html.add( $column.bodyclass )
+            .add( '">' )
+            .add( $injector.exec( 'bodyCellContent' ) )
+            .add( '</td>' );
+
+        return html.toString();
+    };
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var element = api.find( 'td.custom-body-cell' );
+
+        assert.ok( element.length > 0, 'tableRowCell can be overridden' );
+
+        done1();
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+} );
+
+QUnit.test( 'override tableBody', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    options.tableBody = function ( $config, $injector ) {
+        var html = new gp.StringBuilder();
+        html.add( '<table class="table custom-table-body" cellpadding="0" cellspacing="0">' );
+        if ( !$config.fixedheaders ) {
+            html.add( $injector.exec( 'header' ) );
+        }
+        html.add( '<tbody>' )
+            .add( $injector.exec( 'tableRows' ) )
+            .add( '</tbody>' );
+        if ( $config.hasFooter && !$config.fixedfooters ) {
+            html.add( $injector.exec( 'footer' ) );
+        }
+        html.add( '</table>' );
+        return html.toString();
+    };
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var element = api.find( 'table.custom-table-body' );
+
+        assert.ok( element.length > 0, 'tableBody can be overridden' );
+
+        done1();
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+} );
+
+QUnit.test( 'override pagerBar', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    options.read = data.products;
+
+    options.pagerBar = function ( $pageModel ) {
+        var pageModel = gp.shallowCopy( $pageModel ),
+            html = new gp.StringBuilder();
+
+        pageModel.IsFirstPage = pageModel.page === 1;
+        pageModel.IsLastPage = pageModel.page === pageModel.pagecount;
+        pageModel.HasPages = pageModel.pagecount > 1;
+        pageModel.PreviousPage = pageModel.page === 1 ? 1 : pageModel.page - 1;
+        pageModel.NextPage = pageModel.page === pageModel.pagecount ? pageModel.pagecount : pageModel.page + 1;
+
+        pageModel.firstPageClass = ( pageModel.IsFirstPage ? 'disabled' : '' );
+        pageModel.lastPageClass = ( pageModel.IsLastPage ? 'disabled' : '' );
+
+        if ( pageModel.HasPages ) {
+            html.add( '<div class="btn-group custom-pager">' )
+                .add( '<button class="ms-page-index btn btn-default {{firstPageClass}}" title="First page" value="page" data-page="1">' )
+                .add( '<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>' )
+                .add( '</button>' )
+                .add( '<button class="ms-page-index btn btn-default {{firstPageClass}}" title="Previous page" value="page" data-page="{{PreviousPage}}">' )
+                .add( '<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>' )
+                .add( '</button>' )
+                .add( '</div>' )
+                .add( '<input type="number" name="page" value="{{page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />' )
+                .add( '<span class="page-count"> of {{pagecount}}</span>' )
+                .add( '<div class="btn-group">' )
+                .add( '<button class="ms-page-index btn btn-default {{lastPageClass}}" title="Next page" value="page" data-page="{{NextPage}}">' )
+                .add( '<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>' )
+                .add( '</button>' )
+                .add( '<button class="ms-page-index btn btn-default {{lastPageClass}}" title="Last page" value="page" data-page="{{pagecount}}">' )
+                .add( '<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>' )
+                .add( '</button>' )
+                .add( '</div>' );
+        }
+        return gp.supplant.call( this, html.toString(), pageModel );
+    };
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var element = api.find( 'div.custom-pager' );
+
+        assert.ok( element.length > 0, 'pagerBar can be overridden' );
+
+        done1();
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+} );
+
+QUnit.test( 'override input', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var hasModel = false;
+
+    var options = gp.shallowCopy( configuration );
+
+    options.input = function ( model ) {
+        var obj = {
+            type: ( model.type == 'boolean' ? 'checkbox' : ( model.type == 'number' ? 'number' : 'text' ) ),
+            name: model.name,
+            value: ( model.type == 'boolean' ? 'true' : ( model.type == 'date' ? gp.formatter.format( model.value, 'YYYY-MM-DD' ) : gp.escapeHTML( model.value ) ) ),
+            checked: ( model.type == 'boolean' && model.value ? ' checked' : '' ),
+            // Don't bother with the date input type.
+            // Indicate the type using data-type attribute so a custom date picker can be used.
+            // This sidesteps the problem of polyfilling browsers that don't support the date input type
+            // and provides a more consistent experience across browsers.
+            dataType: ( /^date/.test( model.type ) ? ' data-type="date"' : '' )
+        };
+
+        if ( model ) {
+            hasModel = true;
+        }
+
+        return gp.supplant.call( this, '<input type="{{type}}" name="{{name}}" value="{{value}}" class="form-control custom-class"{{{dataType}}}{{checked}} />', obj );
+    };
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        // put one of the rows into edit mode
+        var btn = api.find( 'button[value=edit]' );
+
+        clickButton( btn );
+
+        var element = api.find( 'input.custom-class' );
+
+        assert.ok( element.length > 0, 'input can be overridden' );
+
+        assert.ok( hasModel, 'model is passed to override correctly' );
+
+        done1();
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+} );
+
+QUnit.test( 'override formGroup', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    options.editmode = 'modal';
+
+    options.formGroup = function ( model ) {
+        var template = '<div class="form-group {{editclass}} custom-class"><label class="col-sm-4 control-label">{{{label}}}</label><div class="col-sm-6">{{{input}}}</div></div>';
+        return gp.supplant.call( this, template, model );
+    };
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        // put one of the rows into edit mode
+        var btn = api.find( 'button[value=edit]' );
+
+        clickButton( btn );
+
+        var element = api.find( 'div.form-group.custom-class' );
+
+        assert.ok( element.length > 0, 'formGroup can be overridden' );
+
+        done1();
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+} );
+
+QUnit.test( 'override footerCellContent', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    options.fixedfooters = true;
+
+    options.footerTable = function ( $injector ) {
+        var html = new gp.StringBuilder();
+        html.add( '<table class="table footer-table custom-class">' )
+            .add( $injector.exec( 'footer' ) )
+            .add( '</table>' );
+        return html.toString();
+    };
+
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var element = api.find( 'table.footer-table.custom-class' );
+
+        assert.ok( element.length > 0, 'footerTable can be overridden' );
+
+        done1();
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+} );
+
+QUnit.test( 'override footerCellContent', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    options.footerCellContent = function ( $column, $injector ) {
+        if ( $column.field == 'MakeFlag' ) {
+            return '<div class="custom-class">Make Flag</div>';
+        }
+        else {
+            return $injector.base( 'footerCellContent' );
+        }
+    };
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var element = api.find( 'tfoot td div.custom-class' );
+
+        assert.ok( element.length > 0, 'footerCellContent can be overridden' );
+
+        done1();
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+} );
+
+QUnit.test( 'override footerCell', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    options.footerCell = function ( $injector ) {
+        var html = new gp.StringBuilder();
+        html.add( '<td class="footer-cell custom-class">' )
+            .add( $injector.exec( 'footerCellContent' ) )
+            .add( '</td>' );
+        return html.toString();
+    };
+
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var element = api.find( 'tfoot td.custom-class' );
+
+        assert.ok( element.length > 0, 'footerCell can be overridden' );
+
+        done1();
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+} );
+
+QUnit.test( 'override footer', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    options.footer = function ( $columns, $injector ) {
+        var self = this,
+            html = new gp.StringBuilder();
+        html.add( '<tfoot>' )
+            .add( '<tr class="custom-class">' )
+        $columns.forEach( function ( col ) {
+            $injector.setResource( '$column', col );
+            html.add( $injector.exec( 'footerCell' ) );
+        } );
+        html.add( '</tr>' )
+            .add( '</tfoot>' );
+        return html.toString();
+    };
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var element = api.find( 'tfoot > tr.custom-class' );
+
+        assert.ok( element.length > 0, 'footer can be overridden' );
+
+        done1();
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+} );
+
+QUnit.test( 'override editCellContent', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    options.editCellContent = function ( $column, $injector ) {
+        if ( $column.field == 'MakeFlag' ) {
+            return '<input type="checkbox" value="true" name="MakeFlag" class="custom-class" />'
+        }
+        else {
+            return $injector.base( 'editCellContent' );
+        }
+    };
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        // put one of the rows into edit mode
+        var btn = api.find( 'button[value=edit]' );
+
+        clickButton( btn );
+
+        var element = api.find( 'input[type=checkbox].custom-class' );
+
+        assert.ok( element.length > 0, 'editCellContent can be overridden' );
+
+        done1();
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+} );
+
+QUnit.test( 'override containerClasses', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    options.containerClasses = function ( $config, $injector ) {
+        return $injector.base( 'containerClasses' ) + ' custom-class';
+    };
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var element = api.find( 'div.table-container.custom-class' );
+
+        assert.ok( element.length > 0, 'containerClasses can be overridden' );
+
+        done1();
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+} );
+
 QUnit.test( 'override container', function ( assert ) {
 
     var done1 = assert.async();
@@ -6,7 +593,7 @@ QUnit.test( 'override container', function ( assert ) {
 
     options.container = function ( $config, $injector ) {
         var html = new gp.StringBuilder();
-        html.add( '<div class="gp table-container' )
+        html.add( '<div class="gp table-container custom-class ' )
             .add( $injector.exec( 'containerClasses' ) )
             .add( '" id="' )
             .add( $config.ID )
@@ -50,47 +637,9 @@ QUnit.test( 'override container', function ( assert ) {
 
     gridponent( '#table .box', options ).ready( function ( api ) {
 
-        var element = api.find( 'td.body-cell.makeflag-true' );
+        var element = api.find( 'div.table-container.custom-class' );
 
-        assert.ok( element.length > 0, 'tableRowCell can be overidden' );
-
-        done1();
-
-        api.dispose();
-
-        $( '#table .box' ).empty();
-
-    } );
-
-} );
-
-QUnit.test( 'override tableRowCell', function ( assert ) {
-
-    var done1 = assert.async();
-
-    var options = gp.shallowCopy( configuration );
-
-    options.tableRowCell = function ( $column, $injector, $dataItem ) {
-        if ( $column.field == 'MakeFlag' ) {
-            var html = new gp.StringBuilder();
-            html.add( '<td class="body-cell makeflag-' )
-                .add( $dataItem.MakeFlag )
-                .add( '">' )
-                .add( $injector.exec( 'bodyCellContent' ) )
-                .add( '</td>' );
-
-            return html.toString();
-        }
-        else {
-            return this.baseTemplate( 'tableRowCell' );
-        }
-    };
-
-    gridponent( '#table .box', options ).ready( function ( api ) {
-
-        var element = api.find( 'td.body-cell.makeflag-true' );
-
-        assert.ok( element.length > 0, 'tableRowCell can be overidden' );
+        assert.ok( element.length > 0, 'container can be overridden' );
 
         done1();
 
@@ -108,12 +657,12 @@ QUnit.test( 'override bodyCellContent', function ( assert ) {
 
     var options = gp.shallowCopy( configuration );
 
-    options.bodyCellContent = function ( $column, $dataItem ) {
+    options.bodyCellContent = function ( $column, $dataItem, $injector ) {
         if ( $column.field == 'MakeFlag' ) {
             return $dataItem.MakeFlag ? '<span class="glyphicon glyphicon-thumbs-up"></span>' : '';
         }
         else {
-            return this.baseTemplate( 'bodyCellContent' );
+            return $injector.base( 'bodyCellContent' );
         }
     };
 
@@ -121,7 +670,7 @@ QUnit.test( 'override bodyCellContent', function ( assert ) {
 
         var spans = api.find( 'td.body-cell span.glyphicon-thumbs-up' );
 
-        assert.ok( spans.length > 0, 'bodyCellContent can be overidden' );
+        assert.ok( spans.length > 0, 'bodyCellContent can be overridden' );
 
         done1();
 
@@ -258,7 +807,6 @@ QUnit.test( 'get a reference to a new dataItem via the API', function ( assert )
 
 
 } );
-
 
 QUnit.test( 'Injector', function ( assert ) {
 
@@ -1037,7 +1585,7 @@ QUnit.test( 'options', function ( assert ) {
 
         assert.ok( span != null, 'should be able to use a function as a custom footer template' );
 
-        // put one of the rows into edit model
+        // put one of the rows into edit mode
         var btn = api.find( 'button[value=edit]' );
 
         clickButton( btn );

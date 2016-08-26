@@ -32,11 +32,6 @@ gp.api = function ( controller ) {
 
 gp.api.prototype = {
 
-    // this provides a way to call a base template from an override
-    baseTemplate: function ( name, model ) {
-        return this.controller.injector.exec( name, model, true );
-    },
-
     create: function ( dataItem ) {
         this.controller.addRow( dataItem );
         return this;

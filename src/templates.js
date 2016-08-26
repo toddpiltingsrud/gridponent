@@ -178,7 +178,7 @@ gp.templates.columnWidthStyle.$inject = ['$config', '$columns'];
 
 gp.templates.container = function ( $config, $injector ) {
     var html = new gp.StringBuilder();
-    html.add( '<div class="gp table-container' )
+    html.add( '<div class="gp table-container ' )
         .add( $injector.exec( 'containerClasses' ) )
         .add( '" id="' )
         .add( $config.ID )
@@ -346,136 +346,9 @@ gp.templates.formGroup = function ( model ) {
     return gp.supplant.call( this,  template, model );
 };
 
-gp.templates.input = function ( model ) {
-    var obj = {
-        type: ( model.type == 'boolean' ? 'checkbox' : ( model.type == 'number' ? 'number' : 'text' ) ),
-        name: model.name,
-        value: ( model.type == 'boolean' ? 'true' : ( model.type == 'date' ? gp.formatter.format( model.value, 'YYYY-MM-DD' ) : gp.escapeHTML( model.value ) ) ),
-        checked: ( model.type == 'boolean' && model.value ? ' checked' : '' ),
-        // Don't bother with the date input type.
-        // Indicate the type using data-type attribute so a custom date picker can be used.
-        // This sidesteps the problem of polyfilling browsers that don't support the date input type
-        // and provides a more consistent experience across browsers.
-        dataType: ( /^date/.test( model.type ) ? ' data-type="date"' : '' )
-    };
-
-    return gp.supplant.call( this, '<input type="{{type}}" name="{{name}}" value="{{value}}" class="form-control"{{{dataType}}}{{checked}} />', obj );
-};
-
-gp.templates.pagerBar = function ( $pageModel ) {
-    var pageModel = gp.shallowCopy($pageModel),
-        html = new gp.StringBuilder();
-
-    pageModel.IsFirstPage = pageModel.page === 1;
-    pageModel.IsLastPage = pageModel.page === pageModel.pagecount;
-    pageModel.HasPages = pageModel.pagecount > 1;
-    pageModel.PreviousPage = pageModel.page === 1 ? 1 : pageModel.page - 1;
-    pageModel.NextPage = pageModel.page === pageModel.pagecount ? pageModel.pagecount : pageModel.page + 1;
-
-    pageModel.firstPageClass = (pageModel.IsFirstPage ? 'disabled' : '');
-    pageModel.lastPageClass = (pageModel.IsLastPage ? 'disabled' : '');
-
-    if ( pageModel.HasPages ) {
-        html.add( '<div class="btn-group">' )
-            .add( '<button class="ms-page-index btn btn-default {{firstPageClass}}" title="First page" value="page" data-page="1">' )
-            .add( '<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>' )
-            .add( '</button>' )
-            .add( '<button class="ms-page-index btn btn-default {{firstPageClass}}" title="Previous page" value="page" data-page="{{PreviousPage}}">' )
-            .add( '<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>' )
-            .add( '</button>' )
-            .add( '</div>' )
-            .add( '<input type="number" name="page" value="{{page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />' )
-            .add( '<span class="page-count"> of {{pagecount}}</span>' )
-            .add( '<div class="btn-group">' )
-            .add( '<button class="ms-page-index btn btn-default {{lastPageClass}}" title="Next page" value="page" data-page="{{NextPage}}">' )
-            .add( '<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>' )
-            .add( '</button>' )
-            .add( '<button class="ms-page-index btn btn-default {{lastPageClass}}" title="Last page" value="page" data-page="{{pagecount}}">' )
-            .add( '<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>' )
-            .add( '</button>' )
-            .add( '</div>' );
-    }
-    return gp.supplant.call( this,  html.toString(), pageModel );
-};
-
-gp.templates.pagerBar.$inject = ['$pageModel'];
-
-gp.templates.tableBody = function ( $config, $injector ) {
-    var html = new gp.StringBuilder();
-    html.add( '<table class="table" cellpadding="0" cellspacing="0">' );
-    if ( !$config.fixedheaders ) {
-        html.add( $injector.exec( 'header' ) );
-    }
-    html.add( '<tbody>' )
-        .add( $injector.exec( 'tableRows' ) )
-        .add( '</tbody>' );
-    if ( $config.hasFooter && !$config.fixedfooters ) {
-        html.add( $injector.exec( 'footer' ) );
-    }
-    html.add( '</table>' );
-    return html.toString();
-};
-
-gp.templates.tableBody.$inject = ['$config', '$injector'];
-
-gp.templates.tableRowCell = function ( $column, $injector ) {
-    var self = this,
-        html = new gp.StringBuilder();
-
-    // set the current column for bodyCellContent template
-    $injector.setResource( '$column', $column );
-    html.add( '<td class="body-cell ' );
-    if ( $column.commands ) {
-        html.add( 'commands ' );
-    }
-    html.add( $column.bodyclass )
-        .add( '">' )
-        .add( $injector.exec( 'bodyCellContent' ) )
-        .add( '</td>' );
-
-    return html.toString();
-};
-
-gp.templates.tableRowCell.$inject = ['$column', '$injector'];
-
-gp.templates.tableRowCells = function ( $columns, $injector ) {
-    var self = this,
-        html = new gp.StringBuilder();
-    $columns.forEach( function ( col ) {
-        // set the current column for bodyCellContent template
-        $injector.setResource( '$column', col );
-        html.add( $injector.exec( 'tableRowCell' ) );
-    } );
-    return html.toString();
-};
-
-gp.templates.tableRowCells.$inject = ['$columns', '$injector'];
-
-gp.templates.tableRows = function ( $data, $map, $injector ) {
-    var self = this,
-        html = new gp.StringBuilder(),
-        uid;
-    if ( !$map ) {
-        $map = new gp.DataMap();
-        $injector.setResource( '$map', $map );
-    }
-    if ( $data == null ) return '';
-    $data.forEach( function ( dataItem ) {
-        uid = $map.assign( dataItem );
-        // set the current data item on the injector
-        $injector.setResource( '$dataItem', dataItem );
-        html.add( '<tr data-uid="' )
-        .add( uid )
-        .add( '">' )
-        .add( $injector.exec( 'tableRowCells' ) )
-        .add( '</tr>' );
-    } );
-    return html.toString();
-};
-
-gp.templates.tableRows.$inject = ['$data', '$map', '$injector'];
-
 gp.templates.header = function ( $columns, $config, $injector ) {
+    // depending on whether or not fixedheaders has been specified
+    // this template is rendered either in a table by itself or inside the main table
     var html = new gp.StringBuilder();
     html.add( '<thead><tr>' );
     $columns.forEach( function ( col ) {
@@ -560,6 +433,145 @@ gp.templates.headerCellContent = function ( $column, $config ) {
 };
 
 gp.templates.headerCellContent.$inject = ['$column', '$config'];
+
+gp.templates.input = function ( model ) {
+    var obj = {
+        type: ( model.type == 'boolean' ? 'checkbox' : ( model.type == 'number' ? 'number' : 'text' ) ),
+        name: model.name,
+        value: ( model.type == 'boolean' ? 'true' : ( model.type == 'date' ? gp.formatter.format( model.value, 'YYYY-MM-DD' ) : gp.escapeHTML( model.value ) ) ),
+        checked: ( model.type == 'boolean' && model.value ? ' checked' : '' ),
+        // Don't bother with the date input type.
+        // Indicate the type using data-type attribute so a custom date picker can be used.
+        // This sidesteps the problem of polyfilling browsers that don't support the date input type
+        // and provides a more consistent experience across browsers.
+        dataType: ( /^date/.test( model.type ) ? ' data-type="date"' : '' )
+    };
+
+    return gp.supplant.call( this, '<input type="{{type}}" name="{{name}}" value="{{value}}" class="form-control"{{{dataType}}}{{checked}} />', obj );
+};
+
+gp.templates.pagerBar = function ( $pageModel ) {
+    var pageModel = gp.shallowCopy($pageModel),
+        html = new gp.StringBuilder();
+
+    pageModel.IsFirstPage = pageModel.page === 1;
+    pageModel.IsLastPage = pageModel.page === pageModel.pagecount;
+    pageModel.HasPages = pageModel.pagecount > 1;
+    pageModel.PreviousPage = pageModel.page === 1 ? 1 : pageModel.page - 1;
+    pageModel.NextPage = pageModel.page === pageModel.pagecount ? pageModel.pagecount : pageModel.page + 1;
+
+    pageModel.firstPageClass = (pageModel.IsFirstPage ? 'disabled' : '');
+    pageModel.lastPageClass = (pageModel.IsLastPage ? 'disabled' : '');
+
+    if ( pageModel.HasPages ) {
+        html.add( '<div class="btn-group">' )
+            .add( '<button class="ms-page-index btn btn-default {{firstPageClass}}" title="First page" value="page" data-page="1">' )
+            .add( '<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>' )
+            .add( '</button>' )
+            .add( '<button class="ms-page-index btn btn-default {{firstPageClass}}" title="Previous page" value="page" data-page="{{PreviousPage}}">' )
+            .add( '<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>' )
+            .add( '</button>' )
+            .add( '</div>' )
+            .add( '<input type="number" name="page" value="{{page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />' )
+            .add( '<span class="page-count"> of {{pagecount}}</span>' )
+            .add( '<div class="btn-group">' )
+            .add( '<button class="ms-page-index btn btn-default {{lastPageClass}}" title="Next page" value="page" data-page="{{NextPage}}">' )
+            .add( '<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>' )
+            .add( '</button>' )
+            .add( '<button class="ms-page-index btn btn-default {{lastPageClass}}" title="Last page" value="page" data-page="{{pagecount}}">' )
+            .add( '<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>' )
+            .add( '</button>' )
+            .add( '</div>' );
+    }
+    return gp.supplant.call( this,  html.toString(), pageModel );
+};
+
+gp.templates.pagerBar.$inject = ['$pageModel'];
+
+gp.templates.tableBody = function ( $config, $injector ) {
+    var html = new gp.StringBuilder();
+    html.add( '<table class="table" cellpadding="0" cellspacing="0">' );
+    if ( !$config.fixedheaders ) {
+        html.add( $injector.exec( 'header' ) );
+    }
+    html.add( '<tbody>' )
+        .add( $injector.exec( 'tableRows' ) )
+        .add( '</tbody>' );
+    if ( $config.hasFooter && !$config.fixedfooters ) {
+        html.add( $injector.exec( 'footer' ) );
+    }
+    html.add( '</table>' );
+    return html.toString();
+};
+
+gp.templates.tableBody.$inject = ['$config', '$injector'];
+
+gp.templates.tableRow = function ( $injector, uid ) {
+    var self = this,
+        html = new gp.StringBuilder();
+    html.add( '<tr data-uid="' )
+        .add( uid )
+        .add( '">' )
+        .add( $injector.exec( 'tableRowCells' ) )
+        .add( '</tr>' );
+    return html.toString();
+};
+
+gp.templates.tableRow.$inject = ['$injector'];
+
+gp.templates.tableRowCell = function ( $column, $injector ) {
+    var self = this,
+        html = new gp.StringBuilder();
+
+    // set the current column for bodyCellContent template
+    $injector.setResource( '$column', $column );
+    html.add( '<td class="body-cell ' );
+    if ( $column.commands ) {
+        html.add( 'commands ' );
+    }
+    html.add( $column.bodyclass )
+        .add( '">' )
+        .add( $injector.exec( 'bodyCellContent' ) )
+        .add( '</td>' );
+
+    return html.toString();
+};
+
+gp.templates.tableRowCell.$inject = ['$column', '$injector'];
+
+gp.templates.tableRowCells = function ( $columns, $injector ) {
+    var self = this,
+        html = new gp.StringBuilder();
+    $columns.forEach( function ( col ) {
+        // set the current column for bodyCellContent template
+        $injector.setResource( '$column', col );
+        html.add( $injector.exec( 'tableRowCell' ) );
+    } );
+    return html.toString();
+};
+
+gp.templates.tableRowCells.$inject = ['$columns', '$injector'];
+
+gp.templates.tableRows = function ( $data, $map, $injector ) {
+    var self = this,
+        html = new gp.StringBuilder(),
+        uid;
+    if ( !$map ) {
+        $map = new gp.DataMap();
+        $injector.setResource( '$map', $map );
+    }
+    if ( $data == null ) return '';
+    $data.forEach( function ( dataItem ) {
+        // set the current data item on the injector
+        $injector.setResource( '$dataItem', dataItem );
+        // assign a uid to the dataItem, pass it to the tableRow template
+        uid = $map.assign( dataItem );
+        html.add( $injector.exec( 'tableRow', uid ) );
+    } );
+    return html.toString();
+};
+
+gp.templates.tableRows.$inject = ['$data', '$map', '$injector'];
 
 gp.templates.toolbartemplate = function ( $config, $injector ) {
     var html = new gp.StringBuilder();
