@@ -75,6 +75,11 @@ gp.api.prototype = {
         return this;
     },
 
+    saveChanges: function ( dataItem, done ) {
+        this.controller.updateRow( dataItem, done );
+        return this;
+    },
+
     search: function ( searchTerm, callback ) {
         // make sure we pass in a string
         searchTerm = gp.isNullOrEmpty( searchTerm ) ? '' : searchTerm.toString();

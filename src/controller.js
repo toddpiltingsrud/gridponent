@@ -312,6 +312,28 @@ gp.Controller.prototype = {
         return editor;
     },
 
+    updateRow: function ( dataItem, callback ) {
+
+        try {
+            var self = this,
+                editor = this.getEditor();
+
+            // if there is no update configuration setting, we're done here
+            if ( !gp.hasValue( this.config.update ) ) {
+                gp.applyFunc( callback, self.config.node );
+                return;
+            }
+
+            editor.edit( dataItem );
+
+            editor.save( callback, this.httpErrorHandler.bind( this ) );
+        }
+        catch ( e ) {
+            this.removeBusy();
+            this.httpErrorHandler( e );
+        }
+    },
+
     // we don't require a tr parameter because it may not be in the grid
     deleteRow: function ( dataItem, callback, skipConfirm ) {
         try {
