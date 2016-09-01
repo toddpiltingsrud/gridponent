@@ -125,7 +125,7 @@ gp.Controller.prototype = {
     commandHandler: function ( evt ) {
         // this function handles all the button clicks for the entire grid
         var lower,
-            $btn = $( evt.target ),
+            $btn = $( evt.currentTarget ),
             rowOrModal = $btn.closest( 'tr[data-uid],div.modal', this.config.node ),
             dataItem = rowOrModal.length ? this.config.map.get( rowOrModal[0] ) : null,
             value = $btn.attr('value'),

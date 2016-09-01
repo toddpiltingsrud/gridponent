@@ -149,6 +149,11 @@ gp.api.prototype = {
         return this;
     },
 
+    saveChanges: function ( dataItem, done ) {
+        this.controller.updateRow( dataItem, done );
+        return this;
+    },
+
     search: function ( searchTerm, callback ) {
         // make sure we pass in a string
         searchTerm = gp.isNullOrEmpty( searchTerm ) ? '' : searchTerm.toString();
@@ -515,6 +520,28 @@ gp.Controller.prototype = {
         var model = editor.edit( dataItem, elem );
 
         return editor;
+    },
+
+    updateRow: function ( dataItem, callback ) {
+
+        try {
+            var self = this,
+                editor = this.getEditor();
+
+            // if there is no update configuration setting, we're done here
+            if ( !gp.hasValue( this.config.update ) ) {
+                gp.applyFunc( callback, self.config.node );
+                return;
+            }
+
+            editor.edit( dataItem );
+
+            editor.save( callback, this.httpErrorHandler.bind( this ) );
+        }
+        catch ( e ) {
+            this.removeBusy();
+            this.httpErrorHandler( e );
+        }
     },
 
     // we don't require a tr parameter because it may not be in the grid
@@ -2734,7 +2761,7 @@ gp.templates.editCellContent = function ( $column, $dataItem, $mode, $config, $i
         var val = $dataItem[col.field];
         // render undefined/null as empty string
         if ( !gp.hasValue( val ) ) val = '';
-        html.add( $injector.exec( 'input', { type: col.Type, name: col.field, value: "" } ) );
+        html.add( $injector.exec( 'input', { type: col.Type, name: col.field, value: "", required: ($column.required || false) } ) );
     }
     return html.toString();
 };
@@ -2895,10 +2922,17 @@ gp.templates.input = function ( model ) {
         // Indicate the type using data-type attribute so a custom date picker can be used.
         // This sidesteps the problem of polyfilling browsers that don't support the date input type
         // and provides a more consistent experience across browsers.
-        dataType: ( /^date/.test( model.type ) ? ' data-type="date"' : '' )
+        dataType: ( /^date/.test( model.type ) ? ' data-type="date"' : '' ),
+        required: ( model.required ? ' required' : '' )
     };
 
-    return gp.supplant.call( this, '<input type="{{type}}" name="{{name}}" value="{{value}}" class="form-control"{{{dataType}}}{{checked}} />', obj );
+    var html = gp.supplant.call( this, '<input type="{{type}}" name="{{name}}" value="{{value}}" class="form-control"{{{dataType}}}{{checked}}{{required}} />', obj );
+
+    if ( model.required ) {
+        html += '<span class="required"></span>';
+    }
+
+    return html;
 };
 
 gp.templates.pagerBar = function ( $pageModel ) {

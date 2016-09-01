@@ -1,4 +1,6 @@
-﻿Instead of providing config options for templates and checking for them, just use the template override mechanism.
+﻿Add a required field option. 
+
+Instead of providing config options for templates and checking for them, just use the template override mechanism.
 Allow template overrides to be either an HTML string or a function that returns a string.
 We can't inject a string template. In this case we could supply the default injection parameters to the supplant function as an object.
 Resources could be referenced by name: {{$dataItem.propName}}.
@@ -6,8 +8,6 @@ Resources could be referenced by name: {{$dataItem.propName}}.
 When adding a new row to a table, scroll it into view.
 
 Adding multiple rows to a table at once doesn't work.
-
-If creating a row errors out, the save button keeps spinning. Make sure to remove the busy class on http errors.
 
 The mechanism we're using to populate the model for the read template doesn't work on the initial read.
 That's because it gets populated in the change event handler.

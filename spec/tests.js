@@ -1,3 +1,62 @@
+QUnit.test( 'required field', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    var standardCostColumn = options.columns.filter( function ( col ) {
+        return col.field == 'StandardCost';
+    } )[0];
+
+    standardCostColumn.required = true;
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        // put one of the rows into edit mode
+        var btn = api.find( 'button[value=edit]' );
+
+        clickButton( btn );
+
+        var element = api.find( 'input[required]' );
+
+        assert.ok( element.length > 0, 'required attribute is rendered' );
+
+        assert.strictEqual( element[0].name, 'StandardCost' );
+
+        done1();
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+
+    var done2 = assert.async();
+
+    getTableConfig( configOptions, function ( api ) {
+
+        // put one of the rows into edit mode
+        var btn = api.find( 'button[value=edit]' );
+
+        clickButton( btn );
+
+        var element = api.find( 'input[required]' );
+
+        assert.ok( element.length > 0, 'required attribute is rendered' );
+
+        assert.strictEqual( element[0].name, 'StandardCost' );
+
+        done2();
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+} );
+
 QUnit.test( 'override headerCellContent', function ( assert ) {
 
     var done1 = assert.async();
@@ -3754,7 +3813,7 @@ var getTableConfig = function ( options, callback ) {
     out.push( '        <script type="text/html" data-template="body"><button class="btn"><span class="glyphicon glyphicon-search"></span>{{SafetyStockLevel}}</button></script>' );
     out.push( '        <script type="text/html" data-template="footer">{{fns.average}}</script>' );
     out.push( '    </gp-column>' );
-    out.push( '    <gp-column field="StandardCost" header="Standard Cost" format="$0"></gp-column>' );
+    out.push( '    <gp-column field="StandardCost" header="Standard Cost" format="$0" required></gp-column>' );
     out.push( '    <gp-column field="SellStartDate" header="Sell Start Date" format="d MMMM, YYYY"></gp-column>' );
     out.push( '    <gp-column field="Markup" readonly body-class="hidden-xs" header-class="hidden-xs"></gp-column>' );
     out.push( '    <gp-column>' );
