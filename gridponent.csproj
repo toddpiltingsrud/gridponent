@@ -71,7 +71,6 @@
     <Content Include="src\datamap.js" />
     <Content Include="src\editors.js" />
     <Content Include="src\injector.js" />
-    <Content Include="src\template.js" />
     <Content Include="src\model-sync.js" />
     <Content Include="src\templates.js" />
     <Content Include="src\x-column-filter.js" />

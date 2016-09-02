@@ -211,7 +211,6 @@ QUnit.test( 'override tableRowCells', function ( assert ) {
         return html.toString();
     };
 
-
     gridponent( '#table .box', options ).ready( function ( api ) {
 
         var element = api.find( 'td.body-cell[colspan=2]' );
@@ -657,9 +656,9 @@ QUnit.test( 'override container', function ( assert ) {
             .add( '" id="' )
             .add( $config.ID )
             .add( '">' );
-        if ( $config.search || $config.create || $config.toolbartemplate ) {
+        if ( $config.search || $config.create || $config.toolbar ) {
             html.add( '<div class="table-toolbar">' );
-            html.add( $injector.exec( 'toolbartemplate' ) );
+            html.add( $injector.exec( 'toolbar' ) );
             html.add( '</div>' );
         }
         if ( $config.fixedheaders ) {
@@ -1062,7 +1061,7 @@ QUnit.test( 'custom toolbar button', function ( assert ) {
 
     var options = gp.shallowCopy( configuration );
 
-    options.toolbartemplate = '<button class="btn" value="fns.customToolbarCommand">Custom Command</button>';
+    options.toolbar = '<button class="btn" value="fns.customToolbarCommand">Custom Command</button>';
 
     gridponent( '#table .box', options ).ready( function ( api ) {
 
@@ -1594,7 +1593,7 @@ QUnit.test( 'options', function ( assert ) {
 
     options.editmode = 'modal';
 
-    options.toolbartemplate = function ( arg ) {
+    options.toolbar = function ( arg ) {
 
         done1();
 

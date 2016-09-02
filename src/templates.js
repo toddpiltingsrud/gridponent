@@ -183,9 +183,9 @@ gp.templates.container = function ( $config, $injector ) {
         .add( '" id="' )
         .add( $config.ID )
         .add( '">' );
-    if ( $config.search || $config.create || $config.toolbartemplate ) {
+    if ( $config.search || $config.create || $config.toolbar ) {
         html.add( '<div class="table-toolbar">' );
-        html.add( $injector.exec( 'toolbartemplate' ) );
+        html.add( $injector.exec( 'toolbar' ) );
         html.add( '</div>' );
     }
     if ( $config.fixedheaders ) {
@@ -530,8 +530,6 @@ gp.templates.tableRowCell = function ( $column, $injector ) {
     var self = this,
         html = new gp.StringBuilder();
 
-    // set the current column for bodyCellContent template
-    $injector.setResource( '$column', $column );
     html.add( '<td class="body-cell ' );
     if ( $column.commands ) {
         html.add( 'commands ' );
@@ -580,7 +578,7 @@ gp.templates.tableRows = function ( $data, $map, $injector ) {
 
 gp.templates.tableRows.$inject = ['$data', '$map', '$injector'];
 
-gp.templates.toolbartemplate = function ( $config, $injector ) {
+gp.templates.toolbar = function ( $config, $injector ) {
     var html = new gp.StringBuilder();
 
     if ( $config.search ) {
@@ -608,4 +606,4 @@ gp.templates.toolbartemplate = function ( $config, $injector ) {
     return html.toString();
 };
 
-gp.templates.toolbartemplate.$inject = ['$config', '$injector'];
+gp.templates.toolbar.$inject = ['$config', '$injector'];
