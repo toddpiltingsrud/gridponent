@@ -107,11 +107,11 @@ gp.Initializer.prototype = {
         gpColumns.each( function () {
             colConfig = gp.getAttributes( this );
             config.columns.push( colConfig );
-            self.resolveTemplates( templates, colConfig, this );
+            self.resolveTemplates( templates, colConfig, this, 'template' );
         } );
 
         // resolve the various templates
-        this.resolveTemplates( ['toolbar', 'footer'], config, parentNode );
+        this.resolveTemplates( Object.getOwnPropertyNames( gp.templates ), config, parentNode, '' );
 
         return config;
     },
@@ -204,7 +204,7 @@ gp.Initializer.prototype = {
         } );
     },
 
-    resolveTemplates: function ( names, config, node ) {
+    resolveTemplates: function ( names, config, node, suffix ) {
         var selector,
             template,
             prop,
@@ -216,7 +216,7 @@ gp.Initializer.prototype = {
             if ( template.length ) {
                 for ( var i = 0; i < $node[0].children.length; i++ ) {
                     if ( $node[0].children[i] == template[0] ) {
-                        prop = gp.camelize( n ) + 'template';
+                        prop = gp.camelize( n ) + suffix;
                         config[prop] = template[0].innerHTML;
                         return;
                     }

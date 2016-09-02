@@ -1512,45 +1512,6 @@ gp.helpers = {
 };
 
 /***************\
-     http        
-\***************/
-gp.Http = function () { };
-
-gp.Http.prototype = {
-    get: function ( url, callback, error ) {
-        $.get( url ).done( callback ).fail( error );
-    },
-    post: function ( url, data, callback, error ) {
-        this.ajax( url, data, callback, error, 'POST' );
-    },
-    destroy: function ( url, callback, error ) {
-        this.ajax( url, null, callback, error, 'DELETE' );
-    },
-    ajax: function ( url, data, callback, error, httpVerb ) {
-        $.ajax( {
-            url: url,
-            type: httpVerb.toUpperCase(),
-            data: data,
-            contentType: 'application/x-www-form-urlencoded; charset=UTF-8'
-        } )
-            .done( callback )
-            .fail( function ( response ) {
-                if ( response.status ) {
-                    // don't know why jQuery calls fail on DELETE
-                    if ( response.status == 200 ) {
-                        callback( response );
-                        return;
-                    }
-                    // filter out authentication errors, those are usually handled by the browser
-                    if ( /401|403|407/.test( response.status ) == false && typeof error == 'function' ) {
-                        error( response );
-                    }
-                }
-            } );
-    }
-
-};
-/***************\
    Initializer
 \***************/
 gp.Initializer = function ( node ) {
@@ -1659,11 +1620,11 @@ gp.Initializer.prototype = {
         gpColumns.each( function () {
             colConfig = gp.getAttributes( this );
             config.columns.push( colConfig );
-            self.resolveTemplates( templates, colConfig, this );
+            self.resolveTemplates( templates, colConfig, this, 'template' );
         } );
 
         // resolve the various templates
-        this.resolveTemplates( ['toolbar', 'footer'], config, parentNode );
+        this.resolveTemplates( Object.getOwnPropertyNames( gp.templates ), config, parentNode, '' );
 
         return config;
     },
@@ -1756,7 +1717,7 @@ gp.Initializer.prototype = {
         } );
     },
 
-    resolveTemplates: function ( names, config, node ) {
+    resolveTemplates: function ( names, config, node, suffix ) {
         var selector,
             template,
             prop,
@@ -1768,7 +1729,7 @@ gp.Initializer.prototype = {
             if ( template.length ) {
                 for ( var i = 0; i < $node[0].children.length; i++ ) {
                     if ( $node[0].children[i] == template[0] ) {
-                        prop = gp.camelize( n ) + 'template';
+                        prop = gp.camelize( n ) + suffix;
                         config[prop] = template[0].innerHTML;
                         return;
                     }
@@ -1897,6 +1858,123 @@ gp.Injector.prototype = {
     }
 
 };
+/***************\
+   mock-http
+\***************/
+(function (gp) {
+    gp.Http = function () { };
+
+    // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
+    var routes = {
+        read: /read/i,
+        update: /update/i,
+        create: /create/i,
+        destroy: /Delete/i
+    };
+
+    gp.Http.prototype = {
+        post: function (url, model, callback, error) {
+            model = model || {};
+            if (routes.read.test(url)) {
+                getData(model, callback);
+            }
+            else if ( routes.create.test( url ) ) {
+                window.data.products.push( model );
+                callback( new gp.UpdateModel( model ) );
+            }
+            else if ( routes.update.test( url ) ) {
+                callback( new gp.UpdateModel(model) );
+            }
+            else {
+                throw '404 Not found: ' + url;
+            }
+        },
+        destroy: function ( url, callback, error ) {
+            callback( {
+                Success: true,
+                Message: ''
+            } );
+        }
+    };
+
+    var getData = function (model, callback) {
+        var count, d = window.data.products.slice( 0, window.data.length );
+
+        if (!gp.isNullOrEmpty(model.search)) {
+            var props = Object.getOwnPropertyNames(d[0]);
+            var search = model.search.toLowerCase();
+            d = d.filter(function (row) {
+                for (var i = 0; i < props.length; i++) {
+                    if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+        }
+        if (!gp.isNullOrEmpty(model.sort)) {
+            if (model.desc) {
+                d.sort(function (row1, row2) {
+                    var a = row1[model.sort];
+                    var b = row2[model.sort];
+                    if (a === null) {
+                        if (b != null) {
+                            return 1;
+                        }
+                    }
+                    else if (b === null) {
+                        // we already know a isn't null
+                        return -1;
+                    }
+                    if (a > b) {
+                        return -1;
+                    }
+                    if (a < b) {
+                        return 1;
+                    }
+
+                    return 0;
+                });
+            }
+            else {
+                d.sort(function (row1, row2) {
+                    var a = row1[model.sort];
+                    var b = row2[model.sort];
+                    if (a === null) {
+                        if (b != null) {
+                            return -1;
+                        }
+                    }
+                    else if (b === null) {
+                        // we already know a isn't null
+                        return 1;
+                    }
+                    if (a > b) {
+                        return 1;
+                    }
+                    if (a < b) {
+                        return -1;
+                    }
+
+                    return 0;
+                });
+            }
+        }
+        count = d.length;
+        if (model.top !== -1) {
+            model.data = d.slice(model.skip).slice(0, model.top);
+        }
+        else {
+            model.data = d;
+        }
+        model.errors = [];
+        setTimeout(function () {
+            callback(model);
+        });
+
+    };
+
+})(gridponent);
 /***************\
    ModelSync
 \***************/
@@ -2377,79 +2455,6 @@ gp.StringBuilder.prototype = {
 
 };
 /***************\
-   template
-\***************/
-
-gp.Template = function ( template ) {
-    this.template = template;
-    this.dict = {};
-    this.props = null;
-    this.compile( template );
-};
-
-gp.Template.prototype = {
-    rRaw: /({{{([^{}]*)}}})/g,
-    rEsc: /({{([^{}]*)}})(?:$|[^}])/g,
-    r3Braces: /^{{{/,
-    rTypes: /^(string|number|boolean)$/,
-    compile: function () {
-        if ( typeof this.template === 'string' ) {
-            var m;
-            while ( ( m = this.rRaw.exec( this.template ) ) !== null ) {
-                this.resolveToken( m[1], m[2] );
-            }
-            while ( ( m = this.rEsc.exec( this.template ) ) !== null ) {
-                this.resolveToken( m[1], m[2] );
-            }
-            this.props = Object.getOwnPropertyNames( this.dict );
-        }
-    },
-    resolveToken: function ( token, expression ) {
-        var obj = gp.getObjectAtPath( expression );
-        if ( typeof obj === 'function' ) {
-            this.dict[token] = obj;
-        }
-        else {
-            this.dict[token] = expression;
-        }
-    },
-    render: function ( model, arg ) {
-        var self = this,
-            str = this.template,
-            expression,
-            val;
-
-        if ( typeof this.template === 'function' ) {
-            return gp.applyFunc( this.template, self, [model, arg] );
-        }
-
-        this.props.forEach( function ( prop ) {
-            expression = self.dict[prop];
-            if ( typeof expression === 'function' ) {
-                val = gp.applyFunc( expression, self, [model, arg] );
-            }
-            else {
-                val = model[expression];
-                // models can contain functions
-                if ( typeof val === 'function' ) {
-                    val = gp.applyFunc( val, self, [model, arg] );
-                }
-            }
-            if ( self.r3Braces.test( prop ) === false ) {
-                val = gp.escapeHTML( val );
-            }
-            str = self.replaceAll( str, prop, val );
-        } );
-
-        return str;
-    },
-    replaceAll: function ( template, s1, s2 ) {
-        s2 = gp.hasValue( s2 ) ? s2 : '';
-        return template.split( s1 ).join( s2 );
-    }
-
-};
-/***************\
     templates
 \***************/
 gp.templates = gp.templates || {};
@@ -2634,9 +2639,9 @@ gp.templates.container = function ( $config, $injector ) {
         .add( '" id="' )
         .add( $config.ID )
         .add( '">' );
-    if ( $config.search || $config.create || $config.toolbartemplate ) {
+    if ( $config.search || $config.create || $config.toolbar ) {
         html.add( '<div class="table-toolbar">' );
-        html.add( $injector.exec( 'toolbartemplate' ) );
+        html.add( $injector.exec( 'toolbar' ) );
         html.add( '</div>' );
     }
     if ( $config.fixedheaders ) {
@@ -2974,8 +2979,6 @@ gp.templates.tableRowCell = function ( $column, $injector ) {
     var self = this,
         html = new gp.StringBuilder();
 
-    // set the current column for bodyCellContent template
-    $injector.setResource( '$column', $column );
     html.add( '<td class="body-cell ' );
     if ( $column.commands ) {
         html.add( 'commands ' );
@@ -3024,7 +3027,7 @@ gp.templates.tableRows = function ( $data, $map, $injector ) {
 
 gp.templates.tableRows.$inject = ['$data', '$map', '$injector'];
 
-gp.templates.toolbartemplate = function ( $config, $injector ) {
+gp.templates.toolbar = function ( $config, $injector ) {
     var html = new gp.StringBuilder();
 
     if ( $config.search ) {
@@ -3052,7 +3055,7 @@ gp.templates.toolbartemplate = function ( $config, $injector ) {
     return html.toString();
 };
 
-gp.templates.toolbartemplate.$inject = ['$config', '$injector'];
+gp.templates.toolbar.$inject = ['$config', '$injector'];
 /***************\
    UpdateModel
 \***************/
