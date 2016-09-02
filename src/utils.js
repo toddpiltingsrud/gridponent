@@ -257,9 +257,9 @@
                 col.Type = 'function';
                 return;
             }
+            // give priority to the model, unless it contains a function
             if ( config.model ) {
-                // look for a type by field first, then by sort
-                if ( gp.hasValue( config.model[field] ) ) {
+                if ( gp.hasValue( config.model[field] ) && gp.getType( config.model[field] ) !== 'function' ) {
                     col.Type = gp.getType( config.model[field] );
                 }
             }
