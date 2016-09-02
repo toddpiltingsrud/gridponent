@@ -125,7 +125,7 @@ gp.Controller.prototype = {
     commandHandler: function ( evt ) {
         // this function handles all the button clicks for the entire grid
         var lower,
-            $btn = $( evt.target ),
+            $btn = $( evt.currentTarget ),
             rowOrModal = $btn.closest( 'tr[data-uid],div.modal', this.config.node ),
             dataItem = rowOrModal.length ? this.config.map.get( rowOrModal[0] ) : null,
             value = $btn.attr('value'),
@@ -310,6 +310,28 @@ gp.Controller.prototype = {
         var model = editor.edit( dataItem, elem );
 
         return editor;
+    },
+
+    updateRow: function ( dataItem, callback ) {
+
+        try {
+            var self = this,
+                editor = this.getEditor();
+
+            // if there is no update configuration setting, we're done here
+            if ( !gp.hasValue( this.config.update ) ) {
+                gp.applyFunc( callback, self.config.node );
+                return;
+            }
+
+            editor.edit( dataItem );
+
+            editor.save( callback, this.httpErrorHandler.bind( this ) );
+        }
+        catch ( e ) {
+            this.removeBusy();
+            this.httpErrorHandler( e );
+        }
     },
 
     // we don't require a tr parameter because it may not be in the grid
