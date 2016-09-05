@@ -225,17 +225,6 @@ gp.Initializer.prototype = {
         } );
     },
 
-    compileTemplates: function ( config ) {
-        var templates = ['headertemplate', 'bodytemplate', 'edittemplate', 'footertemplate'];
-        templates.forEach( function ( template ) {
-            config.columns.forEach( function ( col ) {
-                if ( col[template] ) {
-                    col[template] = new gp.Template( col[template] );
-                }
-            } );
-        } );
-    },
-
     resolveCommands: function ( config ) {
         var match, val, commands, index = 0;
         config.columns.forEach( function ( col ) {

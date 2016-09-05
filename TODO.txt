@@ -1,6 +1,4 @@
-﻿Add a required field option. 
-
-Instead of providing config options for templates and checking for them, just use the template override mechanism.
+﻿Instead of providing config options for templates and checking for them, just use the template override mechanism.
 Allow template overrides to be either an HTML string or a function that returns a string.
 We can't inject a string template. In this case we could supply the default injection parameters to the supplant function as an object.
 Resources could be referenced by name: {{$dataItem.propName}}.

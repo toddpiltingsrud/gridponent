@@ -260,6 +260,7 @@
 .gp tr.edit-mode td.body-cell,
 .gp tr.create-mode td.body-cell {
   vertical-align: middle;
+  position: relative;
 }
 .gp tr.edit-mode td.body-cell div.btn-group,
 .gp tr.create-mode td.body-cell div.btn-group {
@@ -273,7 +274,31 @@
 .gp tr.create-mode td.body-cell [name].error {
   border-color: red;
 }
+.gp tr.edit-mode td.body-cell input[required],
+.gp tr.create-mode td.body-cell input[required] {
+  width: 95%;
+}
 .gp .modal-dialog input[type=checkbox],
 .gp .modal-dialog input[type=radio] {
   width: 34px;
+}
+.gp .form-group {
+  position: relative;
+}
+.gp span.required {
+  display: inline-block;
+  position: absolute;
+  top: 18px;
+  right: 0;
+  font-family: 'Glyphicons Halflings';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 8pt;
+  color: red;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.gp span.required:before {
+  content: '\e101';
 }

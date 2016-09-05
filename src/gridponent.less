@@ -318,6 +318,7 @@
         td.body-cell {
 
             vertical-align:middle;
+            position:relative;
 
             div.btn-group {
                 white-space:nowrap;
@@ -330,6 +331,10 @@
             [name].error {
                 border-color:red;
             }
+
+            input[required] {
+                width:95%;
+            }
             
         }
     }
@@ -341,5 +346,28 @@
             width:34px;
         }
 
+    }
+
+    .form-group {
+        position:relative;
+    }
+
+    span.required {
+        display: inline-block;
+        position: absolute;
+        top: 18px;
+        right:0;
+        font-family: 'Glyphicons Halflings';
+        font-style: normal;
+        font-weight: 400;
+        font-size:8pt;
+        color:red;
+        line-height: 1;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;        
+    }
+
+    span.required:before {
+        content: '\e101';
     }
 }

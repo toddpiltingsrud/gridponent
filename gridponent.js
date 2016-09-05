@@ -335,7 +335,7 @@ gp.Controller.prototype = {
     commandHandler: function ( evt ) {
         // this function handles all the button clicks for the entire grid
         var lower,
-            $btn = $( evt.target ),
+            $btn = $( evt.currentTarget ),
             rowOrModal = $btn.closest( 'tr[data-uid],div.modal', this.config.node ),
             dataItem = rowOrModal.length ? this.config.map.get( rowOrModal[0] ) : null,
             value = $btn.attr('value'),
@@ -1762,17 +1762,6 @@ gp.Initializer.prototype = {
                     }
                 }
             }
-        } );
-    },
-
-    compileTemplates: function ( config ) {
-        var templates = ['headertemplate', 'bodytemplate', 'edittemplate', 'footertemplate'];
-        templates.forEach( function ( template ) {
-            config.columns.forEach( function ( col ) {
-                if ( col[template] ) {
-                    col[template] = new gp.Template( col[template] );
-                }
-            } );
         } );
     },
 
@@ -3359,9 +3348,9 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
                 col.Type = 'function';
                 return;
             }
+            // give priority to the model, unless it contains a function
             if ( config.model ) {
-                // look for a type by field first, then by sort
-                if ( gp.hasValue( config.model[field] ) ) {
+                if ( gp.hasValue( config.model[field] ) && gp.getType( config.model[field] ) !== 'function' ) {
                     col.Type = gp.getType( config.model[field] );
                 }
             }
