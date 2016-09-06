@@ -3,6 +3,18 @@ Allow template overrides to be either an HTML string or a function that returns 
 We can't inject a string template. In this case we could supply the default injection parameters to the supplant function as an object.
 Resources could be referenced by name: {{$dataItem.propName}}.
 
+The tableRowCell template creates rows in read mode. So the TableEditor class doesn't use the templates to create rows in edit mode.
+That means that if any of those templates are overridden, they won't be used to create the edit controls.
+That means the cell contents may not match what the overridden templates created.
+To follow the existing pattern, the editors should only use the templates to create HTML instead of rolling their own.
+The templates would have to use the $mode resource set by the editors and create cells in either read mode or edit mode.
+When updating, the TableEditor would have to request a new tr from the injector and move the contents of its td's into the existing tr.
+This might come in handy if we decide to implement rendering of the entire table in edit mode.
+
+If moment.js is not present, apply a default format to dates.
+
+Flip bootstrapModal and bootstrapModalContent around.
+
 When adding a new row to a table, scroll it into view.
 
 Adding multiple rows to a table at once doesn't work.

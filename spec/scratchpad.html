@@ -28,6 +28,20 @@
                  read="data.products" create="/Products/create" update="/Products/update" destroy="/Products/Delete" 
                  editready="fns.editready" onedit="fns.onupdate" pager="top-right" search="top-left">
 
+        <script type="text/html" data-template="tableRowCells">
+            <td>{{$dataItem.Name}}</td>
+            <td>{{$dataItem.ProductID}}</td>
+            <td>{{$dataItem.MakeFlag}}</td>
+            <td>{{$dataItem.SafetyStockLevel}}</td>
+            <td>{{$dataItem.StandardCost}}</td>
+            <td>{{$dataItem.SellStartDate}}</td>
+            <td>{{$dataItem.Markup}}</td>
+            <td></td>
+            <td>{{$dataItem.Color}}</td>
+            <td>{{$dataItem.ProductNumber}}</td>
+            <td><button class="btn btn-default btn-xs" value="edit">Edit</button></td>
+        </script>
+
         <gp-column>
             <script type="text/html" data-template="header body edit footer">
                 <input type="checkbox" name="test" />

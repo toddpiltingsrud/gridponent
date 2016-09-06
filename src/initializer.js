@@ -29,7 +29,8 @@ gp.Initializer.prototype = {
             $node: this.config.node,
             $pageModel: this.config.pageModel,
             $map: this.config.map,
-            $data: this.config.pageModel.data
+            $data: this.config.pageModel.data,
+            $mode: 'read'
         }, gp.templates, null, this.config ); // specify gp.templates as root, null for context, config as override source
 
         // this has to happen here so we can find the table-container
@@ -209,7 +210,7 @@ gp.Initializer.prototype = {
             template,
             prop,
             $node = $(node),
-            selectorTemplate = 'script[type="text/html"][data-template*="{{name}}"],template[data-template*="{{name}}"]';
+            selectorTemplate = 'script[type="text/html"][data-template="{{name}}"],template[data-template="{{name}}"]';
         names.forEach( function ( n ) {
             selector = gp.supplant( selectorTemplate, { name: n } );
             template = $node.find( selector );

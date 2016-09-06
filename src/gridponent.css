@@ -257,24 +257,24 @@
   margin-top: 0;
   margin-bottom: 0;
 }
-.gp tr.edit-mode td.body-cell,
+.gp tr.update-mode td.body-cell,
 .gp tr.create-mode td.body-cell {
   vertical-align: middle;
   position: relative;
 }
-.gp tr.edit-mode td.body-cell div.btn-group,
+.gp tr.update-mode td.body-cell div.btn-group,
 .gp tr.create-mode td.body-cell div.btn-group {
   white-space: nowrap;
 }
-.gp tr.edit-mode td.body-cell div.btn-group .btn,
+.gp tr.update-mode td.body-cell div.btn-group .btn,
 .gp tr.create-mode td.body-cell div.btn-group .btn {
   float: none;
 }
-.gp tr.edit-mode td.body-cell [name].error,
+.gp tr.update-mode td.body-cell [name].error,
 .gp tr.create-mode td.body-cell [name].error {
   border-color: red;
 }
-.gp tr.edit-mode td.body-cell input[required],
+.gp tr.update-mode td.body-cell input[required],
 .gp tr.create-mode td.body-cell input[required] {
   width: 95%;
 }

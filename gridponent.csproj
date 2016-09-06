@@ -59,12 +59,6 @@
     <Content Include="spec\scripts\moment.min.js" />
     <Content Include="spec\scripts\numeral.min.js" />
     <Content Include="spec\scripts\qunit-1.20.0.js" />
-    <Content Include="spec\Out.txt">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Out.tt</DependentUpon>
-    </Content>
-    <Content Include="spec\OutSource.txt" />
     <Content Include="spec\scripts\custom-event-polyfill.js" />
     <Content Include="spec\styles\bootstrap-theme.css" />
     <Content Include="spec\styles\bootstrap-theme.min.css" />
@@ -110,10 +104,6 @@
     <None Include="spec\fonts\glyphicons-halflings-regular.ttf" />
     <None Include="spec\fonts\glyphicons-halflings-regular.woff" />
     <None Include="spec\fonts\glyphicons-halflings-regular.woff2" />
-    <None Include="spec\Out.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <LastGenOutput>Out.txt</LastGenOutput>
-    </None>
     <None Include="spec\validation-errors.json" />
     <None Include="src\gridponent.less" />
     <Content Include="src\helpers.js" />

@@ -1134,31 +1134,14 @@ gp.TableRowEditor.prototype = {
         var self = this,
             tbody = this.$n.find( 'div.table-body > table > tbody' ),
             builder = new gp.NodeBuilder(),
+            tr,
             cellContent;
 
+        // call the base add function
+        // the base functions sets the injector's $mode resource to 'create'
         var obj = gp.Editor.prototype.add.call( this, dataItem );
 
-        builder.create( 'tr' ).addClass( 'create-mode' ).attr( 'data-uid', obj.uid );
-
-        // add td.body-cell elements to the tr
-        this.config.columns.forEach( function ( col ) {
-            self.injector
-                .setResource( '$column', col )
-                .setResource( '$mode', 'create' );
-            cellContent = col.readonly ?
-                self.injector.exec( 'bodyCellContent' ) :
-                self.injector.exec( 'editCellContent' );
-            builder.create( 'td' ).addClass( 'body-cell' ).addClass( col.bodyclass ).html( cellContent );
-            if ( col.commands ) {
-                builder.addClass( 'commands' );
-            }
-            if ( col.editclass ) {
-                builder.addClass( col.editclass );
-            }
-            builder.endElem();
-        } );
-
-        this.elem = builder.close();
+        this.elem = $( this.injector.exec( 'tableRow', obj.uid ) );
 
         gp.ModelSync.bindElements( this.dataItem, this.elem );
 
@@ -1173,47 +1156,38 @@ gp.TableRowEditor.prototype = {
 
         this.invokeEditReady();
 
+        this.injector.setResource( '$mode', null );
+
         return {
             dataItem: this.dataItem,
             elem: this.elem
         };
     },
 
-    edit: function (dataItem, tr) {
+    edit: function ( dataItem, tr ) {
+
+        var cells;
 
         // replace the cell contents of the table row with edit controls
 
-        var self = this,
-            col,
-            cells = $( tr ).find( 'td.body-cell' ),
-            uid;
-
+        // call the base add function
+        // the base functions sets the injector's $mode resource to 'update'
         gp.Editor.prototype.edit.call( this, dataItem );
 
         this.elem = tr;
 
         this.addCommandHandler();
 
-        // IE9 can't set innerHTML of tr, so iterate through each cell and set its innerHTML
-        // besides, that way we can just skip readonly cells
-        cells.each( function ( i ) {
-            col = self.config.columns[i];
-            self.injector
-                .setResource( '$column', col )
-                .setResource( '$mode', 'edit' );
-            if ( !col.readonly ) {
-                $( this ).html( self.injector.exec(' editCellContent ') );
-                if ( col.editclass ) {
-                    $( this ).addClass( col.editclass );
-                }
-            }
-        } );
+        // grab a new row from the injector
+        cells = this.injector.exec( 'tableRowCells' );
 
-        $( tr ).addClass( 'edit-mode' );
+        $( tr ).addClass('update-mode').empty().append( cells );
 
         gp.ModelSync.bindElements( dataItem, this.elem );
 
         this.invokeEditReady();
+
+        this.injector.setResource( '$mode', null );
 
         return {
             dataItem: dataItem,
@@ -1223,6 +1197,7 @@ gp.TableRowEditor.prototype = {
 
     cancel: function () {
         
+        // base cancel method either removes new dataItem or reverts the existing dataItem
         gp.Editor.prototype.cancel.call( this );
 
         try {
@@ -1281,19 +1256,13 @@ gp.TableRowEditor.prototype = {
 
     updateUI: function () {
         // take the table row out of edit mode
-        var self = this,
-            col,
-            cells = $( this.elem ).find( 'td.body-cell' );
+        var cells;
 
-        cells.each( function ( i ) {
-            col = self.config.columns[i];
-            self.injector.setResource( '$column', col );
-            $( this ).html( self.injector.exec( 'bodyCellContent' ) );
-            if ( col.editclass ) {
-                $( this ).removeClass( col.editclass );
-            }
-        } );
-        $( this.elem ).removeClass( 'edit-mode create-mode' );
+        this.injector.setResource( '$mode', 'read' );
+
+        cells = this.injector.exec( 'tableRowCells' );
+
+        $( this.elem ).removeClass( 'update-mode create-mode' ).empty().append( cells );
     },
 
     invokeEditReady: function() {
@@ -1346,7 +1315,7 @@ gp.ModalEditor.prototype = {
         gp.Editor.prototype.add.call( this, dataItem );
 
         // mode: create or update
-        html = this.injector.exec( 'bootstrapModalContent' );
+        html = this.injector.exec( 'bootstrapModal' );
 
         // append the modal to the top node so button clicks will be picked up by commandHandlder
         modal = $( html )
@@ -1383,7 +1352,7 @@ gp.ModalEditor.prototype = {
         gp.Editor.prototype.edit.call( this, dataItem );
 
         // mode: create or update
-        html = this.injector.exec( 'bootstrapModalContent' );
+        html = this.injector.exec( 'bootstrapModal' );
 
         // append the modal to the top node so button clicks will be picked up by commandHandlder
         modal = $( html )
@@ -1415,6 +1384,7 @@ gp.ModalEditor.prototype = {
 
     cancel: function () {
 
+        // base cancel method either removes new dataItem or reverts the existing dataItem
         gp.Editor.prototype.cancel.call( this );
 
         $( this.elem ).modal( 'hide' );
@@ -1422,55 +1392,39 @@ gp.ModalEditor.prototype = {
 
     updateUI: function () {
 
-        var self = this,
-            tbody = this.$n.find( 'div.table-body > table > tbody' ),
-            tableRow,
+        var tbody,
+            tr,
+            newTr,
             cells,
-            col,
-            uid,
-            builder,
-            cellContent;
+            newCells;
 
         $( this.elem ).modal( 'hide' );
 
+        newTr = this.injector.exec( 'tableRow' );
+
         // if we added a row, add a row to the top of the table
         if ( this.mode == 'create' ) {
-
-            // the save method should have added a uid attr to the modal
-            uid = this.config.map.resolveUid( this.elem );
-            
-            // make sure we have a uid
-            if ( uid == -1 ) {
-                uid = this.config.map.assign( this.dataItem );
-            }
-            
-            builder = new gp.NodeBuilder().create( 'tr' ).attr( 'data-uid', uid );
-
-            // add td.body-cell elements to the tr
-            this.config.columns.forEach( function ( col ) {
-                cellContent = self.injector.setResource( '$column', col ).exec( 'bodyCellContent' );
-                builder.create( 'td' ).addClass( 'body-cell' ).addClass( col.bodyclass ).html( cellContent ).endElem();
-            } );
-
-            tableRow = builder.close();
+            tbody = this.$n.find( 'div.table-body > table > tbody' );
 
             if ( this.config.newrowposition === 'top' ) {
-                tbody.prepend( tableRow );
+                tbody.prepend( newTr );
             }
             else {
-                tbody.append( tableRow );
+                tbody.append( newTr );
             }
         }
         else {
-            tableRow = gp.getTableRow( this.config.map, this.dataItem, this.config.node );
-    
-            if ( tableRow ) {
-                $( tableRow ).find( 'td.body-cell' ).each( function ( i ) {
-                    col = self.config.columns[i];
-                    self.injector.setResource( '$column', col );
-                    $( this ).html( self.injector.exec( 'bodyCellContent' ) );
-                } );
-            }
+            // find the existing table row for the dataItem
+            tr = gp.getTableRow( this.config.map, this.dataItem, this.config.node );
+
+            cells = tr.find( 'td.body-cell' );
+
+            newCells = $( newTr ).find( 'td.body-cell' );
+
+            // replace the contents of the existing tr with that of the new one
+            cells.each( function ( i ) {
+                $(this).empty().append( newCells[i] );
+            } );
         }
 
     }
@@ -1490,15 +1444,18 @@ gp.Formatter.prototype = {
 
         try {
             if ( /^(date|datestring)$/.test( type ) ) {
+                if ( !window.moment ) return val;
                 format = format || 'M/D/YYYY h:mm a';
                 return moment( val ).format( format );
             }
             if ( type === 'timestamp' ) {
+                if ( !window.moment ) return val;
                 format = format || 'M/D/YYYY h:mm a';
                 val = parseInt( val.match( gp.rexp.timestamp )[1] );
                 return moment( val ).format( format );
             }
             if ( type === 'number' ) {
+                if ( !window.numeral ) return val;
                 // numeral's defaultFormat option doesn't work as of 3/25/2016
                 format = format || '0,0';
                 return numeral( val ).format( format );
@@ -1569,7 +1526,8 @@ gp.Initializer.prototype = {
             $node: this.config.node,
             $pageModel: this.config.pageModel,
             $map: this.config.map,
-            $data: this.config.pageModel.data
+            $data: this.config.pageModel.data,
+            $mode: 'read'
         }, gp.templates, null, this.config ); // specify gp.templates as root, null for context, config as override source
 
         // this has to happen here so we can find the table-container
@@ -1749,7 +1707,7 @@ gp.Initializer.prototype = {
             template,
             prop,
             $node = $(node),
-            selectorTemplate = 'script[type="text/html"][data-template*="{{name}}"],template[data-template*="{{name}}"]';
+            selectorTemplate = 'script[type="text/html"][data-template="{{name}}"],template[data-template="{{name}}"]';
         names.forEach( function ( n ) {
             selector = gp.supplant( selectorTemplate, { name: n } );
             template = $node.find( selector );
@@ -2523,7 +2481,10 @@ gp.templates.bodyCellContent = function ( $column, $dataItem, $injector ) {
 
 gp.templates.bodyCellContent.$inject = ['$column', '$dataItem', '$injector'];
 
-gp.templates.bootstrapModal = function ( model ) {
+gp.templates.bootstrapModal = function ( $injector ) {
+
+    var model = $injector.exec( 'bootstrapModalContent' );
+
     model.footer = model.footer ||
         '<div class="btn-group"><button type="button" class="btn btn-default" value="cancel"><span class="glyphicon glyphicon-remove"></span>Close</button><button type="button" class="btn btn-primary" value="save"><span class="glyphicon glyphicon-save"></span>Save changes</button></div>';
 
@@ -2549,21 +2510,23 @@ gp.templates.bootstrapModal = function ( model ) {
     return gp.supplant.call( this,  html.toString(), model );
 };
 
+gp.templates.bootstrapModal.$inject = ['$injector'];
+
 gp.templates.bootstrapModalContent = function ( $config, $dataItem, $mode, $injector ) {
 
     var self = this,
         model = {
-        title: ( $mode == 'create' ? 'Add' : 'Edit' ),
-        body: '',
-        footer: null,
-        uid: $config.map.getUid( $dataItem )
-    };
+            title: ( $mode == 'create' ? 'Add' : 'Edit' ),
+            body: '',
+            footer: null,
+            uid: $config.map.getUid( $dataItem )
+        };
 
-    var html = new gp.StringBuilder();
+    var body = new gp.StringBuilder();
 
     // not using a form element here because the modal is added as a child node of the grid component
     // this will cause problems if the grid is inside another form (e.g. jQuery.validate will behave unexpectedly)
-    html.add( '<div class="form-horizontal">' );
+    body.add( '<div class="form-horizontal">' );
 
     $config.columns.forEach( function ( col ) {
         $injector.setResource( '$column', col );
@@ -2594,14 +2557,14 @@ gp.templates.bootstrapModalContent = function ( $config, $dataItem, $mode, $inje
             formGroupModel.label = gp.escapeHTML( gp.coalesce( [col.header, col.field, ''] ) );
         }
 
-        html.add( $injector.exec( 'formGroup', formGroupModel ) );
+        body.add( $injector.exec( 'formGroup', formGroupModel ) );
     } );
 
-    html.add( '</div>' );
+    body.add( '</div>' );
 
-    model.body = html.toString();
+    model.body = body.toString();
 
-    return $injector.exec( 'bootstrapModal', model );
+    return model;
 };
 
 gp.templates.bootstrapModalContent.$inject = ['$config', '$dataItem', '$mode', '$injector'];
@@ -2985,21 +2948,29 @@ gp.templates.tableBody = function ( $config, $injector ) {
 
 gp.templates.tableBody.$inject = ['$config', '$injector'];
 
-gp.templates.tableRow = function ( $injector, uid ) {
+gp.templates.tableRow = function ( $injector, $mode, uid ) {
     var self = this,
         html = new gp.StringBuilder();
+
     html.add( '<tr data-uid="' )
         .add( uid )
-        .add( '">' )
+        .add( '"' );
+
+    if ( /create|update/.test( $mode ) ) {
+        html.add( ' class="' ).add( $mode ).add( '-mode"' );
+    }
+
+    html.add( ">" )
         .add( $injector.exec( 'tableRowCells' ) )
         .add( '</tr>' );
     return html.toString();
 };
 
-gp.templates.tableRow.$inject = ['$injector'];
+gp.templates.tableRow.$inject = ['$injector', '$mode'];
 
-gp.templates.tableRowCell = function ( $column, $injector ) {
+gp.templates.tableRowCell = function ( $column, $injector, $mode ) {
     var self = this,
+        mode = $mode || 'read',
         html = new gp.StringBuilder();
 
     html.add( '<td class="body-cell ' );
@@ -3007,14 +2978,21 @@ gp.templates.tableRowCell = function ( $column, $injector ) {
         html.add( 'commands ' );
     }
     html.add( $column.bodyclass )
-        .add( '">' )
-        .add( $injector.exec( 'bodyCellContent' ) )
-        .add( '</td>' );
+        .add( '">' );
+
+    if ( /create|update/.test( mode ) && !$column.readonly) {
+        html.add( $injector.exec( 'editCellContent' ) )
+    }
+    else {
+        html.add( $injector.exec( 'bodyCellContent' ) )
+    }
+
+    html.add( '</td>' );
 
     return html.toString();
 };
 
-gp.templates.tableRowCell.$inject = ['$column', '$injector'];
+gp.templates.tableRowCell.$inject = ['$column', '$injector', '$mode'];
 
 gp.templates.tableRowCells = function ( $columns, $injector ) {
     var self = this,

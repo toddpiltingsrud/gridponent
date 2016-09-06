@@ -51,7 +51,10 @@ gp.templates.bodyCellContent = function ( $column, $dataItem, $injector ) {
 
 gp.templates.bodyCellContent.$inject = ['$column', '$dataItem', '$injector'];
 
-gp.templates.bootstrapModal = function ( model ) {
+gp.templates.bootstrapModal = function ( $injector ) {
+
+    var model = $injector.exec( 'bootstrapModalContent' );
+
     model.footer = model.footer ||
         '<div class="btn-group"><button type="button" class="btn btn-default" value="cancel"><span class="glyphicon glyphicon-remove"></span>Close</button><button type="button" class="btn btn-primary" value="save"><span class="glyphicon glyphicon-save"></span>Save changes</button></div>';
 
@@ -77,21 +80,23 @@ gp.templates.bootstrapModal = function ( model ) {
     return gp.supplant.call( this,  html.toString(), model );
 };
 
+gp.templates.bootstrapModal.$inject = ['$injector'];
+
 gp.templates.bootstrapModalContent = function ( $config, $dataItem, $mode, $injector ) {
 
     var self = this,
         model = {
-        title: ( $mode == 'create' ? 'Add' : 'Edit' ),
-        body: '',
-        footer: null,
-        uid: $config.map.getUid( $dataItem )
-    };
+            title: ( $mode == 'create' ? 'Add' : 'Edit' ),
+            body: '',
+            footer: null,
+            uid: $config.map.getUid( $dataItem )
+        };
 
-    var html = new gp.StringBuilder();
+    var body = new gp.StringBuilder();
 
     // not using a form element here because the modal is added as a child node of the grid component
     // this will cause problems if the grid is inside another form (e.g. jQuery.validate will behave unexpectedly)
-    html.add( '<div class="form-horizontal">' );
+    body.add( '<div class="form-horizontal">' );
 
     $config.columns.forEach( function ( col ) {
         $injector.setResource( '$column', col );
@@ -122,14 +127,14 @@ gp.templates.bootstrapModalContent = function ( $config, $dataItem, $mode, $inje
             formGroupModel.label = gp.escapeHTML( gp.coalesce( [col.header, col.field, ''] ) );
         }
 
-        html.add( $injector.exec( 'formGroup', formGroupModel ) );
+        body.add( $injector.exec( 'formGroup', formGroupModel ) );
     } );
 
-    html.add( '</div>' );
+    body.add( '</div>' );
 
-    model.body = html.toString();
+    model.body = body.toString();
 
-    return $injector.exec( 'bootstrapModal', model );
+    return model;
 };
 
 gp.templates.bootstrapModalContent.$inject = ['$config', '$dataItem', '$mode', '$injector'];
@@ -513,21 +518,29 @@ gp.templates.tableBody = function ( $config, $injector ) {
 
 gp.templates.tableBody.$inject = ['$config', '$injector'];
 
-gp.templates.tableRow = function ( $injector, uid ) {
+gp.templates.tableRow = function ( $injector, $mode, uid ) {
     var self = this,
         html = new gp.StringBuilder();
+
     html.add( '<tr data-uid="' )
         .add( uid )
-        .add( '">' )
+        .add( '"' );
+
+    if ( /create|update/.test( $mode ) ) {
+        html.add( ' class="' ).add( $mode ).add( '-mode"' );
+    }
+
+    html.add( ">" )
         .add( $injector.exec( 'tableRowCells' ) )
         .add( '</tr>' );
     return html.toString();
 };
 
-gp.templates.tableRow.$inject = ['$injector'];
+gp.templates.tableRow.$inject = ['$injector', '$mode'];
 
-gp.templates.tableRowCell = function ( $column, $injector ) {
+gp.templates.tableRowCell = function ( $column, $injector, $mode ) {
     var self = this,
+        mode = $mode || 'read',
         html = new gp.StringBuilder();
 
     html.add( '<td class="body-cell ' );
@@ -535,14 +548,21 @@ gp.templates.tableRowCell = function ( $column, $injector ) {
         html.add( 'commands ' );
     }
     html.add( $column.bodyclass )
-        .add( '">' )
-        .add( $injector.exec( 'bodyCellContent' ) )
-        .add( '</td>' );
+        .add( '">' );
+
+    if ( /create|update/.test( mode ) && !$column.readonly) {
+        html.add( $injector.exec( 'editCellContent' ) )
+    }
+    else {
+        html.add( $injector.exec( 'bodyCellContent' ) )
+    }
+
+    html.add( '</td>' );
 
     return html.toString();
 };
 
-gp.templates.tableRowCell.$inject = ['$column', '$injector'];
+gp.templates.tableRowCell.$inject = ['$column', '$injector', '$mode'];
 
 gp.templates.tableRowCells = function ( $columns, $injector ) {
     var self = this,
