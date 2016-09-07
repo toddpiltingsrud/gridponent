@@ -5,6 +5,7 @@
 gp.Injector = function ( resources, root, context, overrides ) {
     this.resources = resources;
     resources.$injector = this;
+    resources.$window = window;
     this.root = root || window;
     this.context = context || this;
     this.overrides = overrides || {};
@@ -19,15 +20,15 @@ gp.Injector.prototype = {
         return this.exec( funcOrName, model, true );
     },
     exec: function ( funcOrName, model, base ) {
-        var args;
+        var args, html;
         if ( typeof funcOrName == 'string' ) {
             if ( base ) {
                 // call the base function
-                funcOrName = gp.getObjectAtPath( funcOrName, this.root );
+                funcOrName = this.root[funcOrName];
             }
             else {
                 // check for override
-                funcOrName = gp.getObjectAtPath( funcOrName, this.overrides ) || gp.getObjectAtPath( funcOrName, this.root );
+                funcOrName = this.overrides[funcOrName] || this.root[funcOrName];
             }
         }
         if ( typeof funcOrName == 'function' ) {
@@ -39,7 +40,9 @@ gp.Injector.prototype = {
             return funcOrName.apply( this.context, args );
         }
         else {
-            return gp.supplant.call( this.context, funcOrName, this.resources );
+            // assume this is a string template
+            // execute once against the resources, then against window to allow for functions
+            return gp.supplant.call( this.context, funcOrName, this.resources, this.resources );
         }
         return this;
     },

@@ -1206,7 +1206,8 @@ gp.TableRowEditor.prototype = {
 
             if ( $( this.elem ).hasClass( 'create-mode' ) ) {
                 // remove elem
-                tbl[0].deleteRow( this.elem.rowIndex );
+                $( this.elem ).remove();
+                //tbl[0].deleteRow( $(this.elem)[0].rowIndex );
             }
             else {
                 this.updateUI();
@@ -1320,7 +1321,11 @@ gp.ModalEditor.prototype = {
         // append the modal to the top node so button clicks will be picked up by commandHandlder
         modal = $( html )
             .appendTo( this.config.node )
-            .one( 'shown.bs.modal', self.invokeEditReady.bind( self ) );
+            .one( 'shown.bs.modal', function () {
+                // IE9 can't add handlers until the modal is completely shown
+                self.addCommandHandler();
+                self.invokeEditReady();
+            } );
 
         this.elem = modal[0];
 
@@ -1335,8 +1340,6 @@ gp.ModalEditor.prototype = {
         modal.one( 'hidden.bs.modal', function () {
             $( modal ).remove();
         } );
-
-        this.addCommandHandler();
 
         return {
             dataItem: this.dataItem,
@@ -1530,6 +1533,8 @@ gp.Initializer.prototype = {
             $mode: 'read'
         }, gp.templates, null, this.config ); // specify gp.templates as root, null for context, config as override source
 
+        this.resolveCustomResource( this.config, this.injector );
+
         // this has to happen here so we can find the table-container
         this.renderLayout( this.config, this.parent );
 
@@ -1706,8 +1711,9 @@ gp.Initializer.prototype = {
         var selector,
             template,
             prop,
-            $node = $(node),
-            selectorTemplate = 'script[type="text/html"][data-template="{{name}}"],template[data-template="{{name}}"]';
+            $node = $( node ),
+            // the data-template attribute can have multiple values: e.g. "edit body"
+            selectorTemplate = 'script[type="text/html"][data-template~="{{name}}"],template[data-template~="{{name}}"]';
         names.forEach( function ( n ) {
             selector = gp.supplant( selectorTemplate, { name: n } );
             template = $node.find( selector );
@@ -1749,6 +1755,13 @@ gp.Initializer.prototype = {
                 } );
             }
         } );
+    },
+
+    resolveCustomResource: function ( config, injector ) {
+        if ( config.inject && typeof config.inject == 'string' ) {
+            var path = config.inject.match( gp.rexp.splitPath );
+            injector.setResource( path[path.length - 1], gp.getObjectAtPath( config.inject ) );
+        }
     }
 };
 /***************\
@@ -1758,6 +1771,7 @@ gp.Initializer.prototype = {
 gp.Injector = function ( resources, root, context, overrides ) {
     this.resources = resources;
     resources.$injector = this;
+    resources.$window = window;
     this.root = root || window;
     this.context = context || this;
     this.overrides = overrides || {};
@@ -1772,15 +1786,15 @@ gp.Injector.prototype = {
         return this.exec( funcOrName, model, true );
     },
     exec: function ( funcOrName, model, base ) {
-        var args;
+        var args, html;
         if ( typeof funcOrName == 'string' ) {
             if ( base ) {
                 // call the base function
-                funcOrName = gp.getObjectAtPath( funcOrName, this.root );
+                funcOrName = this.root[funcOrName];
             }
             else {
                 // check for override
-                funcOrName = gp.getObjectAtPath( funcOrName, this.overrides ) || gp.getObjectAtPath( funcOrName, this.root );
+                funcOrName = this.overrides[funcOrName] || this.root[funcOrName];
             }
         }
         if ( typeof funcOrName == 'function' ) {
@@ -1792,7 +1806,9 @@ gp.Injector.prototype = {
             return funcOrName.apply( this.context, args );
         }
         else {
-            return gp.supplant.call( this.context, funcOrName, this.resources );
+            // assume this is a string template
+            // execute once against the resources, then against window to allow for functions
+            return gp.supplant.call( this.context, funcOrName, this.resources, this.resources );
         }
         return this;
     },
@@ -2481,9 +2497,14 @@ gp.templates.bodyCellContent = function ( $column, $dataItem, $injector ) {
 
 gp.templates.bodyCellContent.$inject = ['$column', '$dataItem', '$injector'];
 
-gp.templates.bootstrapModal = function ( $injector ) {
+gp.templates.bootstrapModal = function ( $config, $dataItem, $injector, $mode ) {
 
-    var model = $injector.exec( 'bootstrapModalContent' );
+    var model = {
+        title: ( $mode == 'create' ? 'Add' : 'Edit' ),
+        body: $injector.exec( 'bootstrapModalBody' ),
+        footer: $injector.exec( 'bootstrapModalFooter' ),
+        uid: $config.map.getUid( $dataItem )
+    };
 
     model.footer = model.footer ||
         '<div class="btn-group"><button type="button" class="btn btn-default" value="cancel"><span class="glyphicon glyphicon-remove"></span>Close</button><button type="button" class="btn btn-primary" value="save"><span class="glyphicon glyphicon-save"></span>Save changes</button></div>';
@@ -2493,6 +2514,7 @@ gp.templates.bootstrapModal = function ( $injector ) {
         .add( '<div class="modal-dialog" role="document">' )
         .add( '<div class="modal-content">' )
         .add( '<div class="modal-header">' )
+        // the close button for the modal should cancel any edits, so add value="cancel"
         .add( '<button type="button" class="close" aria-label="Close" value="cancel"><span aria-hidden="true">&times;</span></button>' )
         .add( '<h4 class="modal-title">{{title}}</h4>' )
         .add( '</div>' )
@@ -2510,19 +2532,12 @@ gp.templates.bootstrapModal = function ( $injector ) {
     return gp.supplant.call( this,  html.toString(), model );
 };
 
-gp.templates.bootstrapModal.$inject = ['$injector'];
+gp.templates.bootstrapModal.$inject = ['$config', '$dataItem', '$injector', '$mode'];
 
-gp.templates.bootstrapModalContent = function ( $config, $dataItem, $mode, $injector ) {
+gp.templates.bootstrapModalBody = function ( $config, $injector ) {
 
     var self = this,
-        model = {
-            title: ( $mode == 'create' ? 'Add' : 'Edit' ),
-            body: '',
-            footer: null,
-            uid: $config.map.getUid( $dataItem )
-        };
-
-    var body = new gp.StringBuilder();
+        body = new gp.StringBuilder();
 
     // not using a form element here because the modal is added as a child node of the grid component
     // this will cause problems if the grid is inside another form (e.g. jQuery.validate will behave unexpectedly)
@@ -2530,10 +2545,6 @@ gp.templates.bootstrapModalContent = function ( $config, $dataItem, $mode, $inje
 
     $config.columns.forEach( function ( col ) {
         $injector.setResource( '$column', col );
-        if ( col.commands ) {
-            model.footer = $injector.exec( 'editCellContent' );
-            return;
-        }
         var canEdit = !col.readonly && ( gp.hasValue( col.field ) || gp.hasValue( col.edittemplate ) );
         if ( !canEdit ) return;
 
@@ -2562,12 +2573,26 @@ gp.templates.bootstrapModalContent = function ( $config, $dataItem, $mode, $inje
 
     body.add( '</div>' );
 
-    model.body = body.toString();
-
-    return model;
+    return body.toString();
 };
 
-gp.templates.bootstrapModalContent.$inject = ['$config', '$dataItem', '$mode', '$injector'];
+gp.templates.bootstrapModalBody.$inject = ['$config', '$injector'];
+
+gp.templates.bootstrapModalFooter = function ( $columns, $injector ) {
+
+    var cmdColumn = $columns.filter( function ( col ) {
+        return col.commands;
+    } );
+
+    if ( cmdColumn ) {
+        $injector.setResource( '$column', cmdColumn );
+        return $injector.exec( 'editCellContent' );
+    }
+
+    return '';
+};
+
+gp.templates.bootstrapModalFooter.$inject = ['$columns', '$injector'];
 
 gp.templates.button = function ( model ) {
     var template = '<button type="button" class="btn {{btnClass}}" value="{{value}}"><span class="glyphicon {{glyphicon}}"></span>{{text}}</button>';

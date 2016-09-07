@@ -22,10 +22,18 @@
 </head>
 <body>
 
-    <grid-ponent 
-                 fixed-headers 
+    <script>
+        var fns = fns || {};
+
+        fns.getContent = function (resources) {
+            return resources.$dataItem.Name;
+        };
+    </script>
+
+    <grid-ponent fixed-headers 
                  sorting 
                  read="data.products" create="/Products/create" update="/Products/update" destroy="/Products/Delete" 
+                 inject="fns"
                  editready="fns.editready" onedit="fns.onupdate" pager="top-right" search="top-left">
 
         <script type="text/html" data-template="tableRowCells">
@@ -36,7 +44,7 @@
             <td>{{$dataItem.StandardCost}}</td>
             <td>{{$dataItem.SellStartDate}}</td>
             <td>{{$dataItem.Markup}}</td>
-            <td></td>
+            <td>{{fns.getContent}}</td>
             <td>{{$dataItem.Color}}</td>
             <td>{{$dataItem.ProductNumber}}</td>
             <td><button class="btn btn-default btn-xs" value="edit">Edit</button></td>

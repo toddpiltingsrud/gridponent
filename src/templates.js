@@ -51,9 +51,14 @@ gp.templates.bodyCellContent = function ( $column, $dataItem, $injector ) {
 
 gp.templates.bodyCellContent.$inject = ['$column', '$dataItem', '$injector'];
 
-gp.templates.bootstrapModal = function ( $injector ) {
+gp.templates.bootstrapModal = function ( $config, $dataItem, $injector, $mode ) {
 
-    var model = $injector.exec( 'bootstrapModalContent' );
+    var model = {
+        title: ( $mode == 'create' ? 'Add' : 'Edit' ),
+        body: $injector.exec( 'bootstrapModalBody' ),
+        footer: $injector.exec( 'bootstrapModalFooter' ),
+        uid: $config.map.getUid( $dataItem )
+    };
 
     model.footer = model.footer ||
         '<div class="btn-group"><button type="button" class="btn btn-default" value="cancel"><span class="glyphicon glyphicon-remove"></span>Close</button><button type="button" class="btn btn-primary" value="save"><span class="glyphicon glyphicon-save"></span>Save changes</button></div>';
@@ -63,6 +68,7 @@ gp.templates.bootstrapModal = function ( $injector ) {
         .add( '<div class="modal-dialog" role="document">' )
         .add( '<div class="modal-content">' )
         .add( '<div class="modal-header">' )
+        // the close button for the modal should cancel any edits, so add value="cancel"
         .add( '<button type="button" class="close" aria-label="Close" value="cancel"><span aria-hidden="true">&times;</span></button>' )
         .add( '<h4 class="modal-title">{{title}}</h4>' )
         .add( '</div>' )
@@ -80,19 +86,12 @@ gp.templates.bootstrapModal = function ( $injector ) {
     return gp.supplant.call( this,  html.toString(), model );
 };
 
-gp.templates.bootstrapModal.$inject = ['$injector'];
+gp.templates.bootstrapModal.$inject = ['$config', '$dataItem', '$injector', '$mode'];
 
-gp.templates.bootstrapModalContent = function ( $config, $dataItem, $mode, $injector ) {
+gp.templates.bootstrapModalBody = function ( $config, $injector ) {
 
     var self = this,
-        model = {
-            title: ( $mode == 'create' ? 'Add' : 'Edit' ),
-            body: '',
-            footer: null,
-            uid: $config.map.getUid( $dataItem )
-        };
-
-    var body = new gp.StringBuilder();
+        body = new gp.StringBuilder();
 
     // not using a form element here because the modal is added as a child node of the grid component
     // this will cause problems if the grid is inside another form (e.g. jQuery.validate will behave unexpectedly)
@@ -100,10 +99,6 @@ gp.templates.bootstrapModalContent = function ( $config, $dataItem, $mode, $inje
 
     $config.columns.forEach( function ( col ) {
         $injector.setResource( '$column', col );
-        if ( col.commands ) {
-            model.footer = $injector.exec( 'editCellContent' );
-            return;
-        }
         var canEdit = !col.readonly && ( gp.hasValue( col.field ) || gp.hasValue( col.edittemplate ) );
         if ( !canEdit ) return;
 
@@ -132,12 +127,26 @@ gp.templates.bootstrapModalContent = function ( $config, $dataItem, $mode, $inje
 
     body.add( '</div>' );
 
-    model.body = body.toString();
-
-    return model;
+    return body.toString();
 };
 
-gp.templates.bootstrapModalContent.$inject = ['$config', '$dataItem', '$mode', '$injector'];
+gp.templates.bootstrapModalBody.$inject = ['$config', '$injector'];
+
+gp.templates.bootstrapModalFooter = function ( $columns, $injector ) {
+
+    var cmdColumn = $columns.filter( function ( col ) {
+        return col.commands;
+    } );
+
+    if ( cmdColumn ) {
+        $injector.setResource( '$column', cmdColumn );
+        return $injector.exec( 'editCellContent' );
+    }
+
+    return '';
+};
+
+gp.templates.bootstrapModalFooter.$inject = ['$columns', '$injector'];
 
 gp.templates.button = function ( model ) {
     var template = '<button type="button" class="btn {{btnClass}}" value="{{value}}"><span class="glyphicon {{glyphicon}}"></span>{{text}}</button>';

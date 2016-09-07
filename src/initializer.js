@@ -33,6 +33,8 @@ gp.Initializer.prototype = {
             $mode: 'read'
         }, gp.templates, null, this.config ); // specify gp.templates as root, null for context, config as override source
 
+        this.resolveCustomResource( this.config, this.injector );
+
         // this has to happen here so we can find the table-container
         this.renderLayout( this.config, this.parent );
 
@@ -209,8 +211,9 @@ gp.Initializer.prototype = {
         var selector,
             template,
             prop,
-            $node = $(node),
-            selectorTemplate = 'script[type="text/html"][data-template="{{name}}"],template[data-template="{{name}}"]';
+            $node = $( node ),
+            // the data-template attribute can have multiple values: e.g. "edit body"
+            selectorTemplate = 'script[type="text/html"][data-template~="{{name}}"],template[data-template~="{{name}}"]';
         names.forEach( function ( n ) {
             selector = gp.supplant( selectorTemplate, { name: n } );
             template = $node.find( selector );
@@ -252,5 +255,12 @@ gp.Initializer.prototype = {
                 } );
             }
         } );
+    },
+
+    resolveCustomResource: function ( config, injector ) {
+        if ( config.inject && typeof config.inject == 'string' ) {
+            var path = config.inject.match( gp.rexp.splitPath );
+            injector.setResource( path[path.length - 1], gp.getObjectAtPath( config.inject ) );
+        }
     }
 };

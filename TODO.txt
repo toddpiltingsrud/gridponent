@@ -1,21 +1,4 @@
-﻿Instead of providing config options for templates and checking for them, just use the template override mechanism.
-Allow template overrides to be either an HTML string or a function that returns a string.
-We can't inject a string template. In this case we could supply the default injection parameters to the supplant function as an object.
-Resources could be referenced by name: {{$dataItem.propName}}.
-
-The tableRowCell template creates rows in read mode. So the TableEditor class doesn't use the templates to create rows in edit mode.
-That means that if any of those templates are overridden, they won't be used to create the edit controls.
-That means the cell contents may not match what the overridden templates created.
-To follow the existing pattern, the editors should only use the templates to create HTML instead of rolling their own.
-The templates would have to use the $mode resource set by the editors and create cells in either read mode or edit mode.
-When updating, the TableEditor would have to request a new tr from the injector and move the contents of its td's into the existing tr.
-This might come in handy if we decide to implement rendering of the entire table in edit mode.
-
-If moment.js is not present, apply a default format to dates.
-
-Flip bootstrapModal and bootstrapModalContent around.
-
-When adding a new row to a table, scroll it into view.
+﻿When adding a new row to a table, scroll it into view.
 
 Adding multiple rows to a table at once doesn't work.
 
@@ -25,34 +8,6 @@ That's because it gets populated in the change event handler.
 Perhaps we should make it easier to obtain a reference to the dataItem by allowing the argument to be any element inside the editor.
 The API would call $(elem).closest('[data-uid]').attr('data-uid') to obtain the UID.
 
-Should we compile the templates? It might be faster than resolving functions on every call to supplant.
-Or we could simply create a dictionary for each template, calling getObjectAtPath on each one.
-Create a Template class. Instantiate it with the original string template.
-The constructor would compile the template by creating a dictionary of functions for each token.
-The Template class would have standard functions for returning data properties, either escaped or raw.
-It would first call getObjectAtPath and assign what it finds to the dictionary.
-If nothing is found, it would assume it's a property name.
-
-The templating engine uses a dependency injector to supply each template function with arguments.
-Instead of calling the template functions directly, callers add resources to the injector and call its 'exec' function, 
-passing in the template name and a single optional model argument.
-
-By invoking templates through an injector instead of calling them directly, we can easily add the ability to override
-individual templates by adding this feature to the injector. When executing a template, the injector first checks the 
-config object for a template of the same name. If it finds one, it uses the same dependency injection pattern to call it.
-If a template is not found in the config object, the default template is used instead.
-We should implement the ability to call base templates from overrides.
-
-Invert the templates so none of them call other templates or helpers.
-Instead, inject whatever they need. Example, tableBody needs thead, tableRows, and tfoot.
-Pass these into the template via a model or inject them. 
-Problem: thead and tfoot are dependent on whether or not there are fixed headers and/or footers.
-Can we conditionally inject these easily? 
-Create separate templates for fixed/unfixed header and fixed/unfixed footer.
-The only difference between them is that they would either render or not depending on how the grid is configured.
-Modify the injector so it constructs a model object from the dependent resources and passes it in.
-That way we can use a static template and can call supplant with it.
-
 Currently it's not possible to pass a url to an event delegate call:
 gridponent('#theGrid').rowSelected('http://server/app/controller/action/{{id}}');
 Should this be supported?
@@ -61,15 +16,10 @@ gp.getType should always return a string type.
 
 Can we isolate the controllers commandHandler from the editors? Don't like relying on differences in command value.
 
-Eliminate setting config.dataItem.
-
 What happens if a grid is rendered twice? Make sure the original is disposed if this happens.
 
 Add page size config option (default to 25).
 
-Footer template
-
 Empty table template
 
 Allow the http module to be configured to use JSON or application/x-www-form-urlencoded.
-

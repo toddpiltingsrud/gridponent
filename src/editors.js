@@ -377,7 +377,8 @@ gp.TableRowEditor.prototype = {
 
             if ( $( this.elem ).hasClass( 'create-mode' ) ) {
                 // remove elem
-                tbl[0].deleteRow( this.elem.rowIndex );
+                $( this.elem ).remove();
+                //tbl[0].deleteRow( $(this.elem)[0].rowIndex );
             }
             else {
                 this.updateUI();
@@ -491,7 +492,11 @@ gp.ModalEditor.prototype = {
         // append the modal to the top node so button clicks will be picked up by commandHandlder
         modal = $( html )
             .appendTo( this.config.node )
-            .one( 'shown.bs.modal', self.invokeEditReady.bind( self ) );
+            .one( 'shown.bs.modal', function () {
+                // IE9 can't add handlers until the modal is completely shown
+                self.addCommandHandler();
+                self.invokeEditReady();
+            } );
 
         this.elem = modal[0];
 
@@ -506,8 +511,6 @@ gp.ModalEditor.prototype = {
         modal.one( 'hidden.bs.modal', function () {
             $( modal ).remove();
         } );
-
-        this.addCommandHandler();
 
         return {
             dataItem: this.dataItem,

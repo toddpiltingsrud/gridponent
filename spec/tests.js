@@ -1,3 +1,53 @@
+QUnit.test( 'inject', function ( assert ) {
+
+    var done1 = assert.async();
+    //var done2 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    options.inject = 'fns';
+
+    options.headerCellContent = '{{{fns.getCustomHeader}}}';
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var element = api.find( 'th span[style]' );
+
+        assert.ok( element.length > 0, 'injecting custom resource works' );
+
+        done1();
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+
+    var done2 = assert.async();
+
+    var config = gp.shallowCopy( configOptions );
+
+    config.inject = 'fns';
+
+    config.headerCellContent = '{{{fns.getCustomHeader}}}';
+
+    getTableConfig( config, function ( api ) {
+
+        var element = api.find( 'th span[style]' );
+
+        assert.ok( element.length > 0, 'injecting custom resource works' );
+
+        done2();
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+    } );
+
+} );
+
 QUnit.test( 'required field', function ( assert ) {
 
     var done1 = assert.async();
@@ -25,35 +75,35 @@ QUnit.test( 'required field', function ( assert ) {
 
         done1();
 
-        //api.dispose();
+        api.dispose();
 
-        //$( '#table .box' ).empty();
+        $( '#table .box' ).empty();
 
     } );
 
 
-    //var done2 = assert.async();
+    var done2 = assert.async();
 
-    //getTableConfig( configOptions, function ( api ) {
+    getTableConfig( configOptions, function ( api ) {
 
-    //    // put one of the rows into edit mode
-    //    var btn = api.find( 'button[value=edit]' );
+        // put one of the rows into edit mode
+        var btn = api.find( 'button[value=edit]' );
 
-    //    clickButton( btn );
+        clickButton( btn );
 
-    //    var element = api.find( 'input[required]' );
+        var element = api.find( 'input[required]' );
 
-    //    assert.ok( element.length > 0, 'required attribute is rendered' );
+        assert.ok( element.length > 0, 'required attribute is rendered' );
 
-    //    assert.strictEqual( element[0].name, 'StandardCost' );
+        assert.strictEqual( element[0].name, 'StandardCost' );
 
-    //    done2();
+        done2();
 
-    //    api.dispose();
+        api.dispose();
 
-    //    $( '#table .box' ).empty();
+        $( '#table .box' ).empty();
 
-    //} );
+    } );
 
 } );
 
@@ -779,7 +829,7 @@ QUnit.test( 'column fields can be functions', function ( assert ) {
 
 QUnit.test( 'get a reference to a new dataItem via the API', function ( assert ) {
 
-    var done1 = assert.async();
+    //var done1 = assert.async();
     var done2 = assert.async();
 
     var options = gp.shallowCopy( configOptions );
@@ -801,26 +851,28 @@ QUnit.test( 'get a reference to a new dataItem via the API', function ( assert )
 
         // cancel it
         var cancelBtn = $( model.elem ).find( 'button[value=cancel]' );
-        clickButton( cancelBtn[0] );
+        clickButton( cancelBtn[1] );
 
         dataItem = api1.getData( uid );
 
         assert.ok( dataItem == null );
 
-        done1();
-
         api1.dispose();
+
+        $( '#table .box' ).empty();
+
+        done1();
     };
 
-    getTableConfig( options, function ( api ) {
+    //getTableConfig( options, function ( api ) {
 
-        api1 = api;
+    //    api1 = api;
 
-        var addBtn = api.find( '[value=AddRow]' );
+    //    var addBtn = api.find( '[value=AddRow]' );
 
-        clickButton( addBtn[0] );
+    //    clickButton( addBtn[0] );
 
-    } );
+    //} );
 
     // now try it with a modal
 
@@ -843,17 +895,18 @@ QUnit.test( 'get a reference to a new dataItem via the API', function ( assert )
 
         dataItem = api2.getData( uid );
 
-        assert.ok( dataItem == null );
-
-        done2();
+        assert.ok( dataItem == null, 'clicking cancel should remove the dataItem' );
 
         api2.dispose();
 
         $( '#table .box' ).empty();
 
+        done2();
     };
 
     getTableConfig( options, function ( api ) {
+
+        $( '#table .box' ).append( api.config.node );
 
         api2 = api;
 
@@ -909,42 +962,6 @@ QUnit.test( 'Injector', function ( assert ) {
 
     assert.strictEqual( result, 15 );
 
-
-} );
-
-QUnit.test( 'Template', function ( assert ) {
-
-    var model = {
-        btnClass: 'btn-default',
-        text: function ( obj ) {
-            return '<p>Test</p>';
-        },
-        mode: 'create'
-    };
-
-    fns.getGlyphicon = function (obj) {
-        return ( obj.mode == 'create' ? 'glyphicon-plus' : 'glyphicon-remove' );
-    };
-
-    var template = '<button type="button" class="btn {{btnClass}}" value="{{mode}}"><span class="glyphicon {{fns.getGlyphicon}}"></span>{{{text}}}</button>';
-
-    var t = new gp.Template( template );
-
-    var html = t.render( model );
-
-    assert.equal( t.dict['{{fns.getGlyphicon}}'], fns.getGlyphicon );
-
-    var shouldBe = '<button type="button" class="btn btn-default" value="create"><span class="glyphicon glyphicon-plus"></span><p>Test</p></button>';
-
-    assert.equal( html, shouldBe );
-
-    model.mode = 'update';
-
-    shouldBe = '<button type="button" class="btn btn-default" value="update"><span class="glyphicon glyphicon-remove"></span><p>Test</p></button>';
-
-    html = t.render( model );
-
-    assert.equal( html, shouldBe );
 
 } );
 
@@ -1729,6 +1746,9 @@ QUnit.test( 'commandHandler', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
+        $( '#table .box' ).empty().append(api.$n);
+
+
         var config = api.config;
 
         var controller = api.controller;
@@ -1739,18 +1759,23 @@ QUnit.test( 'commandHandler', function ( assert ) {
 
         var editRow = api.find( 'tr.create-mode' );
 
-        assert.ok( editRow.length > 0, 'clicking the addrow button should create a dataItem in create mode' );
+        editRow.find( 'input[name=ProductNumber]' ).val( 'removethisrow' );
 
+        assert.ok( editRow.length > 0, 'clicking the addrow button should create a tr in create mode' );
+
+        // save it
         var createBtn = editRow.find( '[value=create]' );
 
         clickButton( createBtn[0] );
 
+        // add another row
         clickButton( addBtn[0] );
 
         editRow = api.find( 'tr.create-mode' );
 
-        assert.ok( editRow.length > 0, 'clicking the addrow button should create a dataItem in create mode' );
+        assert.ok( editRow.length > 0, 'clicking the addrow button should create a tr in create mode' );
 
+        // cancel it
         var cancelBtn = editRow.find( '[value=cancel]' );
 
         clickButton( cancelBtn[0] );
@@ -1759,9 +1784,16 @@ QUnit.test( 'commandHandler', function ( assert ) {
 
         assert.ok( editRow.length == 0, 'clicking cancel should remove the dataItem' );
 
+        // delete the row we created
         var destroyBtn = api.find( '[value=destroy],[value=delete],[value=Delete]' )
 
         clickButton( destroyBtn[0] );
+
+        //var deletedRow = data.products.filter( function ( row ) {
+        //    return row.ProductNumber == 'removethisrow';
+        //} );
+
+        //assert.ok( deletedRow.length == 0, 'clicking delete should remove the row' );
 
         done1();
 
@@ -3042,11 +3074,11 @@ QUnit.test( 'gp.templates.thead', function ( assert ) {
         done3 = assert.async();
 
     function testHeaders( headers ) {
-        assert.ok( headers[0].querySelector( 'input[type=checkbox]' ) != null );
+        assert.ok( $(headers[0]).find( 'input[type=checkbox]' ).length > 0 );
 
-        assert.ok( headers[1].querySelector( 'a.table-sort' ) != null );
+        assert.ok( $(headers[1]).find( 'a.table-sort' ).length > 0 );
 
-        assert.equal( headers[6].querySelector( 'a.table-sort' ).textContent, 'Markup' );
+        assert.equal( $(headers[6]).find( 'a.table-sort' ).text(), 'Markup' );
     }
 
     // fixed headers, with sorting
@@ -3056,13 +3088,19 @@ QUnit.test( 'gp.templates.thead', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
+        $( '#table .box' ).append( api.config.node );
+
         var config = api.config;
 
         var node = config.node;
 
-        var headers = node.querySelectorAll( 'div.table-header th.header-cell' );
+        var headers = $(node).find( 'div.table-header th.header-cell' );
 
         testHeaders( headers );
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
 
         done2();
 
@@ -3075,6 +3113,8 @@ QUnit.test( 'gp.templates.thead', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
+        $( '#table .box' ).append( api.config.node );
+
         var config = api.config;
 
         var node = config.node;
@@ -3082,6 +3122,10 @@ QUnit.test( 'gp.templates.thead', function ( assert ) {
         headers = node.querySelectorAll( 'div.table-body th.header-cell' );
 
         testHeaders( headers );
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
 
         done3();
 
@@ -3757,6 +3801,10 @@ fns.getHeaderText = function ( col ) {
     return col.toString();
 };
 
+fns.getCustomHeader = function ( resources ) {
+    return '<span style="color:red">' + resources.$column.field + '</span>';
+};
+
 var configOptions = {
     fixedheaders: false,
     fixedFooters: false,
@@ -3767,7 +3815,8 @@ var configOptions = {
     update: '/Products/update',
     destroy: '/Products/Delete',
     searchFilter: null,
-    customCommand: null
+    customCommand: null,
+    inject: null
 };
 
 var getTableConfig = function ( options, callback ) {
@@ -3796,10 +3845,14 @@ var getTableConfig = function ( options, callback ) {
     if ( options.model ) out.push( '           model="' + options.model + '"' );
     if ( options.beforeread ) out.push( '      beforeread="' + options.beforeread + '"' );
     if ( options.editmode ) out.push( '        edit-mode="' + options.editmode + '"' );
+    if ( options.inject ) out.push( '          inject="' + options.inject + '"' );
     out.push( '             pager="top-right"' );
     out.push( '             search="top-left">' );
     if ( options.toolbar )
         out.push( '    <script type="text/html" data-template="toolbar"><button class="btn" value="xyz"></button></script>' );
+    if ( options.headerCellContent )
+        out.push( '    <script type="text/html" data-template="headerCellContent">' + options.headerCellContent + '</script>' );
+
     out.push( '    <gp-column>' );
     out.push( '        <script type="text/html" data-template="header body edit footer"><input type="checkbox" name="test" /></script>' );
     out.push( '    </gp-column>' );
