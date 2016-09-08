@@ -3,9 +3,6 @@
 The mechanism we're using to populate the model for the read template doesn't work on the initial read.
 That's because it gets populated in the change event handler.
 
-Perhaps we should make it easier to obtain a reference to the dataItem by allowing the argument to be any element inside the editor.
-The API would call $(elem).closest('[data-uid]').attr('data-uid') to obtain the UID.
-
 Currently it's not possible to pass a url to an event delegate call:
 gridponent('#theGrid').rowSelected('http://server/app/controller/action/{{id}}');
 Should this be supported?
