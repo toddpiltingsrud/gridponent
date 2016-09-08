@@ -132,6 +132,9 @@ gp.Controller.prototype = {
             cmd = gp.getCommand( this.config.columns, value ),
             model = this.config.pageModel;
 
+        // stop the event from being handled by rowSelectHandler
+        evt.stopPropagation();
+
         // check for a user-defined command
         if ( cmd && typeof cmd.func === 'function' ) {
             cmd.func.call( this.config.node.api, dataItem );

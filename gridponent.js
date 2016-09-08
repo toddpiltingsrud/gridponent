@@ -342,6 +342,9 @@ gp.Controller.prototype = {
             cmd = gp.getCommand( this.config.columns, value ),
             model = this.config.pageModel;
 
+        // stop the event from being handled by rowSelectHandler
+        evt.stopPropagation();
+
         // check for a user-defined command
         if ( cmd && typeof cmd.func === 'function' ) {
             cmd.func.call( this.config.node.api, dataItem );
@@ -730,6 +733,8 @@ gp.DataLayer.prototype = {
 
     destroy: function (dataItem, done, fail) {
         var self = this, url;
+
+        // config.destroy can be a function or URL
         if ( typeof this.config.destroy === 'function' ) {
             gp.applyFunc(this.config.destroy, this.config.node.api, [dataItem, done, fail], fail);
         }
@@ -852,10 +857,11 @@ gp.Editor.prototype = {
 
     add: function ( dataItem ) {
         this.dataItem = dataItem || this.createDataItem();
+        this.mode = 'create';
+
         this.injector
             .setResource( '$dataItem', this.dataItem )
-            .setResource( '$mode', 'create' );
-        this.mode = 'create';
+            .setResource( '$mode', this.mode );
 
         // add the data item to the internal data array
         this.config.pageModel.data.push( this.dataItem );
@@ -871,16 +877,16 @@ gp.Editor.prototype = {
 
     edit: function ( dataItem ) {
         this.dataItem = dataItem;
-        this.injector.setResource( '$dataItem', dataItem )
-            .setResource( '$mode', 'update' );
-        this.originalDataItem = gp.shallowCopy( dataItem );
         this.mode = 'update';
+        this.setInjectorContext();
+        this.originalDataItem = gp.shallowCopy( dataItem );
         return {
             dataItem: dataItem,
         };
     },
 
     cancel: function () {
+        this.setInjectorContext();
         if ( this.mode === 'create' ) {
             // unmap the dataItem
             this.config.map.remove( this.uid );
@@ -910,6 +916,8 @@ gp.Editor.prototype = {
             serialized,
             uid,
             fail = fail || gp.error;
+
+        this.setInjectorContext();
 
         this.addBusy();
 
@@ -1080,6 +1088,15 @@ gp.Editor.prototype = {
         }
 
         return dataItem;
+    },
+
+    setInjectorContext: function () {
+        // if we add multiple rows at once, the injector context 
+        // will have to be reset upon saving or cancelling
+        // because there are multiple editors, but only one injector
+        this.injector
+            .setResource( '$dataItem', this.dataItem )
+            .setResource( '$mode', this.mode );
     }
 
 };
@@ -1122,6 +1139,8 @@ gp.TableRowEditor.prototype = {
 
     createDataItem: gp.Editor.prototype.createDataItem,
 
+    setInjectorContext: gp.Editor.prototype.setInjectorContext,
+
     addCommandHandler: function () {
         $( this.elem ).on( 'click', 'button[value]', this.commandHandler );
     },
@@ -1138,7 +1157,7 @@ gp.TableRowEditor.prototype = {
             cellContent;
 
         // call the base add function
-        // the base functions sets the injector's $mode resource to 'create'
+        // the base function sets the injector's $mode and $dataItem resources
         var obj = gp.Editor.prototype.add.call( this, dataItem );
 
         this.elem = $( this.injector.exec( 'tableRow', obj.uid ) );
@@ -1171,7 +1190,7 @@ gp.TableRowEditor.prototype = {
         // replace the cell contents of the table row with edit controls
 
         // call the base add function
-        // the base functions sets the injector's $mode resource to 'update'
+        // the base function sets the injector's $mode and $dataItem resources
         gp.Editor.prototype.edit.call( this, dataItem );
 
         this.elem = tr;
@@ -1198,6 +1217,7 @@ gp.TableRowEditor.prototype = {
     cancel: function () {
         
         // base cancel method either removes new dataItem or reverts the existing dataItem
+        // the base function sets the injector's $mode and $dataItem resources
         gp.Editor.prototype.cancel.call( this );
 
         try {
@@ -1306,6 +1326,8 @@ gp.ModalEditor.prototype = {
 
     createDataItem: gp.Editor.prototype.createDataItem,
 
+    setInjectorContext: gp.Editor.prototype.setInjectorContext,
+
     invokeEditReady: gp.TableRowEditor.prototype.invokeEditReady,
 
     add: function (dataItem) {
@@ -1313,6 +1335,7 @@ gp.ModalEditor.prototype = {
             html,
             modal;
 
+        // the base function sets the injector's $mode and $dataItem resources
         gp.Editor.prototype.add.call( this, dataItem );
 
         // mode: create or update
@@ -1352,6 +1375,7 @@ gp.ModalEditor.prototype = {
             html,
             modal;
 
+        // the base function sets the injector's $mode and $dataItem resources
         gp.Editor.prototype.edit.call( this, dataItem );
 
         // mode: create or update
@@ -1388,6 +1412,7 @@ gp.ModalEditor.prototype = {
     cancel: function () {
 
         // base cancel method either removes new dataItem or reverts the existing dataItem
+        // the base function sets the injector's $mode and $dataItem resources
         gp.Editor.prototype.cancel.call( this );
 
         $( this.elem ).modal( 'hide' );
@@ -1498,6 +1523,45 @@ gp.helpers = {
 
 };
 
+/***************\
+     http        
+\***************/
+gp.Http = function () { };
+
+gp.Http.prototype = {
+    get: function ( url, callback, error ) {
+        $.get( url ).done( callback ).fail( error );
+    },
+    post: function ( url, data, callback, error ) {
+        this.ajax( url, data, callback, error, 'POST' );
+    },
+    destroy: function ( url, callback, error ) {
+        this.ajax( url, null, callback, error, 'DELETE' );
+    },
+    ajax: function ( url, data, callback, error, httpVerb ) {
+        $.ajax( {
+            url: url,
+            type: httpVerb.toUpperCase(),
+            data: data,
+            contentType: 'application/x-www-form-urlencoded; charset=UTF-8'
+        } )
+            .done( callback )
+            .fail( function ( response ) {
+                if ( response.status ) {
+                    // don't know why jQuery calls fail on DELETE
+                    if ( response.status == 200 ) {
+                        callback( response );
+                        return;
+                    }
+                    // filter out authentication errors, those are usually handled by the browser
+                    if ( /401|403|407/.test( response.status ) == false && typeof error == 'function' ) {
+                        error( response );
+                    }
+                }
+            } );
+    }
+
+};
 /***************\
    Initializer
 \***************/
@@ -1848,123 +1912,6 @@ gp.Injector.prototype = {
     }
 
 };
-/***************\
-   mock-http
-\***************/
-(function (gp) {
-    gp.Http = function () { };
-
-    // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
-    var routes = {
-        read: /read/i,
-        update: /update/i,
-        create: /create/i,
-        destroy: /Delete/i
-    };
-
-    gp.Http.prototype = {
-        post: function (url, model, callback, error) {
-            model = model || {};
-            if (routes.read.test(url)) {
-                getData(model, callback);
-            }
-            else if ( routes.create.test( url ) ) {
-                window.data.products.push( model );
-                callback( new gp.UpdateModel( model ) );
-            }
-            else if ( routes.update.test( url ) ) {
-                callback( new gp.UpdateModel(model) );
-            }
-            else {
-                throw '404 Not found: ' + url;
-            }
-        },
-        destroy: function ( url, callback, error ) {
-            callback( {
-                Success: true,
-                Message: ''
-            } );
-        }
-    };
-
-    var getData = function (model, callback) {
-        var count, d = window.data.products.slice( 0, window.data.length );
-
-        if (!gp.isNullOrEmpty(model.search)) {
-            var props = Object.getOwnPropertyNames(d[0]);
-            var search = model.search.toLowerCase();
-            d = d.filter(function (row) {
-                for (var i = 0; i < props.length; i++) {
-                    if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
-                        return true;
-                    }
-                }
-                return false;
-            });
-        }
-        if (!gp.isNullOrEmpty(model.sort)) {
-            if (model.desc) {
-                d.sort(function (row1, row2) {
-                    var a = row1[model.sort];
-                    var b = row2[model.sort];
-                    if (a === null) {
-                        if (b != null) {
-                            return 1;
-                        }
-                    }
-                    else if (b === null) {
-                        // we already know a isn't null
-                        return -1;
-                    }
-                    if (a > b) {
-                        return -1;
-                    }
-                    if (a < b) {
-                        return 1;
-                    }
-
-                    return 0;
-                });
-            }
-            else {
-                d.sort(function (row1, row2) {
-                    var a = row1[model.sort];
-                    var b = row2[model.sort];
-                    if (a === null) {
-                        if (b != null) {
-                            return -1;
-                        }
-                    }
-                    else if (b === null) {
-                        // we already know a isn't null
-                        return 1;
-                    }
-                    if (a > b) {
-                        return 1;
-                    }
-                    if (a < b) {
-                        return -1;
-                    }
-
-                    return 0;
-                });
-            }
-        }
-        count = d.length;
-        if (model.top !== -1) {
-            model.data = d.slice(model.skip).slice(0, model.top);
-        }
-        else {
-            model.data = d;
-        }
-        model.errors = [];
-        setTimeout(function () {
-            callback(model);
-        });
-
-    };
-
-})(gridponent);
 /***************\
    ModelSync
 \***************/
@@ -3097,18 +3044,18 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
 \***************/
 ( function ( gp ) {
 
-    gp.applyFunc = function ( callback, context, args, error ) {
-        if ( typeof callback !== 'function' ) return;
+    gp.applyFunc = function ( func, context, args, error ) {
+        if ( typeof func !== 'function' ) return;
         // anytime there's the possibility of executing 
         // user-supplied code, wrap it with a try-catch block
         // so it doesn't affect my component
         try {
             if ( args == undefined ) {
-                return callback.call( context );
+                return func.call( context );
             }
             else {
                 args = Array.isArray( args ) ? args : [args];
-                return callback.apply( context, args );
+                return func.apply( context, args );
             }
         }
         catch ( e ) {

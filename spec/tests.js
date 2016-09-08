@@ -496,6 +496,10 @@ QUnit.test( 'override formGroup', function ( assert ) {
 
         $( '#table .box' ).empty();
 
+        $( 'div.modal-backdrop' ).remove();
+
+        $( '.modal-open' ).removeClass('modal-open');
+
     } );
 
 } );
@@ -900,6 +904,10 @@ QUnit.test( 'get a reference to a new dataItem via the API', function ( assert )
         api2.dispose();
 
         $( '#table .box' ).empty();
+
+        $( 'div.modal-backdrop' ).remove();
+
+        $( '.modal-open' ).removeClass('modal-open');
 
         done2();
     };
@@ -1370,6 +1378,15 @@ QUnit.test( 'paging', function ( assert ) {
 
         assert.notStrictEqual( pageCount1, pageCount2, 'searching should change the page count' );
 
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+        $( 'div.modal-backdrop' ).remove();
+
+        $( '.modal-open' ).removeClass('modal-open');
+
         done1();
 
     } );
@@ -1487,6 +1504,14 @@ QUnit.test( 'ModalEditor', function ( assert ) {
             assert.ok( elem != null, 'elem should be the modal' );
             assert.ok( updateModel != null, 'validate should return an updateModel' );
 
+            api.dispose();
+
+            $( '#table .box' ).empty();
+
+            $( 'div.modal-backdrop' ).remove();
+
+            $( '.modal-open' ).removeClass('modal-open');
+
             done3();
 
         };
@@ -1508,6 +1533,14 @@ QUnit.test( 'modal edit', function ( assert ) {
     getTableConfig( options, function ( api ) {
 
         assert.ok( true, 'read can be a template' )
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+        $( 'div.modal-backdrop' ).remove();
+
+        $( '.modal-open' ).removeClass('modal-open');
 
         done();
 
@@ -1687,6 +1720,14 @@ QUnit.test( 'options', function ( assert ) {
 
         assert.strictEqual( fns.viewed, true );
 
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+        $( 'div.modal-backdrop' ).remove();
+
+        $( '.modal-open' ).removeClass('modal-open');
+
         done2();
     } );
 
@@ -1744,10 +1785,15 @@ QUnit.test( 'commandHandler', function ( assert ) {
 
     var options = gp.shallowCopy( configOptions );
 
+    fns.rowSelected = function ( dataItem ) {
+        assert.ok( false, 'clicking a button in the table should not trigger row selection' );
+    };
+
+    options.rowselected = 'fns.rowSelected';
+
     getTableConfig( options, function ( api ) {
 
         $( '#table .box' ).empty().append(api.$n);
-
 
         var config = api.config;
 
@@ -1767,6 +1813,7 @@ QUnit.test( 'commandHandler', function ( assert ) {
         var createBtn = editRow.find( '[value=create]' );
 
         clickButton( createBtn[0] );
+
 
         // add another row
         clickButton( addBtn[0] );
@@ -3414,8 +3461,11 @@ QUnit.test( 'editready event', function ( assert ) {
 
         clickButton( btn );
 
+        $( '#table .box' ).empty();
+
         $( 'div.modal-backdrop.in' ).remove();
 
+        $( '.modal-open' ).removeClass('modal-open');
     };
 
     getTableConfig( options2, function ( api ) {

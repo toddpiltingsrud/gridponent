@@ -3,18 +3,18 @@
 \***************/
 ( function ( gp ) {
 
-    gp.applyFunc = function ( callback, context, args, error ) {
-        if ( typeof callback !== 'function' ) return;
+    gp.applyFunc = function ( func, context, args, error ) {
+        if ( typeof func !== 'function' ) return;
         // anytime there's the possibility of executing 
         // user-supplied code, wrap it with a try-catch block
         // so it doesn't affect my component
         try {
             if ( args == undefined ) {
-                return callback.call( context );
+                return func.call( context );
             }
             else {
                 args = Array.isArray( args ) ? args : [args];
-                return callback.apply( context, args );
+                return func.apply( context, args );
             }
         }
         catch ( e ) {

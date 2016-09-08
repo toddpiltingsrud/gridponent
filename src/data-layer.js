@@ -92,6 +92,8 @@ gp.DataLayer.prototype = {
 
     destroy: function (dataItem, done, fail) {
         var self = this, url;
+
+        // config.destroy can be a function or URL
         if ( typeof this.config.destroy === 'function' ) {
             gp.applyFunc(this.config.destroy, this.config.node.api, [dataItem, done, fail], fail);
         }

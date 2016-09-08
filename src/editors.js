@@ -23,10 +23,11 @@ gp.Editor.prototype = {
 
     add: function ( dataItem ) {
         this.dataItem = dataItem || this.createDataItem();
+        this.mode = 'create';
+
         this.injector
             .setResource( '$dataItem', this.dataItem )
-            .setResource( '$mode', 'create' );
-        this.mode = 'create';
+            .setResource( '$mode', this.mode );
 
         // add the data item to the internal data array
         this.config.pageModel.data.push( this.dataItem );
@@ -42,16 +43,16 @@ gp.Editor.prototype = {
 
     edit: function ( dataItem ) {
         this.dataItem = dataItem;
-        this.injector.setResource( '$dataItem', dataItem )
-            .setResource( '$mode', 'update' );
-        this.originalDataItem = gp.shallowCopy( dataItem );
         this.mode = 'update';
+        this.setInjectorContext();
+        this.originalDataItem = gp.shallowCopy( dataItem );
         return {
             dataItem: dataItem,
         };
     },
 
     cancel: function () {
+        this.setInjectorContext();
         if ( this.mode === 'create' ) {
             // unmap the dataItem
             this.config.map.remove( this.uid );
@@ -81,6 +82,8 @@ gp.Editor.prototype = {
             serialized,
             uid,
             fail = fail || gp.error;
+
+        this.setInjectorContext();
 
         this.addBusy();
 
@@ -251,6 +254,15 @@ gp.Editor.prototype = {
         }
 
         return dataItem;
+    },
+
+    setInjectorContext: function () {
+        // if we add multiple rows at once, the injector context 
+        // will have to be reset upon saving or cancelling
+        // because there are multiple editors, but only one injector
+        this.injector
+            .setResource( '$dataItem', this.dataItem )
+            .setResource( '$mode', this.mode );
     }
 
 };
@@ -293,6 +305,8 @@ gp.TableRowEditor.prototype = {
 
     createDataItem: gp.Editor.prototype.createDataItem,
 
+    setInjectorContext: gp.Editor.prototype.setInjectorContext,
+
     addCommandHandler: function () {
         $( this.elem ).on( 'click', 'button[value]', this.commandHandler );
     },
@@ -309,7 +323,7 @@ gp.TableRowEditor.prototype = {
             cellContent;
 
         // call the base add function
-        // the base functions sets the injector's $mode resource to 'create'
+        // the base function sets the injector's $mode and $dataItem resources
         var obj = gp.Editor.prototype.add.call( this, dataItem );
 
         this.elem = $( this.injector.exec( 'tableRow', obj.uid ) );
@@ -342,7 +356,7 @@ gp.TableRowEditor.prototype = {
         // replace the cell contents of the table row with edit controls
 
         // call the base add function
-        // the base functions sets the injector's $mode resource to 'update'
+        // the base function sets the injector's $mode and $dataItem resources
         gp.Editor.prototype.edit.call( this, dataItem );
 
         this.elem = tr;
@@ -369,6 +383,7 @@ gp.TableRowEditor.prototype = {
     cancel: function () {
         
         // base cancel method either removes new dataItem or reverts the existing dataItem
+        // the base function sets the injector's $mode and $dataItem resources
         gp.Editor.prototype.cancel.call( this );
 
         try {
@@ -477,6 +492,8 @@ gp.ModalEditor.prototype = {
 
     createDataItem: gp.Editor.prototype.createDataItem,
 
+    setInjectorContext: gp.Editor.prototype.setInjectorContext,
+
     invokeEditReady: gp.TableRowEditor.prototype.invokeEditReady,
 
     add: function (dataItem) {
@@ -484,6 +501,7 @@ gp.ModalEditor.prototype = {
             html,
             modal;
 
+        // the base function sets the injector's $mode and $dataItem resources
         gp.Editor.prototype.add.call( this, dataItem );
 
         // mode: create or update
@@ -523,6 +541,7 @@ gp.ModalEditor.prototype = {
             html,
             modal;
 
+        // the base function sets the injector's $mode and $dataItem resources
         gp.Editor.prototype.edit.call( this, dataItem );
 
         // mode: create or update
@@ -559,6 +578,7 @@ gp.ModalEditor.prototype = {
     cancel: function () {
 
         // base cancel method either removes new dataItem or reverts the existing dataItem
+        // the base function sets the injector's $mode and $dataItem resources
         gp.Editor.prototype.cancel.call( this );
 
         $( this.elem ).modal( 'hide' );

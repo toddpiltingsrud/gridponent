@@ -28,27 +28,49 @@
         fns.getContent = function (resources) {
             return resources.$dataItem.Name;
         };
+
+        fns.createProduct = function ( dataItem, done, fail ) {
+            // create a unique ProductID
+            var maxProductID = 0;
+            data.products.forEach( function ( product ) {
+                if ( product.ProductID > maxProductID ) {
+                    maxProductID = product.ProductID;
+                }
+            } );
+            dataItem.ProductID = maxProductID + 1;
+            data.products.push( dataItem );
+            done( dataItem );
+        };
+        fns.updateProduct = function ( dataItem, done, fail ) {
+            var existing = data.products.filter( function ( obj ) {
+                return obj.ProductID === dataItem.ProductID;
+            } );
+            if ( existing.length === 1 ) {
+                gridponent.shallowCopy( dataItem, existing[0] );
+            }
+            done( dataItem );
+        };
+        fns.destroyProduct = function ( dataItem, done, fail ) {
+            var existing = data.products.filter( function ( obj ) {
+                return obj.ProductID === dataItem.ProductID;
+            } );
+            if ( existing.length === 1 ) {
+                var index = data.products.indexOf( existing[0] );
+                data.products.splice( index, 1 );
+                done( true );
+            }
+            done( false );
+        };
     </script>
 
     <grid-ponent fixed-headers 
                  sorting 
-                 read="data.products" create="/Products/create" update="/Products/update" destroy="/Products/Delete" 
+                 read="data.products" 
+                 create="fns.createProduct" 
+                 update="fns.updateProduct" 
+                 destroy="fns.destroyProduct" 
                  inject="fns"
                  editready="fns.editready" onedit="fns.onupdate" pager="top-right" search="top-left">
-
-        <script type="text/html" data-template="tableRowCells">
-            <td>{{$dataItem.Name}}</td>
-            <td>{{$dataItem.ProductID}}</td>
-            <td>{{$dataItem.MakeFlag}}</td>
-            <td>{{$dataItem.SafetyStockLevel}}</td>
-            <td>{{$dataItem.StandardCost}}</td>
-            <td>{{$dataItem.SellStartDate}}</td>
-            <td>{{$dataItem.Markup}}</td>
-            <td>{{fns.getContent}}</td>
-            <td>{{$dataItem.Color}}</td>
-            <td>{{$dataItem.ProductNumber}}</td>
-            <td><button class="btn btn-default btn-xs" value="edit">Edit</button></td>
-        </script>
 
         <gp-column>
             <script type="text/html" data-template="header body edit footer">

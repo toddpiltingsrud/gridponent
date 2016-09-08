@@ -1,7 +1,5 @@
 ﻿When adding a new row to a table, scroll it into view.
 
-Adding multiple rows to a table at once doesn't work.
-
 The mechanism we're using to populate the model for the read template doesn't work on the initial read.
 That's because it gets populated in the change event handler.
 
@@ -11,8 +9,6 @@ The API would call $(elem).closest('[data-uid]').attr('data-uid') to obtain the 
 Currently it's not possible to pass a url to an event delegate call:
 gridponent('#theGrid').rowSelected('http://server/app/controller/action/{{id}}');
 Should this be supported?
-
-gp.getType should always return a string type.
 
 Can we isolate the controllers commandHandler from the editors? Don't like relying on differences in command value.
 
