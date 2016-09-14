@@ -223,6 +223,10 @@
         // number string boolean function object
         return typeof ( a );
     };
+    
+    gp.hasClass = function ( elem, name ) {
+        return $( elem ).hasClass( name );
+    };
 
     gp.hasPositiveWidth = function ( nodes ) {
         if ( gp.isNullOrEmpty( nodes ) ) return false;
