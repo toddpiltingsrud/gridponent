@@ -23,9 +23,7 @@ gp.NodeBuilder.prototype = {
     addClass: function ( name ) {
         if ( gp.isNullOrEmpty( name ) ) return this;
 
-        var hasClass = ( ' ' + this.node.className + ' ' ).indexOf( ' ' + name + ' ' ) !== -1;
-
-        if ( !hasClass ) {
+        if ( !this.$n.hasClass( name ) ) {
             this.node.className = ( this.node.className === '' ) ? name : this.node.className + ' ' + name;
         }
 
