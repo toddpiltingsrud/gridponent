@@ -1,6 +1,4 @@
-﻿When adding a new row to a table, scroll it into view.
-
-The mechanism we're using to populate the model for the read template doesn't work on the initial read.
+﻿The mechanism we're using to populate the model for the read template doesn't work on the initial read.
 That's because it gets populated in the change event handler.
 
 Currently it's not possible to pass a url to an event delegate call:

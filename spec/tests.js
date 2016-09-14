@@ -3,6 +3,7 @@ QUnit.test( 'api.toggleBusy', function ( assert ) {
     var done1 = assert.async();
 
     var options = gp.shallowCopy( configuration );
+    options.fixedheaders = true;
 
     gridponent( '#table .box', options ).ready( function ( api ) {
 

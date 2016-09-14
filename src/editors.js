@@ -339,6 +339,8 @@ gp.TableRowEditor.prototype = {
             tbody.append( this.elem );
         }
 
+        if (typeof this.elem[0].scrollIntoView === 'function') this.elem[0].scrollIntoView();
+
         this.invokeEditReady();
 
         this.injector.setResource( '$mode', null );

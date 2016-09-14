@@ -90,13 +90,14 @@ gp.api.prototype = {
     sort: function ( name, desc, callback ) {
         // validate the args
         name = gp.isNullOrEmpty( name ) ? '' : name.toString();
-        typeof desc == 'boolean' ? desc : desc === 'false' ? false : !!desc;
+        desc = typeof desc == 'boolean' ? desc : desc === 'false' ? false : !!desc;
         this.controller.sort( name, desc, callback );
         return this;
     },
 
     toggleBusy: function ( isBusy ) {
 
+        // use the passed in arg if present, else toggle it
         isBusy = ( isBusy === true || isBusy === false ? isBusy : !this.$n.hasClass( 'busy' ) );
 
         if ( isBusy ) {
