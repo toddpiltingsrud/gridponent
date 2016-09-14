@@ -1,3 +1,29 @@
+QUnit.test( 'api.toggleBusy', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        api.toggleBusy(false);
+
+        assert.ok( api.$n.hasClass( 'busy' ) == false );
+
+        api.toggleBusy();
+
+        assert.ok( api.$n.hasClass( 'busy' ) == true );
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+        done1();
+
+    } );
+
+} );
+
 QUnit.test( 'inject', function ( assert ) {
 
     var done1 = assert.async();

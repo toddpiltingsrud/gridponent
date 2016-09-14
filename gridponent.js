@@ -171,7 +171,7 @@ gp.api.prototype = {
 
     toggleBusy: function ( isBusy ) {
 
-        isBusy = ( isBusy === true || isBusy === false ? isBusy : !gp.hasClass( this.config.node, 'busy' ) );
+        isBusy = ( isBusy === true || isBusy === false ? isBusy : !this.$n.hasClass( 'busy' ) );
 
         if ( isBusy ) {
             this.$n.addClass( 'busy' );
