@@ -116,24 +116,19 @@ gp.Editor.prototype = {
             this.dal.create( this.dataItem, function ( updateModel ) {
 
                 try {
-                    // standardize capitalization of incoming data
-                    updateModel = gp.shallowCopy( updateModel, null, true );
+                    self.injector.setResource( '$mode', null );
 
                     if ( gp.hasValue( updateModel.errors )) {
                         self.validate( updateModel );
                     }
                     else {
-                        returnedDataItem = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem : ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] : self.dataItem;
-
-                        // add the new dataItem to the internal data array
-                        //self.config.pageModel.data.push( returnedDataItem );
+                        returnedDataItem = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem :
+                            ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] :
+                            gp.hasSameProps(updateModel, self.dataItem) ? updateModel : self.dataItem;
 
                         // copy to local dataItem so updateUI will bind to current data
-                        gp.shallowCopy( returnedDataItem, self.dataItem );
-
-                        // It's important to map the dataItem after it's saved because user could cancel.
-                        // Also the returned dataItem will likely have additional information added by the server.
-                        //uid = self.config.map.assign( returnedDataItem, self.elem );
+                        // do a case-insensitive copy
+                        gp.shallowCopy( returnedDataItem, self.dataItem, true );
 
                         self.updateUI( self.config, self.dataItem, self.elem );
 
@@ -172,8 +167,7 @@ gp.Editor.prototype = {
             this.dal.update( this.dataItem, function ( updateModel ) {
 
                 try {
-                    // standardize capitalization of incoming data
-                    updateModel = gp.shallowCopy( updateModel, null, true );
+                    self.injector.setResource( '$mode', null );
 
                     if ( gp.hasValue( updateModel.errors ) ) {
                         self.validate( updateModel );
@@ -182,8 +176,10 @@ gp.Editor.prototype = {
                         // copy the returned dataItem back to the internal data array
                         // use the existing dataItem if the response is empty
                         returnedDataItem = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem :
-                            ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] : self.dataItem;
-                        gp.shallowCopy( returnedDataItem, self.dataItem );
+                            ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] :
+                            gp.hasSameProps( updateModel, self.dataItem ) ? updateModel : self.dataItem;
+
+                        gp.shallowCopy( returnedDataItem, self.dataItem, true );
 
                         if ( self.elem ) {
                             // refresh the UI
@@ -316,11 +312,7 @@ gp.TableRowEditor.prototype = {
     },
 
     add: function (dataItem) {
-        var self = this,
-            tbody = this.$n.find( 'div.table-body > table > tbody' ),
-            builder = new gp.NodeBuilder(),
-            tr,
-            cellContent;
+        var tbody = this.$n.find( 'div.table-body > table > tbody' );
 
         // call the base add function
         // the base function sets the injector's $mode and $dataItem resources

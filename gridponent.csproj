@@ -78,7 +78,6 @@
     <Content Include="src\format.js" />
     <Content Include="src\update-model.js" />
     <Content Include="src\string-builder.js" />
-    <Content Include="src\node-builder.js" />
     <Content Include="src\api.js" />
     <Content Include="src\x-polar.js" />
     <Content Include="src\data-layer.js" />

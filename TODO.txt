@@ -1,4 +1,10 @@
-﻿The mechanism we're using to populate the model for the read template doesn't work on the initial read.
+﻿It should be simpler to use functions as our data layer.
+The functions for create and update should be able to just return the affected row instead of a more complex response object.
+But that means we can't camelize the response object's property names because now we're change the data row.
+But the DAL still needs to take into account that the server's model property names aren't cased the same as the client.
+So instead, we should do a case-insensitive shallow copy.
+
+The mechanism we're using to populate the model for the read template doesn't work on the initial read.
 That's because it gets populated in the change event handler.
 
 Currently it's not possible to pass a url to an event delegate call:

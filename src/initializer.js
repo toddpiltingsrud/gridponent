@@ -65,6 +65,7 @@ gp.Initializer.prototype = {
                 dal.read( self.config.pageModel,
                     function ( data ) {
                         try {
+                            // do a case-insensitive copy
                             gp.shallowCopy( data, self.config.pageModel, true );
                             self.injector.setResource( '$data', self.config.pageModel.data );
                             gp.resolveTypes( self.config );
@@ -165,12 +166,6 @@ gp.Initializer.prototype = {
             if ( config.fixedheaders || config.fixedfooters ) {
                 var nodes = this.$n.find( '.table-body > table > tbody > tr:first-child > td' );
 
-                if ( gp.hasPositiveWidth( nodes ) ) {
-                    // call syncColumnWidths twice because the first call causes things to shift around a bit
-                    self.syncColumnWidths( config )
-                    self.syncColumnWidths( config )
-                }
-
                 window.addEventListener( 'resize', function () {
                     self.syncColumnWidths( config );
                 } );
@@ -220,7 +215,7 @@ gp.Initializer.prototype = {
             if ( template.length ) {
                 for ( var i = 0; i < $node[0].children.length; i++ ) {
                     if ( $node[0].children[i] == template[0] ) {
-                        prop = gp.camelize( n ) + suffix;
+                        prop = n + suffix;
                         config[prop] = template[0].innerHTML;
                         return;
                     }

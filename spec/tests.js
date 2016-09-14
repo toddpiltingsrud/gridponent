@@ -1,3 +1,163 @@
+QUnit.test( 'gp.getMatchCI', function ( assert ) {
+
+    var ar = 'thiS IS a Test'.split( ' ' );
+
+    ar.push( null );
+
+    var match = gp.getMatchCI( ar, 'THIS' );
+    assert.strictEqual( match, ar[0] );
+
+    match = gp.getMatchCI( ar, 'not' );
+    assert.strictEqual( match, null );
+
+    match = gp.getMatchCI( ar, undefined );
+    assert.strictEqual( match, null );
+
+    match = gp.getMatchCI( ar, 'is' );
+    assert.strictEqual( match, 'IS' );
+
+    match = gp.getMatchCI( ar, 'a' );
+    assert.strictEqual( match, 'a' );
+
+    match = gp.getMatchCI( ar, 'Testing' );
+    assert.strictEqual( match, null );
+
+    match = gp.getMatchCI( ar, 'test' );
+    assert.strictEqual( match, 'Test' );
+
+} );
+
+QUnit.test( 'shallowCopy', function ( assert ) {
+
+    var backup = gp.shallowCopy( fns.model );
+
+    var to = fns.model;
+
+    // uncopyable (primitive) types should just return the target untouched
+    assert.equal( gp.shallowCopy( true, to ), to );
+    assert.equal( gp.shallowCopy( 1, to ), to );
+    assert.equal( gp.shallowCopy( "", to ), to );
+    assert.equal( gp.shallowCopy( null, to ), to );
+
+    gp.shallowCopy( { test: 'test', number: function () { return 5; } }, to );
+    assert.equal( to.test, 'test' );
+    assert.equal( to.number, 5 );
+    delete to.test;
+    delete to.number;
+
+    var d = new Date();
+    gp.shallowCopy( d, to );
+    Object.getOwnPropertyNames( d ).forEach( function ( prop ) {
+        assert.equal( d[prop], to[prop] );
+        delete to[prop];
+    } );
+
+    // now try to copy it back
+    gp.shallowCopy( to, fns.model );
+
+    var rexp = /test/;
+    gp.shallowCopy( rexp, to );
+    Object.getOwnPropertyNames( rexp ).forEach( function ( prop ) {
+        assert.equal( rexp[prop], to[prop] );
+        delete to[prop];
+    } );
+
+    // do a case-insensitive copy
+    to = {};
+    var props = Object.getOwnPropertyNames( fns.model ).forEach( function ( prop ) {
+        to[prop.toUpperCase()] = null;
+    } );
+
+    gp.shallowCopy( fns.model, to, true );
+
+    assert.strictEqual( fns.model.ProductNumber, to.PRODUCTNUMBER );
+    assert.strictEqual( fns.model.State, to.STATE );
+    assert.strictEqual( fns.model.Name, to.NAME );
+
+    // restore the model
+    fns.model = backup;
+
+} );
+
+QUnit.test( 'api.saveChanges', function ( assert ) {
+
+    var done1 = assert.async();
+    var done2 = assert.async();
+
+    var options = gp.shallowCopy( configOptions );
+
+    options.read = 'data.products';
+    options.create = 'fns.createProduct';
+    options.update = 'fns.updateProduct';
+    options.destroy = 'fns.destroyProduct';
+
+    getTableConfig( options, function ( api ) {
+
+        // grab a row and modify it
+        var dataItem = api.getData()[0];
+
+        var cell = api.find( '.table-body tr:first-child td:nth-child(2)' );
+
+        assert.ok( cell != null, 'should find a table cell' );
+
+        var text = $( cell ).text();
+
+        assert.equal( dataItem.Name, text, 'make sure we found the Name column' );
+
+        dataItem.Name = 'Todd Piltingsrud';
+
+        api.saveChanges( dataItem, function ( response ) {
+
+            assert.ok( response != null, '' );
+
+            text = api.find( '.table-body tr:first-child td:nth-child(2)' ).text();
+
+            assert.equal( dataItem.Name, text, 'saveChanges should update the row and the table cells' );
+
+            assert.equal( text, 'Todd Piltingsrud', 'saveChanges should update the row and the table cells' );
+
+            api.dispose();
+
+            done1();
+
+        } );
+
+    } );
+
+    // try it without an update configuration
+    options.update = null;
+
+    getTableConfig( options, function ( api ) {
+
+        // grab a row and modify it
+        var dataItem = api.getData()[0];
+
+        var cell = api.find( '.table-body tr:first-child td:nth-child(2)' );
+
+        assert.ok( cell != null, 'should find a table cell' );
+
+        var text = $( cell ).text();
+
+        assert.equal( dataItem.Name, text, 'make sure we found the Name column' );
+
+        dataItem.Name = 'Widget';
+
+        api.saveChanges( dataItem, function ( response ) {
+
+            text = api.find( '.table-body tr:first-child td:nth-child(2)' ).text();
+
+            assert.notStrictEqual( dataItem.Name, text, 'saveChanges should NOT update the row and the table cells' );
+
+            assert.notStrictEqual( text, 'Widget', 'saveChanges should NOT update the row and the table cells' );
+
+            done2();
+
+        } );
+
+    } );
+
+} );
+
 QUnit.test( 'api.toggleBusy', function ( assert ) {
 
     var done1 = assert.async();
@@ -1000,45 +1160,6 @@ QUnit.test( 'Injector', function ( assert ) {
 
 } );
 
-QUnit.test( 'shallowCopy', function ( assert ) {
-
-    var backup = gp.shallowCopy( fns.model );
-
-    var to = fns.model;
-
-    // uncopyable (primitive) types should just return the target untouched
-    assert.equal( gp.shallowCopy( true, to ), to );
-    assert.equal( gp.shallowCopy( 1, to ), to );
-    assert.equal( gp.shallowCopy( "", to ), to );
-    assert.equal( gp.shallowCopy( null, to ), to );
-
-    gp.shallowCopy( { test: 'test', number: function () { return 5; } }, to );
-    assert.equal( to.test, 'test' );
-    assert.equal( to.number, 5 );
-    delete to.test;
-    delete to.number;
-
-    var d = new Date();
-    gp.shallowCopy( d, to );
-    Object.getOwnPropertyNames( d ).forEach( function ( prop ) {
-        assert.equal( d[prop], to[prop] );
-        delete to[prop];
-    } );
-
-    // now try to copy it back
-    gp.shallowCopy( to, fns.model );
-
-    var rexp = /test/;
-    gp.shallowCopy( rexp, to );
-    Object.getOwnPropertyNames(rexp).forEach(function(prop){
-        assert.equal( rexp[prop], to[prop] );
-        delete to[prop];
-    } );
-
-    // restore the model
-    fns.model = backup;
-
-} );
 
 QUnit.test( 'preload option', function ( assert ) {
 
@@ -1605,61 +1726,23 @@ QUnit.test( 'templates.input', function ( assert ) {
     assert.equal( input, '<input type="text" name="FirstName" value="Todd" class="form-control" />' );
 } );
 
-QUnit.test( 'camelize', function ( assert ) {
+//QUnit.test( 'camelize', function ( assert ) {
 
-    var dict = {
-        updateModel: 'updateModel',
-        'header-template': 'headerTemplate',
-        ALLCAPS: 'allcaps',
-        TableRow: 'tableRow',
-    };
+//    var dict = {
+//        updateModel: 'updateModel',
+//        'header-template': 'headerTemplate',
+//        ALLCAPS: 'allcaps',
+//        TableRow: 'tableRow',
+//    };
 
-    Object.getOwnPropertyNames( dict ).forEach( function ( prop ) {
+//    Object.getOwnPropertyNames( dict ).forEach( function ( prop ) {
 
-        assert.equal( gp.camelize( prop ), dict[prop] );
-
-    } );
-
-} );
-
-//QUnit.test( 'api.saveChanges', function ( assert ) {
-
-//    var done1 = assert.async();
-
-//    getTableConfig( configOptions, function ( api ) {
-
-//        // grab a row and modify it
-//        var dataItem = api.getData()[0];
-
-//        var cell = api.find( '.table-body tr:first-child td:nth-child(2)' );
-
-//        assert.ok( cell != null, 'should find a table cell' );
-
-//        var text = $( cell ).text();
-
-//        assert.equal( dataItem.Name, text, 'make sure we found the Name column' );
-
-//        dataItem.Name = 'Todd Piltingsrud';
-
-//        api.saveChanges( dataItem, function ( response ) {
-
-//            assert.ok( response != null, '' );
-
-//            console.log( response );
-
-//            text = $( cell ).text();
-
-//            assert.equal( dataItem.Name, text, 'saveChanges should update the row and the table cells' );
-
-//            assert.equal( text, 'Todd Piltingsrud', 'saveChanges should update the row and the table cells' );
-
-//            done1();
-
-//        } );
+//        assert.equal( gp.camelize( prop ), dict[prop] );
 
 //    } );
 
 //} );
+
 
 QUnit.test( 'options', function ( assert ) {
 
@@ -1765,6 +1848,7 @@ QUnit.test( 'read', function ( assert ) {
     var done1 = assert.async();
     var done2 = assert.async();
     var done3 = assert.async();
+    var done4 = assert.async();
 
     var options = gp.shallowCopy( configOptions );
 
@@ -1801,6 +1885,33 @@ QUnit.test( 'read', function ( assert ) {
         assert.ok( true, 'read can be an array' )
 
         done3();
+
+    } );
+
+    // read as a PagingModel
+    var options = gp.shallowCopy( configuration );
+
+    options.read = new gp.PagingModel( data.products );
+
+    options.read.search = 'AR-';
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        assert.ok( true, 'can be a PagingModel' );
+
+        var cell = api.find( '.table-body tr:last-child td:nth-child(10)' );
+
+        assert.ok( cell != null, 'should find a table cell' );
+
+        var text = $( cell ).text();
+
+        assert.equal( text.substr(0, 3), 'AR-', 'should have filtered the table' );
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+        done4();
 
     } );
 
@@ -1862,6 +1973,14 @@ QUnit.test( 'commandHandler', function ( assert ) {
         var destroyBtn = api.find( '[value=destroy],[value=delete],[value=Delete]' )
 
         clickButton( destroyBtn[0] );
+
+        // perform a search
+
+        var searchBox = api.find( '[name=search]' ).val('AR-5381');
+
+        var searchBtn = api.find( '[value=search]' );
+
+        clickButton( searchBtn[0] );
 
         //var deletedRow = data.products.filter( function ( row ) {
         //    return row.ProductNumber == 'removethisrow';
@@ -3708,52 +3827,6 @@ QUnit.test( 'controller.render', function ( assert ) {
 
 } );
 
-//QUnit.test( 'gp.ObjectProxy', function ( assert ) {
-
-//    var dataItem = data.products[0];
-
-//    var propertyChanged = false;
-
-//    var i;
-
-//    var propertyChangedCallback = function ( obj, prop, oldValue, newValue ) {
-//        propertyChanged = true;
-//        assert.strictEqual( newValue, i, 'propertyChanged: oldValue = ' + oldValue + '  newValue = ' + newValue );
-//    };
-
-//    var proxy = new gp.ObjectProxy( dataItem, propertyChangedCallback );
-
-//    var props = Object.getOwnPropertyNames( dataItem );
-
-//    props.forEach( function ( prop ) {
-//        assert.equal( dataItem[prop], proxy[prop], 'object and its proxy should have identical properties' );
-//        proxy[prop] = i = !dataItem[prop];
-//        assert.notStrictEqual( dataItem[prop], proxy[prop], 'changing proxy should not effect original object' );
-//    } );
-
-//    assert.equal( propertyChanged, true, 'propertyChangedCallback should be called' );
-
-//} );
-
-//QUnit.test( 'api.findAll', function ( assert ) {
-
-//    var done = assert.async();
-
-//    gridponent( '#table .box', configuration ).ready( function () {
-
-//        // find all edit buttons
-//        var btn = this.findAll( 'button[value=edit]' );
-
-//        assert.ok( btn.length > 1 );
-
-//        done();
-
-//        this.dispose();
-
-//    } );
-
-//} );
-
 QUnit.test( 'coverage report', function ( assert ) {
 
     assert.ok( true );
@@ -3880,6 +3953,41 @@ fns.getHeaderText = function ( col ) {
 
 fns.getCustomHeader = function ( resources ) {
     return '<span style="color:red">' + resources.$column.field + '</span>';
+};
+
+fns.createProduct = function ( dataItem, done, fail ) {
+    // create a unique ProductID
+    var maxProductID = 0;
+    data.products.forEach( function ( product ) {
+        if ( product.ProductID > maxProductID ) {
+            maxProductID = product.ProductID;
+        }
+    } );
+    dataItem.ProductID = maxProductID + 1;
+    data.products.push( dataItem );
+    done( dataItem );
+};
+
+fns.updateProduct = function ( dataItem, done, fail ) {
+    var existing = data.products.filter( function ( obj ) {
+        return obj.ProductID === dataItem.ProductID;
+    } );
+    if ( existing.length === 1 ) {
+        gridponent.shallowCopy( dataItem, existing[0] );
+    }
+    done( dataItem );
+};
+
+fns.destroyProduct = function ( dataItem, done, fail ) {
+    var existing = data.products.filter( function ( obj ) {
+        return obj.ProductID === dataItem.ProductID;
+    } );
+    if ( existing.length === 1 ) {
+        var index = data.products.indexOf( existing[0] );
+        data.products.splice( index, 1 );
+        done( true );
+    }
+    done( false );
 };
 
 var configOptions = {

@@ -282,7 +282,7 @@ gp.Controller.prototype = {
         if ( proceed === false ) return;
         this.model.read( this.config.pageModel, function ( model ) {
             try {
-                // standardize capitalization of incoming data
+                // do a case-insensitive copy
                 gp.shallowCopy( model, self.config.pageModel, true );
                 self.injector.setResource( '$data', self.config.pageModel.data );
                 self.config.map.clear();
@@ -319,7 +319,8 @@ gp.Controller.prototype = {
 
         try {
             var self = this,
-                editor = this.getEditor();
+                editor = this.getEditor(),
+                tr;
 
             // if there is no update configuration setting, we're done here
             if ( !gp.hasValue( this.config.update ) ) {
@@ -329,7 +330,18 @@ gp.Controller.prototype = {
 
             editor.edit( dataItem );
 
-            editor.save( callback, this.httpErrorHandler.bind( this ) );
+            editor.save( function (model) {
+
+                tr = gp.getTableRow( self.config.map, dataItem, self.$n[0] );
+                if ( tr ) {
+                    self.refresh();
+                }
+
+                if ( typeof callback === 'function' ) {
+                    gp.applyFunc( callback, self, model );
+                }
+
+            }, this.httpErrorHandler.bind( this ) );
         }
         catch ( e ) {
             this.removeBusy();

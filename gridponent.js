@@ -493,7 +493,7 @@ gp.Controller.prototype = {
         if ( proceed === false ) return;
         this.model.read( this.config.pageModel, function ( model ) {
             try {
-                // standardize capitalization of incoming data
+                // do a case-insensitive copy
                 gp.shallowCopy( model, self.config.pageModel, true );
                 self.injector.setResource( '$data', self.config.pageModel.data );
                 self.config.map.clear();
@@ -530,7 +530,8 @@ gp.Controller.prototype = {
 
         try {
             var self = this,
-                editor = this.getEditor();
+                editor = this.getEditor(),
+                tr;
 
             // if there is no update configuration setting, we're done here
             if ( !gp.hasValue( this.config.update ) ) {
@@ -540,7 +541,18 @@ gp.Controller.prototype = {
 
             editor.edit( dataItem );
 
-            editor.save( callback, this.httpErrorHandler.bind( this ) );
+            editor.save( function (model) {
+
+                tr = gp.getTableRow( self.config.map, dataItem, self.$n[0] );
+                if ( tr ) {
+                    self.refresh();
+                }
+
+                if ( typeof callback === 'function' ) {
+                    gp.applyFunc( callback, self, model );
+                }
+
+            }, this.httpErrorHandler.bind( this ) );
         }
         catch ( e ) {
             this.removeBusy();
@@ -954,24 +966,19 @@ gp.Editor.prototype = {
             this.dal.create( this.dataItem, function ( updateModel ) {
 
                 try {
-                    // standardize capitalization of incoming data
-                    updateModel = gp.shallowCopy( updateModel, null, true );
+                    self.injector.setResource( '$mode', null );
 
                     if ( gp.hasValue( updateModel.errors )) {
                         self.validate( updateModel );
                     }
                     else {
-                        returnedDataItem = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem : ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] : self.dataItem;
-
-                        // add the new dataItem to the internal data array
-                        //self.config.pageModel.data.push( returnedDataItem );
+                        returnedDataItem = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem :
+                            ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] :
+                            gp.hasSameProps(updateModel, self.dataItem) ? updateModel : self.dataItem;
 
                         // copy to local dataItem so updateUI will bind to current data
-                        gp.shallowCopy( returnedDataItem, self.dataItem );
-
-                        // It's important to map the dataItem after it's saved because user could cancel.
-                        // Also the returned dataItem will likely have additional information added by the server.
-                        //uid = self.config.map.assign( returnedDataItem, self.elem );
+                        // do a case-insensitive copy
+                        gp.shallowCopy( returnedDataItem, self.dataItem, true );
 
                         self.updateUI( self.config, self.dataItem, self.elem );
 
@@ -1010,8 +1017,7 @@ gp.Editor.prototype = {
             this.dal.update( this.dataItem, function ( updateModel ) {
 
                 try {
-                    // standardize capitalization of incoming data
-                    updateModel = gp.shallowCopy( updateModel, null, true );
+                    self.injector.setResource( '$mode', null );
 
                     if ( gp.hasValue( updateModel.errors ) ) {
                         self.validate( updateModel );
@@ -1020,8 +1026,10 @@ gp.Editor.prototype = {
                         // copy the returned dataItem back to the internal data array
                         // use the existing dataItem if the response is empty
                         returnedDataItem = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem :
-                            ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] : self.dataItem;
-                        gp.shallowCopy( returnedDataItem, self.dataItem );
+                            ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] :
+                            gp.hasSameProps( updateModel, self.dataItem ) ? updateModel : self.dataItem;
+
+                        gp.shallowCopy( returnedDataItem, self.dataItem, true );
 
                         if ( self.elem ) {
                             // refresh the UI
@@ -1154,11 +1162,7 @@ gp.TableRowEditor.prototype = {
     },
 
     add: function (dataItem) {
-        var self = this,
-            tbody = this.$n.find( 'div.table-body > table > tbody' ),
-            builder = new gp.NodeBuilder(),
-            tr,
-            cellContent;
+        var tbody = this.$n.find( 'div.table-body > table > tbody' );
 
         // call the base add function
         // the base function sets the injector's $mode and $dataItem resources
@@ -1530,45 +1534,6 @@ gp.helpers = {
 };
 
 /***************\
-     http        
-\***************/
-gp.Http = function () { };
-
-gp.Http.prototype = {
-    get: function ( url, callback, error ) {
-        $.get( url ).done( callback ).fail( error );
-    },
-    post: function ( url, data, callback, error ) {
-        this.ajax( url, data, callback, error, 'POST' );
-    },
-    destroy: function ( url, callback, error ) {
-        this.ajax( url, null, callback, error, 'DELETE' );
-    },
-    ajax: function ( url, data, callback, error, httpVerb ) {
-        $.ajax( {
-            url: url,
-            type: httpVerb.toUpperCase(),
-            data: data,
-            contentType: 'application/x-www-form-urlencoded; charset=UTF-8'
-        } )
-            .done( callback )
-            .fail( function ( response ) {
-                if ( response.status ) {
-                    // don't know why jQuery calls fail on DELETE
-                    if ( response.status == 200 ) {
-                        callback( response );
-                        return;
-                    }
-                    // filter out authentication errors, those are usually handled by the browser
-                    if ( /401|403|407/.test( response.status ) == false && typeof error == 'function' ) {
-                        error( response );
-                    }
-                }
-            } );
-    }
-
-};
-/***************\
    Initializer
 \***************/
 gp.Initializer = function ( node ) {
@@ -1635,6 +1600,7 @@ gp.Initializer.prototype = {
                 dal.read( self.config.pageModel,
                     function ( data ) {
                         try {
+                            // do a case-insensitive copy
                             gp.shallowCopy( data, self.config.pageModel, true );
                             self.injector.setResource( '$data', self.config.pageModel.data );
                             gp.resolveTypes( self.config );
@@ -1735,12 +1701,6 @@ gp.Initializer.prototype = {
             if ( config.fixedheaders || config.fixedfooters ) {
                 var nodes = this.$n.find( '.table-body > table > tbody > tr:first-child > td' );
 
-                if ( gp.hasPositiveWidth( nodes ) ) {
-                    // call syncColumnWidths twice because the first call causes things to shift around a bit
-                    self.syncColumnWidths( config )
-                    self.syncColumnWidths( config )
-                }
-
                 window.addEventListener( 'resize', function () {
                     self.syncColumnWidths( config );
                 } );
@@ -1790,7 +1750,7 @@ gp.Initializer.prototype = {
             if ( template.length ) {
                 for ( var i = 0; i < $node[0].children.length; i++ ) {
                     if ( $node[0].children[i] == template[0] ) {
-                        prop = gp.camelize( n ) + suffix;
+                        prop = n + suffix;
                         config[prop] = template[0].innerHTML;
                         return;
                     }
@@ -1918,6 +1878,123 @@ gp.Injector.prototype = {
     }
 
 };
+/***************\
+   mock-http
+\***************/
+(function (gp) {
+    gp.Http = function () { };
+
+    // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
+    var routes = {
+        read: /read/i,
+        update: /update/i,
+        create: /create/i,
+        destroy: /Delete/i
+    };
+
+    gp.Http.prototype = {
+        post: function (url, model, callback, error) {
+            model = model || {};
+            if (routes.read.test(url)) {
+                getData(model, callback);
+            }
+            else if ( routes.create.test( url ) ) {
+                window.data.products.push( model );
+                callback( new gp.UpdateModel( model ) );
+            }
+            else if ( routes.update.test( url ) ) {
+                callback( new gp.UpdateModel(model) );
+            }
+            else {
+                throw '404 Not found: ' + url;
+            }
+        },
+        destroy: function ( url, callback, error ) {
+            callback( {
+                Success: true,
+                Message: ''
+            } );
+        }
+    };
+
+    var getData = function (model, callback) {
+        var count, d = window.data.products.slice( 0, window.data.length );
+
+        if (!gp.isNullOrEmpty(model.search)) {
+            var props = Object.getOwnPropertyNames(d[0]);
+            var search = model.search.toLowerCase();
+            d = d.filter(function (row) {
+                for (var i = 0; i < props.length; i++) {
+                    if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+        }
+        if (!gp.isNullOrEmpty(model.sort)) {
+            if (model.desc) {
+                d.sort(function (row1, row2) {
+                    var a = row1[model.sort];
+                    var b = row2[model.sort];
+                    if (a === null) {
+                        if (b != null) {
+                            return 1;
+                        }
+                    }
+                    else if (b === null) {
+                        // we already know a isn't null
+                        return -1;
+                    }
+                    if (a > b) {
+                        return -1;
+                    }
+                    if (a < b) {
+                        return 1;
+                    }
+
+                    return 0;
+                });
+            }
+            else {
+                d.sort(function (row1, row2) {
+                    var a = row1[model.sort];
+                    var b = row2[model.sort];
+                    if (a === null) {
+                        if (b != null) {
+                            return -1;
+                        }
+                    }
+                    else if (b === null) {
+                        // we already know a isn't null
+                        return 1;
+                    }
+                    if (a > b) {
+                        return 1;
+                    }
+                    if (a < b) {
+                        return -1;
+                    }
+
+                    return 0;
+                });
+            }
+        }
+        count = d.length;
+        if (model.top !== -1) {
+            model.data = d.slice(model.skip).slice(0, model.top);
+        }
+        else {
+            model.data = d;
+        }
+        model.errors = [];
+        setTimeout(function () {
+            callback(model);
+        });
+
+    };
+
+})(gridponent);
 /***************\
    ModelSync
 \***************/
@@ -2064,65 +2141,6 @@ gp.ModelSync = {
                 break;
         }
     }
-};
-/***************\
-   NodeBuilder
-\***************/
-
-gp.NodeBuilder = function ( parent ) {
-    this.node = parent || null;
-};
-
-gp.NodeBuilder.prototype = {
-
-    create: function ( tagName ) {
-        var n = document.createElement( tagName );
-
-        if ( this.node ) {
-            this.node.appendChild( n );
-        }
-
-        this.node = n;
-
-        return this;
-    },
-
-    addClass: function ( name ) {
-        if ( gp.isNullOrEmpty( name ) ) return this;
-
-        var hasClass = ( ' ' + this.node.className + ' ' ).indexOf( ' ' + name + ' ' ) !== -1;
-
-        if ( !hasClass ) {
-            this.node.className = ( this.node.className === '' ) ? name : this.node.className + ' ' + name;
-        }
-
-        return this;
-    },
-
-    html: function ( html ) {
-        this.node.innerHTML = gp.hasValue( html ) ? html : '';
-        return this;
-    },
-
-    endElem: function () {
-        if ( this.node.parentElement ) {
-            this.node = this.node.parentElement;
-        }
-        return this;
-    },
-
-    attr: function ( name, value ) {
-        this.node.setAttribute( name, value );
-        return this;
-    },
-
-    close: function () {
-        while ( this.node.parentElement ) {
-            this.node = this.node.parentElement;
-        }
-        return this.node;
-    }
-
 };
 /***************\
 server-side pager
@@ -3070,20 +3088,6 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         }
     };
 
-    gp.camelize = function ( str ) {
-        if ( gp.isNullOrEmpty( str ) ) return str;
-        return str
-            .replace( /[A-Z]([A-Z]+)/g, function ( _, c ) {
-                return _ ? _.substr( 0, 1 ) + c.toLowerCase() : '';
-            } )
-            .replace( /[-_](\w)/g, function ( _, c ) {
-                return c ? c.toUpperCase() : '';
-            } )
-            .replace( /^([A-Z])/, function ( _, c ) {
-                return c ? c.toLowerCase() : '';
-            } );
-    };
-
     gp.coalesce = function ( array ) {
         if ( gp.isNullOrEmpty( array ) ) return array;
 
@@ -3271,13 +3275,32 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         return typeof ( a );
     };
 
-    gp.hasPositiveWidth = function ( nodes ) {
-        if ( gp.isNullOrEmpty( nodes ) ) return false;
-        for ( var i = 0; i < nodes.length; i++ ) {
-            if ( nodes[i].offsetWidth > 0 ) return true;
+    gp.hasSameProps = function ( obj1, obj2 ) {
+        if ( typeof obj1 !== typeof obj2 ) return false;
+        // they're both null or undefined
+        if ( !gp.hasValue( obj1 ) ) return true;
+
+        // do a case-insensitive compare
+        var toLower = function(str) {
+            return str.toLowerCase();
+        };
+
+        var props1 = Object.getOwnPropertyNames( obj1 ).map( toLower ),
+            props2 = Object.getOwnPropertyNames( obj2 ).map( toLower );
+
+        if (props1.length < props2.length) {
+            for ( var i = 0; i < props1.length; i++) {
+                if ( props2.indexOf( props1[i] ) === -1 ) return false;
+            }
         }
-        return false;
-    };
+        else {
+            for ( var i = 0; i < props2.length; i++) {
+                if ( props1.indexOf( props2[i] ) === -1 ) return false;
+            }
+        }
+
+        return true;
+    }
 
     gp.hasValue = function ( val ) {
         return val !== undefined && val !== null;
@@ -3335,14 +3358,31 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         copyable: /^(object|date|array|function)$/
     };
 
-    gp.shallowCopy = function ( from, to, camelize ) {
+    gp.getMatchCI = function ( array, str ) {
+        // find str in array, ignoring case
+        if ( gp.isNullOrEmpty( array ) ) return null;
+        if ( !gp.hasValue(str) ) return null;
+        var s = str.toLowerCase();
+        for ( var i = 0; i < array.length; i++ ) {
+            if ( gp.hasValue(array[i]) && array[i].toLowerCase() === s ) return array[i];
+        }
+        return null;
+    };
+
+    gp.shallowCopy = function ( from, to, caseInsensitive ) {
         to = to || {};
         // IE is more strict about what it will accept
         // as an argument to getOwnPropertyNames
         if ( !gp.rexp.copyable.test( gp.getType( from ) ) ) return to;
-        var desc, p, props = Object.getOwnPropertyNames( from );
+        var desc,
+            p,
+            props = Object.getOwnPropertyNames( from ),
+            propsTo = Object.getOwnPropertyNames( to );
+
         props.forEach( function ( prop ) {
-            p = camelize ? gp.camelize( prop ) : prop;
+
+            p = caseInsensitive ? gp.getMatchCI( propsTo, prop ) || prop : prop;
+
             if ( to.hasOwnProperty( prop ) ) {
                 // check for a read-only property
                 desc = Object.getOwnPropertyDescriptor( to, prop );

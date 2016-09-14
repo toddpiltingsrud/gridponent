@@ -23,20 +23,6 @@
         }
     };
 
-    gp.camelize = function ( str ) {
-        if ( gp.isNullOrEmpty( str ) ) return str;
-        return str
-            .replace( /[A-Z]([A-Z]+)/g, function ( _, c ) {
-                return _ ? _.substr( 0, 1 ) + c.toLowerCase() : '';
-            } )
-            .replace( /[-_](\w)/g, function ( _, c ) {
-                return c ? c.toUpperCase() : '';
-            } )
-            .replace( /^([A-Z])/, function ( _, c ) {
-                return c ? c.toLowerCase() : '';
-            } );
-    };
-
     gp.coalesce = function ( array ) {
         if ( gp.isNullOrEmpty( array ) ) return array;
 
@@ -224,13 +210,32 @@
         return typeof ( a );
     };
 
-    gp.hasPositiveWidth = function ( nodes ) {
-        if ( gp.isNullOrEmpty( nodes ) ) return false;
-        for ( var i = 0; i < nodes.length; i++ ) {
-            if ( nodes[i].offsetWidth > 0 ) return true;
+    gp.hasSameProps = function ( obj1, obj2 ) {
+        if ( typeof obj1 !== typeof obj2 ) return false;
+        // they're both null or undefined
+        if ( !gp.hasValue( obj1 ) ) return true;
+
+        // do a case-insensitive compare
+        var toLower = function(str) {
+            return str.toLowerCase();
+        };
+
+        var props1 = Object.getOwnPropertyNames( obj1 ).map( toLower ),
+            props2 = Object.getOwnPropertyNames( obj2 ).map( toLower );
+
+        if (props1.length < props2.length) {
+            for ( var i = 0; i < props1.length; i++) {
+                if ( props2.indexOf( props1[i] ) === -1 ) return false;
+            }
         }
-        return false;
-    };
+        else {
+            for ( var i = 0; i < props2.length; i++) {
+                if ( props1.indexOf( props2[i] ) === -1 ) return false;
+            }
+        }
+
+        return true;
+    }
 
     gp.hasValue = function ( val ) {
         return val !== undefined && val !== null;
@@ -288,14 +293,31 @@
         copyable: /^(object|date|array|function)$/
     };
 
-    gp.shallowCopy = function ( from, to, camelize ) {
+    gp.getMatchCI = function ( array, str ) {
+        // find str in array, ignoring case
+        if ( gp.isNullOrEmpty( array ) ) return null;
+        if ( !gp.hasValue(str) ) return null;
+        var s = str.toLowerCase();
+        for ( var i = 0; i < array.length; i++ ) {
+            if ( gp.hasValue(array[i]) && array[i].toLowerCase() === s ) return array[i];
+        }
+        return null;
+    };
+
+    gp.shallowCopy = function ( from, to, caseInsensitive ) {
         to = to || {};
         // IE is more strict about what it will accept
         // as an argument to getOwnPropertyNames
         if ( !gp.rexp.copyable.test( gp.getType( from ) ) ) return to;
-        var desc, p, props = Object.getOwnPropertyNames( from );
+        var desc,
+            p,
+            props = Object.getOwnPropertyNames( from ),
+            propsTo = Object.getOwnPropertyNames( to );
+
         props.forEach( function ( prop ) {
-            p = camelize ? gp.camelize( prop ) : prop;
+
+            p = caseInsensitive ? gp.getMatchCI( propsTo, prop ) || prop : prop;
+
             if ( to.hasOwnProperty( prop ) ) {
                 // check for a read-only property
                 desc = Object.getOwnPropertyDescriptor( to, prop );
