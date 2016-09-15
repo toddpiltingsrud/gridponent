@@ -452,7 +452,7 @@ gp.templates.input = function ( model ) {
     var obj = {
         type: ( model.type == 'boolean' ? 'checkbox' : ( model.type == 'number' ? 'number' : 'text' ) ),
         name: model.name,
-        value: ( model.type == 'boolean' ? 'true' : ( model.type == 'date' ? gp.formatter.format( model.value, 'YYYY-MM-DD' ) : gp.escapeHTML( model.value ) ) ),
+        value: ( model.type == 'boolean' ? 'true' : ( model.type == 'date' ? gp.format( model.value, 'YYYY-MM-DD' ) : gp.escapeHTML( model.value ) ) ),
         checked: ( model.type == 'boolean' && model.value ? ' checked' : '' ),
         // Don't bother with the date input type.
         // Indicate the type using data-type attribute so a custom date picker can be used.

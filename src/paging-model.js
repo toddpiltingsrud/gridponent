@@ -33,3 +33,14 @@ gp.PagingModel = function (data) {
         }
     });
 };
+
+gp.PagingModel.prototype = {
+    top: -1, // this is a flag to let the pagers know if paging is enabled
+    page: 1,
+    sort: '',
+    desc: false,
+    search: '',
+    data: data || [],
+    totalrows: 0,
+    pagecount: 0
+};

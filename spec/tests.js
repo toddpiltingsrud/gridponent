@@ -1,3 +1,30 @@
+QUnit.test( 'gp.getFormattedValue', function ( assert ) {
+
+    var row = fns.model;
+
+    var col = {
+        format: '$0.00',
+        field: 'ListPrice'
+    }
+
+    var formatted = gp.getFormattedValue( row, col );
+
+    assert.strictEqual( formatted, '$123.45' );
+
+} );
+
+QUnit.test( 'gp.implements', function ( assert ) {
+
+    var model = {
+        top: 25
+    }
+
+    assert.ok( gp.implements( model, gp.PagingModel.prototype ) );
+
+    assert.ok( gp.implements( gp.PagingModel.prototype, model ) );
+
+} );
+
 QUnit.test( 'gp.getMatchCI', function ( assert ) {
 
     var ar = 'thiS IS a Test'.split( ' ' );
@@ -186,6 +213,20 @@ QUnit.test( 'api.toggleBusy', function ( assert ) {
 } );
 
 QUnit.test( 'inject', function ( assert ) {
+
+    var injector = new gp.Injector( {
+        $num: 5
+    } );
+
+    var func = function ( $number ) { }
+
+    try {
+        var args = injector.inject(func);
+        assert.ok( false, 'an injector parameter that starts with "$" that doesn not exist in the injector should throw' );
+    }
+    catch ( e ) {
+        assert.ok( true, 'an injector parameter that starts with "$" that doesn not exist in the injector should throw' );
+    }
 
     var done1 = assert.async();
     //var done2 = assert.async();
@@ -614,7 +655,7 @@ QUnit.test( 'override input', function ( assert ) {
         var obj = {
             type: ( model.type == 'boolean' ? 'checkbox' : ( model.type == 'number' ? 'number' : 'text' ) ),
             name: model.name,
-            value: ( model.type == 'boolean' ? 'true' : ( model.type == 'date' ? gp.formatter.format( model.value, 'YYYY-MM-DD' ) : gp.escapeHTML( model.value ) ) ),
+            value: ( model.type == 'boolean' ? 'true' : ( model.type == 'date' ? gp.format( model.value, 'YYYY-MM-DD' ) : gp.escapeHTML( model.value ) ) ),
             checked: ( model.type == 'boolean' && model.value ? ' checked' : '' ),
             // Don't bother with the date input type.
             // Indicate the type using data-type attribute so a custom date picker can be used.
@@ -1777,6 +1818,8 @@ QUnit.test( 'options', function ( assert ) {
         return '<span class="header-template">custom header</span>'
     };
 
+    options.containerclass = 'custom-container-class';
+
     gridponent( '#div1', options ).ready( function ( api ) {
 
         $( '#table .box' ).append( api.config.node );
@@ -1830,6 +1873,10 @@ QUnit.test( 'options', function ( assert ) {
 
         assert.strictEqual( fns.viewed, true );
 
+        var container = api.find( 'div.gp.custom-container-class' );
+
+        assert.strictEqual( container.length, 1, 'should be able to add a custom class to the container' );
+
         api.dispose();
 
         $( '#table .box' ).empty();
@@ -1850,6 +1897,23 @@ QUnit.test( 'read', function ( assert ) {
     var done3 = assert.async();
     var done4 = assert.async();
 
+    //// read as unsupported configuration
+    //var options2 = gp.shallowCopy( configuration );
+
+    //options2.read = 1;
+
+    //gridponent( '#table .box', options2 ).ready( function ( api ) {
+
+    //    api.dispose();
+
+    //    $( '#table .box' ).empty();
+
+    //    done5();
+
+    //} );
+
+
+    // URL
     var options = gp.shallowCopy( configOptions );
 
     options.read = '/Products/read?page={{page}}';
@@ -1888,6 +1952,7 @@ QUnit.test( 'read', function ( assert ) {
 
     } );
 
+
     // read as a PagingModel
     var options = gp.shallowCopy( configuration );
 
@@ -1914,6 +1979,7 @@ QUnit.test( 'read', function ( assert ) {
         done4();
 
     } );
+
 
 } );
 
@@ -2362,28 +2428,41 @@ QUnit.test( 'api.create 1', function ( assert ) {
         var cellCount2 = config.node.querySelectorAll( 'div.table-body tbody > tr:nth-child(1) td.body-cell' ).length;
         assert.strictEqual( cellCount1, cellCount2, 'should create the same number of cells' );
         api.dispose();
+        $( '#table .box' ).empty();
         done();
 
     } );
 
 } );
 
-//QUnit.test( 'api.create 2', function ( assert ) {
+QUnit.test( 'create as function', function ( assert ) {
 
-//    var done = assert.async();
+    var done = assert.async();
 
-//    getTableConfig( configOptions, function ( api ) {
+    var options = gp.shallowCopy( configuration );
 
-//        api.create( null, function ( updateModel ) {
-//            assert.ok( updateModel.dataItem != null, 'calling api.create with no dataItem should create a default one' );
+    options.create = function ( model ) {
 
-//            api.dispose();
-//            done();
-//        } );
+        assert.ok( true, 'create can be a function' );
 
-//    } );
+        done();
+    };
 
-//} );
+    gridponent( '#table .box', options).ready( function ( api ) {
+
+        api.create( fns.model );
+
+        var createBtn = api.find( '[value=create]' );
+
+        clickButton( createBtn[0] );
+
+        $( '#table .box' ).empty();
+
+        api.dispose();
+
+    } );
+
+} );
 
 //QUnit.test( 'api.create 3', function ( assert ) {
 
@@ -2862,6 +2941,7 @@ QUnit.test( 'gp.getType', function ( assert ) {
     assert.equal( gp.getType( 3.0 ), 'number' );
     assert.equal( gp.getType( {} ), 'object' );
     assert.equal( gp.getType( [] ), 'array' );
+    assert.equal( gp.getType( '/Date(12345)/' ), 'timestamp' );
 } );
 
 QUnit.test( 'gp.getObjectAtPath', function ( assert ) {
@@ -3509,6 +3589,9 @@ QUnit.test( 'gp.syncModel', function ( assert ) {
     gp.ModelSync.castValues( obj, columns );
     assert.equal( obj.bool, false, 'afterSync should return values after changing them' );
 
+    var result = gp.ModelSync.cast( 'true', null );
+    assert.strictEqual( result, true );
+
 } );
 
 QUnit.test( 'custom search filter', function ( assert ) {
@@ -3638,72 +3721,71 @@ QUnit.test( 'date formatting', function ( assert ) {
     // use local time so our test will work regardless of time zone
     var date = new Date( 2015, 11, 6, 13, 5, 6 );
 
-    var formatter = new gp.Formatter();
-
-    var formatted = formatter.format( date, 'M/D/YYYY' );
+    var formatted = gp.format( date, 'M/D/YYYY' );
     assert.equal( formatted, '12/6/2015' );
 
-    formatted = formatter.format( new Date( 2015, 11, 7, 13, 5, 6 ), 'M/D/YYYY' );
+    formatted = gp.format( new Date( 2015, 11, 7, 13, 5, 6 ), 'M/D/YYYY' );
     assert.equal( formatted, '12/7/2015' );
 
-    formatted = formatter.format( date, 'MMMM DD, YY' );
+    formatted = gp.format( date, 'MMMM DD, YY' );
     assert.equal( formatted, 'December 06, 15' );
 
-    formatted = formatter.format( date, 'MMM D, YY' );
+    formatted = gp.format( date, 'MMM D, YY' );
     assert.equal( formatted, 'Dec 6, 15' );
 
-    formatted = formatter.format( date, 'h:mm:ss A' );
+    formatted = gp.format( date, 'h:mm:ss A' );
     assert.equal( formatted, '1:05:06 PM' );
 
-    formatted = formatter.format( date, 'HH:mm' );
+    formatted = gp.format( date, 'HH:mm' );
     assert.equal( formatted, '13:05' );
 
-    formatted = formatter.format( date, 'dddd' );
+    formatted = gp.format( date, 'dddd' );
     assert.equal( formatted, 'Sunday' );
 
-    formatted = formatter.format( date, 'ddd' );
+    formatted = gp.format( date, 'ddd' );
     assert.equal( formatted, 'Sun' );
 
-    formatted = formatter.format( date, 'dd' );
+    formatted = gp.format( date, 'dd' );
     assert.equal( formatted, 'Su' );
+
+    formatted = gp.format( '/Date(0)/', 'M/D/YYYY' );
+    assert.equal( formatted, '12/31/1969' );
 
 } );
 
 QUnit.test( 'number formatting', function ( assert ) {
 
-    var formatter = new gp.Formatter();
-
-    var formatted = formatter.format( 5, '0%' );
+    var formatted = gp.format( 5, '0%' );
     assert.equal( formatted, '500%' );
 
-    formatted = formatter.format( .05, '0%' );
+    formatted = gp.format( .05, '0%' );
     assert.equal( formatted, '5%' );
 
-    formatted = formatter.format( .05, '0%' );
+    formatted = gp.format( .05, '0%' );
     assert.equal( formatted, '5%' );
 
-    formatted = formatter.format( .05, '0.00%' );
+    formatted = gp.format( .05, '0.00%' );
     assert.equal( formatted, '5.00%' );
 
-    formatted = formatter.format( .05, '0.00' );
+    formatted = gp.format( .05, '0.00' );
     assert.equal( formatted, '0.05' );
 
-    formatted = formatter.format( 1234.56, '0,0.0' );
+    formatted = gp.format( 1234.56, '0,0.0' );
     assert.equal( formatted, '1,234.6' );
 
-    formatted = formatter.format( 1234.56, '0,0.00' );
+    formatted = gp.format( 1234.56, '0,0.00' );
     assert.equal( formatted, '1,234.56' );
 
-    formatted = formatter.format( 1234.56, '0,0' );
+    formatted = gp.format( 1234.56, '0,0' );
     assert.equal( formatted, '1,235' );
 
-    formatted = formatter.format( 1234.56, '$0,0.00' );
+    formatted = gp.format( 1234.56, '$0,0.00' );
     assert.equal( formatted, '$1,234.56' );
 
-    formatted = formatter.format( 1234.56, '$0,0' );
+    formatted = gp.format( 1234.56, '$0,0' );
     assert.equal( formatted, '$1,235' );
 
-    formatted = formatter.format( 1234.56 );
+    formatted = gp.format( 1234.56 );
     assert.equal( formatted, '1,235' );
 } );
 
@@ -4185,7 +4267,11 @@ fns.model = {
     "FinishedGoodsFlag": false,
     "Color": "blue",
     "SafetyStockLevel": 0,
-    "ReorderPoint": 0, "StandardCost": 0, "ListPrice": 0, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0, "ProductLine": "", "Class": "", "Style": "C", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00", "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000", "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": "<p>Product's name: \"Adjustable Race\"</p>"
+    "ReorderPoint": 0, "StandardCost": 0,
+    "ListPrice": 123.4500, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0,
+    "ProductLine": "", "Class": "", "Style": "C", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00",
+    "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000",
+    "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": "<p>Product's name: \"Adjustable Race\"</p>"
 };
 
 // creete a read-only property on the model

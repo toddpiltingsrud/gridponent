@@ -84,7 +84,33 @@
         return obj;
     };
 
-    gp.formatter = new gp.Formatter();
+    gp.format = function ( val, format ) {
+        var type = gp.getType( val );
+
+        try {
+            if ( /^(date|datestring)$/.test( type ) ) {
+                if ( !window.moment ) return val;
+                format = format || 'M/D/YYYY h:mm a';
+                return moment( val ).format( format );
+            }
+            if ( type === 'timestamp' ) {
+                if ( !window.moment ) return val;
+                format = format || 'M/D/YYYY h:mm a';
+                val = parseInt( val.match( gp.rexp.timestamp )[1] );
+                return moment( val ).format( format );
+            }
+            if ( type === 'number' ) {
+                if ( !window.numeral ) return val;
+                // numeral's defaultFormat option doesn't work as of 3/25/2016
+                format = format || '0,0';
+                return numeral( val ).format( format );
+            }
+        }
+        catch ( e ) {
+            gp.error( e );
+        }
+        return val;
+    };
 
     gp.getAttributes = function ( node ) {
         var config = {}, name, attr, attrs = $(node)[0].attributes;
@@ -137,14 +163,14 @@
         var val = ( type === 'function' ? col.field( row ) : row[col.field] );
 
         if ( /^(date|datestring|timestamp)$/.test( type ) ) {
-            return gp.formatter.format( val, col.format );
+            return gp.format( val, col.format );
         }
         if ( /^(number|function)$/.test( type ) && col.format ) {
-            return gp.formatter.format( val, col.format );
+            return gp.format( val, col.format );
         }
         // if there's no type and there's a format and val is numeric then parse and format
         if ( type === '' && col.format && /^(?:\d*\.)?\d+$/.test( val ) ) {
-            return gp.formatter.format( parseFloat( val ), col.format );
+            return gp.format( parseFloat( val ), col.format );
         }
         if ( type === 'string' && escapeHTML ) {
             return gp.escapeHTML( val );
@@ -210,7 +236,11 @@
         return typeof ( a );
     };
 
-    gp.hasSameProps = function ( obj1, obj2 ) {
+    gp.hasValue = function ( val ) {
+        return val !== undefined && val !== null;
+    };
+
+    gp.implements = function ( obj1, obj2 ) {
         if ( typeof obj1 !== typeof obj2 ) return false;
         // they're both null or undefined
         if ( !gp.hasValue( obj1 ) ) return true;
@@ -236,10 +266,6 @@
 
         return true;
     }
-
-    gp.hasValue = function ( val ) {
-        return val !== undefined && val !== null;
-    };
 
     gp.isNullOrEmpty = function ( val ) {
         // if a string or array is passed, it'll be tested for both null and zero length

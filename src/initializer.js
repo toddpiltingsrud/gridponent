@@ -7,18 +7,20 @@ gp.Initializer = function ( node ) {
 
 gp.Initializer.prototype = {
 
+    // this is called when using custom HTML to create grids
     initialize: function ( callback ) {
         this.config = this.getConfig( this.parent );
         return this.initializeOptions( this.config, callback );
     },
 
+    // this is called when using JSON to create grids
     initializeOptions: function ( options, callback ) {
         var self = this;
         options.pageModel = {};
         options.ID = gp.createUID();
         this.config = options;
         this.config.map = new gp.DataMap();
-        this.config.pageModel = new gp.PagingModel();
+        this.config.pageModel = (gp.implements(this.config.read, gp.PagingModel.prototype)) ? this.config.read : new gp.PagingModel();
         this.config.editmode = this.config.editmode || 'inline';
         this.config.newrowposition = this.config.newrowposition || 'top';
 

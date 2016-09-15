@@ -4,14 +4,6 @@
 
 gp.helpers = {
 
-    setPagerFlags: function () {
-        this.pageModel.IsFirstPage = this.pageModel.page === 1;
-        this.pageModel.IsLastPage = this.pageModel.page === this.pageModel.pagecount;
-        this.pageModel.HasPages = this.pageModel.pagecount > 1;
-        this.pageModel.PreviousPage = this.pageModel.page === 1 ? 1 : this.pageModel.page - 1;
-        this.pageModel.NextPage = this.pageModel.page === this.pageModel.pagecount ? this.pageModel.pagecount : this.pageModel.page + 1;
-    },
-
     sortStyle: function ( config ) {
         // remove glyphicons from sort buttons
         var spans = $( config.node )

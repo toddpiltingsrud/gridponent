@@ -66,6 +66,7 @@
     <Content Include="src\editors.js" />
     <Content Include="src\injector.js" />
     <Content Include="src\model-sync.js" />
+    <Content Include="src\x-promise.js" />
     <Content Include="src\templates.js" />
     <Content Include="src\x-column-filter.js" />
     <Content Include="src\z-webcomponent.js" />
@@ -75,7 +76,6 @@
     <Content Include="src\gridponent.min.css">
       <DependentUpon>gridponent.css</DependentUpon>
     </Content>
-    <Content Include="src\format.js" />
     <Content Include="src\update-model.js" />
     <Content Include="src\string-builder.js" />
     <Content Include="src\api.js" />

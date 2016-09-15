@@ -131,8 +131,8 @@ gp.ModelSync = {
             case 'boolean':
                 return val != null && val.toLowerCase() == 'true';
                 break;
-            case 'null':
-            case 'undefined':
+            case null:
+            case undefined:
                 if ( /true|false/i.test( val ) ) {
                     // assume boolean
                     return val != null && val.toLowerCase() == 'true';

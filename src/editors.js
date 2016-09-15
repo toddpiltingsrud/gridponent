@@ -124,7 +124,7 @@ gp.Editor.prototype = {
                     else {
                         returnedDataItem = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem :
                             ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] :
-                            gp.hasSameProps(updateModel, self.dataItem) ? updateModel : self.dataItem;
+                            gp.implements(updateModel, self.dataItem) ? updateModel : self.dataItem;
 
                         // copy to local dataItem so updateUI will bind to current data
                         // do a case-insensitive copy
@@ -177,7 +177,7 @@ gp.Editor.prototype = {
                         // use the existing dataItem if the response is empty
                         returnedDataItem = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem :
                             ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] :
-                            gp.hasSameProps( updateModel, self.dataItem ) ? updateModel : self.dataItem;
+                            gp.implements( updateModel, self.dataItem ) ? updateModel : self.dataItem;
 
                         gp.shallowCopy( returnedDataItem, self.dataItem, true );
 

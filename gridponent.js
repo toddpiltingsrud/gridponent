@@ -14,59 +14,17 @@ var gridponent = gridponent || function ( elem, options ) {
         elem = document.querySelector( elem );
     }
     if ( elem instanceof HTMLElement ) {
-        var tblContainer = elem.querySelector( '.table-container' );
         // has this already been initialized?
+        var tblContainer = elem.querySelector( '.table-container' );
         if ( tblContainer && tblContainer.api ) return tblContainer.api;
 
-        if ( options ) {
-            var init = new gridponent.Initializer( elem );
-            var config = init.initializeOptions( options );
-            return config.node.api;
-        }
+        var init = new gridponent.Initializer( elem );
+        var config = init.initializeOptions( options );
+        return config.node.api;
     }
-
-    var obj = {
-        api: null,
-        callback: function () { },
-        ready: function ( callback ) {
-            if ( obj.api ) {
-                obj.api.ready(callback);
-            }
-            else obj.callback = callback;
-        }
-    };
-
-    gridponent.ready( function () {
-        // check for a selector
-        if ( typeof elem == 'string' ) {
-            elem = document.querySelector( elem );
-        }
-        if ( elem instanceof HTMLElement ) {
-            var tblContainer = elem.querySelector( '.table-container' );
-            // has this already been initialized?
-            if ( tblContainer && tblContainer.api ) {
-                if (obj.callback) {
-                    tblContainer.api.ready(obj.callback);
-                }
-                else {
-                    obj.api = tblContainer.api;
-                }
-            }
-
-            if ( options ) {
-                var init = new gridponent.Initializer( elem );
-                var config = init.initializeOptions( options );
-                if (obj.callback) {
-                    config.node.api.ready(obj.callback);
-                }
-                else {
-                    obj.api = config.node.api;
-                }
-            }
-        }
-    } );
-
-    return obj;
+    else {
+        throw new Error("Could not resolve selector: " + elem.toString());
+    }
 
 };
 
@@ -671,9 +629,12 @@ gp.DataLayer.prototype = {
                 return new gp.FunctionPager( this.config );
                 break;
             case 'object':
-                // read is a PagingModel
-                this.config.pageModel = this.config.read;
-                return new gp.ClientPager( this.config );
+                // is it a PagingModel?
+                if ( gp.implements( this.config.read, gp.PagingModel.prototype ) ) {
+                    this.config.pageModel = this.config.read;
+                    return new gp.ClientPager( this.config );
+                }
+                throw 'Unsupported read configuration';
                 break;
             case 'array':
                 this.config.pageModel.data = this.config.read;
@@ -974,7 +935,7 @@ gp.Editor.prototype = {
                     else {
                         returnedDataItem = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem :
                             ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] :
-                            gp.hasSameProps(updateModel, self.dataItem) ? updateModel : self.dataItem;
+                            gp.implements(updateModel, self.dataItem) ? updateModel : self.dataItem;
 
                         // copy to local dataItem so updateUI will bind to current data
                         // do a case-insensitive copy
@@ -1027,7 +988,7 @@ gp.Editor.prototype = {
                         // use the existing dataItem if the response is empty
                         returnedDataItem = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem :
                             ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] :
-                            gp.hasSameProps( updateModel, self.dataItem ) ? updateModel : self.dataItem;
+                            gp.implements( updateModel, self.dataItem ) ? updateModel : self.dataItem;
 
                         gp.shallowCopy( returnedDataItem, self.dataItem, true );
 
@@ -1469,55 +1430,10 @@ gp.ModalEditor.prototype = {
 
 };
 /***************\
-   formatter
-\***************/
-
-// Use moment.js to format dates.
-// Use numeral.js to format numbers.
-gp.Formatter = function () {};
-
-gp.Formatter.prototype = {
-    format: function (val, format) {
-        var type = gp.getType( val );
-
-        try {
-            if ( /^(date|datestring)$/.test( type ) ) {
-                if ( !window.moment ) return val;
-                format = format || 'M/D/YYYY h:mm a';
-                return moment( val ).format( format );
-            }
-            if ( type === 'timestamp' ) {
-                if ( !window.moment ) return val;
-                format = format || 'M/D/YYYY h:mm a';
-                val = parseInt( val.match( gp.rexp.timestamp )[1] );
-                return moment( val ).format( format );
-            }
-            if ( type === 'number' ) {
-                if ( !window.numeral ) return val;
-                // numeral's defaultFormat option doesn't work as of 3/25/2016
-                format = format || '0,0';
-                return numeral( val ).format( format );
-            }
-        }
-        catch ( e ) {
-            gp.error( e );
-        }
-        return val;
-    }
-};
-/***************\
     helpers
 \***************/
 
 gp.helpers = {
-
-    setPagerFlags: function () {
-        this.pageModel.IsFirstPage = this.pageModel.page === 1;
-        this.pageModel.IsLastPage = this.pageModel.page === this.pageModel.pagecount;
-        this.pageModel.HasPages = this.pageModel.pagecount > 1;
-        this.pageModel.PreviousPage = this.pageModel.page === 1 ? 1 : this.pageModel.page - 1;
-        this.pageModel.NextPage = this.pageModel.page === this.pageModel.pagecount ? this.pageModel.pagecount : this.pageModel.page + 1;
-    },
 
     sortStyle: function ( config ) {
         // remove glyphicons from sort buttons
@@ -1534,6 +1450,45 @@ gp.helpers = {
 };
 
 /***************\
+     http        
+\***************/
+gp.Http = function () { };
+
+gp.Http.prototype = {
+    get: function ( url, callback, error ) {
+        $.get( url ).done( callback ).fail( error );
+    },
+    post: function ( url, data, callback, error ) {
+        this.ajax( url, data, callback, error, 'POST' );
+    },
+    destroy: function ( url, callback, error ) {
+        this.ajax( url, null, callback, error, 'DELETE' );
+    },
+    ajax: function ( url, data, callback, error, httpVerb ) {
+        $.ajax( {
+            url: url,
+            type: httpVerb.toUpperCase(),
+            data: data,
+            contentType: 'application/x-www-form-urlencoded; charset=UTF-8'
+        } )
+            .done( callback )
+            .fail( function ( response ) {
+                if ( response.status ) {
+                    // don't know why jQuery calls fail on DELETE
+                    if ( response.status == 200 ) {
+                        callback( response );
+                        return;
+                    }
+                    // filter out authentication errors, those are usually handled by the browser
+                    if ( /401|403|407/.test( response.status ) == false && typeof error == 'function' ) {
+                        error( response );
+                    }
+                }
+            } );
+    }
+
+};
+/***************\
    Initializer
 \***************/
 gp.Initializer = function ( node ) {
@@ -1542,18 +1497,20 @@ gp.Initializer = function ( node ) {
 
 gp.Initializer.prototype = {
 
+    // this is called when using custom HTML to create grids
     initialize: function ( callback ) {
         this.config = this.getConfig( this.parent );
         return this.initializeOptions( this.config, callback );
     },
 
+    // this is called when using JSON to create grids
     initializeOptions: function ( options, callback ) {
         var self = this;
         options.pageModel = {};
         options.ID = gp.createUID();
         this.config = options;
         this.config.map = new gp.DataMap();
-        this.config.pageModel = new gp.PagingModel();
+        this.config.pageModel = (gp.implements(this.config.read, gp.PagingModel.prototype)) ? this.config.read : new gp.PagingModel();
         this.config.editmode = this.config.editmode || 'inline';
         this.config.newrowposition = this.config.newrowposition || 'top';
 
@@ -1879,123 +1836,6 @@ gp.Injector.prototype = {
 
 };
 /***************\
-   mock-http
-\***************/
-(function (gp) {
-    gp.Http = function () { };
-
-    // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
-    var routes = {
-        read: /read/i,
-        update: /update/i,
-        create: /create/i,
-        destroy: /Delete/i
-    };
-
-    gp.Http.prototype = {
-        post: function (url, model, callback, error) {
-            model = model || {};
-            if (routes.read.test(url)) {
-                getData(model, callback);
-            }
-            else if ( routes.create.test( url ) ) {
-                window.data.products.push( model );
-                callback( new gp.UpdateModel( model ) );
-            }
-            else if ( routes.update.test( url ) ) {
-                callback( new gp.UpdateModel(model) );
-            }
-            else {
-                throw '404 Not found: ' + url;
-            }
-        },
-        destroy: function ( url, callback, error ) {
-            callback( {
-                Success: true,
-                Message: ''
-            } );
-        }
-    };
-
-    var getData = function (model, callback) {
-        var count, d = window.data.products.slice( 0, window.data.length );
-
-        if (!gp.isNullOrEmpty(model.search)) {
-            var props = Object.getOwnPropertyNames(d[0]);
-            var search = model.search.toLowerCase();
-            d = d.filter(function (row) {
-                for (var i = 0; i < props.length; i++) {
-                    if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
-                        return true;
-                    }
-                }
-                return false;
-            });
-        }
-        if (!gp.isNullOrEmpty(model.sort)) {
-            if (model.desc) {
-                d.sort(function (row1, row2) {
-                    var a = row1[model.sort];
-                    var b = row2[model.sort];
-                    if (a === null) {
-                        if (b != null) {
-                            return 1;
-                        }
-                    }
-                    else if (b === null) {
-                        // we already know a isn't null
-                        return -1;
-                    }
-                    if (a > b) {
-                        return -1;
-                    }
-                    if (a < b) {
-                        return 1;
-                    }
-
-                    return 0;
-                });
-            }
-            else {
-                d.sort(function (row1, row2) {
-                    var a = row1[model.sort];
-                    var b = row2[model.sort];
-                    if (a === null) {
-                        if (b != null) {
-                            return -1;
-                        }
-                    }
-                    else if (b === null) {
-                        // we already know a isn't null
-                        return 1;
-                    }
-                    if (a > b) {
-                        return 1;
-                    }
-                    if (a < b) {
-                        return -1;
-                    }
-
-                    return 0;
-                });
-            }
-        }
-        count = d.length;
-        if (model.top !== -1) {
-            model.data = d.slice(model.skip).slice(0, model.top);
-        }
-        else {
-            model.data = d;
-        }
-        model.errors = [];
-        setTimeout(function () {
-            callback(model);
-        });
-
-    };
-
-})(gridponent);
-/***************\
    ModelSync
 \***************/
 
@@ -2128,8 +1968,8 @@ gp.ModelSync = {
             case 'boolean':
                 return val != null && val.toLowerCase() == 'true';
                 break;
-            case 'null':
-            case 'undefined':
+            case null:
+            case undefined:
                 if ( /true|false/i.test( val ) ) {
                     // assume boolean
                     return val != null && val.toLowerCase() == 'true';
@@ -2389,6 +2229,17 @@ gp.PagingModel = function (data) {
             return 0;
         }
     });
+};
+
+gp.PagingModel.prototype = {
+    top: -1, // this is a flag to let the pagers know if paging is enabled
+    page: 1,
+    sort: '',
+    desc: false,
+    search: '',
+    data: data || [],
+    totalrows: 0,
+    pagecount: 0
 };
 /***************\
   StringBuilder
@@ -2869,7 +2720,7 @@ gp.templates.input = function ( model ) {
     var obj = {
         type: ( model.type == 'boolean' ? 'checkbox' : ( model.type == 'number' ? 'number' : 'text' ) ),
         name: model.name,
-        value: ( model.type == 'boolean' ? 'true' : ( model.type == 'date' ? gp.formatter.format( model.value, 'YYYY-MM-DD' ) : gp.escapeHTML( model.value ) ) ),
+        value: ( model.type == 'boolean' ? 'true' : ( model.type == 'date' ? gp.format( model.value, 'YYYY-MM-DD' ) : gp.escapeHTML( model.value ) ) ),
         checked: ( model.type == 'boolean' && model.value ? ' checked' : '' ),
         // Don't bother with the date input type.
         // Indicate the type using data-type attribute so a custom date picker can be used.
@@ -3149,7 +3000,33 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         return obj;
     };
 
-    gp.formatter = new gp.Formatter();
+    gp.format = function ( val, format ) {
+        var type = gp.getType( val );
+
+        try {
+            if ( /^(date|datestring)$/.test( type ) ) {
+                if ( !window.moment ) return val;
+                format = format || 'M/D/YYYY h:mm a';
+                return moment( val ).format( format );
+            }
+            if ( type === 'timestamp' ) {
+                if ( !window.moment ) return val;
+                format = format || 'M/D/YYYY h:mm a';
+                val = parseInt( val.match( gp.rexp.timestamp )[1] );
+                return moment( val ).format( format );
+            }
+            if ( type === 'number' ) {
+                if ( !window.numeral ) return val;
+                // numeral's defaultFormat option doesn't work as of 3/25/2016
+                format = format || '0,0';
+                return numeral( val ).format( format );
+            }
+        }
+        catch ( e ) {
+            gp.error( e );
+        }
+        return val;
+    };
 
     gp.getAttributes = function ( node ) {
         var config = {}, name, attr, attrs = $(node)[0].attributes;
@@ -3202,14 +3079,14 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         var val = ( type === 'function' ? col.field( row ) : row[col.field] );
 
         if ( /^(date|datestring|timestamp)$/.test( type ) ) {
-            return gp.formatter.format( val, col.format );
+            return gp.format( val, col.format );
         }
         if ( /^(number|function)$/.test( type ) && col.format ) {
-            return gp.formatter.format( val, col.format );
+            return gp.format( val, col.format );
         }
         // if there's no type and there's a format and val is numeric then parse and format
         if ( type === '' && col.format && /^(?:\d*\.)?\d+$/.test( val ) ) {
-            return gp.formatter.format( parseFloat( val ), col.format );
+            return gp.format( parseFloat( val ), col.format );
         }
         if ( type === 'string' && escapeHTML ) {
             return gp.escapeHTML( val );
@@ -3275,7 +3152,11 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         return typeof ( a );
     };
 
-    gp.hasSameProps = function ( obj1, obj2 ) {
+    gp.hasValue = function ( val ) {
+        return val !== undefined && val !== null;
+    };
+
+    gp.implements = function ( obj1, obj2 ) {
         if ( typeof obj1 !== typeof obj2 ) return false;
         // they're both null or undefined
         if ( !gp.hasValue( obj1 ) ) return true;
@@ -3301,10 +3182,6 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
 
         return true;
     }
-
-    gp.hasValue = function ( val ) {
-        return val !== undefined && val !== null;
-    };
 
     gp.isNullOrEmpty = function ( val ) {
         // if a string or array is passed, it'll be tested for both null and zero length

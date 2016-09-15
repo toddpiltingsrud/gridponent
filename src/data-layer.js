@@ -17,9 +17,12 @@ gp.DataLayer.prototype = {
                 return new gp.FunctionPager( this.config );
                 break;
             case 'object':
-                // read is a PagingModel
-                this.config.pageModel = this.config.read;
-                return new gp.ClientPager( this.config );
+                // is it a PagingModel?
+                if ( gp.implements( this.config.read, gp.PagingModel.prototype ) ) {
+                    this.config.pageModel = this.config.read;
+                    return new gp.ClientPager( this.config );
+                }
+                throw 'Unsupported read configuration';
                 break;
             case 'array':
                 this.config.pageModel.data = this.config.read;
