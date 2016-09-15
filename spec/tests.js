@@ -2343,6 +2343,12 @@ QUnit.test( 'supplant', function ( assert ) {
     result = gp.supplant( template, obj );
     assert.equal( result, '<div class="the-class">You &amp; me</div>' );
 
+    // array
+    template = '<div class="the-class">{{0}}, {{0}} {{1}}</div>';
+    result = gp.supplant( template, ['Todd', 'Piltingsrud'] );
+    assert.equal( result, '<div class="the-class">Todd, Todd Piltingsrud</div>', 'Arrays should work the same as objects' );
+
+
 } );
 
 QUnit.test( 'getDefaultValue', function ( assert ) {

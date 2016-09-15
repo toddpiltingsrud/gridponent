@@ -2256,6 +2256,12 @@ gp.StringBuilder.prototype = {
         return this;
     },
 
+    addFormat: function ( str, args ) {
+        if ( !Array.isArray( args ) ) args = [args];
+        this.out.push( gp.supplant(str, args) );
+        return this;
+    },
+
     escape: function(str) {
         this.out.push( gp.escapeHTML( str ) );
         return this;
@@ -2423,32 +2429,29 @@ gp.templates.button = function ( model ) {
 
 gp.templates.columnWidthStyle = function ( $config, $columns ) {
     var html = new gp.StringBuilder(),
-        width,
         index = 0,
-        bodyCols = document.querySelectorAll( '#' + $config.ID + ' .table-body > table > tbody > tr:first-child > td' );
+        bodyCols = document.querySelectorAll( '#' + $config.ID + ' .table-body > table > tbody > tr:first-child > td' ),
+        px,
+        fixedWidth =
+            '#{{0}} .table-header th.header-cell:nth-child({{1}}),' +
+            '#{{0}} .table-footer td.footer-cell:nth-child({{1}}),' +
+            '#{{0}} > .table-body > table > thead th:nth-child({{1}}),' +
+            '#{{0}} > .table-body > table > tbody td:nth-child({{1}})' +
+            '{ width:{{2}}{{3}}; }',
+        thtd =
+            '#{{0}} .table-header th.header-cell:nth-child({{1}}),' +
+            '#{{0}} .table-footer td.footer-cell:nth-child({{1}}),' +
+            '{ width:{{2}}px; }';
 
     // even though the table might not exist yet, we still should render width styles because there might be fixed widths specified
     $columns.forEach( function ( col ) {
         if ( col.width ) {
-            // fixed width should include the body
-            html.add( '#' + $config.ID + ' .table-header th.header-cell:nth-child(' + ( index + 1 ) + '),' )
-                .add( '#' + $config.ID + ' .table-footer td.footer-cell:nth-child(' + ( index + 1 ) + ')' )
-                .add( ',' )
-                .add( '#' + $config.ID + ' > .table-body > table > thead th:nth-child(' + ( index + 1 ) + '),' )
-                .add( '#' + $config.ID + ' > .table-body > table > tbody td:nth-child(' + ( index + 1 ) + ')' )
-                .add( '{ width:' )
-                .add( col.width );
-            if ( isNaN( col.width ) == false ) html.add( 'px' );
-            html.add( ';}' );
+            px = ( isNaN( col.width ) == false ) ? 'px' : '';
+            html.addFormat( fixedWidth, [$config.ID, index + 1, col.width, px] );
         }
         else if ( bodyCols.length && ( $config.fixedheaders || $config.fixedfooters ) ) {
             // sync header and footer to body
-            width = bodyCols[index].offsetWidth;
-            html.add( '#' + $config.ID + ' .table-header th.header-cell:nth-child(' + ( index + 1 ) + '),' )
-                .add( '#' + $config.ID + ' .table-footer td.footer-cell:nth-child(' + ( index + 1 ) + ')' )
-                .add( '{ width:' )
-                .add( bodyCols[index].offsetWidth )
-                .add( 'px;}' );
+            html.addFormat( thtd, [$config.ID, index + 1, bodyCols[index].offsetWidth] );
         }
         index++;
     } );
@@ -2460,11 +2463,10 @@ gp.templates.columnWidthStyle.$inject = ['$config', '$columns'];
 
 gp.templates.container = function ( $config, $injector ) {
     var html = new gp.StringBuilder();
-    html.add( '<div class="gp table-container ' )
-        .add( $injector.exec( 'containerClasses' ) )
-        .add( '" id="' )
-        .add( $config.ID )
-        .add( '">' );
+    html.addFormat(
+        '<div class="gp table-container {{0}}" id="{{1}}">',
+        [$injector.exec( 'containerClasses' ), $config.ID]
+    );
     if ( $config.search || $config.create || $config.toolbar ) {
         html.add( '<div class="table-toolbar">' );
         html.add( $injector.exec( 'toolbar' ) );
@@ -2661,7 +2663,7 @@ gp.templates.headerCell = function ( $column, $config, $injector ) {
     html.add( '<th class="header-cell ' + ( $column.headerclass || '' ) + '"' );
 
     if ( gp.hasValue( sort ) ) {
-        html.add( ' data-sort="' + sort + '"' );
+        html.addFormat( ' data-sort="{{0}}"', sort );
     }
 
     html.add( '>' );
@@ -2700,9 +2702,7 @@ gp.templates.headerCellContent = function ( $column, $config ) {
         }
     }
     else if ( !gp.isNullOrEmpty( sort ) ) {
-        html.add( '<a href="javascript:void(0);" class="table-sort" value="sort" data-sort="' )
-            .escape( sort )
-            .add( '">' )
+        html.addFormat( '<a href="javascript:void(0);" class="table-sort" value="sort" data-sort="{{0}}">', sort )
             .escape( gp.coalesce( [$column.header, $column.field, sort] ) )
             .add( '<span class="glyphicon"></span>' )
             .add( '</a>' );
@@ -2799,9 +2799,7 @@ gp.templates.tableRow = function ( $injector, $mode, uid ) {
     var self = this,
         html = new gp.StringBuilder();
 
-    html.add( '<tr data-uid="' )
-        .add( uid )
-        .add( '"' );
+    html.addFormat( '<tr data-uid="{{0}}"', uid );
 
     if ( /create|update/.test( $mode ) ) {
         html.add( ' class="' ).add( $mode ).add( '-mode"' );
