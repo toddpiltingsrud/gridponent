@@ -166,7 +166,7 @@ gp.templates.columnWidthStyle = function ( $config, $columns ) {
             '{ width:{{2}}{{3}}; }',
         thtd =
             '#{{0}} .table-header th.header-cell:nth-child({{1}}),' +
-            '#{{0}} .table-footer td.footer-cell:nth-child({{1}}),' +
+            '#{{0}} .table-footer td.footer-cell:nth-child({{1}})' +
             '{ width:{{2}}px; }';
 
     // even though the table might not exist yet, we still should render width styles because there might be fixed widths specified
