@@ -205,11 +205,7 @@ gp.templates.container = function ( $config, $injector ) {
             .add( '</table>' )
             .add( '</div>' );
     }
-    html.add( '<div class="table-body ' );
-    if ( $config.fixedheaders ) {
-        html.add( 'table-scroll' );
-    }
-    html.add( '">' )
+    html.addFormat( '<div class="table-body{{0}}">', $config.fixedheaders ? ' table-scroll' : '' )
         .add( '<table class="table" cellpadding="0" cellspacing="0"><tbody></tbody></table>' )
         .add( '</div>' );
     if ( $config.fixedfooters ) {
@@ -544,18 +540,15 @@ gp.templates.tableRowCell = function ( $column, $injector, $mode ) {
         mode = $mode || 'read',
         html = new gp.StringBuilder();
 
-    html.add( '<td class="body-cell ' );
-    if ( $column.commands ) {
-        html.add( 'commands ' );
-    }
-    html.add( $column.bodyclass )
-        .add( '">' );
+    html.addFormat( '<td class="body-cell {{0}}{{1}}">',
+        [( $column.commands ? 'commands ' : '' ), $column.bodyclass]
+    );
 
     if ( /create|update/.test( mode ) && !$column.readonly) {
-        html.add( $injector.exec( 'editCellContent' ) )
+        html.add( $injector.exec( 'editCellContent' ) );
     }
     else {
-        html.add( $injector.exec( 'bodyCellContent' ) )
+        html.add( $injector.exec( 'bodyCellContent' ) );
     }
 
     html.add( '</td>' );
