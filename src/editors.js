@@ -588,7 +588,7 @@ gp.ModalEditor.prototype = {
 
         $( this.elem ).modal( 'hide' );
 
-        newTr = this.injector.exec( 'tableRow' );
+        newTr = this.injector.exec( 'tableRow', this.uid );
 
         // if we added a row, add a row to the top of the table
         if ( this.mode == 'create' ) {

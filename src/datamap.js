@@ -10,14 +10,10 @@ gp.DataMap = function () {
 
 gp.DataMap.prototype = {
 
-    assign: function ( dataItem, elem ) {
+    assign: function ( dataItem ) {
         var i = ++this.uid;
 
         this.map[i] = dataItem;
-
-        if ( elem && elem.setAttribute ) {
-            elem.setAttribute( 'data-uid', i.toString() );
-        }
 
         return i;
     },

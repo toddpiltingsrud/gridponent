@@ -139,7 +139,7 @@ gp.templates.bootstrapModalFooter = function ( $columns, $injector ) {
     } );
 
     if ( cmdColumn ) {
-        $injector.setResource( '$column', cmdColumn );
+        $injector.setResource( '$column', cmdColumn[0] );
         return $injector.exec( 'editCellContent' );
     }
 
@@ -575,10 +575,6 @@ gp.templates.tableRows = function ( $data, $map, $injector ) {
     var self = this,
         html = new gp.StringBuilder(),
         uid;
-    if ( !$map ) {
-        $map = new gp.DataMap();
-        $injector.setResource( '$map', $map );
-    }
     if ( $data == null ) return '';
     $data.forEach( function ( dataItem ) {
         // set the current data item on the injector

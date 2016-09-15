@@ -1,3 +1,60 @@
+QUnit.test( 'newrowposition', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    options.newrowposition = 'bottom';
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var addBtn = api.find( '[value=AddRow]' );
+
+        clickButton( addBtn[0] );
+
+        var row = api.find( 'table.table tbody tr:last-child' );
+
+        assert.ok( row.is( '.create-mode' ), 'new row should be appended to the bottom of the table' );
+
+        var cancelBtn = api.find( '[value=cancel]' );
+
+        clickButton( cancelBtn[0] );
+
+        var row = api.find( 'table.table tbody tr:last-child' );
+
+        assert.ok( row.is( '.create-mode' ) == false, 'new row should be cancelled' );
+
+        var uid = row.attr( 'data-uid' );
+
+        options.editmode = 'modal';
+
+        api.editReady( function () {
+
+            var createBtn = api.find( '.modal [value=create]' )
+
+            clickButton( createBtn[0] );
+
+            row = api.find( 'table.table tbody tr:last-child' );
+
+            var newuid = row.attr( 'data-uid' );
+
+            assert.ok( $.isNumeric( newuid ) );
+
+            assert.notStrictEqual( uid, newuid, 'new row should be appended to the bottom of the table' );
+
+            api.dispose();
+
+            $( '#table .box' ).empty();
+
+            done1();
+        } );
+    
+        clickButton( addBtn[0] );
+
+    } );
+
+} );
+
 QUnit.test( 'gp.getFormattedValue', function ( assert ) {
 
     var row = fns.model;
@@ -1599,6 +1656,19 @@ QUnit.test( 'model', function ( assert ) {
         assert.equal( config.columns[2].Type, 'boolean' );
         assert.equal( config.columns[4].Type, 'number' );
         assert.equal( config.columns[5].Type, 'datestring' );
+
+        // trigger row creation
+        var btn = api.find( '[value=AddRow]' );
+
+        clickButton( btn );
+
+        // verify the created row has the same property values as options.model
+        var last = api.config.pageModel.data[api.config.pageModel.data.length - 1];
+
+        assert.equal( last.ProductNumber, api.config.model.ProductNumber );
+        assert.equal( last.Name, api.config.model.Name );
+        assert.equal( last.ListPrice, api.config.model.ListPrice );
+        assert.equal( last.MakeFlag, api.config.model.MakeFlag );
 
         done();
 
