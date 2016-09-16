@@ -102,10 +102,6 @@
 
         <div class="tab" id="coverage">
             <h3>coverage report</h3>
-            <div class="box-border dark">
-                <div class="box dark">
-                </div>
-            </div>
 
             <h3>gaps</h3>
 
@@ -116,31 +112,31 @@
 
             <script>
                 var cov = cov || {};
-                $( function () {
-                    var boxWidth = $( '#coverage .box' ).width() - 2;
-                    $( '#coverage .box' ).first().html( '<canvas id="coverage-bar" class="coverage-bar" width="' + boxWidth + '" height="30"></canvas>' );
+                //$( function () {
+                    //var boxWidth = $( '#coverage .box' ).width() - 2;
+                    //$( '#coverage .box' ).first().html( '<canvas id="coverage-bar" class="coverage-bar" width="' + boxWidth + '" height="30"></canvas>' );
 
-                    // calculate width of segments in coverage-bar based on cov.maxCoverage
+                    //// calculate width of segments in coverage-bar based on cov.maxCoverage
 
-                    var canvas = document.getElementById( 'coverage-bar' );
-                    var ctx = canvas.getContext( '2d' );
+                    //var canvas = document.getElementById( 'coverage-bar' );
+                    //var ctx = canvas.getContext( '2d' );
 
-                    var lineargradient = ctx.createLinearGradient( 0, 0, 0, 30 );
-                    lineargradient.addColorStop( 0, '#55FF55' );
-                    lineargradient.addColorStop( 1, '#00AA00' );
+                    //var lineargradient = ctx.createLinearGradient( 0, 0, 0, 30 );
+                    //lineargradient.addColorStop( 0, '#55FF55' );
+                    //lineargradient.addColorStop( 1, '#00AA00' );
 
-                    ctx.fillStyle = lineargradient;
+                    //ctx.fillStyle = lineargradient;
 
-                    var barWidth = $( canvas ).width();
+                    //var barWidth = $( canvas ).width();
 
-                    //var barWidth = bar.width();
-                    var segmentWidth = barWidth / cov.maxCoverage;
+                    ////var barWidth = bar.width();
+                    //var segmentWidth = barWidth / cov.maxCoverage;
 
-                    cov.callout = function ( index ) {
-                        var left = ((index - 1) / cov.maxCoverage) * barWidth;
-                        ctx.fillRect( left, 0, segmentWidth, 30 );
-                    }
-                } );
+                    //cov.callout = function ( index ) {
+                    //    var left = ((index - 1) / cov.maxCoverage) * barWidth;
+                    //    ctx.fillRect( left, 0, segmentWidth, 30 );
+                    //}
+                //} );
             </script>
             <style type="text/css">
                 .coverage-bar {

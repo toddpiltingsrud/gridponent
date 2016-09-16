@@ -746,14 +746,10 @@ gp.DataMap = function () {
 
 gp.DataMap.prototype = {
 
-    assign: function ( dataItem, elem ) {
+    assign: function ( dataItem ) {
         var i = ++this.uid;
 
         this.map[i] = dataItem;
-
-        if ( elem && elem.setAttribute ) {
-            elem.setAttribute( 'data-uid', i.toString() );
-        }
 
         return i;
     },
@@ -1399,7 +1395,7 @@ gp.ModalEditor.prototype = {
 
         $( this.elem ).modal( 'hide' );
 
-        newTr = this.injector.exec( 'tableRow' );
+        newTr = this.injector.exec( 'tableRow', this.uid );
 
         // if we added a row, add a row to the top of the table
         if ( this.mode == 'create' ) {
@@ -2413,7 +2409,7 @@ gp.templates.bootstrapModalFooter = function ( $columns, $injector ) {
     } );
 
     if ( cmdColumn ) {
-        $injector.setResource( '$column', cmdColumn );
+        $injector.setResource( '$column', cmdColumn[0] );
         return $injector.exec( 'editCellContent' );
     }
 
@@ -2819,10 +2815,10 @@ gp.templates.tableRowCell = function ( $column, $injector, $mode ) {
     );
 
     if ( /create|update/.test( mode ) && !$column.readonly) {
-        html.add( $injector.exec( 'editCellContent' ) )
+        html.add( $injector.exec( 'editCellContent' ) );
     }
     else {
-        html.add( $injector.exec( 'bodyCellContent' ) )
+        html.add( $injector.exec( 'bodyCellContent' ) );
     }
 
     html.add( '</td>' );
@@ -2849,10 +2845,6 @@ gp.templates.tableRows = function ( $data, $map, $injector ) {
     var self = this,
         html = new gp.StringBuilder(),
         uid;
-    if ( !$map ) {
-        $map = new gp.DataMap();
-        $injector.setResource( '$map', $map );
-    }
     if ( $data == null ) return '';
     $data.forEach( function ( dataItem ) {
         // set the current data item on the injector
