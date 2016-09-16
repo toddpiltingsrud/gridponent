@@ -41,6 +41,9 @@
   bottom: 0;
   left: 0;
 }
+.gp.search-bottom-left .table-toolbar .searchbox {
+  margin-right: 5px;
+}
 .gp.search-bottom-right {
   padding-bottom: 50px;
 }
@@ -49,8 +52,9 @@
   bottom: 0;
   right: 0;
 }
-.gp.search-bottom-right .gridponent-searchbox {
+.gp.search-bottom-right .searchbox {
   float: right;
+  margin-left: 5px;
 }
 .gp.search-top-right {
   padding-top: 40px;
@@ -60,9 +64,10 @@
   top: 0;
   right: 0;
 }
-.gp.search-top-right .gridponent-searchbox {
+.gp.search-top-right .searchbox {
   max-width: 220px;
   float: right;
+  margin-left: 5px;
 }
 .gp.search-top-left {
   padding-top: 40px;
@@ -71,6 +76,9 @@
   position: absolute;
   top: 0;
   left: 0;
+}
+.gp.search-top-left .table-toolbar .searchbox {
+  margin-right: 5px;
 }
 .gp.selectable div.table-body > table > tbody > tr:hover {
   background: #fff;
@@ -140,10 +148,7 @@
   opacity: 1;
 }
 .gp .table-toolbar {
-  min-width: 300px;
-}
-.gp .table-toolbar button[value=create] {
-  margin-left: 5px;
+  width: auto;
 }
 .gp .gp-progress-overlay {
   z-index: -1;
@@ -192,16 +197,14 @@
   display: none;
 }
 .gp a:link[value].table-sort > span.glyphicon.glyphicon-chevron-up,
-.gp a:link[value].table-sort > span.glyphicon .glyphicon-chevron-down {
+.gp a:link[value].table-sort > span.glyphicon.glyphicon-chevron-down {
   display: inline;
 }
 .gp a:link[value].table-sort:hover,
 .gp a:link[value].table-sort:active,
 .gp a:link[value].table-sort:focus {
   text-decoration: none;
-}
-.gp a:link[value].table-sort > input {
-  display: none;
+  outline: none;
 }
 .gp a:link[value].table-sort:after {
   font-family: 'Glyphicons Halflings';
@@ -225,7 +228,7 @@
 .gp .table-header th {
   text-align: left;
 }
-.gp .gridponent-searchbox {
+.gp .searchbox {
   max-width: 220px;
   float: left;
 }

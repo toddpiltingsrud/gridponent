@@ -50,6 +50,7 @@
       <LastGenOutput>gridponent.js</LastGenOutput>
     </Content>
     <Content Include="spec\fonts\glyphicons-halflings-regular.svg" />
+    <Content Include="spec\tables.html" />
     <Content Include="spec\scratchpad.html" />
     <Content Include="spec\scripts\bootstrap-datepicker.min.js" />
     <Content Include="spec\scripts\bootstrap.min.js" />

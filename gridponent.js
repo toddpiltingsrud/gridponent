@@ -2870,7 +2870,7 @@ gp.templates.toolbar = function ( $config, $injector ) {
     var html = new gp.StringBuilder();
 
     if ( $config.search ) {
-        html.add( '<div class="input-group gridponent-searchbox">' )
+        html.add( '<div class="input-group searchbox">' )
             .add( '<input type="text" name="search" class="form-control" placeholder="Search...">' )
             .add( '<span class="input-group-btn">' )
             .add( $injector.exec( 'button', {

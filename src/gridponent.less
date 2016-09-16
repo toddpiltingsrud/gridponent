@@ -48,6 +48,10 @@
             position: absolute;
             bottom: 0;
             left: 0;
+
+            .searchbox {
+                margin-right:5px;
+            }
         }
     }
 
@@ -60,8 +64,9 @@
             right: 0;
         }
 
-        .gridponent-searchbox {
+        .searchbox {
             float: right;
+            margin-left:5px;
         }
     }
 
@@ -74,9 +79,10 @@
             right: 0;
         }
 
-        .gridponent-searchbox {
+        .searchbox {
             max-width:220px;
             float: right;
+            margin-left:5px;
         }
     }
 
@@ -87,6 +93,10 @@
             position: absolute;
             top: 0;
             left: 0;
+
+            .searchbox {
+                margin-right:5px;
+            }
         }
     }
 
@@ -175,11 +185,7 @@
     }
 
     .table-toolbar {
-        min-width: 300px;
-
-        button[value=create] {
-            margin-left: 5px;
-        }
+        width: auto;
     }
 
     .gp-progress-overlay {
@@ -231,17 +237,15 @@
             margin-left:2px;
             display:none;
 
-            &.glyphicon-chevron-up,.glyphicon-chevron-down {
+            &.glyphicon-chevron-up,
+            &.glyphicon-chevron-down {
                 display:inline;
             }
         }
 
         &:hover,&:active,&:focus {
             text-decoration:none;
-        }
-
-        & > input {
-            display: none;
+            outline:none;
         }
 
         &:after {
@@ -273,7 +277,7 @@
         text-align: left;
     }
 
-    .gridponent-searchbox {
+    .searchbox {
         max-width: 220px;
         float: left;
     }

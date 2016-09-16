@@ -1,0 +1,145 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>gridponent tests</title>
+    <link href="styles/bootstrap.min.css" rel="stylesheet">
+    <link href="styles/styles.css" rel="stylesheet">
+    <link href="../src/gridponent.css" rel="stylesheet">
+    <script src="scripts/jquery-2.1.4.min.js"></script>
+    <script src="scripts/moment.min.js"></script>
+    <script src="scripts/numeral.min.js"></script>
+    <script src="../data/products.js"></script>
+    <script src="../gridponent.js"></script>
+    <script src="scripts/bootstrap.min.js"></script>
+    <style type="text/css">
+        .gp td.body-cell.align-right {
+            text-align:right;
+        }
+        .gp td.body-cell.align-center {
+            text-align:center;
+        }
+    </style>
+</head>
+<body>
+
+    <script>
+        var fns = fns || {};
+        fns.createProduct = function ( dataItem, done, fail ) {
+            // create a unique ProductID
+            var maxProductID = 0;
+            data.products.forEach( function ( product ) {
+                if ( product.ProductID > maxProductID ) {
+                    maxProductID = product.ProductID;
+                }
+            } );
+            dataItem.ProductID = maxProductID + 1;
+            data.products.push( dataItem );
+            done( dataItem );
+        };
+        fns.updateProduct = function ( dataItem, done, fail ) {
+            var existing = data.products.filter( function ( obj ) {
+                return obj.ProductID === dataItem.ProductID;
+            } );
+            if ( existing.length === 1 ) {
+                gridponent.shallowCopy( dataItem, existing[0] );
+            }
+            done( dataItem );
+        };
+        fns.destroyProduct = function ( dataItem, done, fail ) {
+            var existing = data.products.filter( function ( obj ) {
+                return obj.ProductID === dataItem.ProductID;
+            } );
+            if ( existing.length === 1 ) {
+                var index = data.products.indexOf( existing[0] );
+                data.products.splice( index, 1 );
+                done( true );
+            }
+            done( false );
+        };
+        fns.getColor = function ( dataItem ) {
+            return dataItem.Color ? dataItem.Color.toLowerCase() : 'transparent';
+        }
+    </script>
+
+    <div class="container">
+
+        <div class="row">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    Products 1
+                </div>
+                <div class="panel-body">
+                    <grid-ponent fixed-headers
+                                 sorting
+                                 read="data.products"
+                                 create="fns.createProduct"
+                                 update="fns.updateProduct"
+                                 destroy="fns.destroyProduct"
+                                 pager="top-right"
+                                 search="top-left">
+                        <gp-column commands="Edit,Delete"></gp-column>
+                        <gp-column field="ProductID" header="Product ID"></gp-column>
+                        <gp-column field="Name"></gp-column>
+                        <gp-column field="ProductNumber" header="Product Nbr"></gp-column>
+                        <gp-column field="MakeFlag" header="Make?"></gp-column>
+                        <gp-column field="Color">
+                            <script type="text/html" data-template="body">
+                                <span class="glyphicon glyphicon-stop" style="color:{{fns.getColor}}"></span> {{Color}}
+                            </script>
+                        </gp-column>
+                        <gp-column field="ListPrice" header="List Price" format="$0.00"></gp-column>
+                        <gp-column field="SellStartDate" header="Sell Start Date" format="M/D/YYYY"></gp-column>
+                        <gp-column field="Markup"></gp-column>
+                    </grid-ponent>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="row">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    Products 2
+                </div>
+                <div class="panel-body" id="products2">
+
+                    <script>
+                        gridponent( '#products2', {
+                            fixedheaders: true,
+                            sorting: true,
+                            read: { data: data.products, sort: 'Name', desc: true },
+                            create: fns.createProduct,
+                            update: fns.updateProduct,
+                            destroy: fns.destroyProduct,
+                            pager: 'bottom-right',
+                            search: 'top-right',
+                            columns: [
+                                {field:'ProductID', header: 'Product ID'},
+                                { field: 'Name' },
+                                { field: 'ProductNumber', header: 'Product Nbr' },
+                                { field: 'MakeFlag', header: 'Make Flag' },
+                                { bodytemplate: '<span class="glyphicon glyphicon-stop" style="color:{{fns.getColor}}"></span> {{Color}}' },
+                                { field: 'ListPrice', header: 'List Price', format: '$0.00', bodyclass: 'align-right' },
+                                { field: 'SellStartDate', header: 'Sell Start Date', format: 'M/YYYY', bodyclass: 'align-center' },
+                                { field: 'Markup' },
+                                { commands: 'Edit,Delete' }
+                            ]
+                        } );
+                    </script>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+</body>
+</html>
