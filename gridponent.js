@@ -144,6 +144,7 @@ gp.api.prototype = {
 
 };
 
+// add a function for each event
 Object.getOwnPropertyNames( gp.events ).forEach( function ( evt ) {
 
     gp.api.prototype[evt] = function ( callback ) {
@@ -155,10 +156,13 @@ Object.getOwnPropertyNames( gp.events ).forEach( function ( evt ) {
 
 } );
 
+// replace the 'ready' and 'rowSelected' api functions created in the loop above
+
 gp.api.prototype.ready = function ( callback ) {
     this.controller.ready( callback );
     return this;
 };
+
 
 gp.api.prototype.rowSelected = function ( callback ) {
     if ( typeof callback === 'function' ) {
@@ -179,6 +183,9 @@ gp.Controller = function ( config, model, requestModel, injector ) {
     if ( config.pager ) {
         this.requestModel.top = 25;
     }
+    // calling bind returns a new function
+    // so to be able to remove the handlers later, 
+    // we need to call bind once and store the result
     this.handlers = {
         readHandler: this.read.bind( this ),
         commandHandler: this.commandHandler.bind( this ),
@@ -395,14 +402,15 @@ gp.Controller.prototype = {
     rowSelectHandler: function ( evt ) {
         var config = this.config,
             tr = $( evt.target ).closest( 'tr', config.node ),
-            trs = this.$n.find( 'div.table-body > table > tbody > tr.selected' ),
+            selected = this.$n.find( 'div.table-body > table > tbody > tr.selected' ),
             type = typeof config.rowselected,
             dataItem,
             proceed;
 
+        // simple test to see if config.rowselected is a template
         if ( type === 'string' && config.rowselected.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
 
-        trs.removeClass( 'selected' );
+        selected.removeClass( 'selected' );
 
         // add selected class
         $( tr ).addClass( 'selected' );
@@ -2233,7 +2241,7 @@ gp.PagingModel.prototype = {
     sort: '',
     desc: false,
     search: '',
-    data: [],
+    data: data || [],
     totalrows: 0,
     pagecount: 0
 };
@@ -2330,9 +2338,6 @@ gp.templates.bootstrapModal = function ( $config, $dataItem, $injector, $mode ) 
         uid: $config.map.getUid( $dataItem )
     };
 
-    model.footer = model.footer ||
-        '<div class="btn-group"><button type="button" class="btn btn-default" value="cancel"><span class="glyphicon glyphicon-remove"></span>Close</button><button type="button" class="btn btn-primary" value="save"><span class="glyphicon glyphicon-save"></span>Save changes</button></div>';
-
     var html = new gp.StringBuilder();
     html.add( '<div class="modal fade" tabindex="-1" role="dialog" data-uid="{{uid}}">' )
         .add( '<div class="modal-dialog" role="document">' )
@@ -2408,12 +2413,12 @@ gp.templates.bootstrapModalFooter = function ( $columns, $injector ) {
         return col.commands;
     } );
 
-    if ( cmdColumn ) {
+    if ( cmdColumn.length ) {
         $injector.setResource( '$column', cmdColumn[0] );
         return $injector.exec( 'editCellContent' );
     }
 
-    return '';
+    return '<div class="btn-group"><button type="button" class="btn btn-default" value="cancel"><span class="glyphicon glyphicon-remove"></span>Close</button><button type="button" class="btn btn-primary" value="save"><span class="glyphicon glyphicon-save"></span>Save changes</button></div>';
 };
 
 gp.templates.bootstrapModalFooter.$inject = ['$columns', '$injector'];
@@ -2887,13 +2892,6 @@ gp.templates.toolbar = function ( $config, $injector ) {
 };
 
 gp.templates.toolbar.$inject = ['$config', '$injector'];
-
-// backward compatibility
-gp.templates.toolbartemplate = gp.templates.toolbar;
-
-// backward compatibility
-gp.templates.toolbartemplate.$inject = gp.templates.toolbar.$inject;
-
 /***************\
    UpdateModel
 \***************/
@@ -3204,6 +3202,8 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
                 // if we haven't found a value after 25 iterations, give up
                 for ( var i = 0; i < config.pageModel.data.length && i < 25 ; i++ ) {
                     val = config.pageModel.data[i][field];
+                    // no need to use gp.hasValue here
+                    // if val is undefined that means the column doesn't exist
                     if ( val !== null ) {
                         col.Type = gp.getType( val );
                         break;

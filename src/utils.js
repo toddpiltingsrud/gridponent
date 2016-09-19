@@ -298,6 +298,8 @@
                 // if we haven't found a value after 25 iterations, give up
                 for ( var i = 0; i < config.pageModel.data.length && i < 25 ; i++ ) {
                     val = config.pageModel.data[i][field];
+                    // no need to use gp.hasValue here
+                    // if val is undefined that means the column doesn't exist
                     if ( val !== null ) {
                         col.Type = gp.getType( val );
                         break;

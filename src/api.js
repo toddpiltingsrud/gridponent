@@ -112,6 +112,7 @@ gp.api.prototype = {
 
 };
 
+// add a function for each event
 Object.getOwnPropertyNames( gp.events ).forEach( function ( evt ) {
 
     gp.api.prototype[evt] = function ( callback ) {
@@ -123,10 +124,13 @@ Object.getOwnPropertyNames( gp.events ).forEach( function ( evt ) {
 
 } );
 
+// replace the 'ready' and 'rowSelected' api functions created in the loop above
+
 gp.api.prototype.ready = function ( callback ) {
     this.controller.ready( callback );
     return this;
 };
+
 
 gp.api.prototype.rowSelected = function ( callback ) {
     if ( typeof callback === 'function' ) {

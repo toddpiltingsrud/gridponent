@@ -60,9 +60,6 @@ gp.templates.bootstrapModal = function ( $config, $dataItem, $injector, $mode ) 
         uid: $config.map.getUid( $dataItem )
     };
 
-    model.footer = model.footer ||
-        '<div class="btn-group"><button type="button" class="btn btn-default" value="cancel"><span class="glyphicon glyphicon-remove"></span>Close</button><button type="button" class="btn btn-primary" value="save"><span class="glyphicon glyphicon-save"></span>Save changes</button></div>';
-
     var html = new gp.StringBuilder();
     html.add( '<div class="modal fade" tabindex="-1" role="dialog" data-uid="{{uid}}">' )
         .add( '<div class="modal-dialog" role="document">' )
@@ -138,12 +135,12 @@ gp.templates.bootstrapModalFooter = function ( $columns, $injector ) {
         return col.commands;
     } );
 
-    if ( cmdColumn ) {
+    if ( cmdColumn.length ) {
         $injector.setResource( '$column', cmdColumn[0] );
         return $injector.exec( 'editCellContent' );
     }
 
-    return '';
+    return '<div class="btn-group"><button type="button" class="btn btn-default" value="cancel"><span class="glyphicon glyphicon-remove"></span>Close</button><button type="button" class="btn btn-primary" value="save"><span class="glyphicon glyphicon-save"></span>Save changes</button></div>';
 };
 
 gp.templates.bootstrapModalFooter.$inject = ['$columns', '$injector'];

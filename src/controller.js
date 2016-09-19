@@ -10,6 +10,9 @@ gp.Controller = function ( config, model, requestModel, injector ) {
     if ( config.pager ) {
         this.requestModel.top = 25;
     }
+    // calling bind returns a new function
+    // so to be able to remove the handlers later, 
+    // we need to call bind once and store the result
     this.handlers = {
         readHandler: this.read.bind( this ),
         commandHandler: this.commandHandler.bind( this ),
@@ -226,14 +229,15 @@ gp.Controller.prototype = {
     rowSelectHandler: function ( evt ) {
         var config = this.config,
             tr = $( evt.target ).closest( 'tr', config.node ),
-            trs = this.$n.find( 'div.table-body > table > tbody > tr.selected' ),
+            selected = this.$n.find( 'div.table-body > table > tbody > tr.selected' ),
             type = typeof config.rowselected,
             dataItem,
             proceed;
 
+        // simple test to see if config.rowselected is a template
         if ( type === 'string' && config.rowselected.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
 
-        trs.removeClass( 'selected' );
+        selected.removeClass( 'selected' );
 
         // add selected class
         $( tr ).addClass( 'selected' );

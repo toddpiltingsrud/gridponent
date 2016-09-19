@@ -1784,6 +1784,7 @@ QUnit.test( 'ModalEditor', function ( assert ) {
 QUnit.test( 'modal edit', function ( assert ) {
 
     var done = assert.async();
+    var done2 = assert.async();
 
     var options = gp.shallowCopy( configuration );
 
@@ -1802,6 +1803,38 @@ QUnit.test( 'modal edit', function ( assert ) {
         $( '.modal-open' ).removeClass('modal-open');
 
         done();
+
+    } );
+
+    // try it with a grid with a custom command column
+    options = gp.shallowCopy( configuration );
+
+    options.editmode = 'modal';
+
+    options.columns = options.columns.filter( function ( col ) {
+        return col.commands === undefined;
+    } );
+
+    options.columns.push( {
+        bodytemplate: '<button class="btn btn-default btn-sm" type="button" value="Edit"><span class="glyphicon glyphicon-edit"></span>{{Description}}</button>'
+    } )
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        // put one of the rows into edit mode
+        var btn = api.find( 'button[value=edit]' );
+
+        clickButton( btn );
+
+        btn = api.find( 'button[value=cancel]' );
+
+        clickButton( btn );
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+        done2();
 
     } );
 
@@ -2418,6 +2451,10 @@ QUnit.test( 'supplant', function ( assert ) {
     result = gp.supplant( template, ['Todd', 'Piltingsrud'] );
     assert.equal( result, '<div class="the-class">Todd, Todd Piltingsrud</div>', 'Arrays should work the same as objects' );
 
+    // function
+    template = '<div class="the-class">{{getContent}}</div>';
+    result = gp.supplant( template, {} );
+    assert.equal( result, '<div class="the-class">content</div>', 'global functions can be used' );
 
 } );
 
@@ -3392,7 +3429,7 @@ QUnit.test( 'edit and update', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        $( '#table .box' ).append( api.config.node );
+        //$( '#table .box' ).append( api.config.node );
 
         var config = api.config;
 
@@ -4356,3 +4393,7 @@ Object.defineProperty( fns.model, 'ReadOnlyProp', {
         return 'value';
     }
 } );
+
+function getContent(model) {
+    return 'content';
+}
