@@ -2233,7 +2233,7 @@ gp.PagingModel.prototype = {
     sort: '',
     desc: false,
     search: '',
-    data: data || [],
+    data: [],
     totalrows: 0,
     pagecount: 0
 };
@@ -2887,6 +2887,13 @@ gp.templates.toolbar = function ( $config, $injector ) {
 };
 
 gp.templates.toolbar.$inject = ['$config', '$injector'];
+
+// backward compatibility
+gp.templates.toolbartemplate = gp.templates.toolbar;
+
+// backward compatibility
+gp.templates.toolbartemplate.$inject = gp.templates.toolbar.$inject;
+
 /***************\
    UpdateModel
 \***************/
