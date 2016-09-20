@@ -118,13 +118,13 @@ gp.Editor.prototype = {
                 try {
                     self.injector.setResource( '$mode', null );
 
-                    if ( gp.hasValue( updateModel.errors )) {
+                    if ( gp.hasValue( updateModel.Errors )) {
                         self.validate( updateModel );
                     }
                     else {
-                        returnedDataItem = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem :
-                            ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] :
-                            gp.implements(updateModel, self.dataItem) ? updateModel : self.dataItem;
+                        returnedDataItem = gp.hasValue( updateModel.DataItem ) ? updateModel.DataItem :
+                            ( updateModel.Data && updateModel.Data.length ) ? updateModel.Data[0] :
+                            gp.implements(updateModel, self.DataItem) ? updateModel : self.DataItem;
 
                         // copy to local dataItem so updateUI will bind to current data
                         // do a case-insensitive copy

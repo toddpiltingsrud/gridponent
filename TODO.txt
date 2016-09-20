@@ -1,3 +1,5 @@
+﻿When handling the server response from a save operation, resolving the return value should be case-insensitive.
+
 The gridponent function doesn't handle exceptions.
 Should we use promises to do this?
 Or should we just provide a fail callback?

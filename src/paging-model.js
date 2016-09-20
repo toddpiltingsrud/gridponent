@@ -40,7 +40,7 @@ gp.PagingModel.prototype = {
     sort: '',
     desc: false,
     search: '',
-    data: data || [],
+    data: [],
     totalrows: 0,
     pagecount: 0
 };
