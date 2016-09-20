@@ -1,5 +1,3 @@
-﻿gp.supplant fails when templates contain references to functions on the global object.
-
 The gridponent function doesn't handle exceptions.
 Should we use promises to do this?
 Or should we just provide a fail callback?
