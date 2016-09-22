@@ -1,7 +1,7 @@
 ﻿/***************\
-   UpdateModel
+   ResponseModel
 \***************/
-gp.UpdateModel = function ( dataItem, validationErrors ) {
+gp.ResponseModel = function ( dataItem, validationErrors ) {
     this.dataItem = dataItem;
     this.errors = validationErrors;
 };

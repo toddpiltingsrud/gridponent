@@ -9,10 +9,10 @@ gp.helpers = {
         var spans = $( config.node )
             .find( 'a.table-sort > span.glyphicon-chevron-up,a.table-sort > span.glyphicon-chevron-down' )
             .removeClass( 'glyphicon-chevron-up glyphicon-chevron-down' );
-        if ( !gp.isNullOrEmpty( config.pageModel.sort ) ) {
+        if ( !gp.isNullOrEmpty( config.requestModel.sort ) ) {
             $( config.node )
-                .find( 'a.table-sort[data-sort="' + config.pageModel.sort + '"] > span' )
-                .addClass(( config.pageModel.desc ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up' ) );
+                .find( 'a.table-sort[data-sort="' + config.requestModel.sort + '"] > span' )
+                .addClass(( config.requestModel.desc ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up' ) );
         }
     }
 

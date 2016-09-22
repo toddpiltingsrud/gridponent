@@ -276,7 +276,7 @@
     gp.resolveTypes = function ( config ) {
         var field,
             val,
-            hasData = config && config.pageModel && config.pageModel.data && config.pageModel.data.length;
+            hasData = config && config.requestModel && config.requestModel.data && config.requestModel.data.length;
 
         config.columns.forEach( function ( col ) {
             if ( gp.hasValue( col.Type ) ) return;
@@ -296,8 +296,8 @@
             }
             if ( !gp.hasValue( col.Type ) && hasData ) {
                 // if we haven't found a value after 25 iterations, give up
-                for ( var i = 0; i < config.pageModel.data.length && i < 25 ; i++ ) {
-                    val = config.pageModel.data[i][field];
+                for ( var i = 0; i < config.requestModel.data.length && i < 25 ; i++ ) {
+                    val = config.requestModel.data[i][field];
                     // no need to use gp.hasValue here
                     // if val is undefined that means the column doesn't exist
                     if ( val !== null ) {
@@ -312,26 +312,26 @@
     gp.resolveUpdateModel = function ( response, dataItemPrototype ) {
         if ( !gp.hasValue( response ) ) return null;
 
-        var updateModel = new gp.UpdateModel();
+        var responseModel = new gp.ResponseModel();
 
-        if ( gp.implements( response, updateModel ) ) {
-            // this will overwrite updateModel.original if present in the response
-            gp.shallowCopy( response, updateModel, true );
+        if ( gp.implements( response, responseModel ) ) {
+            // this will overwrite responseModel.original if present in the response
+            gp.shallowCopy( response, responseModel, true );
         }
         else if ( response.data && response.data.length ) {
-            updateModel.dataItem = response.data[0];
+            responseModel.dataItem = response.data[0];
         }
         else if ( response.length ) {
-            updateModel.dataItem = response[0];
+            responseModel.dataItem = response[0];
         }
         else if ( gp.implements( response, dataItemPrototype ) ) {
-            updateModel.dataItem = response;
+            responseModel.dataItem = response;
         }
         else {
             throw new Error( "Could not resolve JSON response." );
         }
 
-        return updateModel;
+        return responseModel;
     };
 
     gp.rexp = {

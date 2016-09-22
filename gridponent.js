@@ -86,7 +86,7 @@ gp.api.prototype = {
 
     getData: function ( uidOrTableRow ) {
         if ( uidOrTableRow != undefined ) return this.config.map.get( uidOrTableRow );
-        return this.controller.config.pageModel.data;
+        return this.controller.config.requestModel.data;
     },
 
     getTableRow: function( dataItem ) {
@@ -280,7 +280,7 @@ gp.Controller.prototype = {
     toolbarChangeHandler: function ( evt ) {
         // tracks the search and paging textboxes
         var name = evt.target.name,
-            model = this.config.pageModel,
+            model = this.config.requestModel,
             type = gp.getType( model[name] ),
             val = gp.ModelSync.cast( evt.target.value, type );
 
@@ -306,7 +306,7 @@ gp.Controller.prototype = {
             dataItem = rowOrModal.length ? this.config.map.get( rowOrModal[0] ) : null,
             value = $btn.attr('value'),
             cmd = gp.getCommand( this.config.columns, value ),
-            model = this.config.pageModel;
+            model = this.config.requestModel;
 
         // stop the event from being handled by rowSelectHandler
         evt.stopPropagation();
@@ -439,34 +439,34 @@ gp.Controller.prototype = {
     },
 
     search: function ( searchTerm, callback ) {
-        this.config.pageModel.search = searchTerm;
+        this.config.requestModel.search = searchTerm;
         this.$n.find( 'div.table-toolbar input[name=search]' ).val( searchTerm );
         this.read( null, callback );
     },
 
     sort: function ( field, desc, callback ) {
-        this.config.pageModel.sort = field;
-        this.config.pageModel.desc = ( desc == true );
+        this.config.requestModel.sort = field;
+        this.config.requestModel.desc = ( desc == true );
         this.read( null, callback );
     },
 
     read: function ( requestModel, callback ) {
         var self = this, proceed = true;
         if ( requestModel ) {
-            gp.shallowCopy( requestModel, this.config.pageModel );
+            gp.shallowCopy( requestModel, this.config.requestModel );
         }
         proceed = this.invokeDelegates( gp.events.beforeRead, this.config.node.api );
         if ( proceed === false ) return;
-        this.model.read( this.config.pageModel, function ( model ) {
+        this.model.read( this.config.requestModel, function ( model ) {
             try {
                 // do a case-insensitive copy
-                gp.shallowCopy( model, self.config.pageModel, true );
-                self.injector.setResource( '$data', self.config.pageModel.data );
+                gp.shallowCopy( model, self.config.requestModel, true );
+                self.injector.setResource( '$data', self.config.requestModel.data );
                 self.config.map.clear();
                 gp.resolveTypes( self.config );
                 self.refresh( self.config );
                 self.invokeDelegates( gp.events.onRead, self.config.node.api );
-                gp.applyFunc( callback, self.config.node, self.config.pageModel );
+                gp.applyFunc( callback, self.config.node, self.config.requestModel );
             } catch ( e ) {
                 self.removeBusy();
                 self.httpErrorHandler( e );
@@ -556,9 +556,9 @@ gp.Controller.prototype = {
                     if ( !response || !response.errors ) {
                         // if it didn't error out, we'll assume it succeeded
                         // remove the dataItem from the model
-                        var index = self.config.pageModel.data.indexOf( dataItem );
+                        var index = self.config.requestModel.data.indexOf( dataItem );
                         if ( index != -1 ) {
-                            self.config.pageModel.data.splice( index, 1 );
+                            self.config.requestModel.data.splice( index, 1 );
                         }
                         self.refresh( self.config );
                     }
@@ -637,15 +637,17 @@ gp.DataLayer.prototype = {
                 return new gp.FunctionPager( this.config );
                 break;
             case 'object':
-                // is it a PagingModel?
-                if ( gp.implements( this.config.read, gp.PagingModel.prototype ) ) {
-                    this.config.pageModel = this.config.read;
+                // is it a RequestModel?
+                if ( gp.implements( this.config.read, gp.RequestModel.prototype ) ) {
+                    var model = new gp.RequestModel();
+                    gp.shallowCopy( this.config.read, model, true );
+                    this.config.requestModel = model;
                     return new gp.ClientPager( this.config );
                 }
                 throw 'Unsupported read configuration';
                 break;
             case 'array':
-                this.config.pageModel.data = this.config.read;
+                this.config.requestModel.data = this.config.read;
                 return new gp.ClientPager( this.config );
                 break;
             default:
@@ -734,8 +736,8 @@ gp.DataLayer.prototype = {
 
     resolveResult: function ( result ) {
         if ( gp.hasValue( result ) && Array.isArray( result ) ) {
-            //  wrap the array in a PagingModel
-            return new gp.PagingModel( result );
+            //  wrap the array in a RequestModel
+            return new gp.RequestModel( result );
         }
         return result;
     }
@@ -845,7 +847,7 @@ gp.Editor.prototype = {
             .setResource( '$mode', this.mode );
 
         // add the data item to the internal data array
-        this.config.pageModel.data.push( this.dataItem );
+        this.config.requestModel.data.push( this.dataItem );
 
         // map it
         this.uid = this.config.map.assign( this.dataItem );
@@ -872,9 +874,9 @@ gp.Editor.prototype = {
             // unmap the dataItem
             this.config.map.remove( this.uid );
             // remove the dataItem from the internal array
-            var index = this.config.pageModel.data.indexOf( this.dataItem );
+            var index = this.config.requestModel.data.indexOf( this.dataItem );
             if ( index !== -1 ) {
-                this.config.pageModel.data.slice( index, 1 );
+                this.config.requestModel.data.slice( index, 1 );
             }
         }
         else if ( this.mode == 'update' && this.originalDataItem ) {
@@ -941,7 +943,7 @@ gp.Editor.prototype = {
         else {
 
             // call the data layer with just the dataItem
-            // the data layer should respond with an updateModel
+            // the data layer should respond with an responseModel
             this.dal.update( this.dataItem, 
                 function ( response ) {
                     self.handleResponse( response, done, fail );
@@ -956,21 +958,21 @@ gp.Editor.prototype = {
     },
 
     handleResponse: function(response, done, fail) {
-        var updateModel;
+        var responseModel;
 
         try {
             this.injector.setResource( '$mode', null );
 
             // we're passing in a dataItem so it can compared to the data type of the response
-            updateModel = gp.resolveUpdateModel( response, this.dataItem );
+            responseModel = gp.resolveUpdateModel( response, this.dataItem );
 
-            if ( gp.hasValue( updateModel.errors ) ) {
-                this.validate( updateModel );
+            if ( gp.hasValue( responseModel.errors ) ) {
+                this.validate( responseModel );
             }
             else {
                 // copy to local dataItem so updateUI will bind to current data
                 // this should be case-sensitive because the dataItem's type is defined by the server
-                gp.shallowCopy( updateModel.dataItem, this.dataItem );
+                gp.shallowCopy( responseModel.dataItem, this.dataItem );
 
                 if ( this.elem ) {
                     // refresh the UI
@@ -998,7 +1000,7 @@ gp.Editor.prototype = {
             } );
         }
 
-        gp.applyFunc( done, this.config.node.api, updateModel );
+        gp.applyFunc( done, this.config.node.api, responseModel );
     },
 
     addBusy: function () {
@@ -1187,10 +1189,10 @@ gp.TableRowEditor.prototype = {
 
     },
 
-    validate: function ( updateModel ) {
+    validate: function ( responseModel ) {
 
         if ( typeof this.config.validate === 'function' ) {
-            gp.applyFunc( this.config.validate, this, [this.elem, updateModel] );
+            gp.applyFunc( this.config.validate, this, [this.elem, responseModel] );
         }
         else {
 
@@ -1204,11 +1206,11 @@ gp.TableRowEditor.prototype = {
             // remove error class from inputs
             $( self.elem ).find( '[name].error' ).removeClass( 'error' );
 
-            Object.getOwnPropertyNames( updateModel.errors ).forEach( function ( e ) {
+            Object.getOwnPropertyNames( responseModel.errors ).forEach( function ( e ) {
 
                 $( self.elem ).find( '[name="' + e + '"]' ).addClass( 'error' );
 
-                errors = updateModel.errors[e].errors;
+                errors = responseModel.errors[e].errors;
 
                 builder
                     .add( e + ':\r\n' )
@@ -1419,10 +1421,10 @@ gp.helpers = {
         var spans = $( config.node )
             .find( 'a.table-sort > span.glyphicon-chevron-up,a.table-sort > span.glyphicon-chevron-down' )
             .removeClass( 'glyphicon-chevron-up glyphicon-chevron-down' );
-        if ( !gp.isNullOrEmpty( config.pageModel.sort ) ) {
+        if ( !gp.isNullOrEmpty( config.requestModel.sort ) ) {
             $( config.node )
-                .find( 'a.table-sort[data-sort="' + config.pageModel.sort + '"] > span' )
-                .addClass(( config.pageModel.desc ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up' ) );
+                .find( 'a.table-sort[data-sort="' + config.requestModel.sort + '"] > span' )
+                .addClass(( config.requestModel.desc ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up' ) );
         }
     }
 
@@ -1485,11 +1487,11 @@ gp.Initializer.prototype = {
     // this is called when using JSON to create grids
     initializeOptions: function ( options, callback ) {
         var self = this;
-        options.pageModel = {};
+        options.requestModel = {};
         options.ID = gp.createUID();
         this.config = options;
         this.config.map = new gp.DataMap();
-        this.config.pageModel = (gp.implements(this.config.read, gp.PagingModel.prototype)) ? this.config.read : new gp.PagingModel();
+        this.config.requestModel = (gp.implements(this.config.read, gp.RequestModel.prototype)) ? this.config.read : new gp.RequestModel();
         this.config.editmode = this.config.editmode || 'inline';
         this.config.newrowposition = this.config.newrowposition || 'top';
 
@@ -1498,9 +1500,9 @@ gp.Initializer.prototype = {
             $config: this.config,
             $columns: this.config.columns,
             $node: this.config.node,
-            $pageModel: this.config.pageModel,
+            $requestModel: this.config.requestModel,
             $map: this.config.map,
-            $data: this.config.pageModel.data,
+            $data: this.config.requestModel.data,
             $mode: 'read'
         }, gp.templates, null, this.config ); // specify gp.templates as root, null for context, config as override source
 
@@ -1513,7 +1515,7 @@ gp.Initializer.prototype = {
         this.$n = this.parent.find( '.table-container' );
 
         var dal = new gp.DataLayer( this.config );
-        var controller = new gp.Controller( this.config, dal, this.config.pageModel, this.injector );
+        var controller = new gp.Controller( this.config, dal, this.config.requestModel, this.injector );
         this.config.node.api = new gp.api( controller );
         this.config.hasFooter = this.resolveFooter( this.config );
         this.config.preload = this.config.preload === false ? this.config.preload : true;
@@ -1531,14 +1533,14 @@ gp.Initializer.prototype = {
             if ( self.config.preload ) {
                 // we need both beforeInit and beforeread because beforeread is used after every read in the controller
                 // and beforeInit happens just once after the node is created, but before first read
-                controller.invokeDelegates( gp.events.beforeRead, self.config.pageModel );
+                controller.invokeDelegates( gp.events.beforeRead, self.config.requestModel );
 
-                dal.read( self.config.pageModel,
+                dal.read( self.config.requestModel,
                     function ( data ) {
                         try {
                             // do a case-insensitive copy
-                            gp.shallowCopy( data, self.config.pageModel, true );
-                            self.injector.setResource( '$data', self.config.pageModel.data );
+                            gp.shallowCopy( data, self.config.requestModel, true );
+                            self.injector.setResource( '$data', self.config.requestModel.data );
                             gp.resolveTypes( self.config );
                             self.resolveCommands( self.config );
                             self.render( self.config );
@@ -1547,7 +1549,7 @@ gp.Initializer.prototype = {
                         } catch ( e ) {
                             gp.error( e );
                         }
-                        controller.invokeDelegates( gp.events.onRead, self.config.pageModel );
+                        controller.invokeDelegates( gp.events.onRead, self.config.requestModel );
                     },
                     function ( e ) {
                         controller.invokeDelegates( gp.events.httpError, e );
@@ -1989,7 +1991,7 @@ client-side pager
 \***************/
 gp.ClientPager = function (config) {
     var value, self = this;
-    this.data = config.pageModel.data;
+    this.data = config.requestModel.data;
     this.columns = config.columns.filter(function (c) {
         return c.field !== undefined || c.sort !== undefined;
     });
@@ -2175,12 +2177,10 @@ gp.FunctionPager.prototype = {
     }
 };
 /***************\
-  PagingModel
+  RequestModel
 \***************/
-gp.PagingModel = function (data) {
+gp.RequestModel = function (data) {
     var self = this;
-    // properites are capitalized here because that's the convention for server-side classes (C#)
-    // we want the serialized version of the corresponding server-side class to look exactly like this prototype
 
     this.top = -1; // this is a flag to let the pagers know if paging is enabled
     this.page = 1;
@@ -2210,7 +2210,7 @@ gp.PagingModel = function (data) {
     });
 };
 
-gp.PagingModel.prototype = {
+gp.RequestModel.prototype = {
     top: -1, // this is a flag to let the pagers know if paging is enabled
     page: 1,
     sort: '',
@@ -2219,6 +2219,13 @@ gp.PagingModel.prototype = {
     data: [],
     totalrows: 0,
     pagecount: 0
+};
+/***************\
+   ResponseModel
+\***************/
+gp.ResponseModel = function ( dataItem, validationErrors ) {
+    this.dataItem = dataItem;
+    this.errors = validationErrors;
 };
 /***************\
   StringBuilder
@@ -2711,20 +2718,20 @@ gp.templates.input = function ( model ) {
     return html;
 };
 
-gp.templates.pagerBar = function ( $pageModel ) {
-    var pageModel = gp.shallowCopy($pageModel),
+gp.templates.pagerBar = function ( $requestModel ) {
+    var requestModel = gp.shallowCopy($requestModel),
         html = new gp.StringBuilder();
 
-    pageModel.IsFirstPage = pageModel.page === 1;
-    pageModel.IsLastPage = pageModel.page === pageModel.pagecount;
-    pageModel.HasPages = pageModel.pagecount > 1;
-    pageModel.PreviousPage = pageModel.page === 1 ? 1 : pageModel.page - 1;
-    pageModel.NextPage = pageModel.page === pageModel.pagecount ? pageModel.pagecount : pageModel.page + 1;
+    requestModel.IsFirstPage = requestModel.page === 1;
+    requestModel.IsLastPage = requestModel.page === requestModel.pagecount;
+    requestModel.HasPages = requestModel.pagecount > 1;
+    requestModel.PreviousPage = requestModel.page === 1 ? 1 : requestModel.page - 1;
+    requestModel.NextPage = requestModel.page === requestModel.pagecount ? requestModel.pagecount : requestModel.page + 1;
 
-    pageModel.firstPageClass = (pageModel.IsFirstPage ? 'disabled' : '');
-    pageModel.lastPageClass = (pageModel.IsLastPage ? 'disabled' : '');
+    requestModel.firstPageClass = (requestModel.IsFirstPage ? 'disabled' : '');
+    requestModel.lastPageClass = (requestModel.IsLastPage ? 'disabled' : '');
 
-    if ( pageModel.HasPages ) {
+    if ( requestModel.HasPages ) {
         html.add( '<div class="btn-group">' )
             .add( '<button class="ms-page-index btn btn-default {{firstPageClass}}" title="First page" value="page" data-page="1">' )
             .add( '<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>' )
@@ -2744,10 +2751,10 @@ gp.templates.pagerBar = function ( $pageModel ) {
             .add( '</button>' )
             .add( '</div>' );
     }
-    return gp.supplant.call( this,  html.toString(), pageModel );
+    return gp.supplant.call( this,  html.toString(), requestModel );
 };
 
-gp.templates.pagerBar.$inject = ['$pageModel'];
+gp.templates.pagerBar.$inject = ['$requestModel'];
 
 gp.templates.tableBody = function ( $config, $injector ) {
     var html = new gp.StringBuilder();
@@ -2867,13 +2874,6 @@ gp.templates.toolbar = function ( $config, $injector ) {
 };
 
 gp.templates.toolbar.$inject = ['$config', '$injector'];
-/***************\
-   UpdateModel
-\***************/
-gp.UpdateModel = function ( dataItem, validationErrors ) {
-    this.dataItem = dataItem;
-    this.errors = validationErrors;
-};
 /***************\
    utilities
 \***************/
@@ -3152,7 +3152,7 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
     gp.resolveTypes = function ( config ) {
         var field,
             val,
-            hasData = config && config.pageModel && config.pageModel.data && config.pageModel.data.length;
+            hasData = config && config.requestModel && config.requestModel.data && config.requestModel.data.length;
 
         config.columns.forEach( function ( col ) {
             if ( gp.hasValue( col.Type ) ) return;
@@ -3172,8 +3172,8 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
             }
             if ( !gp.hasValue( col.Type ) && hasData ) {
                 // if we haven't found a value after 25 iterations, give up
-                for ( var i = 0; i < config.pageModel.data.length && i < 25 ; i++ ) {
-                    val = config.pageModel.data[i][field];
+                for ( var i = 0; i < config.requestModel.data.length && i < 25 ; i++ ) {
+                    val = config.requestModel.data[i][field];
                     // no need to use gp.hasValue here
                     // if val is undefined that means the column doesn't exist
                     if ( val !== null ) {
@@ -3188,26 +3188,26 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
     gp.resolveUpdateModel = function ( response, dataItemPrototype ) {
         if ( !gp.hasValue( response ) ) return null;
 
-        var updateModel = new gp.UpdateModel();
+        var responseModel = new gp.ResponseModel();
 
-        if ( gp.implements( response, updateModel ) ) {
-            // this will overwrite updateModel.original if present in the response
-            gp.shallowCopy( response, updateModel, true );
+        if ( gp.implements( response, responseModel ) ) {
+            // this will overwrite responseModel.original if present in the response
+            gp.shallowCopy( response, responseModel, true );
         }
         else if ( response.data && response.data.length ) {
-            updateModel.dataItem = response.data[0];
+            responseModel.dataItem = response.data[0];
         }
         else if ( response.length ) {
-            updateModel.dataItem = response[0];
+            responseModel.dataItem = response[0];
         }
         else if ( gp.implements( response, dataItemPrototype ) ) {
-            updateModel.dataItem = response;
+            responseModel.dataItem = response;
         }
         else {
             throw new Error( "Could not resolve JSON response." );
         }
 
-        return updateModel;
+        return responseModel;
     };
 
     gp.rexp = {

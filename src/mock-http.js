@@ -20,10 +20,10 @@
             }
             else if ( routes.create.test( url ) ) {
                 window.data.products.push( model );
-                callback( new gp.UpdateModel( model ) );
+                callback( new gp.ResponseModel( model ) );
             }
             else if ( routes.update.test( url ) ) {
-                callback( new gp.UpdateModel(model) );
+                callback( new gp.ResponseModel(model) );
             }
             else {
                 throw '404 Not found: ' + url;

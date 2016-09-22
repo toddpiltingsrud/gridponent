@@ -77,7 +77,7 @@
     <Content Include="src\gridponent.min.css">
       <DependentUpon>gridponent.css</DependentUpon>
     </Content>
-    <Content Include="src\update-model.js" />
+    <Content Include="src\response-model.js" />
     <Content Include="src\string-builder.js" />
     <Content Include="src\api.js" />
     <Content Include="src\x-polar.js" />
@@ -92,7 +92,7 @@
     <Content Include="src\mock-http.js" />
     <Content Include="src\pagers.js" />
     <Content Include="src\utils.js" />
-    <Content Include="src\paging-model.js" />
+    <Content Include="src\request-model.js" />
     <Content Include="src\initializer.js" />
     <Content Include="src\a-gridponent.js" />
     <None Include="compilerconfig.json" />

@@ -17,15 +17,17 @@ gp.DataLayer.prototype = {
                 return new gp.FunctionPager( this.config );
                 break;
             case 'object':
-                // is it a PagingModel?
-                if ( gp.implements( this.config.read, gp.PagingModel.prototype ) ) {
-                    this.config.pageModel = this.config.read;
+                // is it a RequestModel?
+                if ( gp.implements( this.config.read, gp.RequestModel.prototype ) ) {
+                    var model = new gp.RequestModel();
+                    gp.shallowCopy( this.config.read, model, true );
+                    this.config.requestModel = model;
                     return new gp.ClientPager( this.config );
                 }
                 throw 'Unsupported read configuration';
                 break;
             case 'array':
-                this.config.pageModel.data = this.config.read;
+                this.config.requestModel.data = this.config.read;
                 return new gp.ClientPager( this.config );
                 break;
             default:
@@ -114,8 +116,8 @@ gp.DataLayer.prototype = {
 
     resolveResult: function ( result ) {
         if ( gp.hasValue( result ) && Array.isArray( result ) ) {
-            //  wrap the array in a PagingModel
-            return new gp.PagingModel( result );
+            //  wrap the array in a RequestModel
+            return new gp.RequestModel( result );
         }
         return result;
     }

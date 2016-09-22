@@ -1,6 +1,6 @@
 QUnit.test( 'utils.resolveUpdateModel', function ( assert ) {
 
-    // response as UpdateModel
+    // response as ResponseModel
     var response = {
         DataItem: fns.model,
         Errors: [{}]
@@ -128,9 +128,9 @@ QUnit.test( 'gp.implements', function ( assert ) {
         top: 25
     }
 
-    assert.ok( gp.implements( model, gp.PagingModel.prototype ) );
+    assert.ok( gp.implements( model, gp.RequestModel.prototype ) );
 
-    assert.ok( gp.implements( gp.PagingModel.prototype, model ) );
+    assert.ok( gp.implements( gp.RequestModel.prototype, model ) );
 
 } );
 
@@ -700,20 +700,20 @@ QUnit.test( 'override pagerBar', function ( assert ) {
 
     options.read = data.products;
 
-    options.pagerBar = function ( $pageModel ) {
-        var pageModel = gp.shallowCopy( $pageModel ),
+    options.pagerBar = function ( $requestModel ) {
+        var requestModel = gp.shallowCopy( $requestModel ),
             html = new gp.StringBuilder();
 
-        pageModel.IsFirstPage = pageModel.page === 1;
-        pageModel.IsLastPage = pageModel.page === pageModel.pagecount;
-        pageModel.HasPages = pageModel.pagecount > 1;
-        pageModel.PreviousPage = pageModel.page === 1 ? 1 : pageModel.page - 1;
-        pageModel.NextPage = pageModel.page === pageModel.pagecount ? pageModel.pagecount : pageModel.page + 1;
+        requestModel.IsFirstPage = requestModel.page === 1;
+        requestModel.IsLastPage = requestModel.page === requestModel.pagecount;
+        requestModel.HasPages = requestModel.pagecount > 1;
+        requestModel.PreviousPage = requestModel.page === 1 ? 1 : requestModel.page - 1;
+        requestModel.NextPage = requestModel.page === requestModel.pagecount ? requestModel.pagecount : requestModel.page + 1;
 
-        pageModel.firstPageClass = ( pageModel.IsFirstPage ? 'disabled' : '' );
-        pageModel.lastPageClass = ( pageModel.IsLastPage ? 'disabled' : '' );
+        requestModel.firstPageClass = ( requestModel.IsFirstPage ? 'disabled' : '' );
+        requestModel.lastPageClass = ( requestModel.IsLastPage ? 'disabled' : '' );
 
-        if ( pageModel.HasPages ) {
+        if ( requestModel.HasPages ) {
             html.add( '<div class="btn-group custom-pager">' )
                 .add( '<button class="ms-page-index btn btn-default {{firstPageClass}}" title="First page" value="page" data-page="1">' )
                 .add( '<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>' )
@@ -733,7 +733,7 @@ QUnit.test( 'override pagerBar', function ( assert ) {
                 .add( '</button>' )
                 .add( '</div>' );
         }
-        return gp.supplant.call( this, html.toString(), pageModel );
+        return gp.supplant.call( this, html.toString(), requestModel );
     };
 
     gridponent( '#table .box', options ).ready( function ( api ) {
@@ -1269,7 +1269,7 @@ QUnit.test( 'Injector', function ( assert ) {
     var resources = {
         $config: { fixedheaders: false },
         $columns: [],
-        $pageModel: { pagecount: 15 }
+        $requestModel: { pagecount: 15 }
     };
 
     var injector = new gp.Injector( resources );
@@ -1280,12 +1280,12 @@ QUnit.test( 'Injector', function ( assert ) {
     var func = function ( c, p ) {
         assert.strictEqual( resources.$config, c );
 
-        assert.strictEqual( resources.$pageModel, p );
+        assert.strictEqual( resources.$requestModel, p );
 
         return c.fixedheaders;
     };
 
-    func.$inject = ['$config', '$pageModel'];
+    func.$inject = ['$config', '$requestModel'];
 
     var result = injector.exec( func );
 
@@ -1294,13 +1294,13 @@ QUnit.test( 'Injector', function ( assert ) {
 
     // test getParamNames and optional second arg
 
-    func = function ( $pageModel, obj ) {
+    func = function ( $requestModel, obj ) {
 
-        assert.strictEqual( resources.$pageModel, $pageModel );
+        assert.strictEqual( resources.$requestModel, $requestModel );
 
         assert.strictEqual( obj.test, true );
 
-        return $pageModel.pagecount;
+        return $requestModel.pagecount;
     }
 
     result = injector.exec( func, { test: true } );
@@ -1653,7 +1653,7 @@ QUnit.test( 'paging', function ( assert ) {
         // find the ProductNumber column
         var productNumber1 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).html();
 
-        var pageNumber1 = api.config.pageModel.page;
+        var pageNumber1 = api.config.requestModel.page;
 
         var btn = api.find( 'button[title="Next page"]' );
 
@@ -1661,7 +1661,7 @@ QUnit.test( 'paging', function ( assert ) {
 
         var productNumber2 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).html();
 
-        var pageNumber2 = api.config.pageModel.page;
+        var pageNumber2 = api.config.requestModel.page;
 
         assert.notStrictEqual( productNumber1, productNumber2, 'paging should change the contents of the grid to the next set' );
         assert.notStrictEqual( pageNumber1, pageNumber2, 'paging should change the contents of the grid to the next set' );
@@ -1715,7 +1715,7 @@ QUnit.test( 'model', function ( assert ) {
         clickButton( btn );
 
         // verify the created row has the same property values as options.model
-        var last = api.config.pageModel.data[api.config.pageModel.data.length - 1];
+        var last = api.config.requestModel.data[api.config.requestModel.data.length - 1];
 
         assert.equal( last.ProductNumber, api.config.model.ProductNumber );
         assert.equal( last.Name, api.config.model.Name );
@@ -1733,9 +1733,9 @@ function getInjector( config ) {
         $config: config,
         $columns: config.columns,
         $node: config.node,
-        $pageModel: config.pageModel,
+        $requestModel: config.requestModel,
         $map: config.map,
-        $data: config.pageModel.data
+        $data: config.requestModel.data
     }, gp.templates ); // specify gp.templates object as root
 }
 
@@ -1777,43 +1777,43 @@ QUnit.test( 'ModalEditor', function ( assert ) {
 
         editor.add();
 
-        editor.save( function ( updateModel ) {
+        editor.save( function ( responseModel ) {
 
-            assert.ok( updateModel != null, 'save should return an updateModel' );
-            assert.ok( updateModel.dataItem != null, 'model should contain the new data row' );
+            assert.ok( responseModel != null, 'save should return an responseModel' );
+            assert.ok( responseModel.dataItem != null, 'model should contain the new data row' );
 
             done1();
         } );
 
         editor.edit( dataItem );
 
-        editor.save( function ( updateModel ) {
+        editor.save( function ( responseModel ) {
 
-            assert.ok( updateModel != null, 'save should return an updateModel' );
-            assert.ok( updateModel.dataItem != null, 'model should contain the new data row' );
+            assert.ok( responseModel != null, 'save should return an responseModel' );
+            assert.ok( responseModel.dataItem != null, 'model should contain the new data row' );
 
             done2();
         } );
 
         // validation
 
-        // mock an updateModel with validation errors
-        var updateModel = {
+        // mock an responseModel with validation errors
+        var responseModel = {
             dataItem: dataItem,
             errors: getValidationErrors(),
             originalItem: dataItem
         };
 
-        editor.validate( updateModel );
+        editor.validate( responseModel );
 
         assert.ok( true, 'validate should not throw errors' );
 
         // not try it with a custom validate function
 
-        config.validate = function ( elem, updateModel ) {
+        config.validate = function ( elem, responseModel ) {
 
             assert.ok( elem != null, 'elem should be the modal' );
-            assert.ok( updateModel != null, 'validate should return an updateModel' );
+            assert.ok( responseModel != null, 'validate should return an responseModel' );
 
             api.dispose();
 
@@ -1827,7 +1827,7 @@ QUnit.test( 'ModalEditor', function ( assert ) {
 
         };
 
-        editor.validate( updateModel );
+        editor.validate( responseModel );
 
     } );
 
@@ -1925,7 +1925,7 @@ QUnit.test( 'templates.input', function ( assert ) {
 //QUnit.test( 'camelize', function ( assert ) {
 
 //    var dict = {
-//        updateModel: 'updateModel',
+//        responseModel: 'responseModel',
 //        'header-template': 'headerTemplate',
 //        ALLCAPS: 'allcaps',
 //        TableRow: 'tableRow',
@@ -2108,16 +2108,16 @@ QUnit.test( 'read', function ( assert ) {
     } );
 
 
-    // read as a PagingModel
+    // read as a RequestModel
     var options = gp.shallowCopy( configuration );
 
-    options.read = new gp.PagingModel( data.products );
+    options.read = new gp.RequestModel( data.products );
 
     options.read.search = 'AR-';
 
     gridponent( '#table .box', options ).ready( function ( api ) {
 
-        assert.ok( true, 'can be a PagingModel' );
+        assert.ok( true, 'can be a RequestModel' );
 
         var cell = api.find( '.table-body tr:last-child td:nth-child(10)' );
 
@@ -2264,14 +2264,14 @@ QUnit.test( 'toolbarChangeHandler', function ( assert ) {
 
         api.controller.toolbarChangeHandler( evt );
 
-        assert.equal( api.config.pageModel.search, '1000' );
+        assert.equal( api.config.requestModel.search, '1000' );
 
         evt.target.value = '2';
         evt.target.name = 'page';
 
         api.controller.toolbarChangeHandler( evt );
 
-        assert.equal( api.config.pageModel.page, 2 );
+        assert.equal( api.config.requestModel.page, 2 );
 
         done1();
 
@@ -2311,7 +2311,7 @@ QUnit.test( 'gp.ClientPager', function ( assert ) {
 
         pager.data = data.products;
 
-        var model = new gp.PagingModel();
+        var model = new gp.RequestModel();
 
         // turn paging off
         model.top = -1;
@@ -2638,8 +2638,8 @@ QUnit.test( 'create as function', function ( assert ) {
 
 //    getTableConfig( options, function ( api ) {
 
-//        api.create( null, function ( updateModel ) {
-//            assert.ok( updateModel == null, 'calling api.create with no create configuration should return null' );
+//        api.create( null, function ( responseModel ) {
+//            assert.ok( responseModel == null, 'calling api.create with no create configuration should return null' );
 //            api.dispose();
 //            done();
 //        } );
@@ -2679,14 +2679,14 @@ QUnit.test( 'api.ready', function ( assert ) {
 //    // this would be called instead of posting the dataItem to a URL
 //    updateFn = function ( dataItem, callback ) {
 //        // simulate some validation errors
-//        var updateModel = new gp.UpdateModel( dataItem );
-//        updateModel.errors = getValidationErrors();
-//        callback( updateModel );
+//        var responseModel = new gp.ResponseModel( dataItem );
+//        responseModel.errors = getValidationErrors();
+//        callback( responseModel );
 //    };
 
-//    showValidationErrors = function ( tr, updateModel ) {
+//    showValidationErrors = function ( tr, responseModel ) {
 //        // find the input
-//        updateModel.errors.forEach( function ( v ) {
+//        responseModel.errors.forEach( function ( v ) {
 //            var input = tr.querySelector( '[name="' + v.Key + '"]' );
 //            if ( input ) {
 //                // extract the error message
@@ -2712,8 +2712,8 @@ QUnit.test( 'api.ready', function ( assert ) {
 
 //        dataItem.Name = 'test';
 
-//        api.update( dataItem, function ( updateModel ) {
-//            assert.strictEqual( updateModel.dataItem.Name, 'test', 'update should support functions' );
+//        api.update( dataItem, function ( responseModel ) {
+//            assert.strictEqual( responseModel.dataItem.Name, 'test', 'update should support functions' );
 //            api.dispose();
 //            done1();
 //        } );
@@ -2728,8 +2728,8 @@ QUnit.test( 'api.ready', function ( assert ) {
 
 //        var dataItem = api.getData()[0];
 
-//        api.update( dataItem, function ( updateModel ) {
-//            assert.strictEqual( updateModel.dataItem.Name, 'test', 'update should support functions that use a URL' );
+//        api.update( dataItem, function ( responseModel ) {
+//            assert.strictEqual( responseModel.dataItem.Name, 'test', 'update should support functions that use a URL' );
 //            api.dispose();
 //            done2();
 //        } );
@@ -2743,8 +2743,8 @@ QUnit.test( 'api.ready', function ( assert ) {
 
 //        var dataItem = api.getData()[0];
 
-//        api.update( dataItem, function ( updateModel ) {
-//            assert.ok( updateModel == undefined, 'empty update setting should execute the callback with no arguments' );
+//        api.update( dataItem, function ( responseModel ) {
+//            assert.ok( responseModel == undefined, 'empty update setting should execute the callback with no arguments' );
 //            api.dispose();
 //            done3();
 //        } );
@@ -2819,7 +2819,7 @@ QUnit.test( 'api.read', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        var requestModel = new gp.PagingModel();
+        var requestModel = new gp.RequestModel();
         requestModel.top = 25;
         requestModel.page = 2;
 
@@ -2895,7 +2895,7 @@ QUnit.test( 'api.destroy', function ( assert ) {
 
 } );
 
-QUnit.test( 'pageModel.desc', function ( assert ) {
+QUnit.test( 'requestModel.desc', function ( assert ) {
 
     var done = assert.async();
 
@@ -2908,7 +2908,7 @@ QUnit.test( 'pageModel.desc', function ( assert ) {
 
         clickButton( sortInput );
 
-        assert.equal( config.pageModel.desc, false );
+        assert.equal( config.requestModel.desc, false );
 
         // Need a fresh reference to the input or the second change event won't do anything.
         // This happens when thead is inside div.table-body (no fixed headers) because thead gets rendered again.
@@ -2916,7 +2916,7 @@ QUnit.test( 'pageModel.desc', function ( assert ) {
 
         clickButton( sortInput );
 
-        assert.equal( config.pageModel.desc, true );
+        assert.equal( config.requestModel.desc, true );
 
         done();
 
@@ -3155,9 +3155,9 @@ QUnit.test( 'gp.getObjectAtPath', function ( assert ) {
 
 } );
 
-//QUnit.test( 'gp.PagingModel', function ( assert ) {
+//QUnit.test( 'gp.RequestModel', function ( assert ) {
 
-//    var rm = new gp.PagingModel();
+//    var rm = new gp.RequestModel();
 
 //    assert.equal( rm.pagecount, 0 );
 
@@ -3205,7 +3205,7 @@ QUnit.test( 'gp.DataLayer', function ( assert ) {
 
         var model = new gp.DataLayer( config );
 
-        var request = new gp.PagingModel();
+        var request = new gp.RequestModel();
 
         model.read( request, function ( response ) {
             assert.equal( response.data.length, data.products.length, 'should return all rows' );
@@ -3246,7 +3246,7 @@ QUnit.test( 'gp.DataLayer', function ( assert ) {
 
         // test read as function
         // the read function can use a callback
-        // or return an array or PagingModel object
+        // or return an array or RequestModel object
 
         // test function with callback
 
@@ -3279,7 +3279,7 @@ QUnit.test( 'gp.DataLayer', function ( assert ) {
         // test function with object return value
 
         config.read = function ( m ) {
-            return new gp.PagingModel( data.products );
+            return new gp.RequestModel( data.products );
         };
 
         model = new gp.DataLayer( config );
@@ -3314,7 +3314,7 @@ QUnit.test( 'gp.DataLayer', function ( assert ) {
 
         model = new gp.DataLayer( config );
 
-        request = new gp.PagingModel();
+        request = new gp.RequestModel();
 
         request.search = data.products[2].ProductNumber;
 
@@ -3328,8 +3328,8 @@ QUnit.test( 'gp.DataLayer', function ( assert ) {
         var dataItem = data.products[0];
         dataItem.Name = 'Test';
 
-        model.update( dataItem, function ( updateModel ) {
-            assert.equal( updateModel.dataItem.Name, 'Test', 'should return the updated record' );
+        model.update( dataItem, function ( responseModel ) {
+            assert.equal( responseModel.dataItem.Name, 'Test', 'should return the updated record' );
             done12();
         } );
 
@@ -3397,7 +3397,7 @@ QUnit.test( 'gp.Table.getConfig', function ( assert ) {
     window.model = {};
 
     window.model.read = function ( requestModel, callback ) {
-        var model = new gp.PagingModel( data.products );
+        var model = new gp.RequestModel( data.products );
         callback( model );
     };
 
@@ -3410,7 +3410,7 @@ QUnit.test( 'gp.Table.getConfig', function ( assert ) {
 
         assert.strictEqual( config.read, model.read, 'read can be a function' );
 
-        assert.strictEqual( config.pageModel.data.length, data.products.length );
+        assert.strictEqual( config.requestModel.data.length, data.products.length );
 
         done3();
     } );
@@ -3791,8 +3791,8 @@ QUnit.test( 'custom search filter', function ( assert ) {
 
         // listen for the change event
         config.node.addEventListener( 'change', function ( evt ) {
-            assert.equal( config.pageModel.data.length, 1, 'Should filter a single record' );
-            assert.equal( config.pageModel.data[0].ProductNumber, productNumber, 'Should filter a single record' );
+            assert.equal( config.requestModel.data.length, 1, 'Should filter a single record' );
+            assert.equal( config.requestModel.data[0].ProductNumber, productNumber, 'Should filter a single record' );
             done();
         } );
 

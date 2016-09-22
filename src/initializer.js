@@ -16,11 +16,11 @@ gp.Initializer.prototype = {
     // this is called when using JSON to create grids
     initializeOptions: function ( options, callback ) {
         var self = this;
-        options.pageModel = {};
+        options.requestModel = {};
         options.ID = gp.createUID();
         this.config = options;
         this.config.map = new gp.DataMap();
-        this.config.pageModel = (gp.implements(this.config.read, gp.PagingModel.prototype)) ? this.config.read : new gp.PagingModel();
+        this.config.requestModel = (gp.implements(this.config.read, gp.RequestModel.prototype)) ? this.config.read : new gp.RequestModel();
         this.config.editmode = this.config.editmode || 'inline';
         this.config.newrowposition = this.config.newrowposition || 'top';
 
@@ -29,9 +29,9 @@ gp.Initializer.prototype = {
             $config: this.config,
             $columns: this.config.columns,
             $node: this.config.node,
-            $pageModel: this.config.pageModel,
+            $requestModel: this.config.requestModel,
             $map: this.config.map,
-            $data: this.config.pageModel.data,
+            $data: this.config.requestModel.data,
             $mode: 'read'
         }, gp.templates, null, this.config ); // specify gp.templates as root, null for context, config as override source
 
@@ -44,7 +44,7 @@ gp.Initializer.prototype = {
         this.$n = this.parent.find( '.table-container' );
 
         var dal = new gp.DataLayer( this.config );
-        var controller = new gp.Controller( this.config, dal, this.config.pageModel, this.injector );
+        var controller = new gp.Controller( this.config, dal, this.config.requestModel, this.injector );
         this.config.node.api = new gp.api( controller );
         this.config.hasFooter = this.resolveFooter( this.config );
         this.config.preload = this.config.preload === false ? this.config.preload : true;
@@ -62,14 +62,14 @@ gp.Initializer.prototype = {
             if ( self.config.preload ) {
                 // we need both beforeInit and beforeread because beforeread is used after every read in the controller
                 // and beforeInit happens just once after the node is created, but before first read
-                controller.invokeDelegates( gp.events.beforeRead, self.config.pageModel );
+                controller.invokeDelegates( gp.events.beforeRead, self.config.requestModel );
 
-                dal.read( self.config.pageModel,
+                dal.read( self.config.requestModel,
                     function ( data ) {
                         try {
                             // do a case-insensitive copy
-                            gp.shallowCopy( data, self.config.pageModel, true );
-                            self.injector.setResource( '$data', self.config.pageModel.data );
+                            gp.shallowCopy( data, self.config.requestModel, true );
+                            self.injector.setResource( '$data', self.config.requestModel.data );
                             gp.resolveTypes( self.config );
                             self.resolveCommands( self.config );
                             self.render( self.config );
@@ -78,7 +78,7 @@ gp.Initializer.prototype = {
                         } catch ( e ) {
                             gp.error( e );
                         }
-                        controller.invokeDelegates( gp.events.onRead, self.config.pageModel );
+                        controller.invokeDelegates( gp.events.onRead, self.config.requestModel );
                     },
                     function ( e ) {
                         controller.invokeDelegates( gp.events.httpError, e );

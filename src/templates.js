@@ -458,20 +458,20 @@ gp.templates.input = function ( model ) {
     return html;
 };
 
-gp.templates.pagerBar = function ( $pageModel ) {
-    var pageModel = gp.shallowCopy($pageModel),
+gp.templates.pagerBar = function ( $requestModel ) {
+    var requestModel = gp.shallowCopy($requestModel),
         html = new gp.StringBuilder();
 
-    pageModel.IsFirstPage = pageModel.page === 1;
-    pageModel.IsLastPage = pageModel.page === pageModel.pagecount;
-    pageModel.HasPages = pageModel.pagecount > 1;
-    pageModel.PreviousPage = pageModel.page === 1 ? 1 : pageModel.page - 1;
-    pageModel.NextPage = pageModel.page === pageModel.pagecount ? pageModel.pagecount : pageModel.page + 1;
+    requestModel.IsFirstPage = requestModel.page === 1;
+    requestModel.IsLastPage = requestModel.page === requestModel.pagecount;
+    requestModel.HasPages = requestModel.pagecount > 1;
+    requestModel.PreviousPage = requestModel.page === 1 ? 1 : requestModel.page - 1;
+    requestModel.NextPage = requestModel.page === requestModel.pagecount ? requestModel.pagecount : requestModel.page + 1;
 
-    pageModel.firstPageClass = (pageModel.IsFirstPage ? 'disabled' : '');
-    pageModel.lastPageClass = (pageModel.IsLastPage ? 'disabled' : '');
+    requestModel.firstPageClass = (requestModel.IsFirstPage ? 'disabled' : '');
+    requestModel.lastPageClass = (requestModel.IsLastPage ? 'disabled' : '');
 
-    if ( pageModel.HasPages ) {
+    if ( requestModel.HasPages ) {
         html.add( '<div class="btn-group">' )
             .add( '<button class="ms-page-index btn btn-default {{firstPageClass}}" title="First page" value="page" data-page="1">' )
             .add( '<span class="glyphicon glyphicon-triangle-left" aria-hidden="true"></span>' )
@@ -491,10 +491,10 @@ gp.templates.pagerBar = function ( $pageModel ) {
             .add( '</button>' )
             .add( '</div>' );
     }
-    return gp.supplant.call( this,  html.toString(), pageModel );
+    return gp.supplant.call( this,  html.toString(), requestModel );
 };
 
-gp.templates.pagerBar.$inject = ['$pageModel'];
+gp.templates.pagerBar.$inject = ['$requestModel'];
 
 gp.templates.tableBody = function ( $config, $injector ) {
     var html = new gp.StringBuilder();

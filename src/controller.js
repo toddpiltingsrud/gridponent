@@ -107,7 +107,7 @@ gp.Controller.prototype = {
     toolbarChangeHandler: function ( evt ) {
         // tracks the search and paging textboxes
         var name = evt.target.name,
-            model = this.config.pageModel,
+            model = this.config.requestModel,
             type = gp.getType( model[name] ),
             val = gp.ModelSync.cast( evt.target.value, type );
 
@@ -133,7 +133,7 @@ gp.Controller.prototype = {
             dataItem = rowOrModal.length ? this.config.map.get( rowOrModal[0] ) : null,
             value = $btn.attr('value'),
             cmd = gp.getCommand( this.config.columns, value ),
-            model = this.config.pageModel;
+            model = this.config.requestModel;
 
         // stop the event from being handled by rowSelectHandler
         evt.stopPropagation();
@@ -266,34 +266,34 @@ gp.Controller.prototype = {
     },
 
     search: function ( searchTerm, callback ) {
-        this.config.pageModel.search = searchTerm;
+        this.config.requestModel.search = searchTerm;
         this.$n.find( 'div.table-toolbar input[name=search]' ).val( searchTerm );
         this.read( null, callback );
     },
 
     sort: function ( field, desc, callback ) {
-        this.config.pageModel.sort = field;
-        this.config.pageModel.desc = ( desc == true );
+        this.config.requestModel.sort = field;
+        this.config.requestModel.desc = ( desc == true );
         this.read( null, callback );
     },
 
     read: function ( requestModel, callback ) {
         var self = this, proceed = true;
         if ( requestModel ) {
-            gp.shallowCopy( requestModel, this.config.pageModel );
+            gp.shallowCopy( requestModel, this.config.requestModel );
         }
         proceed = this.invokeDelegates( gp.events.beforeRead, this.config.node.api );
         if ( proceed === false ) return;
-        this.model.read( this.config.pageModel, function ( model ) {
+        this.model.read( this.config.requestModel, function ( model ) {
             try {
                 // do a case-insensitive copy
-                gp.shallowCopy( model, self.config.pageModel, true );
-                self.injector.setResource( '$data', self.config.pageModel.data );
+                gp.shallowCopy( model, self.config.requestModel, true );
+                self.injector.setResource( '$data', self.config.requestModel.data );
                 self.config.map.clear();
                 gp.resolveTypes( self.config );
                 self.refresh( self.config );
                 self.invokeDelegates( gp.events.onRead, self.config.node.api );
-                gp.applyFunc( callback, self.config.node, self.config.pageModel );
+                gp.applyFunc( callback, self.config.node, self.config.requestModel );
             } catch ( e ) {
                 self.removeBusy();
                 self.httpErrorHandler( e );
@@ -383,9 +383,9 @@ gp.Controller.prototype = {
                     if ( !response || !response.errors ) {
                         // if it didn't error out, we'll assume it succeeded
                         // remove the dataItem from the model
-                        var index = self.config.pageModel.data.indexOf( dataItem );
+                        var index = self.config.requestModel.data.indexOf( dataItem );
                         if ( index != -1 ) {
-                            self.config.pageModel.data.splice( index, 1 );
+                            self.config.requestModel.data.splice( index, 1 );
                         }
                         self.refresh( self.config );
                     }

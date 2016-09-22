@@ -30,7 +30,7 @@ gp.Editor.prototype = {
             .setResource( '$mode', this.mode );
 
         // add the data item to the internal data array
-        this.config.pageModel.data.push( this.dataItem );
+        this.config.requestModel.data.push( this.dataItem );
 
         // map it
         this.uid = this.config.map.assign( this.dataItem );
@@ -57,9 +57,9 @@ gp.Editor.prototype = {
             // unmap the dataItem
             this.config.map.remove( this.uid );
             // remove the dataItem from the internal array
-            var index = this.config.pageModel.data.indexOf( this.dataItem );
+            var index = this.config.requestModel.data.indexOf( this.dataItem );
             if ( index !== -1 ) {
-                this.config.pageModel.data.slice( index, 1 );
+                this.config.requestModel.data.slice( index, 1 );
             }
         }
         else if ( this.mode == 'update' && this.originalDataItem ) {
@@ -126,7 +126,7 @@ gp.Editor.prototype = {
         else {
 
             // call the data layer with just the dataItem
-            // the data layer should respond with an updateModel
+            // the data layer should respond with an responseModel
             this.dal.update( this.dataItem, 
                 function ( response ) {
                     self.handleResponse( response, done, fail );
@@ -141,21 +141,21 @@ gp.Editor.prototype = {
     },
 
     handleResponse: function(response, done, fail) {
-        var updateModel;
+        var responseModel;
 
         try {
             this.injector.setResource( '$mode', null );
 
             // we're passing in a dataItem so it can compared to the data type of the response
-            updateModel = gp.resolveUpdateModel( response, this.dataItem );
+            responseModel = gp.resolveUpdateModel( response, this.dataItem );
 
-            if ( gp.hasValue( updateModel.errors ) ) {
-                this.validate( updateModel );
+            if ( gp.hasValue( responseModel.errors ) ) {
+                this.validate( responseModel );
             }
             else {
                 // copy to local dataItem so updateUI will bind to current data
                 // this should be case-sensitive because the dataItem's type is defined by the server
-                gp.shallowCopy( updateModel.dataItem, this.dataItem );
+                gp.shallowCopy( responseModel.dataItem, this.dataItem );
 
                 if ( this.elem ) {
                     // refresh the UI
@@ -183,7 +183,7 @@ gp.Editor.prototype = {
             } );
         }
 
-        gp.applyFunc( done, this.config.node.api, updateModel );
+        gp.applyFunc( done, this.config.node.api, responseModel );
     },
 
     addBusy: function () {
@@ -372,10 +372,10 @@ gp.TableRowEditor.prototype = {
 
     },
 
-    validate: function ( updateModel ) {
+    validate: function ( responseModel ) {
 
         if ( typeof this.config.validate === 'function' ) {
-            gp.applyFunc( this.config.validate, this, [this.elem, updateModel] );
+            gp.applyFunc( this.config.validate, this, [this.elem, responseModel] );
         }
         else {
 
@@ -389,11 +389,11 @@ gp.TableRowEditor.prototype = {
             // remove error class from inputs
             $( self.elem ).find( '[name].error' ).removeClass( 'error' );
 
-            Object.getOwnPropertyNames( updateModel.errors ).forEach( function ( e ) {
+            Object.getOwnPropertyNames( responseModel.errors ).forEach( function ( e ) {
 
                 $( self.elem ).find( '[name="' + e + '"]' ).addClass( 'error' );
 
-                errors = updateModel.errors[e].errors;
+                errors = responseModel.errors[e].errors;
 
                 builder
                     .add( e + ':\r\n' )

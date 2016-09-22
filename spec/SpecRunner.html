@@ -23,8 +23,8 @@
     <script>
     var fns = fns || {};
 
-    fns.getData = function (pagingModel) {
-        var model = new gridponent.PagingModel(data.products);
+    fns.getData = function (requestModel) {
+        var model = new gridponent.RequestModel(data.products);
         return model;
     };
 

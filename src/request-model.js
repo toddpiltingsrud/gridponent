@@ -1,10 +1,8 @@
 ﻿/***************\
-  PagingModel
+  RequestModel
 \***************/
-gp.PagingModel = function (data) {
+gp.RequestModel = function (data) {
     var self = this;
-    // properites are capitalized here because that's the convention for server-side classes (C#)
-    // we want the serialized version of the corresponding server-side class to look exactly like this prototype
 
     this.top = -1; // this is a flag to let the pagers know if paging is enabled
     this.page = 1;
@@ -34,7 +32,7 @@ gp.PagingModel = function (data) {
     });
 };
 
-gp.PagingModel.prototype = {
+gp.RequestModel.prototype = {
     top: -1, // this is a flag to let the pagers know if paging is enabled
     page: 1,
     sort: '',
