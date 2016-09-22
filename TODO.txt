@@ -1,6 +1,4 @@
-﻿Implement classical inheritance in the editors.
-
-The gridponent function doesn't handle exceptions.
+﻿The gridponent function doesn't handle exceptions.
 Should we use promises to do this?
 Or should we just provide a fail callback?
 

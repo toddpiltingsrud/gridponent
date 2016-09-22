@@ -1077,21 +1077,9 @@ gp.TableRowEditor = function ( config, dal, injector ) {
 
 };
 
-gp.TableRowEditor.prototype = {
+gp.TableRowEditor.prototype = Object.create(gp.Editor.prototype);
 
-    save: gp.Editor.prototype.save,
-
-    handleResponse: gp.Editor.prototype.handleResponse,
-
-    addBusy: gp.Editor.prototype.addBusy,
-
-    removeBusy: gp.Editor.prototype.removeBusy,
-
-    httpErrorHandler: gp.Editor.prototype.httpErrorHandler,
-
-    createDataItem: gp.Editor.prototype.createDataItem,
-
-    setInjectorContext: gp.Editor.prototype.setInjectorContext,
+$.extend(gp.TableRowEditor.prototype, {
 
     addCommandHandler: function () {
         $( this.elem ).on( 'click', 'button[value]', this.commandHandler );
@@ -1245,7 +1233,7 @@ gp.TableRowEditor.prototype = {
         }
     }
 
-};
+});
 
 
 /***************\
@@ -1258,27 +1246,15 @@ gp.ModalEditor = function ( config, dal, injector ) {
 
 };
 
-gp.ModalEditor.prototype = {
+gp.ModalEditor.prototype = Object.create( gp.Editor.prototype );
 
-    save: gp.Editor.prototype.save,
-
-    handleResponse: gp.Editor.prototype.handleResponse,
-
-    addBusy: gp.Editor.prototype.addBusy,
-
-    removeBusy: gp.Editor.prototype.removeBusy,
-
-    httpErrorHandler: gp.Editor.prototype.httpErrorHandler,
+$.extend(gp.ModalEditor.prototype, {
 
     addCommandHandler: gp.TableRowEditor.prototype.addCommandHandler,
 
     removeCommandHandler: gp.TableRowEditor.prototype.removeCommandHandler,
 
     validate: gp.TableRowEditor.prototype.validate,
-
-    createDataItem: gp.Editor.prototype.createDataItem,
-
-    setInjectorContext: gp.Editor.prototype.setInjectorContext,
 
     invokeEditReady: gp.TableRowEditor.prototype.invokeEditReady,
 
@@ -1409,7 +1385,7 @@ gp.ModalEditor.prototype = {
 
     }
 
-};
+});
 /***************\
     helpers
 \***************/
