@@ -147,7 +147,7 @@ gp.Editor.prototype = {
             this.injector.setResource( '$mode', null );
 
             // we're passing in a dataItem so it can compared to the data type of the response
-            responseModel = gp.resolveUpdateModel( response, this.dataItem );
+            responseModel = gp.resolveResponseModel( response, this.dataItem );
 
             if ( gp.hasValue( responseModel.errors ) ) {
                 this.validate( responseModel );
@@ -260,7 +260,7 @@ gp.TableRowEditor = function ( config, dal, injector ) {
 
 };
 
-gp.TableRowEditor.prototype = Object.create(gp.Editor.prototype);
+gp.TableRowEditor.prototype = Object.create( gp.Editor.prototype );
 
 $.extend(gp.TableRowEditor.prototype, {
 

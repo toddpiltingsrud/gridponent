@@ -1,4 +1,4 @@
-QUnit.test( 'utils.resolveUpdateModel', function ( assert ) {
+QUnit.test( 'utils.resolveResponseModel', function ( assert ) {
 
     // response as ResponseModel
     var response = {
@@ -6,7 +6,7 @@ QUnit.test( 'utils.resolveUpdateModel', function ( assert ) {
         Errors: [{}]
     };
 
-    var model = gp.resolveUpdateModel( response );
+    var model = gp.resolveResponseModel( response );
 
     assert.equal( model.dataItem, fns.model );
     assert.equal( model.errors, response.Errors );
@@ -16,14 +16,14 @@ QUnit.test( 'utils.resolveUpdateModel', function ( assert ) {
         data: [fns.model]
     };
 
-    model = gp.resolveUpdateModel( response );
+    model = gp.resolveResponseModel( response );
 
     assert.equal( model.dataItem, fns.model );
 
     // response as array
     response = [fns.model];
 
-    model = gp.resolveUpdateModel( response );
+    model = gp.resolveResponseModel( response );
 
     assert.equal( model.dataItem, fns.model );
 
@@ -31,7 +31,7 @@ QUnit.test( 'utils.resolveUpdateModel', function ( assert ) {
     // response as dataItem
     response = fns.model;
 
-    model = gp.resolveUpdateModel( response, fns.model );
+    model = gp.resolveResponseModel( response, fns.model );
 
     assert.ok( gp.implements( model.dataItem, fns.model ) );
 
@@ -39,7 +39,7 @@ QUnit.test( 'utils.resolveUpdateModel', function ( assert ) {
     try {
         response = fns.model;
 
-        model = gp.resolveUpdateModel( response );
+        model = gp.resolveResponseModel( response );
 
         assert.ok( false, 'Unsupported response format should throw error' );
     }

@@ -123,6 +123,23 @@ gp.ModelSync = {
         }.bind(this) );
     },
 
+    castModel: function ( model, targetPrototype ) {
+        var type,
+            val,
+            self = this,
+            props = Object.getOwnPropertyNames( model );
+
+        props.forEach( function ( prop ) {
+            if ( targetPrototype.hasOwnProperty( prop ) ) {
+                type = gp.getType( targetPrototype[prop] );
+                if ( type ) {
+                    val = model[prop];
+                    model[prop] = self.cast( val, type );
+                }
+            }
+        } );
+    },
+
     cast: function ( val, dataType ) {
         switch ( dataType ) {
             case 'number':

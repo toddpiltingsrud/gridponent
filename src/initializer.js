@@ -54,6 +54,8 @@ gp.Initializer.prototype = {
             // do this here to give external scripts a chance to run first
             self.resolveTopLevelOptions( self.config );
 
+            self.serializeToolbar( self.config );
+
             self.addEventDelegates( self.config, controller );
 
             // provides a hook for extensions
@@ -175,6 +177,21 @@ gp.Initializer.prototype = {
         }
         catch ( ex ) {
             gp.error( ex );
+        }
+    },
+
+    serializeToolbar: function(config) {
+        try {
+            // before first read, make sure the requestModel 
+            // reflects the state of the toolbar inputs
+            var toolbar = config.node.api.find( 'div.table-toolbar' );
+            var form = gp.ModelSync.serialize( toolbar );
+            // cast the values to the appropriate types
+            gp.ModelSync.castForm( form, gp.requestModel.prototype );
+            // copy the values into the requestModel
+            gp.shallowCopy( form, config.requestModel );
+        } catch ( e ) {
+            // ignore it
         }
     },
 

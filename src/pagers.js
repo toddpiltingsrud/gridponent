@@ -54,7 +54,7 @@ gp.ClientPager.prototype = {
                 search,
                 skip = this.getSkip( model );
 
-            // don't modify the original array
+            // don't replace the original array
             model.data = this.data.slice(0, this.data.length);
 
             // filter first
