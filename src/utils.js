@@ -309,6 +309,30 @@
         } );
     };
 
+    gp.resolveUpdateModel = function ( response, dataItemPrototype ) {
+        if ( !gp.hasValue( response ) ) return null;
+
+        var updateModel = new gp.UpdateModel();
+
+        if ( gp.implements( response, updateModel ) ) {
+            // this will overwrite updateModel.original if present in the response
+            gp.shallowCopy( response, updateModel, true );
+        }
+        else if ( response.data && response.data.length ) {
+            updateModel.dataItem = response.data[0];
+        }
+        else if ( response.length ) {
+            updateModel.dataItem = response[0];
+        }
+        else if ( gp.implements( response, dataItemPrototype ) ) {
+            updateModel.dataItem = response;
+        }
+        else {
+            throw new Error( "Could not resolve JSON response." );
+        }
+
+        return updateModel;
+    };
 
     gp.rexp = {
         splitPath: /[^\[\]\.\s]+|\[\d+\]/g,

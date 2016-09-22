@@ -1,3 +1,55 @@
+QUnit.test( 'utils.resolveUpdateModel', function ( assert ) {
+
+    // response as UpdateModel
+    var response = {
+        DataItem: fns.model,
+        Errors: [{}]
+    };
+
+    var model = gp.resolveUpdateModel( response );
+
+    assert.equal( model.dataItem, fns.model );
+    assert.equal( model.errors, response.Errors );
+
+    // response contains data array property
+    response = {
+        data: [fns.model]
+    };
+
+    model = gp.resolveUpdateModel( response );
+
+    assert.equal( model.dataItem, fns.model );
+
+    // response as array
+    response = [fns.model];
+
+    model = gp.resolveUpdateModel( response );
+
+    assert.equal( model.dataItem, fns.model );
+
+
+    // response as dataItem
+    response = fns.model;
+
+    model = gp.resolveUpdateModel( response, fns.model );
+
+    assert.ok( gp.implements( model.dataItem, fns.model ) );
+
+    // unsupported response
+    try {
+        response = fns.model;
+
+        model = gp.resolveUpdateModel( response );
+
+        assert.ok( false, 'Unsupported response format should throw error' );
+    }
+    catch ( err ) {
+        assert.ok(true, 'Unsupported response format should throw error' );
+    }
+
+} );
+
+
 QUnit.test( 'newrowposition', function ( assert ) {
 
     var done1 = assert.async();

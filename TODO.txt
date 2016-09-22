@@ -1,4 +1,4 @@
-﻿When handling the server response from a save operation, resolving the return value should be case-insensitive.
+﻿Implement classical inheritance in the editors.
 
 The gridponent function doesn't handle exceptions.
 Should we use promises to do this?

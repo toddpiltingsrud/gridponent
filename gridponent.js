@@ -893,9 +893,7 @@ gp.Editor.prototype = {
     save: function ( done, fail ) {
         // create or update
         var self = this,
-            returnedDataItem,
             serialized,
-            uid,
             fail = fail || gp.error;
 
         this.setInjectorContext();
@@ -928,106 +926,79 @@ gp.Editor.prototype = {
 
         if ( this.mode == 'create' ) {
 
-            this.dal.create( this.dataItem, function ( updateModel ) {
-
-                try {
-                    self.injector.setResource( '$mode', null );
-
-                    if ( gp.hasValue( updateModel.Errors )) {
-                        self.validate( updateModel );
-                    }
-                    else {
-                        returnedDataItem = gp.hasValue( updateModel.DataItem ) ? updateModel.DataItem :
-                            ( updateModel.Data && updateModel.Data.length ) ? updateModel.Data[0] :
-                            gp.implements(updateModel, self.DataItem) ? updateModel : self.DataItem;
-
-                        // copy to local dataItem so updateUI will bind to current data
-                        // do a case-insensitive copy
-                        gp.shallowCopy( returnedDataItem, self.dataItem, true );
-
-                        self.updateUI( self.config, self.dataItem, self.elem );
-
-                        if (self.removeCommandHandler) self.removeCommandHandler();
-                    }
+            this.dal.create(
+                this.dataItem,
+                function(response) {
+                    self.handleResponse( response, done, fail );
+                },
+                function ( e ) {
+                    self.removeBusy();
+                    gp.applyFunc( fail, self, e );
                 }
-                catch ( err ) {
-                    var error = fail || gp.error;
-                    error( err );
-                }
-
-                if ( self.button instanceof HTMLElement ) gp.enable( self.button );
-
-                self.removeBusy();
-
-                if ( typeof self.afterEdit == 'function' ) {
-                    self.afterEdit( {
-                        type: self.mode,
-                        dataItem: self.dataItem,
-                        elem: self.elem
-                    } );
-                }
-
-                gp.applyFunc( done, self.config.node.api, updateModel );
-            },
-            function ( e ) {
-                self.removeBusy();
-                gp.applyFunc( fail, self, e );
-            } );
+            );
 
         }
         else {
 
             // call the data layer with just the dataItem
             // the data layer should respond with an updateModel
-            this.dal.update( this.dataItem, function ( updateModel ) {
-
-                try {
-                    self.injector.setResource( '$mode', null );
-
-                    if ( gp.hasValue( updateModel.errors ) ) {
-                        self.validate( updateModel );
-                    }
-                    else {
-                        // copy the returned dataItem back to the internal data array
-                        // use the existing dataItem if the response is empty
-                        returnedDataItem = gp.hasValue( updateModel.dataItem ) ? updateModel.dataItem :
-                            ( updateModel.data && updateModel.data.length ) ? updateModel.data[0] :
-                            gp.implements( updateModel, self.dataItem ) ? updateModel : self.dataItem;
-
-                        gp.shallowCopy( returnedDataItem, self.dataItem, true );
-
-                        if ( self.elem ) {
-                            // refresh the UI
-                            self.updateUI( self.config, self.dataItem, self.elem );
-
-                            if ( self.removeCommandHandler ) self.removeCommandHandler();
-                        }
-                    }
+            this.dal.update( this.dataItem, 
+                function ( response ) {
+                    self.handleResponse( response, done, fail );
+                },
+                function ( e ) {
+                    self.removeBusy();
+                    gp.applyFunc( fail, self, e );
                 }
-                catch ( err ) {
-                    fail( err );
-                }
-
-                if ( self.button instanceof HTMLElement ) gp.enable( self.button );
-
-                self.removeBusy();
-
-                if ( typeof self.afterEdit == 'function' ) {
-                    self.afterEdit( {
-                        type: self.mode,
-                        dataItem: self.dataItem,
-                        elem: self.elem
-                    } );
-                }
-
-                gp.applyFunc( done, self.config.node, updateModel );
-            },
-            function ( e ) {
-                self.removeBusy();
-                gp.applyFunc( fail, self, e );
-            } );
+            );
 
         }
+    },
+
+    handleResponse: function(response, done, fail) {
+        var updateModel;
+
+        try {
+            this.injector.setResource( '$mode', null );
+
+            // we're passing in a dataItem so it can compared to the data type of the response
+            updateModel = gp.resolveUpdateModel( response, this.dataItem );
+
+            if ( gp.hasValue( updateModel.errors ) ) {
+                this.validate( updateModel );
+            }
+            else {
+                // copy to local dataItem so updateUI will bind to current data
+                // this should be case-sensitive because the dataItem's type is defined by the server
+                gp.shallowCopy( updateModel.dataItem, this.dataItem );
+
+                if ( this.elem ) {
+                    // refresh the UI
+                    this.updateUI( this.config, this.dataItem, this.elem );
+
+                    // if there's a UI, remove the event handler
+                    if ( this.removeCommandHandler ) this.removeCommandHandler();
+                }
+            }
+        }
+        catch ( err ) {
+            var error = fail || gp.error;
+            error( err );
+        }
+
+        if ( this.button instanceof HTMLElement ) gp.enable( this.button );
+
+        this.removeBusy();
+
+        if ( typeof this.afterEdit == 'function' ) {
+            this.afterEdit( {
+                type: this.mode,
+                dataItem: this.dataItem,
+                elem: this.elem
+            } );
+        }
+
+        gp.applyFunc( done, this.config.node.api, updateModel );
     },
 
     addBusy: function () {
@@ -1048,7 +1019,7 @@ gp.Editor.prototype = {
 
         // set defaults
         this.config.columns.forEach( function ( col ) {
-            var field = col.field || col.sort;
+            field = col.field || col.sort;
             if ( gp.hasValue( field ) ) {
                 if ( gp.hasValue( col.Type ) ) {
                     dataItem[field] = gp.getDefaultValue( col.Type );
@@ -1107,6 +1078,8 @@ gp.TableRowEditor = function ( config, dal, injector ) {
 gp.TableRowEditor.prototype = {
 
     save: gp.Editor.prototype.save,
+
+    handleResponse: gp.Editor.prototype.handleResponse,
 
     addBusy: gp.Editor.prototype.addBusy,
 
@@ -1286,6 +1259,8 @@ gp.ModalEditor = function ( config, dal, injector ) {
 gp.ModalEditor.prototype = {
 
     save: gp.Editor.prototype.save,
+
+    handleResponse: gp.Editor.prototype.handleResponse,
 
     addBusy: gp.Editor.prototype.addBusy,
 
@@ -2896,11 +2871,8 @@ gp.templates.toolbar.$inject = ['$config', '$injector'];
    UpdateModel
 \***************/
 gp.UpdateModel = function ( dataItem, validationErrors ) {
-
     this.dataItem = dataItem;
     this.errors = validationErrors;
-    this.original = gp.shallowCopy( dataItem );
-
 };
 /***************\
    utilities
@@ -3213,6 +3185,30 @@ gp.UpdateModel = function ( dataItem, validationErrors ) {
         } );
     };
 
+    gp.resolveUpdateModel = function ( response, dataItemPrototype ) {
+        if ( !gp.hasValue( response ) ) return null;
+
+        var updateModel = new gp.UpdateModel();
+
+        if ( gp.implements( response, updateModel ) ) {
+            // this will overwrite updateModel.original if present in the response
+            gp.shallowCopy( response, updateModel, true );
+        }
+        else if ( response.data && response.data.length ) {
+            updateModel.dataItem = response.data[0];
+        }
+        else if ( response.length ) {
+            updateModel.dataItem = response[0];
+        }
+        else if ( gp.implements( response, dataItemPrototype ) ) {
+            updateModel.dataItem = response;
+        }
+        else {
+            throw new Error( "Could not resolve JSON response." );
+        }
+
+        return updateModel;
+    };
 
     gp.rexp = {
         splitPath: /[^\[\]\.\s]+|\[\d+\]/g,
