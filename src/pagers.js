@@ -6,15 +6,17 @@ gp.ServerPager = function (url) {
 };
 
 gp.ServerPager.prototype = {
-    read: function ( model, callback, error ) {
-        var copy = gp.shallowCopy( model );
+    read: function ( requestModel, callback, error ) {
+        // we're going to post a sanitized copy of the requestModel
+        var copy = gp.shallowCopy( requestModel );
         // delete anything we don't want to send to the server
         var props = Object.getOwnPropertyNames( copy ).forEach(function(prop){
             if ( /^(page|top|sort|desc|search)$/i.test( prop ) == false ) {
                 delete copy[prop];
             }
         } );
-        var url = gp.supplant( this.url, model, model );
+        // use the original requestModel to transform the url
+        var url = gp.supplant( this.url, requestModel, requestModel );
         var h = new gp.Http();
         h.post(url, copy, callback, error);
     }

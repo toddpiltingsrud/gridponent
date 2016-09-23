@@ -2069,13 +2069,19 @@ QUnit.test( 'read', function ( assert ) {
 
 
     // URL
-    var options = gp.shallowCopy( configOptions );
+    var options = gp.shallowCopy( configuration );
 
-    options.read = '/Products/read?page={{page}}';
+    options.toolbar = '<input name="test" value="true" /><input name="page" value="2" />';
 
-    getTableConfig( options, function ( api ) {
+    options.read = '/Products/read?page={{page}}&test={{test}}';
 
-        assert.ok( true, 'read can be a template' )
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        assert.ok( true, 'can be a url template' );
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
 
         done1();
 
@@ -2083,57 +2089,57 @@ QUnit.test( 'read', function ( assert ) {
 
 
 
-    // read with a function
+    //// read with a function
 
-    fns.read = function ( model, callback ) {
-        callback( data.products );
-        assert.ok( true, 'read can be a function' )
-        done2();
-    };
+    //fns.read = function ( model, callback ) {
+    //    callback( data.products );
+    //    assert.ok( true, 'read can be a function' )
+    //    done2();
+    //};
 
-    options.read = 'fns.read';
+    //options.read = 'fns.read';
 
-    getTableConfig( options, function ( api ) { } );
-
-
-    // read with an array
-    options.read = 'data.products';
-
-    getTableConfig( options, function ( api ) {
-
-        assert.ok( true, 'read can be an array' )
-
-        done3();
-
-    } );
+    //getTableConfig( options, function ( api ) { } );
 
 
-    // read as a RequestModel
-    var options = gp.shallowCopy( configuration );
+    //// read with an array
+    //options.read = 'data.products';
 
-    options.read = new gp.RequestModel( data.products );
+    //getTableConfig( options, function ( api ) {
 
-    options.read.search = 'AR-';
+    //    assert.ok( true, 'read can be an array' )
 
-    gridponent( '#table .box', options ).ready( function ( api ) {
+    //    done3();
 
-        assert.ok( true, 'can be a RequestModel' );
+    //} );
 
-        var cell = api.find( '.table-body tr:last-child td:nth-child(10)' );
 
-        assert.ok( cell != null, 'should find a table cell' );
+    //// read as a RequestModel
+    //var options = gp.shallowCopy( configuration );
 
-        var text = $( cell ).text();
+    //options.read = new gp.RequestModel( data.products );
 
-        assert.equal( text.substr(0, 3), 'AR-', 'should have filtered the table' );
+    //options.read.search = 'AR-';
 
-        api.dispose();
+    //gridponent( '#table .box', options ).ready( function ( api ) {
 
-        $( '#table .box' ).empty();
+    //    assert.ok( true, 'can be a RequestModel' );
 
-        done4();
+    //    var cell = api.find( '.table-body tr:last-child td:nth-child(10)' );
 
-    } );
+    //    assert.ok( cell != null, 'should find a table cell' );
+
+    //    var text = $( cell ).text();
+
+    //    assert.equal( text.substr(0, 3), 'AR-', 'should have filtered the table' );
+
+    //    api.dispose();
+
+    //    $( '#table .box' ).empty();
+
+    //    done4();
+
+    //} );
 
 
 } );
@@ -3712,7 +3718,7 @@ QUnit.test( 'gp.templates.footerCell', function ( assert ) {
 } );
 
 
-QUnit.test( 'gp.syncModel', function ( assert ) {
+QUnit.test( 'gp.ModelSync', function ( assert ) {
 
     var model = {
         number: 1,
@@ -3737,18 +3743,19 @@ QUnit.test( 'gp.syncModel', function ( assert ) {
     div.append( '<input type="text" name="notInModel" value="text" />' );
 
     var numberInput = div[0].querySelector( '[name=number]' );
+    var textInput = div[0].querySelector( '[name=notInModel]' );
+    var checkbox = div[0].querySelector( '[name=bool]' );
+
     numberInput.value = '2';
     var obj = gp.ModelSync.serialize( div[0] );
     gp.ModelSync.castValues( obj, columns );
     assert.strictEqual( obj.number, 2 );
 
-    var textInput = div[0].querySelector( '[name=notInModel]' );
     textInput.value = 'more text';
     obj = gp.ModelSync.serialize( div[0] );
     gp.ModelSync.castValues( obj, columns );
     assert.equal( obj.notInModel, 'more text', 'should add properties not present in the model' );
 
-    var checkbox = div[0].querySelector( '[name=bool]' );
     checkbox.checked = false;
     obj = gp.ModelSync.serialize( div[0] );
     gp.ModelSync.castValues( obj, columns );
@@ -3756,6 +3763,16 @@ QUnit.test( 'gp.syncModel', function ( assert ) {
 
     var result = gp.ModelSync.cast( 'true', null );
     assert.strictEqual( result, true );
+
+    numberInput.value = '3';
+    textInput.value = 'gridponent';
+    checkbox.checked = true;
+    obj = gp.ModelSync.serialize( div[0] );
+    gp.ModelSync.castModel( obj, model );
+
+    assert.strictEqual( obj.number, 3 );
+    assert.strictEqual( obj.notInModel, 'gridponent' );
+    assert.strictEqual( obj.bool, true );
 
 } );
 

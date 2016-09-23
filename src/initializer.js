@@ -187,11 +187,11 @@ gp.Initializer.prototype = {
             var toolbar = config.node.api.find( 'div.table-toolbar' );
             var form = gp.ModelSync.serialize( toolbar );
             // cast the values to the appropriate types
-            gp.ModelSync.castForm( form, gp.requestModel.prototype );
+            gp.ModelSync.castModel( form, gp.RequestModel.prototype );
             // copy the values into the requestModel
             gp.shallowCopy( form, config.requestModel );
         } catch ( e ) {
-            // ignore it
+            gp.error( e );
         }
     },
 
