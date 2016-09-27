@@ -18,7 +18,7 @@ gp.ServerPager.prototype = {
         // use the original requestModel to transform the url
         var url = gp.supplant( this.url, requestModel, requestModel );
         var h = new gp.Http();
-        h.post(url, copy, callback, error);
+        h.get(url, copy, callback, error);
     }
 };
 

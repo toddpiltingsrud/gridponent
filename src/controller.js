@@ -135,9 +135,6 @@ gp.Controller.prototype = {
             cmd = gp.getCommand( this.config.columns, value ),
             model = this.config.requestModel;
 
-        // stop the event from being handled by rowSelectHandler
-        evt.stopPropagation();
-
         // check for a user-defined command
         if ( cmd && typeof cmd.func === 'function' ) {
             cmd.func.call( this.config.node.api, dataItem );
@@ -233,6 +230,10 @@ gp.Controller.prototype = {
             type = typeof config.rowselected,
             dataItem,
             proceed;
+
+        if ( $(evt.target).is( 'td.body-cell' ) === false ) {
+            return;
+        }
 
         // simple test to see if config.rowselected is a template
         if ( type === 'string' && config.rowselected.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';

@@ -13,6 +13,9 @@
     };
 
     gp.Http.prototype = {
+        get: function ( url, model, callback, error ) {
+            this.post( url, model, callback, error );
+        },
         post: function (url, model, callback, error) {
             model = model || {};
             if (routes.read.test(url)) {

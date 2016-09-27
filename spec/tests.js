@@ -1,3 +1,63 @@
+QUnit.test( 'rowSelectHandler', function ( assert ) {
+
+    var done1 = assert.async();
+
+    assert.expect( 0 );
+
+    var options = gp.shallowCopy( configuration );
+
+    options.newrowposition = 'bottom';
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        api.rowSelected( function ( model ) {
+
+            assert.ok( false, 'clicking an element other than a cell should not trigger row selection' );
+            
+        } );
+
+        var checkbox = api.find( 'td.body-cell input[type=checkbox]' );
+
+        clickButton( checkbox[0] );
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+        done1();
+
+    } );
+
+} );
+
+QUnit.test( 'rowSelectHandler', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        api.rowSelected( function ( model ) {
+
+            assert.ok( true, 'clicking a body cell should trigger row selection' );
+
+        } );
+
+        var bodyCell = api.find( 'td.body-cell' );
+
+        clickButton( bodyCell[0] );
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+        done1();
+
+    } );
+
+} );
+
 QUnit.test( 'utils.resolveResponseModel', function ( assert ) {
 
     // response as ResponseModel
@@ -2089,57 +2149,57 @@ QUnit.test( 'read', function ( assert ) {
 
 
 
-    //// read with a function
+    // read with a function
 
-    //fns.read = function ( model, callback ) {
-    //    callback( data.products );
-    //    assert.ok( true, 'read can be a function' )
-    //    done2();
-    //};
+    fns.read = function ( model, callback ) {
+        callback( data.products );
+        assert.ok( true, 'read can be a function' )
+        done2();
+    };
 
-    //options.read = 'fns.read';
+    options.read = 'fns.read';
 
-    //getTableConfig( options, function ( api ) { } );
-
-
-    //// read with an array
-    //options.read = 'data.products';
-
-    //getTableConfig( options, function ( api ) {
-
-    //    assert.ok( true, 'read can be an array' )
-
-    //    done3();
-
-    //} );
+    getTableConfig( options, function ( api ) { } );
 
 
-    //// read as a RequestModel
-    //var options = gp.shallowCopy( configuration );
+    // read with an array
+    options.read = 'data.products';
 
-    //options.read = new gp.RequestModel( data.products );
+    getTableConfig( options, function ( api ) {
 
-    //options.read.search = 'AR-';
+        assert.ok( true, 'read can be an array' )
 
-    //gridponent( '#table .box', options ).ready( function ( api ) {
+        done3();
 
-    //    assert.ok( true, 'can be a RequestModel' );
+    } );
 
-    //    var cell = api.find( '.table-body tr:last-child td:nth-child(10)' );
 
-    //    assert.ok( cell != null, 'should find a table cell' );
+    // read as a RequestModel
+    var options = gp.shallowCopy( configuration );
 
-    //    var text = $( cell ).text();
+    options.read = new gp.RequestModel( data.products );
 
-    //    assert.equal( text.substr(0, 3), 'AR-', 'should have filtered the table' );
+    options.read.search = 'AR-';
 
-    //    api.dispose();
+    gridponent( '#table .box', options ).ready( function ( api ) {
 
-    //    $( '#table .box' ).empty();
+        assert.ok( true, 'can be a RequestModel' );
 
-    //    done4();
+        var cell = api.find( '.table-body tr:last-child td:nth-child(10)' );
 
-    //} );
+        assert.ok( cell != null, 'should find a table cell' );
+
+        var text = $( cell ).text();
+
+        assert.equal( text.substr(0, 3), 'AR-', 'should have filtered the table' );
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+        done4();
+
+    } );
 
 
 } );
