@@ -216,7 +216,8 @@ gp.Controller.prototype = {
 
     addRowSelectHandler: function ( config ) {
         // always add click handler so we can call api.rowSelected after grid is initialized
-        this.$n.on( 'click', 'div.table-body > table > tbody > tr > td.body-cell', this.handlers.rowSelectHandler );
+        // disable row selection for rows in update or create mode
+        this.$n.on( 'click', 'div.table-body > table > tbody > tr:not(.update-mode,.create-mode) > td.body-cell', this.handlers.rowSelectHandler );
     },
 
     removeRowSelectHandler: function () {

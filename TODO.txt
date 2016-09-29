@@ -1,4 +1,6 @@
-﻿The mechanism we're using to populate the model for the read template doesn't work on the initial read.
+﻿Disable row selection on rows that are being edited.
+
+The mechanism we're using to populate the model for the read template doesn't work on the initial read.
 That's because it gets populated in the change event handler.
 Instead, we should unbind the toolbar just like any form.
 

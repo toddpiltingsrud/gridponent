@@ -58,6 +58,55 @@ QUnit.test( 'rowSelectHandler', function ( assert ) {
 
 } );
 
+QUnit.test( 'rowSelectHandler', function ( assert ) {
+
+    var done1 = assert.async();
+
+    assert.expect( 0 );
+
+    var options = gp.shallowCopy( configuration );
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        api.rowSelected( function ( model ) {
+
+            assert.ok( false, 'clicking a body cell should NOT trigger row selection in create mode or update mode' );
+
+        } );
+
+        // create mode
+        var addBtn = api.find( '[value=AddRow]' );
+
+        clickButton( addBtn[0] );
+
+        var bodyCell = api.find( 'table.table tbody tr.create-mode td.body-cell' );
+
+        clickButton( bodyCell[0] );
+
+        var cancelBtn = api.find( '[value=cancel]' );
+
+        clickButton( cancelBtn[0] );
+
+        // update mode
+        var editBtn = api.find( '[value=edit]' )
+
+        clickButton( editBtn[0] );
+
+        bodyCell = api.find( 'table.table tbody tr.update-mode td.body-cell' );
+
+        clickButton( bodyCell[0] );
+
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+        done1();
+
+    } );
+
+} );
+
 QUnit.test( 'utils.resolveResponseModel', function ( assert ) {
 
     // response as ResponseModel

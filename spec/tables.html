@@ -9,7 +9,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>gridponent tests</title>
-    <link href="styles/bootstrap.min.css" rel="stylesheet">
+<!--    <link href="styles/bootstrap.min.css" rel="stylesheet">-->
     <link href="styles/styles.css" rel="stylesheet">
     <link href="../src/gridponent.css" rel="stylesheet">
     <script src="scripts/jquery-2.1.4.min.js"></script>
@@ -17,7 +17,7 @@
     <script src="scripts/numeral.min.js"></script>
     <script src="../data/products.js"></script>
     <script src="../gridponent.js"></script>
-    <script src="scripts/bootstrap.min.js"></script>
+<!--    <script src="scripts/bootstrap.min.js"></script>-->
     <style type="text/css">
         .gp td.body-cell.align-right {
             text-align:right;
@@ -125,7 +125,7 @@
                                 { field: 'Name' },
                                 { field: 'ProductNumber', header: 'Product Nbr' },
                                 { field: 'MakeFlag', header: 'Make Flag' },
-                                { bodytemplate: '<span class="glyphicon glyphicon-stop" style="color:{{fns.getColor}}"></span> {{Color}}' },
+                                { field:'Color', bodytemplate: '<span class="glyphicon glyphicon-stop" style="color:{{fns.getColor}}"></span> {{Color}}' },
                                 { field: 'ListPrice', header: 'List Price', format: '$0.00', bodyclass: 'align-right' },
                                 { field: 'SellStartDate', header: 'Sell Start Date', format: 'M/YYYY', bodyclass: 'align-center' },
                                 { field: 'Markup' },
