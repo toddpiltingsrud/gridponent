@@ -232,7 +232,7 @@ gp.Controller.prototype = {
             dataItem,
             proceed;
 
-        if ( $(evt.target).is( 'td.body-cell' ) === false ) {
+        if ( $(evt.target).is( 'a,:input,:button,:submit' ) ) {
             return;
         }
 
