@@ -2159,23 +2159,6 @@ QUnit.test( 'read', function ( assert ) {
     var done1 = assert.async();
     var done2 = assert.async();
     var done3 = assert.async();
-    var done4 = assert.async();
-
-    //// read as unsupported configuration
-    //var options2 = gp.shallowCopy( configuration );
-
-    //options2.read = 1;
-
-    //gridponent( '#table .box', options2 ).ready( function ( api ) {
-
-    //    api.dispose();
-
-    //    $( '#table .box' ).empty();
-
-    //    done5();
-
-    //} );
-
 
     // URL
     var options = gp.shallowCopy( configuration );
@@ -2222,6 +2205,11 @@ QUnit.test( 'read', function ( assert ) {
 
     } );
 
+} );
+
+QUnit.test( 'read', function ( assert ) {
+
+    var done4 = assert.async();
 
     // read as a RequestModel
     var options = gp.shallowCopy( configuration );
@@ -2240,7 +2228,7 @@ QUnit.test( 'read', function ( assert ) {
 
         var text = $( cell ).text();
 
-        assert.equal( text.substr(0, 3), 'AR-', 'should have filtered the table' );
+        assert.equal( text.substr( 0, 3 ), 'AR-', 'should have filtered the table' );
 
         api.dispose();
 

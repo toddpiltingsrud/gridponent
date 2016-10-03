@@ -38,6 +38,7 @@ gp.Initializer.prototype = {
         this.resolveCustomResource( this.config, this.injector );
 
         // this has to happen here so we can find the table-container
+        // the toolbar is also rendered here so we can call syncToolbar later
         this.renderLayout( this.config, this.parent );
 
         this.config.node = this.parent.find( '.table-container' )[0];
@@ -54,7 +55,7 @@ gp.Initializer.prototype = {
             // do this here to give external scripts a chance to run first
             self.resolveTopLevelOptions( self.config );
 
-            self.serializeToolbar( self.config );
+            self.syncToolbar( self.config );
 
             self.addEventDelegates( self.config, controller );
 
@@ -180,16 +181,25 @@ gp.Initializer.prototype = {
         }
     },
 
-    serializeToolbar: function(config) {
+    syncToolbar: function(config) {
         try {
-            // before first read, make sure the requestModel 
-            // reflects the state of the toolbar inputs
             var toolbar = config.node.api.find( 'div.table-toolbar' );
-            var form = gp.ModelSync.serialize( toolbar );
-            // cast the values to the appropriate types
-            gp.ModelSync.castModel( form, gp.RequestModel.prototype );
-            // copy the values into the requestModel
-            gp.shallowCopy( form, config.requestModel );
+
+            // if config.read is a RequestModel, bind the toolbar to it
+            // if not, unbind the toolbar to set config.requestModel
+
+            if ( gp.implements( config.read, gp.RequestModel.prototype ) ) {
+                gp.ModelSync.bindElements( config.read, toolbar );
+            }
+            else {
+                // before first read, make sure the requestModel 
+                // reflects the state of the toolbar inputs
+                var form = gp.ModelSync.serialize( toolbar );
+                // cast the values to the appropriate types
+                gp.ModelSync.castModel( form, gp.RequestModel.prototype );
+                // copy the values into the requestModel
+                gp.shallowCopy( form, config.requestModel );
+            }
         } catch ( e ) {
             gp.error( e );
         }

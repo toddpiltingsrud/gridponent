@@ -9,7 +9,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>gridponent tests</title>
-<!--    <link href="styles/bootstrap.min.css" rel="stylesheet">-->
+    <link href="styles/bootstrap.min.css" rel="stylesheet">
     <link href="styles/styles.css" rel="stylesheet">
     <link href="../src/gridponent.css" rel="stylesheet">
     <script src="scripts/jquery-2.1.4.min.js"></script>
@@ -17,7 +17,7 @@
     <script src="scripts/numeral.min.js"></script>
     <script src="../data/products.js"></script>
     <script src="../gridponent.js"></script>
-<!--    <script src="scripts/bootstrap.min.js"></script>-->
+    <script src="scripts/bootstrap.min.js"></script>
     <style type="text/css">
         .gp td.body-cell.align-right {
             text-align:right;
@@ -114,7 +114,7 @@
                         gridponent( '#products2', {
                             fixedheaders: true,
                             sorting: true,
-                            read: { data: data.products, sort: 'Name', desc: true },
+                            read: { data: data.products, sort: 'Name', desc: true, search: 'Black' },
                             create: fns.createProduct,
                             update: fns.updateProduct,
                             destroy: fns.destroyProduct,
