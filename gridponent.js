@@ -3123,22 +3123,29 @@ gp.templates.toolbar.$inject = ['$config', '$injector'];
             if ( a === null || a === undefined ) {
                 return a;
             }
-            if ( a instanceof Date ) {
-                return 'date';
-            }
-            if ( typeof ( a ) === 'string' ) {
+
+            var t = typeof a;
+
+            if ( t === 'string' ) {
                 if ( gp.rexp.iso8601.test( a ) ) {
                     return 'datestring';
                 }
                 if ( gp.rexp.timestamp.test( a ) ) {
                     return 'timestamp';
                 }
+                return t;
+            }
+
+            if ( t === 'number' || t === 'boolean' || t === 'function' ) return t;
+
+            if ( a instanceof Date ) {
+                return 'date';
             }
             if ( Array.isArray( a ) ) {
                 return 'array';
             }
-            // number string boolean function object
-            return typeof ( a );
+            // object
+            return t;
         },
 
         hasValue: function ( val ) {
@@ -3280,14 +3287,15 @@ gp.templates.toolbar.$inject = ['$config', '$injector'];
         },
 
         supplant: function ( str, o, args ) {
-            var self = this, types = /^(string|number|boolean)$/, r;
+            var self = this, t, types = /^(string|number|boolean|date|datestring|timestamp)$/, r;
             // raw: 3 curly braces
             str = str.replace( /{{{([^{}]*)}}}/g,
                 function ( a, b ) {
                     r = gp.getObjectAtPath( b, o );
-                    if ( types.test( typeof r ) ) return r;
+                    t = gp.getType( r );
+                    if ( types.test( t ) ) return r;
                     // models can contain functions
-                    if ( typeof r === 'function' ) return gp.applyFunc( r, self, args );
+                    if ( t === 'function' ) return gp.applyFunc( r, self, args );
                     // it's not in o, so check for a function
                     r = gp.getObjectAtPath( b );
                     return typeof r === 'function' ? gp.applyFunc( r, self, args ) : '';
@@ -3297,9 +3305,10 @@ gp.templates.toolbar.$inject = ['$config', '$injector'];
             return str.replace( /{{([^{}]*)}}/g,
                 function ( a, b ) {
                     r = gp.getObjectAtPath( b, o );
-                    if ( types.test( typeof r ) ) return gp.escapeHTML( r );
+                    t = gp.getType( r );
+                    if ( types.test( t ) ) return gp.escapeHTML( r );
                     // models can contain functions
-                    if ( typeof r === 'function' ) return gp.escapeHTML( gp.applyFunc( r, self, args ) );
+                    if ( t === 'function' ) return gp.escapeHTML( gp.applyFunc( r, self, args ) );
                     // it's not in o, so check for a function
                     r = gp.getObjectAtPath( b );
                     return typeof r === 'function' ? gp.escapeHTML( gp.applyFunc( r, self, args ) ) : '';

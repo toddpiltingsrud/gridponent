@@ -2587,7 +2587,10 @@ QUnit.test( 'supplant', function ( assert ) {
         apos: "I've got an apostrophe",
         quot: '"I have a dream!"',
         html: '<button value="save">Save</button>',
-        amp: 'You & me'
+        amp: 'You & me',
+        date: new Date( 0 ),
+        bool: true,
+        num: 12.34
     };
 
     // apos
@@ -2612,6 +2615,21 @@ QUnit.test( 'supplant', function ( assert ) {
     template = '<div class="the-class">{{amp}}</div>';
     result = gp.supplant( template, obj );
     assert.equal( result, '<div class="the-class">You &amp; me</div>' );
+
+    // date
+    template = '<div class="the-class">{{date}}</div>';
+    result = gp.supplant( template, obj );
+    assert.equal( result, '<div class="the-class">' + obj.date.toString() + '</div>', 'dates can be used' );
+
+    // boolean
+    template = '<div class="the-class">{{bool}}</div>';
+    result = gp.supplant( template, obj );
+    assert.equal( result, '<div class="the-class">true</div>', 'booleans can be used' );
+
+    // number
+    template = '<div class="the-class">{{num}}</div>';
+    result = gp.supplant( template, obj );
+    assert.equal( result, '<div class="the-class">12.34</div>', 'numbers can be used' );
 
     // array
     template = '<div class="the-class">{{0}}, {{0}} {{1}}</div>';
@@ -3222,6 +3240,7 @@ QUnit.test( 'gp.getType', function ( assert ) {
     assert.equal( gp.getType( {} ), 'object' );
     assert.equal( gp.getType( [] ), 'array' );
     assert.equal( gp.getType( '/Date(12345)/' ), 'timestamp' );
+    assert.equal( gp.getType( fns.getButtonIcon ), 'function' );
 } );
 
 QUnit.test( 'gp.getObjectAtPath', function ( assert ) {

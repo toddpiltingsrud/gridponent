@@ -1,6 +1,4 @@
-﻿Disable row selection on rows that are being edited.
-
-The mechanism we're using to populate the model for the read template doesn't work on the initial read.
+﻿The mechanism we're using to populate the model for the read template doesn't work on the initial read.
 That's because it gets populated in the change event handler.
 Instead, we should unbind the toolbar just like any form.
 
@@ -8,9 +6,12 @@ ServerPager.read should probably be sending an HTTP GET instead of a POST.
 But then the URL template idea wouldn't make much sense because the requestModel would be added to the URL anyway.
 And why would we want to split the request parameters between the URL and the body?
 There's also the problem of supporting routes: controller/action/{{id}}.
-If the id is POSTed, will the router pick it up?
+If the id is POSTed in the body instead, will the router pick it up?
 If we use a URL template with a POST, the values in the URL should be excluded from the body.
-But that'd be brittle.
+This might be another good reason to create a Template class. 
+The Template class would maintain a list of tokens for the template. 
+We could use this list of tokens to split the toolbar object into two objects: one for the URL, the other for the request body.
+Or should we just create a function for splitting an object?
 Should we create a way to configure the HTTP verbs for CRUD?
 
 Currently it's not possible to pass a url to an event delegate call:
