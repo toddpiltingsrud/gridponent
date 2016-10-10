@@ -178,7 +178,7 @@ gp.Controller.prototype = {
             default:
                 // check for a function
                 // this is needed in case there's a custom command in the toolbar
-                cmd = gp.getObjectAtPath( $btn.val() );
+                cmd = gp.getObjectAtPath( value );
                 if ( typeof cmd == 'function' ) {
                     cmd.call( this.config.node.api, dataItem );
                 }

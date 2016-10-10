@@ -1,3 +1,121 @@
+QUnit.test( 'commandHandler', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configOptions );
+
+    fns.rowSelected = function ( dataItem ) {
+        assert.ok( false, 'clicking a button in the table should not trigger row selection' );
+    };
+
+    options.rowselected = 'fns.rowSelected';
+
+    getTableConfig( options, function ( api ) {
+
+        $( '#table .box' ).empty().append( api.$n );
+
+        var config = api.config;
+
+        var controller = api.controller;
+
+        var addBtn = api.find( '[value=AddRow]' );
+
+        clickButton( addBtn[0] );
+
+        var editRow = api.find( 'tr.create-mode' );
+
+        editRow.find( 'input[name=ProductNumber]' ).val( 'removethisrow' );
+
+        assert.ok( editRow.length > 0, 'clicking the addrow button should create a tr in create mode' );
+
+        // save it
+        var createBtn = editRow.find( '[value=create]' );
+
+        clickButton( createBtn[0] );
+
+
+        // add another row
+        clickButton( addBtn[0] );
+
+        editRow = api.find( 'tr.create-mode' );
+
+        assert.ok( editRow.length > 0, 'clicking the addrow button should create a tr in create mode' );
+
+        // cancel it
+        var cancelBtn = editRow.find( '[value=cancel]' );
+
+        clickButton( cancelBtn[0] );
+
+        editRow = api.find( 'tr.create-mode' );
+
+        assert.ok( editRow.length == 0, 'clicking cancel should remove the dataItem' );
+
+        // delete the row we created
+        var destroyBtn = api.find( '[value=destroy],[value=delete],[value=Delete]' )
+
+        clickButton( destroyBtn[0] );
+
+        // perform a search
+
+        var searchBox = api.find( '[name=search]' ).val( 'AR-5381' );
+
+        var searchBtn = api.find( '[value=search]' );
+
+        clickButton( searchBtn[0] );
+
+        //var deletedRow = data.products.filter( function ( row ) {
+        //    return row.ProductNumber == 'removethisrow';
+        //} );
+
+        //assert.ok( deletedRow.length == 0, 'clicking delete should remove the row' );
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+        done1();
+
+    } );
+
+} );
+
+QUnit.test( 'commandHandler', function ( assert ) {
+
+    assert.expect( 0 );
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    fns.rowSelected = function ( dataItem ) {
+        assert.ok( false, 'clicking a button in the table should not trigger row selection' );
+    };
+
+    // add another column with a body template
+    // containing a value attribute that's not in the commandHandler's switch statement
+    // this used to throw an error because the default option was using jQuery.val()
+    options.columns.push( {
+        bodytemplate: '<a href="javascript:void(0);" value="Menu">Test</a>'
+    } );
+
+    options.rowselected = 'fns.rowSelected';
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var link = api.find( 'a[value=Menu]' );
+
+        clickButton( link[0] );
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+        done1();
+
+    } );
+
+} );
+
 QUnit.test( 'rowSelectHandler', function ( assert ) {
 
     var done1 = assert.async();
