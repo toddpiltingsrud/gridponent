@@ -1,8 +1,4 @@
-﻿The mechanism we're using to populate the model for the read template doesn't work on the initial read.
-That's because it gets populated in the change event handler.
-Instead, we should unbind the toolbar just like any form.
-
-ServerPager.read should probably be sending an HTTP GET instead of a POST.
+﻿ServerPager.read should probably be sending an HTTP GET instead of a POST.
 But then the URL template idea wouldn't make much sense because the requestModel would be added to the URL anyway.
 And why would we want to split the request parameters between the URL and the body?
 There's also the problem of supporting routes: controller/action/{{id}}.
