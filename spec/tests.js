@@ -1841,6 +1841,7 @@ QUnit.test( 'busy class', function ( assert ) {
 QUnit.test( 'sorting', function ( assert ) {
 
     var done1 = assert.async();
+    var doneCalled = false;
 
     var options = gp.shallowCopy( configOptions );
 
@@ -1849,6 +1850,8 @@ QUnit.test( 'sorting', function ( assert ) {
     options.read = 'products/read';
 
     getTableConfig( options, function ( api ) {
+
+        //$( '#table .box' ).append( api.config.node );
 
         var lbl = api.find( 'a.table-sort' );
 
@@ -1860,7 +1863,17 @@ QUnit.test( 'sorting', function ( assert ) {
 
         assert.ok( true, 'sorting works' );
 
-        done1();
+        api.onRead( function () {
+
+            var style = api.find( 'style.sort-style' ).html();
+
+            if ( style != '' && !doneCalled ) {
+                assert.ok( style.indexOf( 'content:' ) != -1 );
+                done1();
+                doneCalled = true;
+            }
+
+        } );
 
     } );
 

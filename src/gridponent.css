@@ -196,10 +196,6 @@
   margin-left: 2px;
   display: none;
 }
-.gp a:link[value].table-sort > span.glyphicon.glyphicon-chevron-up,
-.gp a:link[value].table-sort > span.glyphicon.glyphicon-chevron-down {
-  display: inline;
-}
 .gp a:link[value].table-sort:hover,
 .gp a:link[value].table-sort:active,
 .gp a:link[value].table-sort:focus {

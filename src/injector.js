@@ -28,7 +28,7 @@ gp.Injector.prototype = {
             }
             else {
                 // check for override
-                funcOrName = this.overrides[funcOrName] || this.root[funcOrName];
+                funcOrName = (this.overrides[funcOrName] || this.root[funcOrName]);
             }
         }
         if ( typeof funcOrName == 'function' ) {

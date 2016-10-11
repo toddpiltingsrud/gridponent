@@ -106,7 +106,6 @@
     <None Include="spec\fonts\glyphicons-halflings-regular.woff2" />
     <None Include="spec\validation-errors.json" />
     <None Include="src\gridponent.less" />
-    <Content Include="src\helpers.js" />
     <Content Include="spec\SpecRunner.html" />
     <Content Include="spec\tests.js" />
     <Content Include="src\http.js" />

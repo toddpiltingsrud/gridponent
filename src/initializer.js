@@ -154,18 +154,17 @@ gp.Initializer.prototype = {
     render: function ( config ) {
         var self = this;
         try {
-            var node = config.node;
-
             // inject table rows, footer, pager and header style.
 
             var body = this.$n.find( 'div.table-body' );
             var footer = this.$n.find( 'div.table-footer' );
             var pager = this.$n.find( 'div.table-pager' );
+            var sortStyle = this.$n.find( 'style.sort-style' );
 
-            body.html( self.injector.exec( 'tableBody' ) );
-            footer.html( self.injector.exec( 'footerTable' ) );
-            pager.html( self.injector.exec( 'pagerBar' ) );
-            gp.helpers.sortStyle( config );
+            body.html( this.injector.exec( 'tableBody' ) );
+            footer.html( this.injector.exec( 'footerTable' ) );
+            pager.html( this.injector.exec( 'pagerBar' ) );
+            sortStyle.html( this.injector.exec( 'sortStyle' ) );
 
             // sync column widths
             if ( config.fixedheaders || config.fixedfooters ) {

@@ -590,7 +590,8 @@ gp.Controller.prototype = {
             // inject table rows, footer, pager and header style.
             var body = this.$n.find( 'div.table-body' ),
                 footer = this.$n.find( 'div.table-footer' ),
-                pager = this.$n.find( 'div.table-pager' );
+                pager = this.$n.find( 'div.table-pager' ),
+                sortStyle = this.$n.find( 'style.sort-style' );
 
             this.config.map.clear();
 
@@ -598,8 +599,7 @@ gp.Controller.prototype = {
             // if we're not using fixed footers this will have no effect
             footer.html( this.injector.exec( 'footerTable' ) );
             pager.html( this.injector.exec( 'pagerBar' ) );
-
-            gp.helpers.sortStyle( this.config );
+            sortStyle.html( this.injector.exec( 'sortStyle' ) );
         }
         catch ( e ) {
             gp.error( e );
@@ -1389,26 +1389,6 @@ $.extend(gp.ModalEditor.prototype, {
 
 });
 /***************\
-    helpers
-\***************/
-
-gp.helpers = {
-
-    sortStyle: function ( config ) {
-        // remove glyphicons from sort buttons
-        var spans = $( config.node )
-            .find( 'a.table-sort > span.glyphicon-chevron-up,a.table-sort > span.glyphicon-chevron-down' )
-            .removeClass( 'glyphicon-chevron-up glyphicon-chevron-down' );
-        if ( !gp.isNullOrEmpty( config.requestModel.sort ) ) {
-            $( config.node )
-                .find( 'a.table-sort[data-sort="' + config.requestModel.sort + '"] > span' )
-                .addClass(( config.requestModel.desc ? 'glyphicon-chevron-down' : 'glyphicon-chevron-up' ) );
-        }
-    }
-
-};
-
-/***************\
      http        
 \***************/
 gp.Http = function () { };
@@ -1603,18 +1583,17 @@ gp.Initializer.prototype = {
     render: function ( config ) {
         var self = this;
         try {
-            var node = config.node;
-
             // inject table rows, footer, pager and header style.
 
             var body = this.$n.find( 'div.table-body' );
             var footer = this.$n.find( 'div.table-footer' );
             var pager = this.$n.find( 'div.table-pager' );
+            var sortStyle = this.$n.find( 'style.sort-style' );
 
-            body.html( self.injector.exec( 'tableBody' ) );
-            footer.html( self.injector.exec( 'footerTable' ) );
-            pager.html( self.injector.exec( 'pagerBar' ) );
-            gp.helpers.sortStyle( config );
+            body.html( this.injector.exec( 'tableBody' ) );
+            footer.html( this.injector.exec( 'footerTable' ) );
+            pager.html( this.injector.exec( 'pagerBar' ) );
+            sortStyle.html( this.injector.exec( 'sortStyle' ) );
 
             // sync column widths
             if ( config.fixedheaders || config.fixedfooters ) {
@@ -1767,7 +1746,7 @@ gp.Injector.prototype = {
             }
             else {
                 // check for override
-                funcOrName = this.overrides[funcOrName] || this.root[funcOrName];
+                funcOrName = (this.overrides[funcOrName] || this.root[funcOrName]);
             }
         }
         if ( typeof funcOrName == 'function' ) {
@@ -2498,6 +2477,7 @@ gp.templates.container = function ( $config, $injector ) {
     html.add( '<style type="text/css" class="column-width-style">' )
         .add( $injector.exec( 'columnWidthStyle' ) )
         .add( '</style>' )
+        .add( '<style type="text/css" class="sort-style"></style>' )
         .add( '<div class="gp-progress-overlay">' )
         .add( '<div class="gp-progress gp-progress-container">' )
         .add( '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>' )
@@ -2779,6 +2759,24 @@ gp.templates.pagerBar = function ( $requestModel ) {
 };
 
 gp.templates.pagerBar.$inject = ['$requestModel'];
+
+gp.templates.sortStyle = function ( $config ) {
+    var model = {
+        id: $config.ID,
+        sort: $config.requestModel.sort,
+        glyph: $config.requestModel.desc ? '\\e114' : '\\e113' // glyphicon-chevron-down, glyphicon-chevron-up
+    };
+    var template =
+        '#{{id}} a.table-sort[data-sort="{{{sort}}}"] > span.glyphicon { display:inline; } '
+        + '#{{id}} a.table-sort[data-sort="{{{sort}}}"] > span.glyphicon:before { content:"{{{glyph}}}"; }';
+
+    if ( !gp.isNullOrEmpty( model.sort ) ) {
+        return gp.supplant( template, model );
+    }
+    return '';
+};
+
+gp.templates.sortStyle.$inject = ['$config'];
 
 gp.templates.tableBody = function ( $config, $injector ) {
     var html = new gp.StringBuilder();

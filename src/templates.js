@@ -214,6 +214,7 @@ gp.templates.container = function ( $config, $injector ) {
     html.add( '<style type="text/css" class="column-width-style">' )
         .add( $injector.exec( 'columnWidthStyle' ) )
         .add( '</style>' )
+        .add( '<style type="text/css" class="sort-style"></style>' )
         .add( '<div class="gp-progress-overlay">' )
         .add( '<div class="gp-progress gp-progress-container">' )
         .add( '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>' )
@@ -495,6 +496,24 @@ gp.templates.pagerBar = function ( $requestModel ) {
 };
 
 gp.templates.pagerBar.$inject = ['$requestModel'];
+
+gp.templates.sortStyle = function ( $config ) {
+    var model = {
+        id: $config.ID,
+        sort: $config.requestModel.sort,
+        glyph: $config.requestModel.desc ? '\\e114' : '\\e113' // glyphicon-chevron-down, glyphicon-chevron-up
+    };
+    var template =
+        '#{{id}} a.table-sort[data-sort="{{{sort}}}"] > span.glyphicon { display:inline; } ' +
+        '#{{id}} a.table-sort[data-sort="{{{sort}}}"] > span.glyphicon:before { content:"{{{glyph}}}"; }';
+
+    if ( !gp.isNullOrEmpty( model.sort ) ) {
+        return gp.supplant( template, model );
+    }
+    return '';
+};
+
+gp.templates.sortStyle.$inject = ['$config'];
 
 gp.templates.tableBody = function ( $config, $injector ) {
     var html = new gp.StringBuilder();

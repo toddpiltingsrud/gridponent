@@ -417,7 +417,8 @@ gp.Controller.prototype = {
             // inject table rows, footer, pager and header style.
             var body = this.$n.find( 'div.table-body' ),
                 footer = this.$n.find( 'div.table-footer' ),
-                pager = this.$n.find( 'div.table-pager' );
+                pager = this.$n.find( 'div.table-pager' ),
+                sortStyle = this.$n.find( 'style.sort-style' );
 
             this.config.map.clear();
 
@@ -425,8 +426,7 @@ gp.Controller.prototype = {
             // if we're not using fixed footers this will have no effect
             footer.html( this.injector.exec( 'footerTable' ) );
             pager.html( this.injector.exec( 'pagerBar' ) );
-
-            gp.helpers.sortStyle( this.config );
+            sortStyle.html( this.injector.exec( 'sortStyle' ) );
         }
         catch ( e ) {
             gp.error( e );
