@@ -232,7 +232,8 @@ gp.Controller.prototype = {
             dataItem,
             proceed;
 
-        if ( $(evt.target).is( 'a,:input,:button,:submit' ) ) {
+        // if this is a button or an element inside a button, return
+        if ( $(evt.target).closest( 'a,:input,:button,:submit', config.node ).length > 0 ) {
             return;
         }
 

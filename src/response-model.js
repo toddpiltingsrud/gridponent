@@ -1,5 +1,5 @@
 ﻿/***************\
-   ResponseModel
+  ResponseModel
 \***************/
 gp.ResponseModel = function ( dataItem, validationErrors ) {
     this.dataItem = dataItem;

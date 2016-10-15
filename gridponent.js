@@ -405,7 +405,8 @@ gp.Controller.prototype = {
             dataItem,
             proceed;
 
-        if ( $(evt.target).is( 'a,:input,:button,:submit' ) ) {
+        // if this is a button or an element inside a button, return
+        if ( $(evt.target).closest( 'a,:input,:button,:submit', config.node ).length > 0 ) {
             return;
         }
 
@@ -2224,7 +2225,7 @@ gp.RequestModel.prototype = {
     pagecount: 0
 };
 /***************\
-   ResponseModel
+  ResponseModel
 \***************/
 gp.ResponseModel = function ( dataItem, validationErrors ) {
     this.dataItem = dataItem;
@@ -2315,25 +2316,25 @@ gp.templates.bodyCellContent = function ( $column, $dataItem, $injector ) {
 gp.templates.bodyCellContent.$inject = ['$column', '$dataItem', '$injector'];
 
 gp.templates.bootstrapModal = function ( $config, $dataItem, $injector, $mode ) {
-
-    var model = {
-        title: ( $mode == 'create' ? 'Add' : 'Edit' ),
-        body: $injector.exec( 'bootstrapModalBody' ),
-        footer: $injector.exec( 'bootstrapModalFooter' ),
-        uid: $config.map.getUid( $dataItem )
-    };
+    var title = ( $mode == 'create' ? 'Add' : 'Edit' ),
+        uid = $config.map.getUid( $dataItem );
 
     var html = new gp.StringBuilder();
-    html.add( '<div class="modal fade" tabindex="-1" role="dialog" data-uid="{{uid}}">' )
+    html.add( '<div class="modal fade" tabindex="-1" role="dialog" data-uid="' + uid + '">' )
         .add( '<div class="modal-dialog" role="document">' )
         .add( '<div class="modal-content">' )
         .add( '<div class="modal-header">' )
         // the close button for the modal should cancel any edits, so add value="cancel"
         .add( '<button type="button" class="close" aria-label="Close" value="cancel"><span aria-hidden="true">&times;</span></button>' )
         .add( '<h4 class="modal-title">{{title}}</h4>' )
+        .add( title )
         .add( '</div>' )
-        .add( '<div class="modal-body">{{{body}}}</div>' )
-        .add( '<div class="modal-footer">{{{footer}}}</div>' )
+        .add( '<div class="modal-body">' )
+        .add( $injector.exec( 'bootstrapModalBody' ) )
+        .add( '</div>' )
+        .add( '<div class="modal-footer">' )
+        .add( $injector.exec( 'bootstrapModalFooter' ) )
+        .add( '</div>' )
         .add( '</div>' )
         .add( '<div class="gp-progress-overlay">' )
         .add( '<div class="gp-progress gp-progress-container">' )
@@ -2343,7 +2344,7 @@ gp.templates.bootstrapModal = function ( $config, $dataItem, $injector, $mode ) 
         .add( '</div>' )
         .add( '</div>' );
 
-    return gp.supplant.call( this,  html.toString(), model );
+    return html.toString();
 };
 
 gp.templates.bootstrapModal.$inject = ['$config', '$dataItem', '$injector', '$mode'];
@@ -2353,8 +2354,10 @@ gp.templates.bootstrapModalBody = function ( $config, $injector ) {
     var self = this,
         body = new gp.StringBuilder();
 
-    // not using a form element here because the modal is added as a child node of the grid component
-    // this will cause problems if the grid is inside another form (e.g. jQuery.validate will behave unexpectedly)
+    // not using a form element here because the modal
+    // is added as a child node of the grid component
+    // this will cause problems if the grid is inside another form
+    // (e.g. jQuery.validate will behave unexpectedly)
     body.add( '<div class="form-horizontal">' );
 
     $config.columns.forEach( function ( col ) {
@@ -2394,15 +2397,18 @@ gp.templates.bootstrapModalBody.$inject = ['$config', '$injector'];
 
 gp.templates.bootstrapModalFooter = function ( $columns, $injector ) {
 
+    // search for a command column
     var cmdColumn = $columns.filter( function ( col ) {
         return col.commands;
     } );
 
     if ( cmdColumn.length ) {
+        // use the editCellContent template to render the buttons
         $injector.setResource( '$column', cmdColumn[0] );
         return $injector.exec( 'editCellContent' );
     }
 
+    // default footer buttons: cancel / save
     return '<div class="btn-group"><button type="button" class="btn btn-default" value="cancel"><span class="glyphicon glyphicon-remove"></span>Close</button><button type="button" class="btn btn-primary" value="save"><span class="glyphicon glyphicon-save"></span>Save changes</button></div>';
 };
 
@@ -2414,6 +2420,7 @@ gp.templates.button = function ( model ) {
 };
 
 gp.templates.columnWidthStyle = function ( $config, $columns ) {
+    // this gets injected into a style element toward the bottom of the component
     var html = new gp.StringBuilder(),
         index = 0,
         bodyCols = document.querySelectorAll( '#' + $config.ID + ' .table-body > table > tbody > tr:first-child > td' ),
@@ -2429,7 +2436,7 @@ gp.templates.columnWidthStyle = function ( $config, $columns ) {
             '#{{0}} .table-footer td.footer-cell:nth-child({{1}})' +
             '{ width:{{2}}px; }';
 
-    // even though the table might not exist yet, we still should render width styles because there might be fixed widths specified
+    // even though the table might not exist yet, we should still render width styles because there might be fixed widths specified
     $columns.forEach( function ( col ) {
         if ( col.width ) {
             px = ( isNaN( col.width ) == false ) ? 'px' : '';
@@ -2448,6 +2455,7 @@ gp.templates.columnWidthStyle = function ( $config, $columns ) {
 gp.templates.columnWidthStyle.$inject = ['$config', '$columns'];
 
 gp.templates.container = function ( $config, $injector ) {
+    // the main layout
     var html = new gp.StringBuilder();
     html.addFormat(
         '<div class="gp table-container {{0}}" id="{{1}}">',
@@ -2459,6 +2467,8 @@ gp.templates.container = function ( $config, $injector ) {
         html.add( '</div>' );
     }
     if ( $config.fixedheaders ) {
+        // render a separate table for fixed headers
+        // and sync column widths between this table and the one below
         html.add( '<div class="table-header">' )
             .add( '<table class="table" cellpadding="0" cellspacing="0">' )
             .add( $injector.exec( 'header' ) )
@@ -2469,6 +2479,8 @@ gp.templates.container = function ( $config, $injector ) {
         .add( '<table class="table" cellpadding="0" cellspacing="0"><tbody></tbody></table>' )
         .add( '</div>' );
     if ( $config.fixedfooters ) {
+        // render a separate table for fixed footers
+        // and sync column widths between this table and the one above
         html.add( '<div class="table-footer"></div>' );
     }
     if ( $config.pager ) {
@@ -2532,6 +2544,7 @@ gp.templates.editCellContent = function ( $column, $dataItem, $mode, $config, $i
         }
     }
     else if ( col.commands ) {
+        // render buttons
         html.add( '<div class="btn-group' )
             .add( $config.editmode == 'inline' ? ' btn-group-xs' : '' )
             .add('">')
@@ -2547,6 +2560,7 @@ gp.templates.editCellContent = function ( $column, $dataItem, $mode, $config, $i
             .add( '</div>' );
     }
     else {
+        // render an input of the appropriate type
         var val = $dataItem[col.field];
         // render undefined/null as empty string
         if ( !gp.hasValue( val ) ) val = '';
@@ -2558,6 +2572,7 @@ gp.templates.editCellContent = function ( $column, $dataItem, $mode, $config, $i
 gp.templates.editCellContent.$inject = ['$column', '$dataItem', '$mode', '$config', '$injector'];
 
 gp.templates.footer = function ( $columns, $injector ) {
+
     var self = this,
         html = new gp.StringBuilder();
     html.add( '<tfoot>' )
@@ -2585,6 +2600,7 @@ gp.templates.footerCell.$inject = ['$injector'];
 
 gp.templates.footerCellContent = function ( $data, $column ) {
     var html = new gp.StringBuilder();
+    // there must be a template for footers
     if ( $column.footertemplate ) {
         if ( typeof ( $column.footertemplate ) === 'function' ) {
             html.add( gp.applyFunc( $column.footertemplate, this, [$column, $data] ) );
@@ -2633,6 +2649,7 @@ gp.templates.headerCell = function ( $column, $config, $injector ) {
         sort = '';
 
     if ( $config.sorting ) {
+        // apply sorting to the entire header
         // if sort isn't specified, use the field
         sort = gp.escapeHTML( gp.coalesce( [$column.sort, $column.field] ) );
     }
@@ -2665,6 +2682,7 @@ gp.templates.headerCellContent = function ( $column, $config ) {
         sort = '';
 
     if ( $config.sorting ) {
+        // apply sorting to the entire header
         // if sort isn't specified, use the field
         sort = gp.escapeHTML( gp.coalesce( [$column.sort, $column.field] ) );
     }
@@ -2716,6 +2734,9 @@ gp.templates.input = function ( model ) {
     var html = gp.supplant.call( this, '<input type="{{type}}" name="{{name}}" value="{{value}}" class="form-control"{{{dataType}}}{{checked}}{{required}} />', obj );
 
     if ( model.required ) {
+        // add a span after the input for required fields
+        // default CSS styles render an exclamation sign for this
+        // (glyphicon-exclamation-sign)
         html += '<span class="required"></span>';
     }
 
@@ -2767,8 +2788,8 @@ gp.templates.sortStyle = function ( $config ) {
         glyph: $config.requestModel.desc ? '\\e114' : '\\e113' // glyphicon-chevron-down, glyphicon-chevron-up
     };
     var template =
-        '#{{id}} a.table-sort[data-sort="{{{sort}}}"] > span.glyphicon { display:inline; } '
-        + '#{{id}} a.table-sort[data-sort="{{{sort}}}"] > span.glyphicon:before { content:"{{{glyph}}}"; }';
+        '#{{id}} a.table-sort[data-sort="{{{sort}}}"] > span.glyphicon { display:inline; } ' +
+        '#{{id}} a.table-sort[data-sort="{{{sort}}}"] > span.glyphicon:before { content:"{{{glyph}}}"; }';
 
     if ( !gp.isNullOrEmpty( model.sort ) ) {
         return gp.supplant( template, model );
@@ -2841,7 +2862,7 @@ gp.templates.tableRowCells = function ( $columns, $injector ) {
     var self = this,
         html = new gp.StringBuilder();
     $columns.forEach( function ( col ) {
-        // set the current column for bodyCellContent template
+        // set the current column for bodyCellContent / editCellContent template
         $injector.setResource( '$column', col );
         html.add( $injector.exec( 'tableRowCell' ) );
     } );
