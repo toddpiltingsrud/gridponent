@@ -180,6 +180,7 @@ gp.Controller = function ( config, model, requestModel, injector ) {
     this.$n = $( config.node );
     this.requestModel = requestModel;
     this.injector = injector;
+    this.pollTimeout = null;
     if ( config.pager ) {
         this.requestModel.top = 25;
     }
@@ -192,7 +193,8 @@ gp.Controller = function ( config, model, requestModel, injector ) {
         rowSelectHandler: this.rowSelectHandler.bind( this ),
         httpErrorHandler: this.httpErrorHandler.bind( this ),
         toolbarChangeHandler: this.toolbarChangeHandler.bind( this ),
-        toolbarEnterKeyHandler: this.toolbarEnterKeyHandler.bind( this )
+        toolbarEnterKeyHandler: this.toolbarEnterKeyHandler.bind( this ),
+        resizeHandler: this.resizeHandler.bind( this )
     };
     this.done = false;
     this.eventDelegates = {};
@@ -207,8 +209,35 @@ gp.Controller.prototype = {
         this.addRowSelectHandler( this.config );
         this.addRefreshEventHandler( this.config );
         this.addToolbarChangeHandler();
+        this.addResizeHandler();
         this.done = true;
-        this.invokeDelegates( gp.events.ready, this.config.node.api );
+        if ( this.config.preload ) {
+            this.read( this.config.requestModel, function () {
+                self.invokeDelegates( gp.events.ready, self.config.node.api );
+            } );
+        }
+        else {
+            this.invokeDelegates( gp.events.ready, this.config.node.api );
+        }
+    },
+
+    addResizeHandler: function() {
+        // sync column widths
+        if ( this.config.fixedheaders || this.config.fixedfooters ) {
+            window.addEventListener( 'resize', this.handlers.resizeHandler )
+        }
+    },
+
+    removeResizeHandler: function() {
+        if ( this.config.fixedheaders || this.config.fixedfooters ) {
+            window.removeEventListener( 'resize', this.handlers.resizeHandler )
+        }
+    },
+
+    resizeHandler: function () {
+        // sync column widths
+        var html = this.injector.exec( 'columnWidthStyle' );
+        this.$n.find( 'style.column-width-style' ).html( html );
     },
 
     addBusyDelegates: function () {
@@ -393,6 +422,17 @@ gp.Controller.prototype = {
         this.$n.on( 'click', 'div.table-body > table > tbody > tr:not(.update-mode,.create-mode) > td.body-cell', this.handlers.rowSelectHandler );
     },
 
+    handlePolling: function ( config ) {
+        // for polling to work, we must have a target and a numeric polling interval greater than 0
+        if ( !$.isNumeric( config.poll ) || config.poll <= 0 ) return;
+
+        var self = this;
+
+        this.pollTimeout = setTimeout( function () {
+            self.read( config.requestModel );
+        }, config.poll * 1000 );
+    },
+
     removeRowSelectHandler: function () {
         this.$n.off( 'click', this.handlers.rowSelectHandler );
     },
@@ -468,6 +508,7 @@ gp.Controller.prototype = {
                 self.config.map.clear();
                 gp.resolveTypes( self.config );
                 self.refresh( self.config );
+                self.handlePolling( self.config );
                 self.invokeDelegates( gp.events.onRead, self.config.node.api );
                 gp.applyFunc( callback, self.config.node, self.config.requestModel );
             } catch ( e ) {
@@ -618,6 +659,7 @@ gp.Controller.prototype = {
         this.removeRowSelectHandler();
         this.removeCommandHandlers( this.config.node );
         this.removeToolbarChangeHandler();
+        this.removeResizeHandler();
     }
 
 };
@@ -1492,40 +1534,9 @@ gp.Initializer.prototype = {
             // provides a hook for extensions
             controller.invokeDelegates( gp.events.beforeInit, self.config );
 
-            if ( self.config.preload ) {
-                // we need both beforeInit and beforeread because beforeread is used after every read in the controller
-                // and beforeInit happens just once after the node is created, but before first read
-                controller.invokeDelegates( gp.events.beforeRead, self.config.requestModel );
-
-                dal.read( self.config.requestModel,
-                    function ( data ) {
-                        try {
-                            // do a case-insensitive copy
-                            gp.shallowCopy( data, self.config.requestModel, true );
-                            self.injector.setResource( '$data', self.config.requestModel.data );
-                            gp.resolveTypes( self.config );
-                            self.resolveCommands( self.config );
-                            self.render( self.config );
-                            controller.init();
-                            if ( typeof callback === 'function' ) callback( self.config );
-                        } catch ( e ) {
-                            gp.error( e );
-                        }
-                        controller.invokeDelegates( gp.events.onRead, self.config.requestModel );
-                    },
-                    function ( e ) {
-                        controller.invokeDelegates( gp.events.httpError, e );
-                        alert( 'An error occurred while carrying out your request.' );
-                        gp.error( e );
-                    }
-                );
-            }
-            else {
-                gp.resolveTypes( self.config );
-                self.resolveCommands( self.config );
-                controller.init();
-            }
-
+            gp.resolveTypes( self.config );
+            self.resolveCommands( self.config );
+            controller.init();
         } );
 
         return this.config;
@@ -1581,35 +1592,6 @@ gp.Initializer.prototype = {
         }
     },
 
-    render: function ( config ) {
-        var self = this;
-        try {
-            // inject table rows, footer, pager and header style.
-
-            var body = this.$n.find( 'div.table-body' );
-            var footer = this.$n.find( 'div.table-footer' );
-            var pager = this.$n.find( 'div.table-pager' );
-            var sortStyle = this.$n.find( 'style.sort-style' );
-
-            body.html( this.injector.exec( 'tableBody' ) );
-            footer.html( this.injector.exec( 'footerTable' ) );
-            pager.html( this.injector.exec( 'pagerBar' ) );
-            sortStyle.html( this.injector.exec( 'sortStyle' ) );
-
-            // sync column widths
-            if ( config.fixedheaders || config.fixedfooters ) {
-                var nodes = this.$n.find( '.table-body > table > tbody > tr:first-child > td' );
-
-                window.addEventListener( 'resize', function () {
-                    self.syncColumnWidths( config );
-                } );
-            }
-        }
-        catch ( ex ) {
-            gp.error( ex );
-        }
-    },
-
     syncToolbar: function(config) {
         try {
             var toolbar = config.node.api.find( 'div.table-toolbar' );
@@ -1634,16 +1616,15 @@ gp.Initializer.prototype = {
         }
     },
 
-    syncColumnWidths: function ( config ) {
-        var html = this.injector.exec( 'columnWidthStyle' );
-        this.$n.find( 'style.column-width-style' ).html( html );
-    },
-
     resolveFooter: function ( config ) {
         for ( var i = 0; i < config.columns.length; i++ ) {
             if ( config.columns[i].footertemplate ) return true;
         }
         return false;
+    },
+
+    resolvePoll: function( config ) {
+        if ( $.isNumeric( config.poll ) ) config.poll = parseInt( config.poll );
     },
 
     resolveTopLevelOptions: function(config) {

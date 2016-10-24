@@ -7,6 +7,7 @@ gp.Controller = function ( config, model, requestModel, injector ) {
     this.$n = $( config.node );
     this.requestModel = requestModel;
     this.injector = injector;
+    this.pollTimeout = null;
     if ( config.pager ) {
         this.requestModel.top = 25;
     }
@@ -19,7 +20,8 @@ gp.Controller = function ( config, model, requestModel, injector ) {
         rowSelectHandler: this.rowSelectHandler.bind( this ),
         httpErrorHandler: this.httpErrorHandler.bind( this ),
         toolbarChangeHandler: this.toolbarChangeHandler.bind( this ),
-        toolbarEnterKeyHandler: this.toolbarEnterKeyHandler.bind( this )
+        toolbarEnterKeyHandler: this.toolbarEnterKeyHandler.bind( this ),
+        resizeHandler: this.resizeHandler.bind( this )
     };
     this.done = false;
     this.eventDelegates = {};
@@ -34,8 +36,35 @@ gp.Controller.prototype = {
         this.addRowSelectHandler( this.config );
         this.addRefreshEventHandler( this.config );
         this.addToolbarChangeHandler();
+        this.addResizeHandler();
         this.done = true;
-        this.invokeDelegates( gp.events.ready, this.config.node.api );
+        if ( this.config.preload ) {
+            this.read( this.config.requestModel, function () {
+                self.invokeDelegates( gp.events.ready, self.config.node.api );
+            } );
+        }
+        else {
+            this.invokeDelegates( gp.events.ready, this.config.node.api );
+        }
+    },
+
+    addResizeHandler: function() {
+        // sync column widths
+        if ( this.config.fixedheaders || this.config.fixedfooters ) {
+            window.addEventListener( 'resize', this.handlers.resizeHandler )
+        }
+    },
+
+    removeResizeHandler: function() {
+        if ( this.config.fixedheaders || this.config.fixedfooters ) {
+            window.removeEventListener( 'resize', this.handlers.resizeHandler )
+        }
+    },
+
+    resizeHandler: function () {
+        // sync column widths
+        var html = this.injector.exec( 'columnWidthStyle' );
+        this.$n.find( 'style.column-width-style' ).html( html );
     },
 
     addBusyDelegates: function () {
@@ -220,6 +249,17 @@ gp.Controller.prototype = {
         this.$n.on( 'click', 'div.table-body > table > tbody > tr:not(.update-mode,.create-mode) > td.body-cell', this.handlers.rowSelectHandler );
     },
 
+    handlePolling: function ( config ) {
+        // for polling to work, we must have a target and a numeric polling interval greater than 0
+        if ( !$.isNumeric( config.poll ) || config.poll <= 0 ) return;
+
+        var self = this;
+
+        this.pollTimeout = setTimeout( function () {
+            self.read( config.requestModel );
+        }, config.poll * 1000 );
+    },
+
     removeRowSelectHandler: function () {
         this.$n.off( 'click', this.handlers.rowSelectHandler );
     },
@@ -295,6 +335,7 @@ gp.Controller.prototype = {
                 self.config.map.clear();
                 gp.resolveTypes( self.config );
                 self.refresh( self.config );
+                self.handlePolling( self.config );
                 self.invokeDelegates( gp.events.onRead, self.config.node.api );
                 gp.applyFunc( callback, self.config.node, self.config.requestModel );
             } catch ( e ) {
@@ -445,6 +486,7 @@ gp.Controller.prototype = {
         this.removeRowSelectHandler();
         this.removeCommandHandlers( this.config.node );
         this.removeToolbarChangeHandler();
+        this.removeResizeHandler();
     }
 
 };

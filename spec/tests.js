@@ -1,3 +1,41 @@
+QUnit.test( 'config.poll', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    var readCount = 0;
+
+    var api2;
+
+    options.onread = function () {
+
+        readCount++;
+
+        if ( readCount > 1 ) {
+            assert.ok( true, 'polling works' );
+        }
+
+        if ( readCount == 3 ) {
+            api2.dispose();
+
+            $( '#table .box' ).empty();
+
+            done1();
+        }
+    };
+
+    options.poll = '1';
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        api2 = api;
+
+    } );
+
+} );
+
+
 QUnit.test( 'commandHandler', function ( assert ) {
 
     var done1 = assert.async();
@@ -668,14 +706,24 @@ QUnit.test( 'required field', function ( assert ) {
 
         assert.strictEqual( element[0].name, 'StandardCost' );
 
-        done1();
-
         api.dispose();
 
         $( '#table .box' ).empty();
 
+        done1();
     } );
 
+} );
+
+QUnit.test( 'required field', function ( assert ) {
+
+    var options = gp.shallowCopy( configuration );
+
+    var standardCostColumn = options.columns.filter( function ( col ) {
+        return col.field == 'StandardCost';
+    } )[0];
+
+    standardCostColumn.required = true;
 
     var done2 = assert.async();
 
@@ -692,11 +740,11 @@ QUnit.test( 'required field', function ( assert ) {
 
         assert.strictEqual( element[0].name, 'StandardCost' );
 
-        done2();
-
         api.dispose();
 
         $( '#table .box' ).empty();
+
+        done2();
 
     } );
 
@@ -2107,7 +2155,6 @@ QUnit.test( 'ModalEditor', function ( assert ) {
 QUnit.test( 'modal edit', function ( assert ) {
 
     var done = assert.async();
-    var done2 = assert.async();
 
     var options = gp.shallowCopy( configuration );
 
@@ -2129,8 +2176,15 @@ QUnit.test( 'modal edit', function ( assert ) {
 
     } );
 
+} );
+
+QUnit.test( 'modal edit', function ( assert ) {
     // try it with a grid with a custom command column
-    options = gp.shallowCopy( configuration );
+
+    var done2 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
 
     options.editmode = 'modal';
 
@@ -2143,6 +2197,8 @@ QUnit.test( 'modal edit', function ( assert ) {
     } )
 
     gridponent( '#table .box', options ).ready( function ( api ) {
+
+        assert.ok( true )
 
         // put one of the rows into edit mode
         var btn = api.find( 'button[value=edit]' );
@@ -2162,6 +2218,7 @@ QUnit.test( 'modal edit', function ( assert ) {
     } );
 
 } );
+
 
 QUnit.test( 'templates.input', function ( assert ) {
 
