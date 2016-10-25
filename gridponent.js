@@ -180,7 +180,7 @@ gp.Controller = function ( config, model, requestModel, injector ) {
     this.$n = $( config.node );
     this.requestModel = requestModel;
     this.injector = injector;
-    this.pollTimeout = null;
+    this.pollInterval = null;
     if ( config.pager ) {
         this.requestModel.top = 25;
     }
@@ -213,10 +213,12 @@ gp.Controller.prototype = {
         this.done = true;
         if ( this.config.preload ) {
             this.read( this.config.requestModel, function () {
+                self.handlePolling( self.config );
                 self.invokeDelegates( gp.events.ready, self.config.node.api );
             } );
         }
         else {
+            self.handlePolling( self.config );
             this.invokeDelegates( gp.events.ready, this.config.node.api );
         }
     },
@@ -422,17 +424,6 @@ gp.Controller.prototype = {
         this.$n.on( 'click', 'div.table-body > table > tbody > tr:not(.update-mode,.create-mode) > td.body-cell', this.handlers.rowSelectHandler );
     },
 
-    handlePolling: function ( config ) {
-        // for polling to work, we must have a target and a numeric polling interval greater than 0
-        if ( !$.isNumeric( config.poll ) || config.poll <= 0 ) return;
-
-        var self = this;
-
-        this.pollTimeout = setTimeout( function () {
-            self.read( config.requestModel );
-        }, config.poll * 1000 );
-    },
-
     removeRowSelectHandler: function () {
         this.$n.off( 'click', this.handlers.rowSelectHandler );
     },
@@ -508,7 +499,6 @@ gp.Controller.prototype = {
                 self.config.map.clear();
                 gp.resolveTypes( self.config );
                 self.refresh( self.config );
-                self.handlePolling( self.config );
                 self.invokeDelegates( gp.events.onRead, self.config.node.api );
                 gp.applyFunc( callback, self.config.node, self.config.requestModel );
             } catch ( e ) {
@@ -516,6 +506,25 @@ gp.Controller.prototype = {
                 self.httpErrorHandler( e );
             }
         }, this.handlers.httpErrorHandler );
+    },
+
+    handlePolling: function ( config ) {
+        // for polling to work, we must have a target and a numeric polling interval greater than 0
+        if ( !$.isNumeric( config.poll ) || config.poll <= 0 ) return;
+
+        var self = this;
+
+        this.pollInterval = setInterval( function () {
+            // does this grid still exist?
+            var exists = config.node.ownerDocument.body.contains( config.node );
+            if ( !exists ) {
+                clearInterval( self.pollInterval );
+                self.pollInterval = null;
+            }
+            else {
+                self.read( config.requestModel );
+            }
+        }, config.poll * 1000 );
     },
 
     addRow: function ( dataItem ) {
@@ -660,6 +669,9 @@ gp.Controller.prototype = {
         this.removeCommandHandlers( this.config.node );
         this.removeToolbarChangeHandler();
         this.removeResizeHandler();
+        if ( this.pollInterval ) {
+            clearInterval( this.pollInterval );
+        }
     }
 
 };
@@ -1621,10 +1633,6 @@ gp.Initializer.prototype = {
             if ( config.columns[i].footertemplate ) return true;
         }
         return false;
-    },
-
-    resolvePoll: function( config ) {
-        if ( $.isNumeric( config.poll ) ) config.poll = parseInt( config.poll );
     },
 
     resolveTopLevelOptions: function(config) {

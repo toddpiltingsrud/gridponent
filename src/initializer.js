@@ -151,10 +151,6 @@ gp.Initializer.prototype = {
         return false;
     },
 
-    resolvePoll: function( config ) {
-        if ( $.isNumeric( config.poll ) ) config.poll = parseInt( config.poll );
-    },
-
     resolveTopLevelOptions: function(config) {
         // resolve the top level configurations
         var obj, options = 'rowselected searchfunction read create update destroy validate model'.split( ' ' );
