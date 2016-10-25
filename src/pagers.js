@@ -68,10 +68,8 @@ gp.ClientPager.prototype = {
                 });
             }
 
-            // set totalrows after filtering, but before paging
-            model.totalrows = model.data.length;
-
-            model.pagecount = this.getPageCount( model );
+            // set total after filtering, but before paging
+            model.total = model.data.length;
 
             // then sort
             if (gp.isNullOrEmpty(model.sort) === false) {
@@ -106,13 +104,6 @@ gp.ClientPager.prototype = {
             return data.page = data.pagecount;
         }
         return ( data.page - 1 ) * data.top;
-    },
-    getPageCount: function (model) {
-        if ( model.top > 0 ) {
-            return Math.ceil( model.totalrows / model.top );
-        }
-        if ( model.totalrows === 0 ) return 0;
-        return 1;
     },
     getSortFunction: function (col, desc) {
         if ( /^(number|date|boolean)$/.test( col.Type ) ) {

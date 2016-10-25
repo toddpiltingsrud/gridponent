@@ -2024,10 +2024,8 @@ gp.ClientPager.prototype = {
                 });
             }
 
-            // set totalrows after filtering, but before paging
-            model.totalrows = model.data.length;
-
-            model.pagecount = this.getPageCount( model );
+            // set total after filtering, but before paging
+            model.total = model.data.length;
 
             // then sort
             if (gp.isNullOrEmpty(model.sort) === false) {
@@ -2062,13 +2060,6 @@ gp.ClientPager.prototype = {
             return data.page = data.pagecount;
         }
         return ( data.page - 1 ) * data.top;
-    },
-    getPageCount: function (model) {
-        if ( model.top > 0 ) {
-            return Math.ceil( model.totalrows / model.top );
-        }
-        if ( model.totalrows === 0 ) return 0;
-        return 1;
     },
     getSortFunction: function (col, desc) {
         if ( /^(number|date|boolean)$/.test( col.Type ) ) {
@@ -2181,8 +2172,7 @@ gp.RequestModel = function (data) {
     this.desc = false;
     this.search = '';
     this.data = data || [];
-    this.totalrows = ( data != undefined && data.length ) ? data.length : 0;
-    this.pagecount = 0;
+    this.total = ( data != undefined && data.length ) ? data.length : 0;
 
     Object.defineProperty(self, 'pageindex', {
         get: function () {
@@ -2200,7 +2190,17 @@ gp.RequestModel = function (data) {
             }
             return 0;
         }
-    });
+    } );
+
+    Object.defineProperty( self, 'pagecount', {
+        get: function () {
+            if ( self.top > 0 ) {
+                return Math.ceil( self.total / self.top );
+            }
+            if ( self.total === 0 ) return 0;
+            return 1;
+        }
+    } );
 };
 
 gp.RequestModel.prototype = {
@@ -2210,8 +2210,7 @@ gp.RequestModel.prototype = {
     desc: false,
     search: '',
     data: [],
-    totalrows: 0,
-    pagecount: 0
+    total: 0
 };
 /***************\
   ResponseModel

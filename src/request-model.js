@@ -10,8 +10,7 @@ gp.RequestModel = function (data) {
     this.desc = false;
     this.search = '';
     this.data = data || [];
-    this.totalrows = ( data != undefined && data.length ) ? data.length : 0;
-    this.pagecount = 0;
+    this.total = ( data != undefined && data.length ) ? data.length : 0;
 
     Object.defineProperty(self, 'pageindex', {
         get: function () {
@@ -29,7 +28,17 @@ gp.RequestModel = function (data) {
             }
             return 0;
         }
-    });
+    } );
+
+    Object.defineProperty( self, 'pagecount', {
+        get: function () {
+            if ( self.top > 0 ) {
+                return Math.ceil( self.total / self.top );
+            }
+            if ( self.total === 0 ) return 0;
+            return 1;
+        }
+    } );
 };
 
 gp.RequestModel.prototype = {
@@ -39,6 +48,5 @@ gp.RequestModel.prototype = {
     desc: false,
     search: '',
     data: [],
-    totalrows: 0,
-    pagecount: 0
+    total: 0
 };
