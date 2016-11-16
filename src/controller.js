@@ -37,15 +37,16 @@ gp.Controller.prototype = {
         this.addRefreshEventHandler( this.config );
         this.addToolbarChangeHandler();
         this.addResizeHandler();
-        this.done = true;
         if ( this.config.preload ) {
             this.read( this.config.requestModel, function () {
                 self.handlePolling( self.config );
+                self.done = true;
                 self.invokeDelegates( gp.events.ready, self.config.node.api );
             } );
         }
         else {
-            self.handlePolling( self.config );
+            this.handlePolling( this.config );
+            this.done = true;
             this.invokeDelegates( gp.events.ready, this.config.node.api );
         }
     },
@@ -111,6 +112,7 @@ gp.Controller.prototype = {
                 proceed = gp.applyFunc( delegate, self.config.node.api, args );
             } );
         }
+        gp.triggerEvent( this.$n, 'gp-' + event );
         return proceed;
     },
 

@@ -426,6 +426,18 @@
             );
         },
 
+        triggerEvent: function ( elem, name ) {
+
+            var evt = new CustomEvent( name, {
+                'view': window,
+                'bubbles': true,
+                'cancelable': true
+            } );
+
+            $( elem )[0].dispatchEvent( evt );
+
+        },
+
         // logging
         log: ( window.console ? window.console.log.bind( window.console ) : function () { } ),
 

@@ -63,6 +63,7 @@
     <Content Include="spec\scripts\custom-event-polyfill.js" />
     <Content Include="spec\styles\bootstrap-theme.css" />
     <Content Include="spec\styles\bootstrap-theme.min.css" />
+    <Content Include="src\custom-event-polyfill.js" />
     <Content Include="src\datamap.js" />
     <Content Include="src\editors.js" />
     <Content Include="src\injector.js" />

@@ -1,3 +1,51 @@
+QUnit.test( 'triggerEvent', function ( assert ) {
+
+    var done1 = assert.async();
+    var done2 = assert.async();
+
+    $( div ).one( 'custom-event', function () {
+        assert.ok( 'custom event is triggered' );
+        done1();
+    } );
+
+    $( document ).one( 'custom-event', function () {
+        assert.ok( 'custom event bubbles' );
+        done2();
+    } );
+
+    gp.triggerEvent( div, 'custom-event' );
+
+} );
+
+
+QUnit.test( 'triggerEvent', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    var api2;
+
+    $( document ).one( 'gp-ready', function () {
+
+        assert.ok( 'gridponent can trigger events' );
+
+        api2.dispose();
+
+        $( '#table .box' ).empty();
+
+        done1();
+
+    } );
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        api2 = api;
+
+    } );
+
+} );
+
 QUnit.test( 'config.poll', function ( assert ) {
 
     var done1 = assert.async();
@@ -1930,7 +1978,7 @@ QUnit.test( 'sorting', function ( assert ) {
 
     getTableConfig( options, function ( api ) {
 
-        //$( '#table .box' ).append( api.config.node );
+        $( '#table .box' ).append( api.config.node );
 
         var lbl = api.find( 'a.table-sort' );
 

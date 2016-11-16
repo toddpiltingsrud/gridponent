@@ -210,15 +210,16 @@ gp.Controller.prototype = {
         this.addRefreshEventHandler( this.config );
         this.addToolbarChangeHandler();
         this.addResizeHandler();
-        this.done = true;
         if ( this.config.preload ) {
             this.read( this.config.requestModel, function () {
                 self.handlePolling( self.config );
+                self.done = true;
                 self.invokeDelegates( gp.events.ready, self.config.node.api );
             } );
         }
         else {
-            self.handlePolling( self.config );
+            this.handlePolling( this.config );
+            this.done = true;
             this.invokeDelegates( gp.events.ready, this.config.node.api );
         }
     },
@@ -284,6 +285,7 @@ gp.Controller.prototype = {
                 proceed = gp.applyFunc( delegate, self.config.node.api, args );
             } );
         }
+        gp.triggerEvent( this.$n, 'gp-' + event );
         return proceed;
     },
 
@@ -675,6 +677,25 @@ gp.Controller.prototype = {
     }
 
 };
+/***************\
+  CustomEvent
+\***************/
+( function () {
+
+    if ( typeof window.CustomEvent === "function" ) return false;
+
+    function CustomEvent( event, params ) {
+        params = params || { bubbles: false, cancelable: false, detail: undefined };
+        var evt = document.createEvent( 'CustomEvent' );
+        evt.initCustomEvent( event, params.bubbles, params.cancelable, params.detail );
+        return evt;
+    }
+
+    CustomEvent.prototype = window.Event.prototype;
+
+    window.CustomEvent = CustomEvent;
+
+})();
 /***************\
    DataLayer
 \***************/
@@ -3331,6 +3352,18 @@ gp.templates.toolbar.$inject = ['$config', '$injector'];
                     return typeof r === 'function' ? gp.escapeHTML( gp.applyFunc( r, self, args ) ) : '';
                 }
             );
+        },
+
+        triggerEvent: function ( elem, name ) {
+
+            var evt = new CustomEvent( name, {
+                'view': window,
+                'bubbles': true,
+                'cancelable': true
+            } );
+
+            $( elem )[0].dispatchEvent( evt );
+
         },
 
         // logging
