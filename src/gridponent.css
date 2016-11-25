@@ -100,6 +100,9 @@
   background: #dff0d8;
   color: #000;
 }
+.gp.fixed-headers {
+  overflow-x: auto;
+}
 .gp.fixed-headers .table-header {
   padding-right: 17px;
 }
@@ -120,6 +123,7 @@
 .gp.fixed-headers .table-body {
   height: 400px;
   overflow-y: scroll;
+  overflow-x: hidden;
 }
 .gp.fixed-footers .table-footer {
   padding-right: 17px;
