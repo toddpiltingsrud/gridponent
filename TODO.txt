@@ -10,6 +10,9 @@ We could use this list of tokens to split the toolbar object into two objects: o
 Or should we just create a function for splitting an object?
 Should we create a way to configure the HTTP verbs for CRUD?
 
+If a RequestModel is used as the read configuration option, paging may not work properly.
+Should this option even be supported?
+
 Currently it's not possible to pass a url to an event delegate call:
 gridponent('#theGrid').rowSelected('http://server/app/controller/action/{{id}}');
 Should this be supported?

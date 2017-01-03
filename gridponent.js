@@ -720,6 +720,8 @@ gp.DataLayer.prototype = {
                     var model = new gp.RequestModel();
                     gp.shallowCopy( this.config.read, model, true );
                     this.config.requestModel = model;
+
+                    // the initializer should have already constructed the requestModel
                     return new gp.ClientPager( this.config );
                 }
                 throw 'Unsupported read configuration';
@@ -1525,7 +1527,7 @@ gp.Initializer.prototype = {
         options.ID = gp.createUID();
         this.config = options;
         this.config.map = new gp.DataMap();
-        this.config.requestModel = (gp.implements(this.config.read, gp.RequestModel.prototype)) ? this.config.read : new gp.RequestModel();
+        this.config.requestModel = ( gp.implements( this.config.read, gp.RequestModel.prototype ) ) ? new gp.RequestModel( this.config.read ) : new gp.RequestModel();
         this.config.editmode = this.config.editmode || 'inline';
         this.config.newrowposition = this.config.newrowposition || 'top';
 
@@ -2192,7 +2194,14 @@ gp.RequestModel = function (data) {
     this.sort = '';
     this.desc = false;
     this.search = '';
-    this.data = data || [];
+
+    if ( gp.getType( data ) == 'object' ) {
+        gp.shallowCopy( data, this );
+    }
+    else {
+        this.data = data || [];
+    }
+
     this.total = ( data != undefined && data.length ) ? data.length : 0;
 
     Object.defineProperty(self, 'pageindex', {

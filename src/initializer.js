@@ -20,7 +20,7 @@ gp.Initializer.prototype = {
         options.ID = gp.createUID();
         this.config = options;
         this.config.map = new gp.DataMap();
-        this.config.requestModel = (gp.implements(this.config.read, gp.RequestModel.prototype)) ? this.config.read : new gp.RequestModel();
+        this.config.requestModel = ( gp.implements( this.config.read, gp.RequestModel.prototype ) ) ? new gp.RequestModel( this.config.read ) : new gp.RequestModel();
         this.config.editmode = this.config.editmode || 'inline';
         this.config.newrowposition = this.config.newrowposition || 'top';
 

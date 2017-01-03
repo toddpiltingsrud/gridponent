@@ -22,6 +22,8 @@ gp.DataLayer.prototype = {
                     var model = new gp.RequestModel();
                     gp.shallowCopy( this.config.read, model, true );
                     this.config.requestModel = model;
+
+                    // the initializer should have already constructed the requestModel
                     return new gp.ClientPager( this.config );
                 }
                 throw 'Unsupported read configuration';

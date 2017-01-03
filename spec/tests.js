@@ -1,3 +1,41 @@
+QUnit.test( 'read config as object', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configOptions );
+
+    options.read = { data: data.products, sort: 'Name', desc: true, search: 'Black' };
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        // find the ProductNumber column
+        var productNumber1 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).html();
+
+        var pageNumber1 = api.config.requestModel.page;
+
+        var btn = api.find( 'button[title="Next page"]' );
+
+        clickButton( btn );
+
+        var productNumber2 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).html();
+
+        var pageNumber2 = api.config.requestModel.page;
+
+        assert.notStrictEqual( productNumber1, productNumber2, 'paging should change the contents of the grid to the next set' );
+        assert.notStrictEqual( pageNumber1, pageNumber2, 'paging should change the contents of the grid to the next set' );
+
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+        done1();
+
+    } );
+
+} );
+
+
+
 QUnit.test( 'triggerEvent', function ( assert ) {
 
     var done1 = assert.async();

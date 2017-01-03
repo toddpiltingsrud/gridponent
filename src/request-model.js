@@ -9,7 +9,14 @@ gp.RequestModel = function (data) {
     this.sort = '';
     this.desc = false;
     this.search = '';
-    this.data = data || [];
+
+    if ( gp.getType( data ) == 'object' ) {
+        gp.shallowCopy( data, this );
+    }
+    else {
+        this.data = data || [];
+    }
+
     this.total = ( data != undefined && data.length ) ? data.length : 0;
 
     Object.defineProperty(self, 'pageindex', {
