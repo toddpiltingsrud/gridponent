@@ -1,5 +1,5 @@
 ﻿// gridponent.js
-// version : 0.1-beta
+// version : 0.1
 // author : Todd Piltingsrud
 // license : MIT
 /***************\

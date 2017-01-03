@@ -1,4 +1,4 @@
-# gridponent v0.1-beta
+# gridponent v0.1
 
 A [Bootstrap](http://getbootstrap.com/) grid component.
 
@@ -11,6 +11,7 @@ Features:
 - Modal editing
 - Column templating
 - Toolbar templating
+- Override base templates
 - Cell value formatting using [moment.js](http://momentjs.com/) and [numeral.js](http://numeraljs.com/)
 - Specify custom CSS classes for header, body and footer
 - Fixed headers
