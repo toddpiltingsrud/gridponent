@@ -59,6 +59,7 @@ dlldata.c
 *.scc
 *.csproj
 *.sln
+*.bat
 
 # Chutzpah Test files
 _Chutzpah*

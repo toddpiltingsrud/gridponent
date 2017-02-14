@@ -74,6 +74,7 @@ gp.Controller.prototype = {
         this.addDelegate( gp.events.beforeRead, this.addBusy );
         this.addDelegate( gp.events.onRead, this.removeBusy );
         this.addDelegate( gp.events.beforeEdit, this.addBusy );
+        this.addDelegate( gp.events.onEdit, this.refreshFooter );
         this.addDelegate( gp.events.onEdit, this.removeBusy );
         this.addDelegate( gp.events.httpError, this.removeBusy );
     },
@@ -483,6 +484,24 @@ gp.Controller.prototype = {
         }
         catch ( e ) {
             gp.error( e );
+        }
+    },
+
+    refreshFooter: function ( model ) {
+        // this is called onEdit
+        // refresh the footer after creating or updating a row
+        // model.type is the type of operation that was performed
+        if ( /^(create|update)$/.test( model.type ) ) {
+            try {
+                var footer = this.$n.find( 'tfoot' );
+                if ( footer.length ) {
+                    var footerRow = $( this.controller.injector.exec( 'footer' ) ).find( 'tr' );
+                    footer.html( footerRow );
+                }
+            }
+            catch ( e ) {
+                gp.error( e );
+            }
         }
     },
 

@@ -1,5 +1,5 @@
 ﻿// gridponent.js
-// version : 0.1
+// version : 0.1-beta
 // author : Todd Piltingsrud
 // license : MIT
 /***************\
@@ -247,6 +247,7 @@ gp.Controller.prototype = {
         this.addDelegate( gp.events.beforeRead, this.addBusy );
         this.addDelegate( gp.events.onRead, this.removeBusy );
         this.addDelegate( gp.events.beforeEdit, this.addBusy );
+        this.addDelegate( gp.events.onEdit, this.refreshFooter );
         this.addDelegate( gp.events.onEdit, this.removeBusy );
         this.addDelegate( gp.events.httpError, this.removeBusy );
     },
@@ -656,6 +657,24 @@ gp.Controller.prototype = {
         }
         catch ( e ) {
             gp.error( e );
+        }
+    },
+
+    refreshFooter: function ( model ) {
+        // this is called onEdit
+        // refresh the footer after creating or updating a row
+        // model.type is the type of operation that was performed
+        if ( /^(create|update)$/.test( model.type ) ) {
+            try {
+                var footer = this.$n.find( 'tfoot' );
+                if ( footer.length ) {
+                    var footerRow = $( this.controller.injector.exec( 'footer' ) ).find( 'tr' );
+                    footer.html( footerRow );
+                }
+            }
+            catch ( e ) {
+                gp.error( e );
+            }
         }
     },
 
@@ -2606,15 +2625,15 @@ gp.templates.footer = function ( $columns, $injector ) {
 
 gp.templates.footer.$inject = ['$columns', '$injector'];
 
-gp.templates.footerCell = function ( $injector ) {
+gp.templates.footerCell = function ( $injector, $column ) {
     var html = new gp.StringBuilder();
-        html.add( '<td class="footer-cell">' )
+        html.addFormat( '<td class="footer-cell {{0}}">', $column.footerclass )
             .add( $injector.exec( 'footerCellContent' ) )
             .add( '</td>' );
     return html.toString();
 };
 
-gp.templates.footerCell.$inject = ['$injector'];
+gp.templates.footerCell.$inject = ['$injector', '$column'];
 
 gp.templates.footerCellContent = function ( $data, $column ) {
     var html = new gp.StringBuilder();
@@ -2856,13 +2875,14 @@ gp.templates.tableRow.$inject = ['$injector', '$mode'];
 gp.templates.tableRowCell = function ( $column, $injector, $mode ) {
     var self = this,
         mode = $mode || 'read',
-        html = new gp.StringBuilder();
+        html = new gp.StringBuilder(),
+        isEditMode = /create|update/.test( mode );
 
     html.addFormat( '<td class="body-cell {{0}}{{1}}">',
-        [( $column.commands ? 'commands ' : '' ), $column.bodyclass]
+        [( $column.commands ? 'commands ' : '' ), ( isEditMode ? $column.editclass : $column.bodyclass )]
     );
 
-    if ( /create|update/.test( mode ) && !$column.readonly) {
+    if ( isEditMode && !$column.readonly ) {
         html.add( $injector.exec( 'editCellContent' ) );
     }
     else {

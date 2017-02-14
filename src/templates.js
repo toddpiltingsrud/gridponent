@@ -324,15 +324,15 @@ gp.templates.footer = function ( $columns, $injector ) {
 
 gp.templates.footer.$inject = ['$columns', '$injector'];
 
-gp.templates.footerCell = function ( $injector ) {
+gp.templates.footerCell = function ( $injector, $column ) {
     var html = new gp.StringBuilder();
-        html.add( '<td class="footer-cell">' )
+        html.addFormat( '<td class="footer-cell {{0}}">', $column.footerclass )
             .add( $injector.exec( 'footerCellContent' ) )
             .add( '</td>' );
     return html.toString();
 };
 
-gp.templates.footerCell.$inject = ['$injector'];
+gp.templates.footerCell.$inject = ['$injector', '$column'];
 
 gp.templates.footerCellContent = function ( $data, $column ) {
     var html = new gp.StringBuilder();
@@ -574,13 +574,14 @@ gp.templates.tableRow.$inject = ['$injector', '$mode'];
 gp.templates.tableRowCell = function ( $column, $injector, $mode ) {
     var self = this,
         mode = $mode || 'read',
-        html = new gp.StringBuilder();
+        html = new gp.StringBuilder(),
+        isEditMode = /create|update/.test( mode );
 
     html.addFormat( '<td class="body-cell {{0}}{{1}}">',
-        [( $column.commands ? 'commands ' : '' ), $column.bodyclass]
+        [( $column.commands ? 'commands ' : '' ), ( isEditMode ? $column.editclass : $column.bodyclass )]
     );
 
-    if ( /create|update/.test( mode ) && !$column.readonly) {
+    if ( isEditMode && !$column.readonly ) {
         html.add( $injector.exec( 'editCellContent' ) );
     }
     else {

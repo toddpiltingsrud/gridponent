@@ -1,4 +1,6 @@
-﻿( function () {
+﻿// replaced this with jQuery
+
+( function () {
 
     gp.node = function ( elem ) {
         if ( typeof ( elem ) === 'string' ) {

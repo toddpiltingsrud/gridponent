@@ -1,29 +1,34 @@
-QUnit.test( 'read config as object', function ( assert ) {
+QUnit.test( 'bodyclass', function ( assert ) {
 
     var done1 = assert.async();
 
-    var options = gp.shallowCopy( configOptions );
+    var options = gp.shallowCopy( configuration );
 
-    options.read = { data: data.products, sort: 'Name', desc: true, search: 'Black' };
+    // add a bodyclass
+    options.columns[0].bodyclass = 'custom-body';
+    options.columns[0].editclass = 'custom-edit';
+    options.editmode = 'inline';
 
     gridponent( '#table .box', options ).ready( function ( api ) {
 
-        // find the ProductNumber column
-        var productNumber1 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).html();
+        var bodyCell = api.find( 'tbody tr:first-child td.custom-body' );
 
-        var pageNumber1 = api.config.requestModel.page;
+        // test the cell
+        assert.equal( bodyCell.length, 1, 'body class should be added to the body cell' );
 
-        var btn = api.find( 'button[title="Next page"]' );
+        // put it in edit mode
+        var editBtn = api.find( '[value=edit]' )
 
-        clickButton( btn );
+        clickButton( editBtn[0] );
 
-        var productNumber2 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).html();
+        // test bodyCell again
+        bodyCell = api.find( 'tbody tr.update-mode td.custom-edit' );
 
-        var pageNumber2 = api.config.requestModel.page;
+        assert.strictEqual( bodyCell.length, 1, 'editclass should be added to the cell in inline edit mode' );
 
-        assert.notStrictEqual( productNumber1, productNumber2, 'paging should change the contents of the grid to the next set' );
-        assert.notStrictEqual( pageNumber1, pageNumber2, 'paging should change the contents of the grid to the next set' );
+        assert.strictEqual( bodyCell.hasClass('custom-body'), false, 'bodyclass should be removed from the body cell in inline edit mode' );
 
+        // clean up
         api.dispose();
 
         $( '#table .box' ).empty();
@@ -33,6 +38,132 @@ QUnit.test( 'read config as object', function ( assert ) {
     } );
 
 } );
+
+QUnit.test( 'footerclass', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    // add a footerclass
+    options.columns[0].footerclass = 'custom-footer';
+    options.columns[0].footertemplate = '<div>footer</div>';
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var footer = api.find( 'tfoot td.custom-footer' );
+
+        // test the footer
+        assert.equal( footer.length, 1, 'custom class should be added to footer' );
+
+        // clean up
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+        done1();
+
+    } );
+
+} );
+
+QUnit.test( 'update footer after creating a row', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    var index = 0;
+
+    // replace the footer template of the first column
+    options.columns[0].footertemplate = function ( evt, data ) {
+        return '<input type="text" readonly id="indexTotal" value="' + index + '"/>';
+    };
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        // test the footer
+        assert.equal( $( '#indexTotal' ).val(), index, 'footer should be created during first render' );
+
+        // increment our index
+        index++;
+
+        // add a new row
+        var addBtn = api.find( '[value=AddRow]' );
+
+        clickButton( addBtn[0] );
+
+        var editRow = api.find( 'tr.create-mode' );
+
+        editRow.find( 'input[name=ProductNumber]' ).val( 'TEST-123' );
+
+        assert.ok( editRow.length > 0, 'clicking the addrow button should create a tr in create mode' );
+
+        // save it
+        var createBtn = editRow.find( '[value=create]' );
+
+        clickButton( createBtn[0] );
+
+        // test the footer
+        assert.equal( $('#indexTotal').val(), index, 'footer should update after adding a row' );
+
+        // increment our index
+        index++;
+
+        // delete the row we created
+        var destroyBtn = api.find( '[value=destroy],[value=delete],[value=Delete]' );
+
+        clickButton( destroyBtn[0] );
+
+        // test the footer again
+        assert.equal( $( '#indexTotal' ).val(), index, 'footer should update after deleting a row' );
+
+        // clean up
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+        done1();
+
+    } );
+
+} );
+
+//QUnit.test( 'read config as object', function ( assert ) {
+
+//    var done1 = assert.async();
+
+//    var options = gp.shallowCopy( configOptions );
+
+//    options.read = { data: data.products, sort: 'Name', desc: true, search: 'Black' };
+
+//    gridponent( '#table .box', options ).ready( function ( api ) {
+
+//        // find the ProductNumber column
+//        var productNumber1 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).html();
+
+//        var pageNumber1 = api.config.requestModel.page;
+
+//        var btn = api.find( 'button[title="Next page"]' );
+
+//        clickButton( btn );
+
+//        var productNumber2 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).html();
+
+//        var pageNumber2 = api.config.requestModel.page;
+
+//        assert.notStrictEqual( productNumber1, productNumber2, 'paging should change the contents of the grid to the next set' );
+//        assert.notStrictEqual( pageNumber1, pageNumber2, 'paging should change the contents of the grid to the next set' );
+
+//        api.dispose();
+
+//        $( '#table .box' ).empty();
+
+//        done1();
+
+//    } );
+
+//} );
 
 
 
@@ -120,7 +251,6 @@ QUnit.test( 'config.poll', function ( assert ) {
     } );
 
 } );
-
 
 QUnit.test( 'commandHandler', function ( assert ) {
 
@@ -2546,82 +2676,6 @@ QUnit.test( 'read', function ( assert ) {
 
 } );
 
-QUnit.test( 'commandHandler', function ( assert ) {
-
-    var done1 = assert.async();
-
-    var options = gp.shallowCopy( configOptions );
-
-    fns.rowSelected = function ( dataItem ) {
-        assert.ok( false, 'clicking a button in the table should not trigger row selection' );
-    };
-
-    options.rowselected = 'fns.rowSelected';
-
-    getTableConfig( options, function ( api ) {
-
-        $( '#table .box' ).empty().append(api.$n);
-
-        var config = api.config;
-
-        var controller = api.controller;
-
-        var addBtn = api.find( '[value=AddRow]' );
-
-        clickButton( addBtn[0] );
-
-        var editRow = api.find( 'tr.create-mode' );
-
-        editRow.find( 'input[name=ProductNumber]' ).val( 'removethisrow' );
-
-        assert.ok( editRow.length > 0, 'clicking the addrow button should create a tr in create mode' );
-
-        // save it
-        var createBtn = editRow.find( '[value=create]' );
-
-        clickButton( createBtn[0] );
-
-
-        // add another row
-        clickButton( addBtn[0] );
-
-        editRow = api.find( 'tr.create-mode' );
-
-        assert.ok( editRow.length > 0, 'clicking the addrow button should create a tr in create mode' );
-
-        // cancel it
-        var cancelBtn = editRow.find( '[value=cancel]' );
-
-        clickButton( cancelBtn[0] );
-
-        editRow = api.find( 'tr.create-mode' );
-
-        assert.ok( editRow.length == 0, 'clicking cancel should remove the dataItem' );
-
-        // delete the row we created
-        var destroyBtn = api.find( '[value=destroy],[value=delete],[value=Delete]' )
-
-        clickButton( destroyBtn[0] );
-
-        // perform a search
-
-        var searchBox = api.find( '[name=search]' ).val('AR-5381');
-
-        var searchBtn = api.find( '[value=search]' );
-
-        clickButton( searchBtn[0] );
-
-        //var deletedRow = data.products.filter( function ( row ) {
-        //    return row.ProductNumber == 'removethisrow';
-        //} );
-
-        //assert.ok( deletedRow.length == 0, 'clicking delete should remove the row' );
-
-        done1();
-
-    } );
-
-} );
 
 QUnit.test( 'handleEnterKey', function ( assert ) {
 
