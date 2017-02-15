@@ -1,3 +1,30 @@
+QUnit.test( 'tableclass', function ( assert ) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy( configuration );
+
+    // add a tableclass
+    options.tableclass = 'custom-table';
+
+    gridponent( '#table .box', options ).ready( function ( api ) {
+
+        var table = api.find( 'div.table-body table.custom-table' );
+
+        // test the cell
+        assert.equal( table.length, 1, 'table class should be added to the body table' );
+
+        // clean up
+        api.dispose();
+
+        $( '#table .box' ).empty();
+
+        done1();
+
+    } );
+
+} );
+
 QUnit.test( 'bodyclass', function ( assert ) {
 
     var done1 = assert.async();

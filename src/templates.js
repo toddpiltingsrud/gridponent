@@ -537,7 +537,7 @@ gp.templates.sortStyle.$inject = ['$config'];
 
 gp.templates.tableBody = function ( $config, $injector ) {
     var html = new gp.StringBuilder();
-    html.add( '<table class="table" cellpadding="0" cellspacing="0">' );
+    html.addFormat( '<table class="table {{0}}" cellpadding="0" cellspacing="0">', $config.tableclass );
     if ( !$config.fixedheaders ) {
         html.add( $injector.exec( 'header' ) );
     }
@@ -629,7 +629,7 @@ gp.templates.toolbar = function ( $config, $injector ) {
     var html = new gp.StringBuilder();
 
     if ( $config.search ) {
-        html.add( '<div class="input-group searchbox">' )
+        html.add( '<div class="input-group gp-searchbox">' )
             .add( '<input type="text" name="search" class="form-control" placeholder="Search...">' )
             .add( '<span class="input-group-btn">' )
             .add( $injector.exec( 'button', {
