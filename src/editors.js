@@ -105,6 +105,7 @@ gp.Editor.prototype = {
             this.beforeEdit( {
                 type: this.mode,
                 dataItem: this.dataItem,
+                originalDataItem: this.originalDataItem,
                 elem: this.elem
             } );
         }
@@ -179,6 +180,7 @@ gp.Editor.prototype = {
             this.afterEdit( {
                 type: this.mode,
                 dataItem: this.dataItem,
+                originalDataItem: this.originalDataItem,
                 elem: this.elem
             } );
         }

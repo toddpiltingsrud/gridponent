@@ -1,4 +1,7 @@
-﻿ServerPager.read should probably be sending an HTTP GET instead of a POST.
+﻿Bind columns in read mode when a bodytemplate is present. 
+Unformat percentages when saving.
+
+ServerPager.read should probably be sending an HTTP GET instead of a POST.
 But then the URL template idea wouldn't make much sense because the requestModel would be added to the URL anyway.
 And why would we want to split the request parameters between the URL and the body?
 There's also the problem of supporting routes: controller/action/{{id}}.
