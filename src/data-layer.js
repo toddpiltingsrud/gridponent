@@ -12,26 +12,22 @@ gp.DataLayer.prototype = {
         switch ( type ) {
             case 'string':
                 return new gp.ServerPager( this.config.read );
-                break;
             case 'function':
                 return new gp.FunctionPager( this.config );
-                break;
             case 'object':
                 // is it a RequestModel?
                 if ( gp.implements( this.config.read, gp.RequestModel.prototype ) ) {
                     var model = new gp.RequestModel();
-                    gp.shallowCopy( this.config.read, model, true );
+                    gp.shallowCopy( this.config.read, model );
                     this.config.requestModel = model;
 
                     // the initializer should have already constructed the requestModel
                     return new gp.ClientPager( this.config );
                 }
                 throw 'Unsupported read configuration';
-                break;
             case 'array':
-                this.config.requestModel.data = this.config.read;
+                this.config.requestModel.Data = this.config.read;
                 return new gp.ClientPager( this.config );
-                break;
             default:
                 throw 'Unsupported read configuration';
         }

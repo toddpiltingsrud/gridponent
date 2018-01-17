@@ -4,8 +4,8 @@
 gp.Http = function () { };
 
 gp.Http.prototype = {
-    get: function ( url, data, callback, error ) {
-        $.get( url, data ).done( callback ).fail( error );
+    get: function ( url, callback, error ) {
+        $.get( url ).done( callback ).fail( error );
     },
     post: function ( url, data, callback, error ) {
         this.ajax( url, data, callback, error, 'POST' );

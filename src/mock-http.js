@@ -12,8 +12,44 @@
         destroy: /Delete/i
     };
 
+    var deserializeUrl = function (url) {
+        var result = {},
+            query;
+
+        if (!gp.hasValue(url)) {
+            return null;
+        }
+
+        query = url.split('?');
+
+        if (query.length < 2) {
+            return null;
+        }
+
+        query[1].split('&').forEach(function (part) {
+            if (!part) return;
+            part = part.split("+").join(" "); // replace every + with space, regexp-free version
+            var eq = part.indexOf("=");
+            var key = eq > -1 ? part.substr(0, eq) : part;
+            var val = eq > -1 ? decodeURIComponent(part.substr(eq + 1)) : "";
+            var from = key.indexOf("[");
+            if (from == -1) result[decodeURIComponent(key)] = val;
+            else {
+                var to = key.indexOf("]", from);
+                var index = decodeURIComponent(key.substring(from + 1, to));
+                key = decodeURIComponent(key.substring(0, from));
+                if (!result[key]) result[key] = [];
+                if (!index) result[key].push(val);
+                else result[key][index] = val;
+            }
+        });
+
+        return result;
+    };
+
     gp.Http.prototype = {
-        get: function ( url, model, callback, error ) {
+        get: function (url, callback, error) {
+            var model = deserializeUrl(url);
             this.post( url, model, callback, error );
         },
         post: function (url, model, callback, error) {
@@ -56,7 +92,7 @@
             });
         }
         if (!gp.isNullOrEmpty(model.sort)) {
-            if (model.desc) {
+            if (model.Desc) {
                 d.sort(function (row1, row2) {
                     var a = row1[model.sort];
                     var b = row2[model.sort];
@@ -104,11 +140,11 @@
             }
         }
         count = d.length;
-        if (model.top !== -1) {
-            model.data = d.slice(model.skip).slice(0, model.top);
+        if (model.PageSize !== -1) {
+            model.Data = d.slice(model.skip).slice(0, model.PageSize);
         }
         else {
-            model.data = d;
+            model.Data = d;
         }
         model.errors = [];
         setTimeout(function () {

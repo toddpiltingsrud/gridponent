@@ -50,7 +50,7 @@
             left: 0;
 
             .gp-searchbox {
-                margin-right:5px;
+                margin-right: 5px;
             }
         }
     }
@@ -66,7 +66,7 @@
 
         .gp-searchbox {
             float: right;
-            margin-left:5px;
+            margin-left: 5px;
         }
     }
 
@@ -80,9 +80,9 @@
         }
 
         .gp-searchbox {
-            max-width:220px;
+            max-width: 220px;
             float: right;
-            margin-left:5px;
+            margin-left: 5px;
         }
     }
 
@@ -95,7 +95,7 @@
             left: 0;
 
             .gp-searchbox {
-                margin-right:5px;
+                margin-right: 5px;
             }
         }
     }
@@ -105,9 +105,9 @@
             background: #fff;
             /* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#ffffff+0,f6f6f6+47,ededed+100;White+3D+%231 */
             background: #f6f6f6; /* Old browsers */
-            background: -moz-linear-gradient(top,  rgba(255,255,255,1) 0%, rgba(246,246,246,1) 47%, rgba(237,237,237,1) 100%); /* FF3.6-15 */
-            background: -webkit-linear-gradient(top,  rgba(255,255,255,1) 0%,rgba(246,246,246,1) 47%,rgba(237,237,237,1) 100%); /* Chrome10-25,Safari5.1-6 */
-            background: linear-gradient(to bottom,  rgba(255,255,255,1) 0%,rgba(246,246,246,1) 47%,rgba(237,237,237,1) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+            background: -moz-linear-gradient(top, rgba(255,255,255,1) 0%, rgba(246,246,246,1) 47%, rgba(237,237,237,1) 100%); /* FF3.6-15 */
+            background: -webkit-linear-gradient(top, rgba(255,255,255,1) 0%,rgba(246,246,246,1) 47%,rgba(237,237,237,1) 100%); /* Chrome10-25,Safari5.1-6 */
+            background: linear-gradient(to bottom, rgba(255,255,255,1) 0%,rgba(246,246,246,1) 47%,rgba(237,237,237,1) 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
             filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr='#ededed',GradientType=0 ); /* IE6-9 */
             color: #333;
             cursor: pointer;
@@ -120,13 +120,13 @@
     }
 
     &.fixed-headers {
-        overflow-x:auto;
+        overflow-x: auto;
 
         .table-header {
             padding-right: 17px;
 
             > table {
-                margin-bottom:0;
+                margin-bottom: 0;
             }
         }
 
@@ -150,12 +150,37 @@
         }
     }
 
+    @media (max-width: 767px) {
+        &.fixed-headers-xs {
+            .gp.fixed-headers()
+        }
+    }
+
+    @media (min-width: 768px) and (max-width: 991px) {
+        &.fixed-headers-sm {
+            .gp.fixed-headers()
+        }
+    }
+
+    @media (min-width: 992px) and (max-width: 1199px) {
+        &.fixed-headers-md {
+            .gp.fixed-headers()
+        }
+    }
+
+    @media (min-width: 1200px) {
+        &.fixed-headers-lg {
+            .gp.fixed-headers()
+        }
+    }
+
+
     &.fixed-footers {
         .table-footer {
             padding-right: 17px;
 
             > table {
-                margin-top:0;
+                margin-top: 0;
             }
         }
 
@@ -198,7 +223,7 @@
         height: 100%;
         top: 0;
         left: 0;
-        background-color:rgba(255, 255, 255, .3);
+        background-color: rgba(255, 255, 255, .3);
         transition: opacity linear 0.4s;
 
         .gp-progress-container {
@@ -217,32 +242,32 @@
         }
 
         .progress-bar {
-          height: 100%;
-          width: 100%;
-          float: none;
-          display: block;
-          border: solid 1px #ccc;
-          border-radius: 4px;
+            height: 100%;
+            width: 100%;
+            float: none;
+            display: block;
+            border: solid 1px #ccc;
+            border-radius: 4px;
         }
     }
 
-    a:link[value].table-sort {
+    a[value].table-sort {
         color: #337ab7;
         cursor: pointer;
         margin: 0;
         vertical-align: middle;
-        background:none;
-        border:none;
-        padding:0;
+        background: none;
+        border: none;
+        padding: 0;
 
         > span.glyphicon {
-            margin-left:2px;
-            display:none;
+            margin-left: 2px;
+            display: none;
         }
 
-        &:hover,&:active,&:focus {
-            text-decoration:none;
-            outline:none;
+        &:hover, &:active, &:focus {
+            text-decoration: none;
+            outline: none;
         }
 
         &:after {
@@ -258,10 +283,11 @@
 
     .table-pager {
         label input {
-            display:none;
+            display: none;
         }
+
         .page-count {
-            margin:0 6px;
+            margin: 0 6px;
         }
     }
 
@@ -285,8 +311,9 @@
 
     .table-header {
         border-bottom: solid 1px #ddd;
+
         > table {
-            width:100%;
+            width: 100%;
         }
     }
 
@@ -294,12 +321,12 @@
         width: 100%;
 
         > tbody > tr {
-            background:transparent;
+            background: transparent;
         }
     }
 
     input.form-control:not([type=checkbox],[type=radio]) {
-        width:100%;
+        width: 100%;
     }
 
     input[type=date] {
@@ -310,65 +337,78 @@
     th input[type=radio],
     td input[type=checkbox],
     td input[type=radio] {
-        margin-top:0;
-        margin-bottom:0;
+        margin-top: 0;
+        margin-bottom: 0;
     }
 
     tr.update-mode, tr.create-mode {
 
         td.body-cell {
-
-            vertical-align:middle;
-            position:relative;
+            vertical-align: middle;
+            position: relative;
 
             div.btn-group {
-                white-space:nowrap;
+                white-space: nowrap;
 
                 .btn {
-                    float:none;
+                    float: none;
                 }
             }
 
             [name].error {
-                border-color:red;
+                border-color: red;
             }
 
             input[required] {
-                width:95%;
+                width: 95%;
             }
-            
         }
     }
 
     .modal-dialog {
 
-        input[type=checkbox], 
+        input[type=checkbox],
         input[type=radio] {
-            width:34px;
+            width: 34px;
         }
-
     }
 
     .form-group {
-        position:relative;
+        position: relative;
     }
 
     span.required {
         display: inline-block;
         position: absolute;
         top: 18px;
-        right:0;
+        right: 0;
         font-family: 'Glyphicons Halflings';
         font-style: normal;
         font-weight: 400;
-        font-size:8pt;
-        color:red;
+        font-size: 8pt;
+        color: red;
         line-height: 1;
         -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;        
+        -moz-osx-font-smoothing: grayscale;
     }
 
     span.required:before {
         content: '\e101';
+    }
+
+    .gp-nodatatext {
+        display: none;
+    }
+
+    &.nodata {
+        .gp-nodatatext {
+            display: block;
+        }
+
+        .table-header,
+        .table-body,
+        .table-footer {
+            display: none;
+        }
     }
 }

@@ -30,7 +30,7 @@ gp.Editor.prototype = {
             .setResource( '$mode', this.mode );
 
         // add the data item to the internal data array
-        this.config.requestModel.data.push( this.dataItem );
+        this.config.requestModel.Data.push( this.dataItem );
 
         // map it
         this.uid = this.config.map.assign( this.dataItem );
@@ -57,9 +57,9 @@ gp.Editor.prototype = {
             // unmap the dataItem
             this.config.map.remove( this.uid );
             // remove the dataItem from the internal array
-            var index = this.config.requestModel.data.indexOf( this.dataItem );
+            var index = this.config.requestModel.Data.indexOf( this.dataItem );
             if ( index !== -1 ) {
-                this.config.requestModel.data.slice( index, 1 );
+                this.config.requestModel.Data.slice( index, 1 );
             }
         }
         else if ( this.mode == 'update' && this.originalDataItem ) {
@@ -181,7 +181,8 @@ gp.Editor.prototype = {
                 type: this.mode,
                 dataItem: this.dataItem,
                 originalDataItem: this.originalDataItem,
-                elem: this.elem
+                elem: this.elem,
+                response: responseModel
             } );
         }
 

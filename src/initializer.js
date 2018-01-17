@@ -31,7 +31,7 @@ gp.Initializer.prototype = {
             $node: this.config.node,
             $requestModel: this.config.requestModel,
             $map: this.config.map,
-            $data: this.config.requestModel.data,
+            $data: this.config.requestModel.Data,
             $mode: 'read'
         }, gp.templates, null, this.config ); // specify gp.templates as root, null for context, config as override source
 

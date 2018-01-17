@@ -62,8 +62,7 @@ gp.templates.bootstrapModal = function ( $config, $dataItem, $injector, $mode ) 
         .add( '<div class="modal-header">' )
         // the close button for the modal should cancel any edits, so add value="cancel"
         .add( '<button type="button" class="close" aria-label="Close" value="cancel"><span aria-hidden="true">&times;</span></button>' )
-        .add( '<h4 class="modal-title">{{title}}</h4>' )
-        .add( title )
+        .addFormat( '<h4 class="modal-title">{{0}}</h4>', title )
         .add( '</div>' )
         .add( '<div class="modal-body">' )
         .add( $injector.exec( 'bootstrapModalBody' ) )
@@ -226,6 +225,7 @@ gp.templates.container = function ( $config, $injector ) {
         .add( $injector.exec( 'columnWidthStyle' ) )
         .add( '</style>' )
         .add( '<style type="text/css" class="sort-style"></style>' )
+        .addFormat('<div class="gp-nodatatext">{{0}}</div>', $config.nodatatext)
         .add( '<div class="gp-progress-overlay">' )
         .add( '<div class="gp-progress gp-progress-container">' )
         .add( '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>' )
@@ -239,8 +239,13 @@ gp.templates.container.$inject = ['$config', '$injector'];
 
 gp.templates.containerClasses = function ( $config ) {
     var classes = [];
-    if ( $config.fixedheaders ) {
+    if ( $config.fixedheaders === true) {
         classes.push( 'fixed-headers' );
+    }
+    if (typeof $config.fixedheaders === 'string') {
+        $config.fixedheaders.split(' ').forEach(function (token) {
+            classes.push('fixed-headers-' + token);
+        });
     }
     if ( $config.fixedfooters ) {
         classes.push( 'fixed-footers' );
@@ -483,11 +488,11 @@ gp.templates.pagerBar = function ( $requestModel ) {
     var requestModel = gp.shallowCopy($requestModel),
         html = new gp.StringBuilder();
 
-    requestModel.IsFirstPage = requestModel.page === 1;
-    requestModel.IsLastPage = requestModel.page === requestModel.pagecount;
-    requestModel.HasPages = requestModel.pagecount > 1;
-    requestModel.PreviousPage = requestModel.page === 1 ? 1 : requestModel.page - 1;
-    requestModel.NextPage = requestModel.page === requestModel.pagecount ? requestModel.pagecount : requestModel.page + 1;
+    requestModel.IsFirstPage = requestModel.Page === 1;
+    requestModel.IsLastPage = requestModel.Page === requestModel.PageCount;
+    requestModel.HasPages = requestModel.PageCount > 1;
+    requestModel.PreviousPage = requestModel.Page === 1 ? 1 : requestModel.Page - 1;
+    requestModel.NextPage = requestModel.Page === requestModel.PageCount ? requestModel.PageCount : requestModel.Page + 1;
 
     requestModel.firstPageClass = (requestModel.IsFirstPage ? 'disabled' : '');
     requestModel.lastPageClass = (requestModel.IsLastPage ? 'disabled' : '');
@@ -501,13 +506,13 @@ gp.templates.pagerBar = function ( $requestModel ) {
             .add( '<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>' )
             .add( '</button>' )
             .add( '</div>' )
-            .add( '<input type="number" name="page" value="{{page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />' )
-            .add( '<span class="page-count"> of {{pagecount}}</span>' )
+            .add( '<input type="number" name="Page" value="{{page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />' )
+            .add( '<span class="page-count"> of {{PageCount}}</span>' )
             .add( '<div class="btn-group">' )
             .add( '<button class="ms-page-index btn btn-default {{lastPageClass}}" title="Next page" value="page" data-page="{{NextPage}}">' )
             .add( '<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>' )
             .add( '</button>' )
-            .add( '<button class="ms-page-index btn btn-default {{lastPageClass}}" title="Last page" value="page" data-page="{{pagecount}}">' )
+            .add( '<button class="ms-page-index btn btn-default {{lastPageClass}}" title="Last page" value="page" data-page="{{PageCount}}">' )
             .add( '<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>' )
             .add( '</button>' )
             .add( '</div>' );
@@ -520,8 +525,8 @@ gp.templates.pagerBar.$inject = ['$requestModel'];
 gp.templates.sortStyle = function ( $config ) {
     var model = {
         id: $config.ID,
-        sort: $config.requestModel.sort,
-        glyph: $config.requestModel.desc ? '\\e114' : '\\e113' // glyphicon-chevron-down, glyphicon-chevron-up
+        sort: $config.requestModel.Sort,
+        glyph: $config.requestModel.Desc ? '\\e114' : '\\e113' // glyphicon-chevron-down, glyphicon-chevron-up
     };
     var template =
         '#{{id}} a.table-sort[data-sort="{{{sort}}}"] > span.glyphicon { display:inline; } ' +

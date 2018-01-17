@@ -181,17 +181,6 @@
             return val;
         },
 
-        getMatchCI: function ( array, str ) {
-            // find str in array, ignoring case
-            if ( gp.isNullOrEmpty( array ) ) return null;
-            if ( !gp.hasValue( str ) ) return null;
-            var s = str.toLowerCase();
-            for ( var i = 0; i < array.length; i++ ) {
-                if ( gp.hasValue( array[i] ) && array[i].toLowerCase() === s ) return array[i];
-            }
-            return null;
-        },
-
         getObjectAtPath: function ( path, root ) {
             // behold: the proper way to find an object from a string without using eval
             if ( typeof path !== 'string' ) return path;
@@ -267,13 +256,8 @@
             // they're both null or undefined
             if ( !gp.hasValue( obj1 ) ) return true;
 
-            // do a case-insensitive compare
-            var toLower = function ( str ) {
-                return str.toLowerCase();
-            };
-
-            var props1 = Object.getOwnPropertyNames( obj1 ).map( toLower ),
-                props2 = Object.getOwnPropertyNames( obj2 ).map( toLower );
+            var props1 = Object.getOwnPropertyNames(obj1),
+                props2 = Object.getOwnPropertyNames(obj2);
 
             if ( props1.length < props2.length ) {
                 for ( var i = 0; i < props1.length; i++ ) {
@@ -298,7 +282,7 @@
         resolveTypes: function ( config ) {
             var field,
                 val,
-                hasData = config && config.requestModel && config.requestModel.data && config.requestModel.data.length;
+                hasData = config && config.requestModel && config.requestModel.Data && config.requestModel.Data.length;
 
             config.columns.forEach( function ( col ) {
                 if ( gp.hasValue( col.Type ) ) return;
@@ -318,8 +302,8 @@
                 }
                 if ( !gp.hasValue( col.Type ) && hasData ) {
                     // if we haven't found a value after 25 iterations, give up
-                    for ( var i = 0; i < config.requestModel.data.length && i < 25 ; i++ ) {
-                        val = config.requestModel.data[i][field];
+                    for ( var i = 0; i < config.requestModel.Data.length && i < 25 ; i++ ) {
+                        val = config.requestModel.Data[i][field];
                         // no need to use gp.hasValue here
                         // if val is undefined that means the column doesn't exist
                         if ( val !== null ) {
@@ -332,25 +316,25 @@
         },
 
         resolveResponseModel: function ( response, dataItemPrototype ) {
-            if ( !gp.hasValue( response ) ) return null;
+            if (!gp.hasValue(response)) return null;
 
             var responseModel = new gp.ResponseModel();
 
-            if ( gp.implements( response, responseModel ) ) {
+            if (gp.implements(response, responseModel)) {
                 // this will overwrite responseModel.original if present in the response
-                gp.shallowCopy( response, responseModel, true );
+                gp.shallowCopy(response, responseModel);
             }
-            else if ( response.data && response.data.length ) {
-                responseModel.dataItem = response.data[0];
+            else if (response.Data && response.Data.length) {
+                responseModel.DataItem = response.Data[0];
             }
-            else if ( response.length ) {
-                responseModel.dataItem = response[0];
+            else if (response.length) {
+                responseModel.DataItem = response[0];
             }
-            else if ( gp.implements( response, dataItemPrototype ) ) {
-                responseModel.dataItem = response;
+            else if (gp.implements(response, dataItemPrototype)) {
+                responseModel.DataItem = response;
             }
             else {
-                throw new Error( "Could not resolve JSON response." );
+                throw new Error("Could not resolve JSON response.");
             }
 
             return responseModel;
@@ -367,7 +351,7 @@
             copyable: /^(object|date|array|function)$/
         },
 
-        shallowCopy: function ( from, to, caseInsensitive ) {
+        shallowCopy: function ( from, to ) {
             to = to || {};
             // IE is more strict about what it will accept
             // as an argument to getOwnPropertyNames
@@ -379,18 +363,16 @@
 
             props.forEach( function ( prop ) {
 
-                p = caseInsensitive ? gp.getMatchCI( propsTo, prop ) || prop : prop;
-
                 if ( to.hasOwnProperty( prop ) ) {
                     // check for a read-only property
                     desc = Object.getOwnPropertyDescriptor( to, prop );
                     if ( !desc.writable ) return;
                 }
                 if ( typeof from[prop] === 'function' ) {
-                    to[p] = from[prop]();
+                    to[prop] = from[prop]();
                 }
                 else {
-                    to[p] = from[prop];
+                    to[prop] = from[prop];
                 }
             } );
             return to;

@@ -54,7 +54,7 @@ gp.api.prototype = {
 
     getData: function ( uidOrTableRow ) {
         if ( uidOrTableRow != undefined ) return this.config.map.get( uidOrTableRow );
-        return this.controller.config.requestModel.data;
+        return this.controller.config.requestModel.Data;
     },
 
     getTableRow: function( dataItem ) {

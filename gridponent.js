@@ -86,7 +86,7 @@ gp.api.prototype = {
 
     getData: function ( uidOrTableRow ) {
         if ( uidOrTableRow != undefined ) return this.config.map.get( uidOrTableRow );
-        return this.controller.config.requestModel.data;
+        return this.controller.config.requestModel.Data;
     },
 
     getTableRow: function( dataItem ) {
@@ -182,7 +182,7 @@ gp.Controller = function ( config, model, requestModel, injector ) {
     this.injector = injector;
     this.pollInterval = null;
     if ( config.pager ) {
-        this.requestModel.top = 25;
+        this.requestModel.PageSize = 25;
     }
     // calling bind returns a new function
     // so to be able to remove the handlers later, 
@@ -364,7 +364,7 @@ gp.Controller.prototype = {
                 break;
             case 'page':
                 var page = $btn.attr( 'data-page' );
-                model.page = parseInt( page );
+                model.Page = parseInt( page );
                 this.read();
                 break;
             case 'search':
@@ -373,12 +373,12 @@ gp.Controller.prototype = {
                 break;
             case 'sort':
                 var sort = $btn.attr( 'data-sort' );
-                if ( model.sort === sort ) {
-                    model.desc = !model.desc;
+                if ( model.Sort === sort ) {
+                    model.Desc = !model.Desc;
                 }
                 else {
-                    model.sort = sort;
-                    model.desc = false;
+                    model.Sort = sort;
+                    model.Desc = false;
                 }
                 this.read();
                 break;
@@ -483,7 +483,7 @@ gp.Controller.prototype = {
 
     sort: function ( field, desc, callback ) {
         this.config.requestModel.sort = field;
-        this.config.requestModel.desc = ( desc == true );
+        this.config.requestModel.Desc = ( desc == true );
         this.read( null, callback );
     },
 
@@ -492,17 +492,16 @@ gp.Controller.prototype = {
         if ( requestModel ) {
             gp.shallowCopy( requestModel, this.config.requestModel );
         }
-        proceed = this.invokeDelegates( gp.events.beforeRead, this.config.node.api );
+        proceed = this.invokeDelegates( gp.events.beforeRead, this.config.requestModel );
         if ( proceed === false ) return;
         this.model.read( this.config.requestModel, function ( model ) {
             try {
-                // do a case-insensitive copy
-                gp.shallowCopy( model, self.config.requestModel, true );
-                self.injector.setResource( '$data', self.config.requestModel.data );
+                gp.shallowCopy( model, self.config.requestModel );
+                self.injector.setResource( '$data', self.config.requestModel.Data );
                 self.config.map.clear();
                 gp.resolveTypes( self.config );
                 self.refresh( self.config );
-                self.invokeDelegates( gp.events.onRead, self.config.node.api );
+                self.invokeDelegates( gp.events.onRead, self.config.requestModel );
                 gp.applyFunc( callback, self.config.node, self.config.requestModel );
             } catch ( e ) {
                 self.removeBusy();
@@ -612,9 +611,9 @@ gp.Controller.prototype = {
                     if ( !response || !response.errors ) {
                         // if it didn't error out, we'll assume it succeeded
                         // remove the dataItem from the model
-                        var index = self.config.requestModel.data.indexOf( dataItem );
+                        var index = self.config.requestModel.Data.indexOf( dataItem );
                         if ( index != -1 ) {
-                            self.config.requestModel.data.splice( index, 1 );
+                            self.config.requestModel.Data.splice( index, 1 );
                         }
                         self.refresh( self.config );
                     }
@@ -626,7 +625,8 @@ gp.Controller.prototype = {
                 self.invokeDelegates( gp.events.onEdit, {
                     type: 'destroy',
                     dataItem: dataItem,
-                    elem: tr
+                    elem: tr,
+                    response: response
                 } );
 
                 gp.applyFunc( callback, self.config.node.api, response );
@@ -653,7 +653,14 @@ gp.Controller.prototype = {
             // if we're not using fixed footers this will have no effect
             footer.html( this.injector.exec( 'footerTable' ) );
             pager.html( this.injector.exec( 'pagerBar' ) );
-            sortStyle.html( this.injector.exec( 'sortStyle' ) );
+            sortStyle.html(this.injector.exec('sortStyle'));
+
+            if (gp.hasValue(this.config.nodatatext)) {
+                this.$n.removeClass('nodata');
+                if (!this.injector.resources.$data || this.injector.resources.$data.length == 0) {
+                    this.$n.addClass('nodata');
+                }
+            }
         }
         catch ( e ) {
             gp.error( e );
@@ -729,26 +736,22 @@ gp.DataLayer.prototype = {
         switch ( type ) {
             case 'string':
                 return new gp.ServerPager( this.config.read );
-                break;
             case 'function':
                 return new gp.FunctionPager( this.config );
-                break;
             case 'object':
                 // is it a RequestModel?
                 if ( gp.implements( this.config.read, gp.RequestModel.prototype ) ) {
                     var model = new gp.RequestModel();
-                    gp.shallowCopy( this.config.read, model, true );
+                    gp.shallowCopy( this.config.read, model );
                     this.config.requestModel = model;
 
                     // the initializer should have already constructed the requestModel
                     return new gp.ClientPager( this.config );
                 }
                 throw 'Unsupported read configuration';
-                break;
             case 'array':
-                this.config.requestModel.data = this.config.read;
+                this.config.requestModel.Data = this.config.read;
                 return new gp.ClientPager( this.config );
-                break;
             default:
                 throw 'Unsupported read configuration';
         }
@@ -946,7 +949,7 @@ gp.Editor.prototype = {
             .setResource( '$mode', this.mode );
 
         // add the data item to the internal data array
-        this.config.requestModel.data.push( this.dataItem );
+        this.config.requestModel.Data.push( this.dataItem );
 
         // map it
         this.uid = this.config.map.assign( this.dataItem );
@@ -973,9 +976,9 @@ gp.Editor.prototype = {
             // unmap the dataItem
             this.config.map.remove( this.uid );
             // remove the dataItem from the internal array
-            var index = this.config.requestModel.data.indexOf( this.dataItem );
+            var index = this.config.requestModel.Data.indexOf( this.dataItem );
             if ( index !== -1 ) {
-                this.config.requestModel.data.slice( index, 1 );
+                this.config.requestModel.Data.slice( index, 1 );
             }
         }
         else if ( this.mode == 'update' && this.originalDataItem ) {
@@ -1097,7 +1100,8 @@ gp.Editor.prototype = {
                 type: this.mode,
                 dataItem: this.dataItem,
                 originalDataItem: this.originalDataItem,
-                elem: this.elem
+                elem: this.elem,
+                response: responseModel
             } );
         }
 
@@ -1520,7 +1524,7 @@ gp.Initializer.prototype = {
             $node: this.config.node,
             $requestModel: this.config.requestModel,
             $map: this.config.map,
-            $data: this.config.requestModel.data,
+            $data: this.config.requestModel.Data,
             $mode: 'read'
         }, gp.templates, null, this.config ); // specify gp.templates as root, null for context, config as override source
 
@@ -1809,8 +1813,44 @@ gp.Injector.prototype = {
         destroy: /Delete/i
     };
 
+    var deserializeUrl = function (url) {
+        var result = {},
+            query;
+
+        if (!gp.hasValue(url)) {
+            return null;
+        }
+
+        query = url.split('?');
+
+        if (query.length < 2) {
+            return null;
+        }
+
+        query[1].split('&').forEach(function (part) {
+            if (!part) return;
+            part = part.split("+").join(" "); // replace every + with space, regexp-free version
+            var eq = part.indexOf("=");
+            var key = eq > -1 ? part.substr(0, eq) : part;
+            var val = eq > -1 ? decodeURIComponent(part.substr(eq + 1)) : "";
+            var from = key.indexOf("[");
+            if (from == -1) result[decodeURIComponent(key)] = val;
+            else {
+                var to = key.indexOf("]", from);
+                var index = decodeURIComponent(key.substring(from + 1, to));
+                key = decodeURIComponent(key.substring(0, from));
+                if (!result[key]) result[key] = [];
+                if (!index) result[key].push(val);
+                else result[key][index] = val;
+            }
+        });
+
+        return result;
+    };
+
     gp.Http.prototype = {
-        get: function ( url, model, callback, error ) {
+        get: function (url, callback, error) {
+            var model = deserializeUrl(url);
             this.post( url, model, callback, error );
         },
         post: function (url, model, callback, error) {
@@ -1853,7 +1893,7 @@ gp.Injector.prototype = {
             });
         }
         if (!gp.isNullOrEmpty(model.sort)) {
-            if (model.desc) {
+            if (model.Desc) {
                 d.sort(function (row1, row2) {
                     var a = row1[model.sort];
                     var b = row2[model.sort];
@@ -1901,11 +1941,11 @@ gp.Injector.prototype = {
             }
         }
         count = d.length;
-        if (model.top !== -1) {
-            model.data = d.slice(model.skip).slice(0, model.top);
+        if (model.PageSize !== -1) {
+            model.Data = d.slice(model.skip).slice(0, model.PageSize);
         }
         else {
-            model.data = d;
+            model.Data = d;
         }
         model.errors = [];
         setTimeout(function () {
@@ -2087,20 +2127,24 @@ gp.ServerPager = function (url) {
 };
 
 gp.ServerPager.prototype = {
-    read: function ( requestModel, callback, error ) {
-        // we're going to post a sanitized copy of the requestModel
-        var copy = gp.shallowCopy( requestModel );
+    read: function (model, callback, error) {
+        var copy = gp.shallowCopy(model);
         // delete anything we don't want to send to the server
-        var props = Object.getOwnPropertyNames( copy ).forEach(function(prop){
-            if ( /^(page|top|sort|desc|search)$/i.test( prop ) == false ) {
+        var props = Object.getOwnPropertyNames(copy).forEach(function (prop) {
+            if (/^(page|top|sort|Desc|search)$/i.test(prop) == false) {
                 delete copy[prop];
             }
-        } );
-        // use the original requestModel to transform the url
-        var url = gp.supplant( this.url, requestModel, requestModel );
+        });
+        var url = gp.supplant(this.url, model, model);
         var h = new gp.Http();
-        h.get(url, copy, callback, error);
+        h.post(url, copy, callback, error);
     }
+    //read: function ( requestModel, callback, error ) {
+    //    // use the requestModel to transform the url
+    //    var url = gp.supplant( this.url, requestModel, requestModel );
+    //    var h = new gp.Http();
+    //    h.get(url, callback, error);
+    //}
 };
 
 
@@ -2109,7 +2153,7 @@ client-side pager
 \***************/
 gp.ClientPager = function (config) {
     var value, self = this;
-    this.data = config.requestModel.data;
+    this.Data = config.requestModel.Data;
     this.columns = config.columns.filter(function (c) {
         return c.field !== undefined || c.sort !== undefined;
     });
@@ -2138,34 +2182,34 @@ gp.ClientPager.prototype = {
                 skip = this.getSkip( model );
 
             // don't replace the original array
-            model.data = this.data.slice(0, this.data.length);
+            model.Data = this.Data.slice(0, this.Data.length);
 
             // filter first
             if ( !gp.isNullOrEmpty( model.search ) ) {
                 // make sure searchTerm is a string and trim it
                 search = $.trim( model.search.toString() );
-                model.data = model.data.filter(function (row) {
+                model.Data = model.Data.filter(function (row) {
                     return self.searchFilter(row, search);
                 });
             }
 
             // set total after filtering, but before paging
-            model.total = model.data.length;
+            model.total = model.Data.length;
 
             // then sort
             if (gp.isNullOrEmpty(model.sort) === false) {
                 var col = gp.getColumnByField( this.columns, model.sort );
                 if (gp.hasValue(col)) {
-                    var sortFunction = this.getSortFunction( col, model.desc );
-                    model.data.sort( function ( row1, row2 ) {
+                    var sortFunction = this.getSortFunction( col, model.Desc );
+                    model.Data.sort( function ( row1, row2 ) {
                         return sortFunction( row1[model.sort], row2[model.sort] );
                     });
                 }
             }
 
             // then page
-            if (model.top !== -1) {
-                model.data = model.data.slice(skip).slice(0, model.top);
+            if (model.PageSize !== -1) {
+                model.Data = model.Data.slice(skip).slice(0, model.PageSize);
             }
         }
         catch (ex) {
@@ -2175,16 +2219,16 @@ gp.ClientPager.prototype = {
     },
     getSkip: function ( model ) {
         var data = model;
-        if ( data.pagecount == 0 ) {
+        if ( data.PageCount == 0 ) {
             return 0;
         }
-        if ( data.page < 1 ) {
-            data.page = 1;
+        if ( data.Page < 1 ) {
+            data.Page = 1;
         }
-        else if ( data.page > data.pagecount ) {
-            return data.page = data.pagecount;
+        else if ( data.Page > data.PageCount ) {
+            return data.Page = data.PageCount;
         }
-        return ( data.page - 1 ) * data.top;
+        return ( data.Page - 1 ) * data.PageSize;
     },
     getSortFunction: function (col, desc) {
         if ( /^(number|date|boolean)$/.test( col.Type ) ) {
@@ -2291,43 +2335,43 @@ gp.FunctionPager.prototype = {
 gp.RequestModel = function (data) {
     var self = this;
 
-    this.top = -1; // this is a flag to let the pagers know if paging is enabled
-    this.page = 1;
-    this.sort = '';
-    this.desc = false;
+    this.PageSize = -1; // this is a flag to let the pagers know if paging is enabled
+    this.Page = 1;
+    this.Sort = '';
+    this.Desc = false;
     this.search = '';
 
     if ( gp.getType( data ) == 'object' ) {
         gp.shallowCopy( data, this );
     }
     else {
-        this.data = data || [];
+        this.Data = data || [];
     }
 
     this.total = ( data != undefined && data.length ) ? data.length : 0;
 
     Object.defineProperty(self, 'pageindex', {
         get: function () {
-            return self.page - 1;
+            return self.Page - 1;
         }
     });
 
     Object.defineProperty(self, 'skip', {
         get: function () {
-            if (self.top !== -1) {
-                if (self.pagecount === 0) return 0;
-                if (self.page < 1) self.page = 1;
-                else if (self.page > self.pagecount) return self.page = self.pagecount;
-                return self.pageindex * self.top;
+            if (self.PageSize !== -1) {
+                if (self.PageCount === 0) return 0;
+                if (self.Page < 1) self.Page = 1;
+                else if (self.Page > self.PageCount) return self.Page = self.PageCount;
+                return self.pageindex * self.PageSize;
             }
             return 0;
         }
     } );
 
-    Object.defineProperty( self, 'pagecount', {
+    Object.defineProperty( self, 'PageCount', {
         get: function () {
-            if ( self.top > 0 ) {
-                return Math.ceil( self.total / self.top );
+            if ( self.PageSize > 0 ) {
+                return Math.ceil( self.total / self.PageSize );
             }
             if ( self.total === 0 ) return 0;
             return 1;
@@ -2336,20 +2380,20 @@ gp.RequestModel = function (data) {
 };
 
 gp.RequestModel.prototype = {
-    top: -1, // this is a flag to let the pagers know if paging is enabled
-    page: 1,
-    sort: '',
-    desc: false,
+    PageSize: -1, // this is a flag to let the pagers know if paging is enabled
+    Page: 1,
+    Sort: '',
+    Desc: false,
     search: '',
-    data: [],
+    Data: [],
     total: 0
 };
 /***************\
   ResponseModel
 \***************/
 gp.ResponseModel = function ( dataItem, validationErrors ) {
-    this.dataItem = dataItem;
-    this.errors = validationErrors;
+    this.DataItem = dataItem;
+    this.Errors = validationErrors;
 };
 /***************\
   StringBuilder
@@ -2446,8 +2490,7 @@ gp.templates.bootstrapModal = function ( $config, $dataItem, $injector, $mode ) 
         .add( '<div class="modal-header">' )
         // the close button for the modal should cancel any edits, so add value="cancel"
         .add( '<button type="button" class="close" aria-label="Close" value="cancel"><span aria-hidden="true">&times;</span></button>' )
-        .add( '<h4 class="modal-title">{{title}}</h4>' )
-        .add( title )
+        .addFormat( '<h4 class="modal-title">{{0}}</h4>', title )
         .add( '</div>' )
         .add( '<div class="modal-body">' )
         .add( $injector.exec( 'bootstrapModalBody' ) )
@@ -2610,6 +2653,7 @@ gp.templates.container = function ( $config, $injector ) {
         .add( $injector.exec( 'columnWidthStyle' ) )
         .add( '</style>' )
         .add( '<style type="text/css" class="sort-style"></style>' )
+        .addFormat('<div class="gp-nodatatext">{{0}}</div>', $config.nodatatext)
         .add( '<div class="gp-progress-overlay">' )
         .add( '<div class="gp-progress gp-progress-container">' )
         .add( '<div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100"></div>' )
@@ -2623,8 +2667,13 @@ gp.templates.container.$inject = ['$config', '$injector'];
 
 gp.templates.containerClasses = function ( $config ) {
     var classes = [];
-    if ( $config.fixedheaders ) {
+    if ( $config.fixedheaders === true) {
         classes.push( 'fixed-headers' );
+    }
+    if (typeof $config.fixedheaders === 'string') {
+        $config.fixedheaders.split(' ').forEach(function (token) {
+            classes.push('fixed-headers-' + token);
+        });
     }
     if ( $config.fixedfooters ) {
         classes.push( 'fixed-footers' );
@@ -2867,11 +2916,11 @@ gp.templates.pagerBar = function ( $requestModel ) {
     var requestModel = gp.shallowCopy($requestModel),
         html = new gp.StringBuilder();
 
-    requestModel.IsFirstPage = requestModel.page === 1;
-    requestModel.IsLastPage = requestModel.page === requestModel.pagecount;
-    requestModel.HasPages = requestModel.pagecount > 1;
-    requestModel.PreviousPage = requestModel.page === 1 ? 1 : requestModel.page - 1;
-    requestModel.NextPage = requestModel.page === requestModel.pagecount ? requestModel.pagecount : requestModel.page + 1;
+    requestModel.IsFirstPage = requestModel.Page === 1;
+    requestModel.IsLastPage = requestModel.Page === requestModel.PageCount;
+    requestModel.HasPages = requestModel.PageCount > 1;
+    requestModel.PreviousPage = requestModel.Page === 1 ? 1 : requestModel.Page - 1;
+    requestModel.NextPage = requestModel.Page === requestModel.PageCount ? requestModel.PageCount : requestModel.Page + 1;
 
     requestModel.firstPageClass = (requestModel.IsFirstPage ? 'disabled' : '');
     requestModel.lastPageClass = (requestModel.IsLastPage ? 'disabled' : '');
@@ -2885,13 +2934,13 @@ gp.templates.pagerBar = function ( $requestModel ) {
             .add( '<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>' )
             .add( '</button>' )
             .add( '</div>' )
-            .add( '<input type="number" name="page" value="{{page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />' )
-            .add( '<span class="page-count"> of {{pagecount}}</span>' )
+            .add( '<input type="number" name="Page" value="{{page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />' )
+            .add( '<span class="page-count"> of {{PageCount}}</span>' )
             .add( '<div class="btn-group">' )
             .add( '<button class="ms-page-index btn btn-default {{lastPageClass}}" title="Next page" value="page" data-page="{{NextPage}}">' )
             .add( '<span class="glyphicon glyphicon-menu-right" aria-hidden="true"></span>' )
             .add( '</button>' )
-            .add( '<button class="ms-page-index btn btn-default {{lastPageClass}}" title="Last page" value="page" data-page="{{pagecount}}">' )
+            .add( '<button class="ms-page-index btn btn-default {{lastPageClass}}" title="Last page" value="page" data-page="{{PageCount}}">' )
             .add( '<span class="glyphicon glyphicon-triangle-right" aria-hidden="true"></span>' )
             .add( '</button>' )
             .add( '</div>' );
@@ -2904,8 +2953,8 @@ gp.templates.pagerBar.$inject = ['$requestModel'];
 gp.templates.sortStyle = function ( $config ) {
     var model = {
         id: $config.ID,
-        sort: $config.requestModel.sort,
-        glyph: $config.requestModel.desc ? '\\e114' : '\\e113' // glyphicon-chevron-down, glyphicon-chevron-up
+        sort: $config.requestModel.Sort,
+        glyph: $config.requestModel.Desc ? '\\e114' : '\\e113' // glyphicon-chevron-down, glyphicon-chevron-up
     };
     var template =
         '#{{id}} a.table-sort[data-sort="{{{sort}}}"] > span.glyphicon { display:inline; } ' +
@@ -3221,17 +3270,6 @@ gp.templates.toolbar.$inject = ['$config', '$injector'];
             return val;
         },
 
-        getMatchCI: function ( array, str ) {
-            // find str in array, ignoring case
-            if ( gp.isNullOrEmpty( array ) ) return null;
-            if ( !gp.hasValue( str ) ) return null;
-            var s = str.toLowerCase();
-            for ( var i = 0; i < array.length; i++ ) {
-                if ( gp.hasValue( array[i] ) && array[i].toLowerCase() === s ) return array[i];
-            }
-            return null;
-        },
-
         getObjectAtPath: function ( path, root ) {
             // behold: the proper way to find an object from a string without using eval
             if ( typeof path !== 'string' ) return path;
@@ -3307,13 +3345,8 @@ gp.templates.toolbar.$inject = ['$config', '$injector'];
             // they're both null or undefined
             if ( !gp.hasValue( obj1 ) ) return true;
 
-            // do a case-insensitive compare
-            var toLower = function ( str ) {
-                return str.toLowerCase();
-            };
-
-            var props1 = Object.getOwnPropertyNames( obj1 ).map( toLower ),
-                props2 = Object.getOwnPropertyNames( obj2 ).map( toLower );
+            var props1 = Object.getOwnPropertyNames(obj1),
+                props2 = Object.getOwnPropertyNames(obj2);
 
             if ( props1.length < props2.length ) {
                 for ( var i = 0; i < props1.length; i++ ) {
@@ -3338,7 +3371,7 @@ gp.templates.toolbar.$inject = ['$config', '$injector'];
         resolveTypes: function ( config ) {
             var field,
                 val,
-                hasData = config && config.requestModel && config.requestModel.data && config.requestModel.data.length;
+                hasData = config && config.requestModel && config.requestModel.Data && config.requestModel.Data.length;
 
             config.columns.forEach( function ( col ) {
                 if ( gp.hasValue( col.Type ) ) return;
@@ -3358,8 +3391,8 @@ gp.templates.toolbar.$inject = ['$config', '$injector'];
                 }
                 if ( !gp.hasValue( col.Type ) && hasData ) {
                     // if we haven't found a value after 25 iterations, give up
-                    for ( var i = 0; i < config.requestModel.data.length && i < 25 ; i++ ) {
-                        val = config.requestModel.data[i][field];
+                    for ( var i = 0; i < config.requestModel.Data.length && i < 25 ; i++ ) {
+                        val = config.requestModel.Data[i][field];
                         // no need to use gp.hasValue here
                         // if val is undefined that means the column doesn't exist
                         if ( val !== null ) {
@@ -3372,25 +3405,25 @@ gp.templates.toolbar.$inject = ['$config', '$injector'];
         },
 
         resolveResponseModel: function ( response, dataItemPrototype ) {
-            if ( !gp.hasValue( response ) ) return null;
+            if (!gp.hasValue(response)) return null;
 
             var responseModel = new gp.ResponseModel();
 
-            if ( gp.implements( response, responseModel ) ) {
+            if (gp.implements(response, responseModel)) {
                 // this will overwrite responseModel.original if present in the response
-                gp.shallowCopy( response, responseModel, true );
+                gp.shallowCopy(response, responseModel);
             }
-            else if ( response.data && response.data.length ) {
-                responseModel.dataItem = response.data[0];
+            else if (response.Data && response.Data.length) {
+                responseModel.DataItem = response.Data[0];
             }
-            else if ( response.length ) {
-                responseModel.dataItem = response[0];
+            else if (response.length) {
+                responseModel.DataItem = response[0];
             }
-            else if ( gp.implements( response, dataItemPrototype ) ) {
-                responseModel.dataItem = response;
+            else if (gp.implements(response, dataItemPrototype)) {
+                responseModel.DataItem = response;
             }
             else {
-                throw new Error( "Could not resolve JSON response." );
+                throw new Error("Could not resolve JSON response.");
             }
 
             return responseModel;
@@ -3407,7 +3440,7 @@ gp.templates.toolbar.$inject = ['$config', '$injector'];
             copyable: /^(object|date|array|function)$/
         },
 
-        shallowCopy: function ( from, to, caseInsensitive ) {
+        shallowCopy: function ( from, to ) {
             to = to || {};
             // IE is more strict about what it will accept
             // as an argument to getOwnPropertyNames
@@ -3419,18 +3452,16 @@ gp.templates.toolbar.$inject = ['$config', '$injector'];
 
             props.forEach( function ( prop ) {
 
-                p = caseInsensitive ? gp.getMatchCI( propsTo, prop ) || prop : prop;
-
                 if ( to.hasOwnProperty( prop ) ) {
                     // check for a read-only property
                     desc = Object.getOwnPropertyDescriptor( to, prop );
                     if ( !desc.writable ) return;
                 }
                 if ( typeof from[prop] === 'function' ) {
-                    to[p] = from[prop]();
+                    to[prop] = from[prop]();
                 }
                 else {
-                    to[p] = from[prop];
+                    to[prop] = from[prop];
                 }
             } );
             return to;

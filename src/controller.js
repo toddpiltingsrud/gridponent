@@ -9,7 +9,7 @@ gp.Controller = function ( config, model, requestModel, injector ) {
     this.injector = injector;
     this.pollInterval = null;
     if ( config.pager ) {
-        this.requestModel.top = 25;
+        this.requestModel.PageSize = 25;
     }
     // calling bind returns a new function
     // so to be able to remove the handlers later, 
@@ -191,7 +191,7 @@ gp.Controller.prototype = {
                 break;
             case 'page':
                 var page = $btn.attr( 'data-page' );
-                model.page = parseInt( page );
+                model.Page = parseInt( page );
                 this.read();
                 break;
             case 'search':
@@ -200,12 +200,12 @@ gp.Controller.prototype = {
                 break;
             case 'sort':
                 var sort = $btn.attr( 'data-sort' );
-                if ( model.sort === sort ) {
-                    model.desc = !model.desc;
+                if ( model.Sort === sort ) {
+                    model.Desc = !model.Desc;
                 }
                 else {
-                    model.sort = sort;
-                    model.desc = false;
+                    model.Sort = sort;
+                    model.Desc = false;
                 }
                 this.read();
                 break;
@@ -310,7 +310,7 @@ gp.Controller.prototype = {
 
     sort: function ( field, desc, callback ) {
         this.config.requestModel.sort = field;
-        this.config.requestModel.desc = ( desc == true );
+        this.config.requestModel.Desc = ( desc == true );
         this.read( null, callback );
     },
 
@@ -319,17 +319,16 @@ gp.Controller.prototype = {
         if ( requestModel ) {
             gp.shallowCopy( requestModel, this.config.requestModel );
         }
-        proceed = this.invokeDelegates( gp.events.beforeRead, this.config.node.api );
+        proceed = this.invokeDelegates( gp.events.beforeRead, this.config.requestModel );
         if ( proceed === false ) return;
         this.model.read( this.config.requestModel, function ( model ) {
             try {
-                // do a case-insensitive copy
-                gp.shallowCopy( model, self.config.requestModel, true );
-                self.injector.setResource( '$data', self.config.requestModel.data );
+                gp.shallowCopy( model, self.config.requestModel );
+                self.injector.setResource( '$data', self.config.requestModel.Data );
                 self.config.map.clear();
                 gp.resolveTypes( self.config );
                 self.refresh( self.config );
-                self.invokeDelegates( gp.events.onRead, self.config.node.api );
+                self.invokeDelegates( gp.events.onRead, self.config.requestModel );
                 gp.applyFunc( callback, self.config.node, self.config.requestModel );
             } catch ( e ) {
                 self.removeBusy();
@@ -439,9 +438,9 @@ gp.Controller.prototype = {
                     if ( !response || !response.errors ) {
                         // if it didn't error out, we'll assume it succeeded
                         // remove the dataItem from the model
-                        var index = self.config.requestModel.data.indexOf( dataItem );
+                        var index = self.config.requestModel.Data.indexOf( dataItem );
                         if ( index != -1 ) {
-                            self.config.requestModel.data.splice( index, 1 );
+                            self.config.requestModel.Data.splice( index, 1 );
                         }
                         self.refresh( self.config );
                     }
@@ -453,7 +452,8 @@ gp.Controller.prototype = {
                 self.invokeDelegates( gp.events.onEdit, {
                     type: 'destroy',
                     dataItem: dataItem,
-                    elem: tr
+                    elem: tr,
+                    response: response
                 } );
 
                 gp.applyFunc( callback, self.config.node.api, response );
@@ -480,7 +480,14 @@ gp.Controller.prototype = {
             // if we're not using fixed footers this will have no effect
             footer.html( this.injector.exec( 'footerTable' ) );
             pager.html( this.injector.exec( 'pagerBar' ) );
-            sortStyle.html( this.injector.exec( 'sortStyle' ) );
+            sortStyle.html(this.injector.exec('sortStyle'));
+
+            if (gp.hasValue(this.config.nodatatext)) {
+                this.$n.removeClass('nodata');
+                if (!this.injector.resources.$data || this.injector.resources.$data.length == 0) {
+                    this.$n.addClass('nodata');
+                }
+            }
         }
         catch ( e ) {
             gp.error( e );

@@ -1,4 +1,81 @@
-﻿Bind columns in read mode when a bodytemplate is present. 
+﻿Remove the case insensitive copy.
+API's should be case-sensitive.
+Create documentation that outlines the data types that are used.
+
+public class DataSourceRequest
+{
+    public int Page { get; set; }
+    public int PageSize { get; set; }
+    public IList<SortDescriptor> Sorts { get; set; }
+    public IList<IFilterDescriptor> Filters { get; set; }
+    public IList<GroupDescriptor> Groups { get; set; }
+    public IList<AggregateDescriptor> Aggregates { get; set; }
+}
+
+public class SortDescriptor : JsonObject, IDescriptor
+{
+    public string Member { get; set; }
+    public ListSortDirection SortDirection { get; set; }
+}
+
+public class DataSourceResult
+{
+    public IEnumerable Data { get; set; }
+    public int Total { get; set; }
+    public IEnumerable<AggregateResult> AggregateResults { get; set; }
+    public object Errors { get; set; }
+}
+
+gp.RequestModel.prototype = {
+    PageSize: -1, // this is a flag to let the pagers know if paging is enabled
+    Page: 1,
+    Sort: '',
+    desc: false,
+    search: '',
+    data: [],
+    total: 0
+};
+
+gp.ResponseModel = function ( dataItem, validationErrors ) {
+    this.dataItem = dataItem;
+    this.errors = validationErrors;
+};
+
+Change the RequestModel to conform to DataSourceRequest.
+
+
+Create a config option for endless scrolling.
+It would use the same object model as it does now.
+But wouldn't endless scrolling be page-dependent?
+It would depend on knowing when the table scroll position is near the bottom.
+This is easy to determine if fixed headers is on.
+But not so easy if it is not on.
+We would have to be able to tell if the bottom of the table is near the bottom of the viewport.
+That would mean it might load a couple times when the page first loads until the bottom of the table is below the viewport.
+
+Allow fixed headers to be disabled below a specified screen size.
+This could be done by removing the fixed-headers class.
+Or create fixed-headers-lg fixed-headers-md fixed-headers-sm and fixed-headers-xs classes.
+The fixed-headers class will apply fixed headers regardless of screen size.
+The others could be used to specify which screen sizes should have fixed headers.
+One would have to the tableclass config option to specify the classes directly.
+Or use fixed-headers="lg md sm" as a shortcut.
+
+
+Make the HTTP method for reads configurable to use either GET or POST.
+Currently reads are performed using a POST.
+This has 3 benefits:
+1.	It nearly always works. 
+	The only time it wouldn't work is if a controller method is marked with [HttpGet].
+2.	We can always include the requestModel and add any additional properties. 
+	This is handy for including toolbar settings in the request.
+	Controller methods that don't use the requestModel simply ignore it.
+3.	We can still use a URL template to add properties in the requestModel to the URL.
+But reads should be done with GET.
+That means we'd rely solely on URL templates to add parameters (this functionality already exists).
+
+
+Bind columns in read mode when a bodytemplate is present. 
 Unformat percentages when saving.
 
 ServerPager.read should probably be sending an HTTP GET instead of a POST.
@@ -14,14 +91,12 @@ Or should we just create a function for splitting an object?
 Should we create a way to configure the HTTP verbs for CRUD?
 
 If a RequestModel is used as the read configuration option, paging may not work properly.
-Should this option even be supported?
+Should this option be supported?
 
 Currently it's not possible to pass a url to an event delegate call:
 gridponent('#theGrid').rowSelected('http://server/app/controller/action/{{id}}');
 Should this be supported?
 
 Add page size config option (default to 25).
-
-Empty table template
 
 Allow the http module to be configured to use JSON or application/x-www-form-urlencoded.

@@ -6,20 +6,24 @@ gp.ServerPager = function (url) {
 };
 
 gp.ServerPager.prototype = {
-    read: function ( requestModel, callback, error ) {
-        // we're going to post a sanitized copy of the requestModel
-        var copy = gp.shallowCopy( requestModel );
+    read: function (model, callback, error) {
+        var copy = gp.shallowCopy(model);
         // delete anything we don't want to send to the server
-        var props = Object.getOwnPropertyNames( copy ).forEach(function(prop){
-            if ( /^(page|top|sort|desc|search)$/i.test( prop ) == false ) {
+        var props = Object.getOwnPropertyNames(copy).forEach(function (prop) {
+            if (/^(page|top|sort|Desc|search)$/i.test(prop) == false) {
                 delete copy[prop];
             }
-        } );
-        // use the original requestModel to transform the url
-        var url = gp.supplant( this.url, requestModel, requestModel );
+        });
+        var url = gp.supplant(this.url, model, model);
         var h = new gp.Http();
-        h.get(url, copy, callback, error);
+        h.post(url, copy, callback, error);
     }
+    //read: function ( requestModel, callback, error ) {
+    //    // use the requestModel to transform the url
+    //    var url = gp.supplant( this.url, requestModel, requestModel );
+    //    var h = new gp.Http();
+    //    h.get(url, callback, error);
+    //}
 };
 
 
@@ -28,7 +32,7 @@ client-side pager
 \***************/
 gp.ClientPager = function (config) {
     var value, self = this;
-    this.data = config.requestModel.data;
+    this.Data = config.requestModel.Data;
     this.columns = config.columns.filter(function (c) {
         return c.field !== undefined || c.sort !== undefined;
     });
@@ -57,34 +61,34 @@ gp.ClientPager.prototype = {
                 skip = this.getSkip( model );
 
             // don't replace the original array
-            model.data = this.data.slice(0, this.data.length);
+            model.Data = this.Data.slice(0, this.Data.length);
 
             // filter first
             if ( !gp.isNullOrEmpty( model.search ) ) {
                 // make sure searchTerm is a string and trim it
                 search = $.trim( model.search.toString() );
-                model.data = model.data.filter(function (row) {
+                model.Data = model.Data.filter(function (row) {
                     return self.searchFilter(row, search);
                 });
             }
 
             // set total after filtering, but before paging
-            model.total = model.data.length;
+            model.total = model.Data.length;
 
             // then sort
             if (gp.isNullOrEmpty(model.sort) === false) {
                 var col = gp.getColumnByField( this.columns, model.sort );
                 if (gp.hasValue(col)) {
-                    var sortFunction = this.getSortFunction( col, model.desc );
-                    model.data.sort( function ( row1, row2 ) {
+                    var sortFunction = this.getSortFunction( col, model.Desc );
+                    model.Data.sort( function ( row1, row2 ) {
                         return sortFunction( row1[model.sort], row2[model.sort] );
                     });
                 }
             }
 
             // then page
-            if (model.top !== -1) {
-                model.data = model.data.slice(skip).slice(0, model.top);
+            if (model.PageSize !== -1) {
+                model.Data = model.Data.slice(skip).slice(0, model.PageSize);
             }
         }
         catch (ex) {
@@ -94,16 +98,16 @@ gp.ClientPager.prototype = {
     },
     getSkip: function ( model ) {
         var data = model;
-        if ( data.pagecount == 0 ) {
+        if ( data.PageCount == 0 ) {
             return 0;
         }
-        if ( data.page < 1 ) {
-            data.page = 1;
+        if ( data.Page < 1 ) {
+            data.Page = 1;
         }
-        else if ( data.page > data.pagecount ) {
-            return data.page = data.pagecount;
+        else if ( data.Page > data.PageCount ) {
+            return data.Page = data.PageCount;
         }
-        return ( data.page - 1 ) * data.top;
+        return ( data.Page - 1 ) * data.PageSize;
     },
     getSortFunction: function (col, desc) {
         if ( /^(number|date|boolean)$/.test( col.Type ) ) {
