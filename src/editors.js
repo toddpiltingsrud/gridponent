@@ -556,17 +556,12 @@ $.extend(gp.ModalEditor.prototype, {
             }
         }
         else {
-            // find the existing table row for the dataItem
-            tr = gp.getTableRow( this.config.map, this.dataItem, this.config.node );
+            tr = gp.getTableRow(this.config.map, this.dataItem, this.config.node);
 
-            cells = tr.find( 'td.body-cell' );
-
-            newCells = $( newTr ).find( 'td.body-cell' );
+            newCells = $(newTr).find('td.body-cell');
 
             // replace the contents of the existing tr with that of the new one
-            cells.each( function ( i ) {
-                $(this).empty().append( newCells[i] );
-            } );
+            $(tr).empty().append(newCells);
         }
 
     }

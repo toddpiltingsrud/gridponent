@@ -92,7 +92,7 @@
             });
         }
         if (!gp.isNullOrEmpty(model.sort)) {
-            if (model.Desc) {
+            if (model.desc) {
                 d.sort(function (row1, row2) {
                     var a = row1[model.sort];
                     var b = row2[model.sort];
@@ -140,8 +140,8 @@
             }
         }
         count = d.length;
-        if (model.PageSize !== -1) {
-            model.Data = d.slice(model.skip).slice(0, model.PageSize);
+        if (model.pageSize !== -1) {
+            model.Data = d.slice(model.skip).slice(0, model.pageSize);
         }
         else {
             model.Data = d;

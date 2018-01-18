@@ -182,7 +182,7 @@ gp.Controller = function ( config, model, requestModel, injector ) {
     this.injector = injector;
     this.pollInterval = null;
     if ( config.pager ) {
-        this.requestModel.PageSize = 25;
+        this.requestModel.pageSize = 25;
     }
     // calling bind returns a new function
     // so to be able to remove the handlers later, 
@@ -364,7 +364,7 @@ gp.Controller.prototype = {
                 break;
             case 'page':
                 var page = $btn.attr( 'data-page' );
-                model.Page = parseInt( page );
+                model.page = parseInt( page );
                 this.read();
                 break;
             case 'search':
@@ -373,12 +373,12 @@ gp.Controller.prototype = {
                 break;
             case 'sort':
                 var sort = $btn.attr( 'data-sort' );
-                if ( model.Sort === sort ) {
-                    model.Desc = !model.Desc;
+                if ( model.sort === sort ) {
+                    model.desc = !model.desc;
                 }
                 else {
-                    model.Sort = sort;
-                    model.Desc = false;
+                    model.sort = sort;
+                    model.desc = false;
                 }
                 this.read();
                 break;
@@ -483,7 +483,7 @@ gp.Controller.prototype = {
 
     sort: function ( field, desc, callback ) {
         this.config.requestModel.sort = field;
-        this.config.requestModel.Desc = ( desc == true );
+        this.config.requestModel.desc = ( desc == true );
         this.read( null, callback );
     },
 
@@ -498,6 +498,7 @@ gp.Controller.prototype = {
             try {
                 gp.shallowCopy( model, self.config.requestModel );
                 self.injector.setResource( '$data', self.config.requestModel.Data );
+                self.injector.setResource( '$requestModel', self.config.requestModel );
                 self.config.map.clear();
                 gp.resolveTypes( self.config );
                 self.refresh( self.config );
@@ -1475,22 +1476,56 @@ $.extend(gp.ModalEditor.prototype, {
             }
         }
         else {
-            // find the existing table row for the dataItem
-            tr = gp.getTableRow( this.config.map, this.dataItem, this.config.node );
+            tr = gp.getTableRow(this.config.map, this.dataItem, this.config.node);
 
-            cells = tr.find( 'td.body-cell' );
-
-            newCells = $( newTr ).find( 'td.body-cell' );
+            newCells = $(newTr).find('td.body-cell');
 
             // replace the contents of the existing tr with that of the new one
-            cells.each( function ( i ) {
-                $(this).empty().append( newCells[i] );
-            } );
+            $(tr).empty().append(newCells);
         }
 
     }
 
 });
+/***************\
+     http        
+\***************/
+gp.Http = function () { };
+
+gp.Http.prototype = {
+    get: function ( url, callback, error ) {
+        $.get( url ).done( callback ).fail( error );
+    },
+    post: function ( url, data, callback, error ) {
+        this.ajax( url, data, callback, error, 'POST' );
+    },
+    destroy: function ( url, callback, error ) {
+        this.ajax( url, null, callback, error, 'DELETE' );
+    },
+    ajax: function ( url, data, callback, error, httpVerb ) {
+        $.ajax( {
+            url: url,
+            type: httpVerb.toUpperCase(),
+            data: data,
+            contentType: 'application/x-www-form-urlencoded; charset=UTF-8'
+        } )
+            .done( callback )
+            .fail( function ( response ) {
+                if ( response.status ) {
+                    // don't know why jQuery calls fail on DELETE
+                    if ( response.status == 200 ) {
+                        callback( response );
+                        return;
+                    }
+                    // filter out authentication errors, those are usually handled by the browser
+                    if ( /401|403|407/.test( response.status ) == false && typeof error == 'function' ) {
+                        error( response );
+                    }
+                }
+            } );
+    }
+
+};
 /***************\
    Initializer
 \***************/
@@ -1800,162 +1835,6 @@ gp.Injector.prototype = {
 
 };
 /***************\
-   mock-http
-\***************/
-(function (gp) {
-    gp.Http = function () { };
-
-    // http://stackoverflow.com/questions/1520800/why-regexp-with-global-flag-in-javascript-give-wrong-results
-    var routes = {
-        read: /read/i,
-        update: /update/i,
-        create: /create/i,
-        destroy: /Delete/i
-    };
-
-    var deserializeUrl = function (url) {
-        var result = {},
-            query;
-
-        if (!gp.hasValue(url)) {
-            return null;
-        }
-
-        query = url.split('?');
-
-        if (query.length < 2) {
-            return null;
-        }
-
-        query[1].split('&').forEach(function (part) {
-            if (!part) return;
-            part = part.split("+").join(" "); // replace every + with space, regexp-free version
-            var eq = part.indexOf("=");
-            var key = eq > -1 ? part.substr(0, eq) : part;
-            var val = eq > -1 ? decodeURIComponent(part.substr(eq + 1)) : "";
-            var from = key.indexOf("[");
-            if (from == -1) result[decodeURIComponent(key)] = val;
-            else {
-                var to = key.indexOf("]", from);
-                var index = decodeURIComponent(key.substring(from + 1, to));
-                key = decodeURIComponent(key.substring(0, from));
-                if (!result[key]) result[key] = [];
-                if (!index) result[key].push(val);
-                else result[key][index] = val;
-            }
-        });
-
-        return result;
-    };
-
-    gp.Http.prototype = {
-        get: function (url, callback, error) {
-            var model = deserializeUrl(url);
-            this.post( url, model, callback, error );
-        },
-        post: function (url, model, callback, error) {
-            model = model || {};
-            if (routes.read.test(url)) {
-                getData(model, callback);
-            }
-            else if ( routes.create.test( url ) ) {
-                window.data.products.push( model );
-                callback( new gp.ResponseModel( model ) );
-            }
-            else if ( routes.update.test( url ) ) {
-                callback( new gp.ResponseModel(model) );
-            }
-            else {
-                throw '404 Not found: ' + url;
-            }
-        },
-        destroy: function ( url, callback, error ) {
-            callback( {
-                Success: true,
-                Message: ''
-            } );
-        }
-    };
-
-    var getData = function (model, callback) {
-        var count, d = window.data.products.slice( 0, window.data.length );
-
-        if (!gp.isNullOrEmpty(model.search)) {
-            var props = Object.getOwnPropertyNames(d[0]);
-            var search = model.search.toLowerCase();
-            d = d.filter(function (row) {
-                for (var i = 0; i < props.length; i++) {
-                    if (row[props[i]] && row[props[i]].toString().toLowerCase().indexOf(search) !== -1) {
-                        return true;
-                    }
-                }
-                return false;
-            });
-        }
-        if (!gp.isNullOrEmpty(model.sort)) {
-            if (model.Desc) {
-                d.sort(function (row1, row2) {
-                    var a = row1[model.sort];
-                    var b = row2[model.sort];
-                    if (a === null) {
-                        if (b != null) {
-                            return 1;
-                        }
-                    }
-                    else if (b === null) {
-                        // we already know a isn't null
-                        return -1;
-                    }
-                    if (a > b) {
-                        return -1;
-                    }
-                    if (a < b) {
-                        return 1;
-                    }
-
-                    return 0;
-                });
-            }
-            else {
-                d.sort(function (row1, row2) {
-                    var a = row1[model.sort];
-                    var b = row2[model.sort];
-                    if (a === null) {
-                        if (b != null) {
-                            return -1;
-                        }
-                    }
-                    else if (b === null) {
-                        // we already know a isn't null
-                        return 1;
-                    }
-                    if (a > b) {
-                        return 1;
-                    }
-                    if (a < b) {
-                        return -1;
-                    }
-
-                    return 0;
-                });
-            }
-        }
-        count = d.length;
-        if (model.PageSize !== -1) {
-            model.Data = d.slice(model.skip).slice(0, model.PageSize);
-        }
-        else {
-            model.Data = d;
-        }
-        model.errors = [];
-        setTimeout(function () {
-            callback(model);
-        });
-
-    };
-
-})(gridponent);
-/***************\
    ModelSync
 \***************/
 
@@ -2131,7 +2010,7 @@ gp.ServerPager.prototype = {
         var copy = gp.shallowCopy(model);
         // delete anything we don't want to send to the server
         var props = Object.getOwnPropertyNames(copy).forEach(function (prop) {
-            if (/^(page|top|sort|Desc|search)$/i.test(prop) == false) {
+            if (/^(page|top|sort|desc|search)$/i.test(prop) == false) {
                 delete copy[prop];
             }
         });
@@ -2200,7 +2079,7 @@ gp.ClientPager.prototype = {
             if (gp.isNullOrEmpty(model.sort) === false) {
                 var col = gp.getColumnByField( this.columns, model.sort );
                 if (gp.hasValue(col)) {
-                    var sortFunction = this.getSortFunction( col, model.Desc );
+                    var sortFunction = this.getSortFunction( col, model.desc );
                     model.Data.sort( function ( row1, row2 ) {
                         return sortFunction( row1[model.sort], row2[model.sort] );
                     });
@@ -2208,8 +2087,8 @@ gp.ClientPager.prototype = {
             }
 
             // then page
-            if (model.PageSize !== -1) {
-                model.Data = model.Data.slice(skip).slice(0, model.PageSize);
+            if (model.pageSize !== -1) {
+                model.Data = model.Data.slice(skip).slice(0, model.pageSize);
             }
         }
         catch (ex) {
@@ -2222,13 +2101,13 @@ gp.ClientPager.prototype = {
         if ( data.PageCount == 0 ) {
             return 0;
         }
-        if ( data.Page < 1 ) {
-            data.Page = 1;
+        if ( data.page < 1 ) {
+            data.page = 1;
         }
-        else if ( data.Page > data.PageCount ) {
-            return data.Page = data.PageCount;
+        else if ( data.page > data.PageCount ) {
+            return data.page = data.PageCount;
         }
-        return ( data.Page - 1 ) * data.PageSize;
+        return ( data.page - 1 ) * data.pageSize;
     },
     getSortFunction: function (col, desc) {
         if ( /^(number|date|boolean)$/.test( col.Type ) ) {
@@ -2335,10 +2214,10 @@ gp.FunctionPager.prototype = {
 gp.RequestModel = function (data) {
     var self = this;
 
-    this.PageSize = -1; // this is a flag to let the pagers know if paging is enabled
-    this.Page = 1;
-    this.Sort = '';
-    this.Desc = false;
+    this.pageSize = -1; // this is a flag to let the pagers know if paging is enabled
+    this.page = 1;
+    this.sort = '';
+    this.desc = false;
     this.search = '';
 
     if ( gp.getType( data ) == 'object' ) {
@@ -2352,17 +2231,17 @@ gp.RequestModel = function (data) {
 
     Object.defineProperty(self, 'pageindex', {
         get: function () {
-            return self.Page - 1;
+            return self.page - 1;
         }
     });
 
     Object.defineProperty(self, 'skip', {
         get: function () {
-            if (self.PageSize !== -1) {
+            if (self.pageSize !== -1) {
                 if (self.PageCount === 0) return 0;
-                if (self.Page < 1) self.Page = 1;
-                else if (self.Page > self.PageCount) return self.Page = self.PageCount;
-                return self.pageindex * self.PageSize;
+                if (self.page < 1) self.page = 1;
+                else if (self.page > self.PageCount) return self.page = self.PageCount;
+                return self.pageindex * self.pageSize;
             }
             return 0;
         }
@@ -2370,8 +2249,8 @@ gp.RequestModel = function (data) {
 
     Object.defineProperty( self, 'PageCount', {
         get: function () {
-            if ( self.PageSize > 0 ) {
-                return Math.ceil( self.total / self.PageSize );
+            if ( self.pageSize > 0 ) {
+                return Math.ceil( self.total / self.pageSize );
             }
             if ( self.total === 0 ) return 0;
             return 1;
@@ -2380,10 +2259,10 @@ gp.RequestModel = function (data) {
 };
 
 gp.RequestModel.prototype = {
-    PageSize: -1, // this is a flag to let the pagers know if paging is enabled
-    Page: 1,
-    Sort: '',
-    Desc: false,
+    pageSize: -1, // this is a flag to let the pagers know if paging is enabled
+    page: 1,
+    sort: '',
+    desc: false,
     search: '',
     Data: [],
     total: 0
@@ -2916,11 +2795,11 @@ gp.templates.pagerBar = function ( $requestModel ) {
     var requestModel = gp.shallowCopy($requestModel),
         html = new gp.StringBuilder();
 
-    requestModel.IsFirstPage = requestModel.Page === 1;
-    requestModel.IsLastPage = requestModel.Page === requestModel.PageCount;
+    requestModel.IsFirstPage = requestModel.page === 1;
+    requestModel.IsLastPage = requestModel.page === requestModel.PageCount;
     requestModel.HasPages = requestModel.PageCount > 1;
-    requestModel.PreviousPage = requestModel.Page === 1 ? 1 : requestModel.Page - 1;
-    requestModel.NextPage = requestModel.Page === requestModel.PageCount ? requestModel.PageCount : requestModel.Page + 1;
+    requestModel.PreviousPage = requestModel.page === 1 ? 1 : requestModel.page - 1;
+    requestModel.NextPage = requestModel.page === requestModel.PageCount ? requestModel.PageCount : requestModel.page + 1;
 
     requestModel.firstPageClass = (requestModel.IsFirstPage ? 'disabled' : '');
     requestModel.lastPageClass = (requestModel.IsLastPage ? 'disabled' : '');
@@ -2934,7 +2813,7 @@ gp.templates.pagerBar = function ( $requestModel ) {
             .add( '<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>' )
             .add( '</button>' )
             .add( '</div>' )
-            .add( '<input type="number" name="Page" value="{{page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />' )
+            .add( '<input type="number" name="page" value="{{page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />' )
             .add( '<span class="page-count"> of {{PageCount}}</span>' )
             .add( '<div class="btn-group">' )
             .add( '<button class="ms-page-index btn btn-default {{lastPageClass}}" title="Next page" value="page" data-page="{{NextPage}}">' )
@@ -2953,8 +2832,8 @@ gp.templates.pagerBar.$inject = ['$requestModel'];
 gp.templates.sortStyle = function ( $config ) {
     var model = {
         id: $config.ID,
-        sort: $config.requestModel.Sort,
-        glyph: $config.requestModel.Desc ? '\\e114' : '\\e113' // glyphicon-chevron-down, glyphicon-chevron-up
+        sort: $config.requestModel.sort,
+        glyph: $config.requestModel.desc ? '\\e114' : '\\e113' // glyphicon-chevron-down, glyphicon-chevron-up
     };
     var template =
         '#{{id}} a.table-sort[data-sort="{{{sort}}}"] > span.glyphicon { display:inline; } ' +

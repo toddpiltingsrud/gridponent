@@ -488,11 +488,11 @@ gp.templates.pagerBar = function ( $requestModel ) {
     var requestModel = gp.shallowCopy($requestModel),
         html = new gp.StringBuilder();
 
-    requestModel.IsFirstPage = requestModel.Page === 1;
-    requestModel.IsLastPage = requestModel.Page === requestModel.PageCount;
+    requestModel.IsFirstPage = requestModel.page === 1;
+    requestModel.IsLastPage = requestModel.page === requestModel.PageCount;
     requestModel.HasPages = requestModel.PageCount > 1;
-    requestModel.PreviousPage = requestModel.Page === 1 ? 1 : requestModel.Page - 1;
-    requestModel.NextPage = requestModel.Page === requestModel.PageCount ? requestModel.PageCount : requestModel.Page + 1;
+    requestModel.PreviousPage = requestModel.page === 1 ? 1 : requestModel.page - 1;
+    requestModel.NextPage = requestModel.page === requestModel.PageCount ? requestModel.PageCount : requestModel.page + 1;
 
     requestModel.firstPageClass = (requestModel.IsFirstPage ? 'disabled' : '');
     requestModel.lastPageClass = (requestModel.IsLastPage ? 'disabled' : '');
@@ -506,7 +506,7 @@ gp.templates.pagerBar = function ( $requestModel ) {
             .add( '<span class="glyphicon glyphicon-menu-left" aria-hidden="true"></span>' )
             .add( '</button>' )
             .add( '</div>' )
-            .add( '<input type="number" name="Page" value="{{page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />' )
+            .add( '<input type="number" name="page" value="{{page}}" class="form-control" style="width:75px;display:inline-block;vertical-align:middle" />' )
             .add( '<span class="page-count"> of {{PageCount}}</span>' )
             .add( '<div class="btn-group">' )
             .add( '<button class="ms-page-index btn btn-default {{lastPageClass}}" title="Next page" value="page" data-page="{{NextPage}}">' )
@@ -525,8 +525,8 @@ gp.templates.pagerBar.$inject = ['$requestModel'];
 gp.templates.sortStyle = function ( $config ) {
     var model = {
         id: $config.ID,
-        sort: $config.requestModel.Sort,
-        glyph: $config.requestModel.Desc ? '\\e114' : '\\e113' // glyphicon-chevron-down, glyphicon-chevron-up
+        sort: $config.requestModel.sort,
+        glyph: $config.requestModel.desc ? '\\e114' : '\\e113' // glyphicon-chevron-down, glyphicon-chevron-up
     };
     var template =
         '#{{id}} a.table-sort[data-sort="{{{sort}}}"] > span.glyphicon { display:inline; } ' +

@@ -1,3 +1,28 @@
+QUnit.test('toolbar', function (assert) {
+
+    var done1 = assert.async();
+
+    var options = gp.shallowCopy(configuration);
+
+    options.toolbar = '<input type="text" name="category" value="1" />';
+
+    gridponent('#table .box', options).ready(function (api) {
+
+        var input = api.find('div.table-toolbar input[name=category]');
+
+        assert.equal(input.length, 1, 'should create a custom toolbar');
+
+        // clean up
+        api.dispose();
+
+        //$('#table .box').empty();
+
+        done1();
+
+    });
+
+});
+
 QUnit.test('empty table text', function (assert) {
 
     var done1 = assert.async();
@@ -330,7 +355,7 @@ QUnit.test( 'update footer after creating a row', function ( assert ) {
 //        // find the ProductNumber column
 //        var productNumber1 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).html();
 
-//        var pageNumber1 = api.config.requestModel.Page;
+//        var pageNumber1 = api.config.requestModel.page;
 
 //        var btn = api.find( 'button[title="Next page"]' );
 
@@ -338,7 +363,7 @@ QUnit.test( 'update footer after creating a row', function ( assert ) {
 
 //        var productNumber2 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).html();
 
-//        var pageNumber2 = api.config.requestModel.Page;
+//        var pageNumber2 = api.config.requestModel.page;
 
 //        assert.notStrictEqual( productNumber1, productNumber2, 'paging should change the contents of the grid to the next set' );
 //        assert.notStrictEqual( pageNumber1, pageNumber2, 'paging should change the contents of the grid to the next set' );
@@ -825,7 +850,7 @@ QUnit.test( 'gp.getFormattedValue', function ( assert ) {
 QUnit.test( 'gp.implements', function ( assert ) {
 
     var model = {
-        PageSize: 25
+        pageSize: 25
     }
 
     assert.ok( gp.implements( model, gp.RequestModel.prototype ) );
@@ -1417,11 +1442,11 @@ QUnit.test( 'override pagerBar', function ( assert ) {
         var requestModel = gp.shallowCopy( $requestModel ),
             html = new gp.StringBuilder();
 
-        requestModel.IsFirstPage = requestModel.Page === 1;
-        requestModel.IsLastPage = requestModel.Page === requestModel.PageCount;
+        requestModel.IsFirstPage = requestModel.page === 1;
+        requestModel.IsLastPage = requestModel.page === requestModel.PageCount;
         requestModel.HasPages = requestModel.PageCount > 1;
-        requestModel.PreviousPage = requestModel.Page === 1 ? 1 : requestModel.Page - 1;
-        requestModel.NextPage = requestModel.Page === requestModel.PageCount ? requestModel.PageCount : requestModel.Page + 1;
+        requestModel.PreviousPage = requestModel.page === 1 ? 1 : requestModel.page - 1;
+        requestModel.NextPage = requestModel.page === requestModel.PageCount ? requestModel.PageCount : requestModel.page + 1;
 
         requestModel.firstPageClass = ( requestModel.IsFirstPage ? 'disabled' : '' );
         requestModel.lastPageClass = ( requestModel.IsLastPage ? 'disabled' : '' );
@@ -2385,7 +2410,7 @@ QUnit.test( 'paging', function ( assert ) {
         // find the ProductNumber column
         var productNumber1 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).html();
 
-        var pageNumber1 = api.config.requestModel.Page;
+        var pageNumber1 = api.config.requestModel.page;
 
         var btn = api.find( 'button[title="Next page"]' );
 
@@ -2393,7 +2418,7 @@ QUnit.test( 'paging', function ( assert ) {
 
         var productNumber2 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).html();
 
-        var pageNumber2 = api.config.requestModel.Page;
+        var pageNumber2 = api.config.requestModel.page;
 
         assert.notStrictEqual( productNumber1, productNumber2, 'paging should change the contents of the grid to the next set' );
         assert.notStrictEqual( pageNumber1, pageNumber2, 'paging should change the contents of the grid to the next set' );
@@ -2923,11 +2948,11 @@ QUnit.test( 'toolbarChangeHandler', function ( assert ) {
         assert.equal( api.config.requestModel.search, '1000' );
 
         evt.target.value = '2';
-        evt.target.name = 'Page';
+        evt.target.name = 'page';
 
         api.controller.toolbarChangeHandler( evt );
 
-        assert.equal( api.config.requestModel.Page, 2 );
+        assert.equal( api.config.requestModel.page, 2 );
 
         done1();
 
@@ -2970,7 +2995,7 @@ QUnit.test( 'gp.ClientPager', function ( assert ) {
         var model = new gp.RequestModel();
 
         // turn paging off
-        model.PageSize = -1;
+        model.pageSize = -1;
 
         pager.read( model, function ( response ) {
             assert.ok( response != null );
@@ -2978,7 +3003,7 @@ QUnit.test( 'gp.ClientPager', function ( assert ) {
         } );
 
         // turn paging on
-        model.PageSize = 10;
+        model.pageSize = 10;
 
         pager.read( model, function ( response ) {
             assert.equal( response.Data.length, 10, 'should return a subset of rows' );
@@ -2998,7 +3023,7 @@ QUnit.test( 'gp.ClientPager', function ( assert ) {
             assert.equal( response.Data[0].MakeFlag, false, 'ascending sort should put false values at the top' );
         } );
 
-        model.Desc = true;
+        model.desc = true;
 
         pager.read( model, function ( response ) {
             assert.equal( response.Data[0].MakeFlag, true, 'descending sort should put true values at the top' );
@@ -3006,9 +3031,9 @@ QUnit.test( 'gp.ClientPager', function ( assert ) {
 
         // descending string sort 
         model.sort = 'Color';
-        model.PageSize = -1;
+        model.pageSize = -1;
 
-        model.Desc = true;
+        model.desc = true;
 
         pager.read( model, function ( response ) {
             assert.ok( gp.hasValue( response.Data[0].Color ), 'descending string sort should put non-null values at the top ' );
@@ -3016,7 +3041,7 @@ QUnit.test( 'gp.ClientPager', function ( assert ) {
         } );
 
         // ascending string sort
-        model.Desc = false;
+        model.desc = false;
 
         pager.read( model, function ( response ) {
             assert.ok( response.Data[0].Color == null, 'ascending string sort should put null values at the top ' );
@@ -3024,39 +3049,17 @@ QUnit.test( 'gp.ClientPager', function ( assert ) {
         } );
 
         // page range checks
-        model.PageSize = 25;
-        model.Page = 0;
+        model.pageSize = 25;
+        model.page = 0;
 
         pager.getSkip( model );
 
-        assert.equal( model.Page, 1, 'getSkip should correct values outside of the page range' );
+        assert.equal( model.page, 1, 'getSkip should correct values outside of the page range' );
 
-        model.Page = model.PageCount + 1;
+        model.page = model.PageCount + 1;
         pager.getSkip( model );
 
-        assert.equal( model.Page, model.PageCount, 'getSkip should correct values outside of the page range' );
-
-        done();
-
-    } );
-
-} );
-
-QUnit.test( 'toolbar', function ( assert ) {
-
-    var done = assert.async();
-
-    var options = gp.shallowCopy( configOptions );
-
-    options.toolbar = true;
-
-    getTableConfig( options, function ( api ) {
-
-        var config = api.config;
-
-        var btn = $( config.node ).find( 'div.table-toolbar button[value=xyz]' );
-
-        assert.equal( btn.length, 1, 'should create a custom toolbar' );
+        assert.equal( model.page, model.PageCount, 'getSkip should correct values outside of the page range' );
 
         done();
 
@@ -3494,11 +3497,11 @@ QUnit.test( 'api.read', function ( assert ) {
     getTableConfig( options, function ( api ) {
 
         var requestModel = new gp.RequestModel();
-        requestModel.PageSize = 25;
-        requestModel.Page = 2;
+        requestModel.pageSize = 25;
+        requestModel.page = 2;
 
         api.read( requestModel, function ( model ) {
-            assert.strictEqual( model.Page, 2, 'should be able to set the page' );
+            assert.strictEqual( model.page, 2, 'should be able to set the page' );
             done();
         } );
 
@@ -3569,7 +3572,7 @@ QUnit.test( 'api.destroy', function ( assert ) {
 
 } );
 
-QUnit.test( 'requestModel.Desc', function ( assert ) {
+QUnit.test( 'requestModel.desc', function ( assert ) {
 
     var done = assert.async();
 
@@ -3582,7 +3585,7 @@ QUnit.test( 'requestModel.Desc', function ( assert ) {
 
         clickButton( sortInput );
 
-        assert.equal( config.requestModel.Desc, false );
+        assert.equal( config.requestModel.desc, false );
 
         // Need a fresh reference to the input or the second change event won't do anything.
         // This happens when thead is inside div.table-body (no fixed headers) because thead gets rendered again.
@@ -3590,7 +3593,7 @@ QUnit.test( 'requestModel.Desc', function ( assert ) {
 
         clickButton( sortInput );
 
-        assert.equal( config.requestModel.Desc, true );
+        assert.equal( config.requestModel.desc, true );
 
         done();
 
@@ -3846,13 +3849,13 @@ QUnit.test( 'gp.getObjectAtPath', function ( assert ) {
 
 //    assert.equal( rm.skip, 0 );
 
-//    rm.PageSize = 25;
+//    rm.pageSize = 25;
 
 //    assert.equal( rm.PageCount, Math.ceil( data.products.length / 25 ) );
 
 //    assert.equal( rm.skip, 0 );
 
-//    rm.Page = 3;
+//    rm.page = 3;
 
 //    assert.equal( rm.skip, 50 );
 //} );
@@ -3888,7 +3891,7 @@ QUnit.test( 'gp.DataLayer', function ( assert ) {
         } );
 
         // turn paging on
-        request.PageSize = 10;
+        request.pageSize = 10;
 
         model.read( request, function ( response ) {
             assert.equal( response.Data.length, 10, 'should return a subset of rows' );
@@ -3911,7 +3914,7 @@ QUnit.test( 'gp.DataLayer', function ( assert ) {
             done4();
         } );
 
-        request.Desc = true;
+        request.desc = true;
 
         model.read( request, function ( response ) {
             assert.equal( response.Data[0].MakeFlag, true, 'descending sort should put true values at the top' );

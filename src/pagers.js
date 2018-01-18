@@ -10,7 +10,7 @@ gp.ServerPager.prototype = {
         var copy = gp.shallowCopy(model);
         // delete anything we don't want to send to the server
         var props = Object.getOwnPropertyNames(copy).forEach(function (prop) {
-            if (/^(page|top|sort|Desc|search)$/i.test(prop) == false) {
+            if (/^(page|top|sort|desc|search)$/i.test(prop) == false) {
                 delete copy[prop];
             }
         });
@@ -79,7 +79,7 @@ gp.ClientPager.prototype = {
             if (gp.isNullOrEmpty(model.sort) === false) {
                 var col = gp.getColumnByField( this.columns, model.sort );
                 if (gp.hasValue(col)) {
-                    var sortFunction = this.getSortFunction( col, model.Desc );
+                    var sortFunction = this.getSortFunction( col, model.desc );
                     model.Data.sort( function ( row1, row2 ) {
                         return sortFunction( row1[model.sort], row2[model.sort] );
                     });
@@ -87,8 +87,8 @@ gp.ClientPager.prototype = {
             }
 
             // then page
-            if (model.PageSize !== -1) {
-                model.Data = model.Data.slice(skip).slice(0, model.PageSize);
+            if (model.pageSize !== -1) {
+                model.Data = model.Data.slice(skip).slice(0, model.pageSize);
             }
         }
         catch (ex) {
@@ -101,13 +101,13 @@ gp.ClientPager.prototype = {
         if ( data.PageCount == 0 ) {
             return 0;
         }
-        if ( data.Page < 1 ) {
-            data.Page = 1;
+        if ( data.page < 1 ) {
+            data.page = 1;
         }
-        else if ( data.Page > data.PageCount ) {
-            return data.Page = data.PageCount;
+        else if ( data.page > data.PageCount ) {
+            return data.page = data.PageCount;
         }
-        return ( data.Page - 1 ) * data.PageSize;
+        return ( data.page - 1 ) * data.pageSize;
     },
     getSortFunction: function (col, desc) {
         if ( /^(number|date|boolean)$/.test( col.Type ) ) {

@@ -9,7 +9,7 @@ gp.Controller = function ( config, model, requestModel, injector ) {
     this.injector = injector;
     this.pollInterval = null;
     if ( config.pager ) {
-        this.requestModel.PageSize = 25;
+        this.requestModel.pageSize = 25;
     }
     // calling bind returns a new function
     // so to be able to remove the handlers later, 
@@ -191,7 +191,7 @@ gp.Controller.prototype = {
                 break;
             case 'page':
                 var page = $btn.attr( 'data-page' );
-                model.Page = parseInt( page );
+                model.page = parseInt( page );
                 this.read();
                 break;
             case 'search':
@@ -200,12 +200,12 @@ gp.Controller.prototype = {
                 break;
             case 'sort':
                 var sort = $btn.attr( 'data-sort' );
-                if ( model.Sort === sort ) {
-                    model.Desc = !model.Desc;
+                if ( model.sort === sort ) {
+                    model.desc = !model.desc;
                 }
                 else {
-                    model.Sort = sort;
-                    model.Desc = false;
+                    model.sort = sort;
+                    model.desc = false;
                 }
                 this.read();
                 break;
@@ -310,7 +310,7 @@ gp.Controller.prototype = {
 
     sort: function ( field, desc, callback ) {
         this.config.requestModel.sort = field;
-        this.config.requestModel.Desc = ( desc == true );
+        this.config.requestModel.desc = ( desc == true );
         this.read( null, callback );
     },
 
@@ -325,6 +325,7 @@ gp.Controller.prototype = {
             try {
                 gp.shallowCopy( model, self.config.requestModel );
                 self.injector.setResource( '$data', self.config.requestModel.Data );
+                self.injector.setResource( '$requestModel', self.config.requestModel );
                 self.config.map.clear();
                 gp.resolveTypes( self.config );
                 self.refresh( self.config );
