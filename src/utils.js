@@ -215,7 +215,7 @@
         getTableRow: function ( map, dataItem, node ) {
             var uid = map.getUid( dataItem );
             if ( uid == -1 ) return;
-            return $( node ).find( 'tr[data-uid="' + uid + '"]' );
+            return $( node ).find( '[data-uid="' + uid + '"]' );
         },
 
         getType: function ( a ) {

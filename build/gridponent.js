@@ -1,4 +1,5 @@
-﻿// gridponent.js
+/*! gridponent 2018-05-30 */
+// gridponent.js
 // version : 0.1-beta
 // author : Todd Piltingsrud
 // license : MIT
@@ -30,6 +31,7 @@ var gridponent = gridponent || function ( elem, options ) {
 
 (function(gp) { 
     'use strict';
+
 /***************\
       API
 \***************/
@@ -171,6 +173,7 @@ gp.api.prototype.rowSelected = function ( callback ) {
     }
     return this;
 };
+
 /***************\
    controller
 \***************/
@@ -336,7 +339,7 @@ gp.Controller.prototype = {
         // this function handles all the button clicks for the entire grid
         var lower,
             $btn = $( evt.currentTarget ),
-            rowOrModal = $btn.closest( 'tr[data-uid],div.modal', this.config.node ),
+            rowOrModal = $btn.closest( '[data-uid],div.modal', this.config.node ),
             dataItem = rowOrModal.length ? this.config.map.get( rowOrModal[0] ) : null,
             value = $btn.attr('value'),
             cmd = gp.getCommand( this.config.columns, value ),
@@ -447,10 +450,14 @@ gp.Controller.prototype = {
         // simple test to see if config.rowselected is a template
         if ( type === 'string' && config.rowselected.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
 
-        selected.removeClass( 'selected' );
+        selected
+            .removeClass( 'selected' )
+            .attr('aria-selected', 'false');
 
-        // add selected class
-        $( tr ).addClass( 'selected' );
+        $( tr )
+            .addClass( 'selected' )
+            .attr('aria-selected', 'true');
+
         // get the dataItem for this tr
         dataItem = config.map.get( tr );
 
@@ -499,6 +506,7 @@ gp.Controller.prototype = {
                 gp.shallowCopy( model, self.config.requestModel );
                 self.injector.setResource( '$data', self.config.requestModel.Data );
                 self.injector.setResource( '$requestModel', self.config.requestModel );
+                self.injector.setResource( '$mode', 'read' );
                 self.config.map.clear();
                 gp.resolveTypes( self.config );
                 self.refresh( self.config );
@@ -1487,6 +1495,7 @@ $.extend(gp.ModalEditor.prototype, {
     }
 
 });
+
 /***************\
      http        
 \***************/
@@ -1526,6 +1535,7 @@ gp.Http.prototype = {
     }
 
 };
+
 /***************\
    Initializer
 \***************/
@@ -1834,6 +1844,7 @@ gp.Injector.prototype = {
     }
 
 };
+
 /***************\
    ModelSync
 \***************/
@@ -1912,11 +1923,14 @@ gp.ModelSync = {
                     return;
                 }
             }
+
+            return;
         }
 
-        // check for boolean
+        // check for boolean, case-insensitive
         if ( /^(true|false)$/i.test( value ) ) {
-            elem = $( context ).find( '[type=checkbox][name="' + prop + '"][value=true],[type=checkbox][name="' + prop + '"][value=false]' );
+            elem = $(context).find('[type=checkbox][name="' + prop + '"][value=true],[type=checkbox][name="' + prop + '"][value=false]')
+                .add('[type=radio][name="' + prop + '"][value=true],[type=radio][name="' + prop + '"][value=false]');
 
             if ( elem.length > 0 ) {
                 elem.each( function ( e ) {
@@ -1998,6 +2012,7 @@ gp.ModelSync = {
         }
     }
 };
+
 /***************\
 server-side pager
 \***************/
@@ -2274,6 +2289,7 @@ gp.ResponseModel = function ( dataItem, validationErrors ) {
     this.DataItem = dataItem;
     this.Errors = validationErrors;
 };
+
 /***************\
   StringBuilder
 \***************/
@@ -2363,7 +2379,7 @@ gp.templates.bootstrapModal = function ( $config, $dataItem, $injector, $mode ) 
         uid = $config.map.getUid( $dataItem );
 
     var html = new gp.StringBuilder();
-    html.add( '<div class="modal fade" tabindex="-1" role="dialog" data-uid="' + uid + '">' )
+    html.addFormat( '<div class="modal fade" tabindex="-1" role="dialog" data-uid="{{0}}">', uid )
         .add( '<div class="modal-dialog" role="document">' )
         .add( '<div class="modal-content">' )
         .add( '<div class="modal-header">' )
@@ -2512,7 +2528,7 @@ gp.templates.container = function ( $config, $injector ) {
         // render a separate table for fixed headers
         // and sync column widths between this table and the one below
         html.add( '<div class="table-header">' )
-            .add( '<table class="table" cellpadding="0" cellspacing="0">' )
+            .add( '<table class="table">' )
             .add( $injector.exec( 'header' ) )
             .add( '</table>' )
             .add( '</div>' );
@@ -2849,7 +2865,7 @@ gp.templates.sortStyle.$inject = ['$config'];
 
 gp.templates.tableBody = function ( $config, $injector ) {
     var html = new gp.StringBuilder();
-    html.addFormat( '<table class="table {{0}}" cellpadding="0" cellspacing="0">', $config.tableclass );
+    html.addFormat( '<table role="grid" class="table {{0}}" cellpadding="0" cellspacing="0">', $config.tableclass );
     if ( !$config.fixedheaders ) {
         html.add( $injector.exec( 'header' ) );
     }
@@ -2942,7 +2958,7 @@ gp.templates.toolbar = function ( $config, $injector ) {
 
     if ( $config.search ) {
         html.add( '<div class="input-group gp-searchbox">' )
-            .add( '<input type="text" name="search" class="form-control" placeholder="Search...">' )
+            .add( '<input type="text" name="search" role="searchbox" class="form-control" placeholder="Search...">' )
             .add( '<span class="input-group-btn">' )
             .add( $injector.exec( 'button', {
                 btnClass: 'btn-default',
@@ -3183,7 +3199,7 @@ gp.templates.toolbar.$inject = ['$config', '$injector'];
         getTableRow: function ( map, dataItem, node ) {
             var uid = map.getUid( dataItem );
             if ( uid == -1 ) return;
-            return $( node ).find( 'tr[data-uid="' + uid + '"]' );
+            return $( node ).find( '[data-uid="' + uid + '"]' );
         },
 
         getType: function ( a ) {
@@ -3400,6 +3416,7 @@ gp.templates.toolbar.$inject = ['$config', '$injector'];
     } );
 
 } )( gridponent );
+
 // check for web component support
 if (document.registerElement) {
 
@@ -3437,4 +3454,3 @@ else {
 }
 
 })(gridponent);
-

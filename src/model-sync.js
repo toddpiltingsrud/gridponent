@@ -76,11 +76,14 @@ gp.ModelSync = {
                     return;
                 }
             }
+
+            return;
         }
 
-        // check for boolean
+        // check for boolean, case-insensitive
         if ( /^(true|false)$/i.test( value ) ) {
-            elem = $( context ).find( '[type=checkbox][name="' + prop + '"][value=true],[type=checkbox][name="' + prop + '"][value=false]' );
+            elem = $(context).find('[type=checkbox][name="' + prop + '"][value=true],[type=checkbox][name="' + prop + '"][value=false]')
+                .add('[type=radio][name="' + prop + '"][value=true],[type=radio][name="' + prop + '"][value=false]');
 
             if ( elem.length > 0 ) {
                 elem.each( function ( e ) {

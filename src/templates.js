@@ -56,7 +56,7 @@ gp.templates.bootstrapModal = function ( $config, $dataItem, $injector, $mode ) 
         uid = $config.map.getUid( $dataItem );
 
     var html = new gp.StringBuilder();
-    html.add( '<div class="modal fade" tabindex="-1" role="dialog" data-uid="' + uid + '">' )
+    html.addFormat( '<div class="modal fade" tabindex="-1" role="dialog" data-uid="{{0}}">', uid )
         .add( '<div class="modal-dialog" role="document">' )
         .add( '<div class="modal-content">' )
         .add( '<div class="modal-header">' )
@@ -205,7 +205,7 @@ gp.templates.container = function ( $config, $injector ) {
         // render a separate table for fixed headers
         // and sync column widths between this table and the one below
         html.add( '<div class="table-header">' )
-            .add( '<table class="table" cellpadding="0" cellspacing="0">' )
+            .add( '<table class="table">' )
             .add( $injector.exec( 'header' ) )
             .add( '</table>' )
             .add( '</div>' );
@@ -542,7 +542,7 @@ gp.templates.sortStyle.$inject = ['$config'];
 
 gp.templates.tableBody = function ( $config, $injector ) {
     var html = new gp.StringBuilder();
-    html.addFormat( '<table class="table {{0}}" cellpadding="0" cellspacing="0">', $config.tableclass );
+    html.addFormat( '<table role="grid" class="table {{0}}" cellpadding="0" cellspacing="0">', $config.tableclass );
     if ( !$config.fixedheaders ) {
         html.add( $injector.exec( 'header' ) );
     }
@@ -635,7 +635,7 @@ gp.templates.toolbar = function ( $config, $injector ) {
 
     if ( $config.search ) {
         html.add( '<div class="input-group gp-searchbox">' )
-            .add( '<input type="text" name="search" class="form-control" placeholder="Search...">' )
+            .add( '<input type="text" name="search" role="searchbox" class="form-control" placeholder="Search...">' )
             .add( '<span class="input-group-btn">' )
             .add( $injector.exec( 'button', {
                 btnClass: 'btn-default',

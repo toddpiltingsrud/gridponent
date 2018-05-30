@@ -163,7 +163,7 @@ gp.Controller.prototype = {
         // this function handles all the button clicks for the entire grid
         var lower,
             $btn = $( evt.currentTarget ),
-            rowOrModal = $btn.closest( 'tr[data-uid],div.modal', this.config.node ),
+            rowOrModal = $btn.closest( '[data-uid],div.modal', this.config.node ),
             dataItem = rowOrModal.length ? this.config.map.get( rowOrModal[0] ) : null,
             value = $btn.attr('value'),
             cmd = gp.getCommand( this.config.columns, value ),
@@ -274,10 +274,14 @@ gp.Controller.prototype = {
         // simple test to see if config.rowselected is a template
         if ( type === 'string' && config.rowselected.indexOf( '{{' ) !== -1 ) type = 'urlTemplate';
 
-        selected.removeClass( 'selected' );
+        selected
+            .removeClass( 'selected' )
+            .attr('aria-selected', 'false');
 
-        // add selected class
-        $( tr ).addClass( 'selected' );
+        $( tr )
+            .addClass( 'selected' )
+            .attr('aria-selected', 'true');
+
         // get the dataItem for this tr
         dataItem = config.map.get( tr );
 
@@ -326,6 +330,7 @@ gp.Controller.prototype = {
                 gp.shallowCopy( model, self.config.requestModel );
                 self.injector.setResource( '$data', self.config.requestModel.Data );
                 self.injector.setResource( '$requestModel', self.config.requestModel );
+                self.injector.setResource( '$mode', 'read' );
                 self.config.map.clear();
                 gp.resolveTypes( self.config );
                 self.refresh( self.config );

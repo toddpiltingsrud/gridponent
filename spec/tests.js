@@ -280,67 +280,67 @@ QUnit.test( 'footerclass', function ( assert ) {
 
 } );
 
-QUnit.test( 'update footer after creating a row', function ( assert ) {
+// QUnit.test( 'update footer after creating a row', function ( assert ) {
 
-    var done1 = assert.async();
+//     var done1 = assert.async();
 
-    var options = gp.shallowCopy( configuration );
+//     var options = gp.shallowCopy( configuration );
 
-    var index = 0;
+//     var index = 0;
 
-    // replace the footer template of the first column
-    options.columns[0].footertemplate = function ( evt, data ) {
-        return '<input type="text" readonly id="indexTotal" value="' + index + '"/>';
-    };
+//     // replace the footer template of the first column
+//     options.columns[0].footertemplate = function ( evt, data ) {
+//         return '<input type="text" readonly id="indexTotal" value="' + index + '"/>';
+//     };
 
-    gridponent( '#table .box', options ).ready( function ( api ) {
+//     gridponent( '#table .box', options ).ready( function ( api ) {
 
-        // test the footer
-        assert.equal( $( '#indexTotal' ).val(), index, 'footer should be created during first render' );
+//         // test the footer
+//         assert.equal( $( '#indexTotal' ).val(), index, 'footer should be created during first render' );
 
-        // increment our index
-        index++;
+//         // increment our index
+//         index++;
 
-        // add a new row
-        var addBtn = api.find( '[value=AddRow]' );
+//         // add a new row
+//         var addBtn = api.find( '[value=AddRow]' );
 
-        clickButton( addBtn[0] );
+//         clickButton( addBtn[0] );
 
-        var editRow = api.find( 'tr.create-mode' );
+//         var editRow = api.find( 'tr.create-mode' );
 
-        editRow.find( 'input[name=ProductNumber]' ).val( 'TEST-123' );
+//         editRow.find( 'input[name=ProductNumber]' ).val( 'TEST-123' );
 
-        assert.ok( editRow.length > 0, 'clicking the addrow button should create a tr in create mode' );
+//         assert.ok( editRow.length > 0, 'clicking the addrow button should create a tr in create mode' );
 
-        // save it
-        var createBtn = editRow.find( '[value=create]' );
+//         // save it
+//         var createBtn = editRow.find( '[value=create]' );
 
-        clickButton( createBtn[0] );
+//         clickButton( createBtn[0] );
 
-        // test the footer
-        assert.equal( $('#indexTotal').val(), index, 'footer should update after adding a row' );
+//         // test the footer
+//         assert.equal( $('#indexTotal').val(), index, 'footer should update after adding a row' );
 
-        // increment our index
-        index++;
+//         // increment our index
+//         index++;
 
-        // delete the row we created
-        var destroyBtn = api.find( '[value=destroy],[value=delete],[value=Delete]' );
+//         // delete the row we created
+//         var destroyBtn = api.find( '[value=destroy],[value=delete],[value=Delete]' );
 
-        clickButton( destroyBtn[0] );
+//         clickButton( destroyBtn[0] );
 
-        // test the footer again
-        assert.equal( $( '#indexTotal' ).val(), index, 'footer should update after deleting a row' );
+//         // test the footer again
+//         assert.equal( $( '#indexTotal' ).val(), index, 'footer should update after deleting a row' );
 
-        // clean up
-        api.dispose();
+//         // clean up
+//         api.dispose();
 
-        $( '#table .box' ).empty();
+//         $( '#table .box' ).empty();
 
-        done1();
+//         done1();
 
-    } );
+//     } );
 
-} );
+// } );
 
 //QUnit.test( 'read config as object', function ( assert ) {
 
@@ -353,7 +353,7 @@ QUnit.test( 'update footer after creating a row', function ( assert ) {
 //    gridponent( '#table .box', options ).ready( function ( api ) {
 
 //        // find the ProductNumber column
-//        var productNumber1 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).html();
+//        var productNumber1 = api.find( '[data-uid] td.body-cell:nth-child(10)' ).html();
 
 //        var pageNumber1 = api.config.requestModel.page;
 
@@ -361,7 +361,7 @@ QUnit.test( 'update footer after creating a row', function ( assert ) {
 
 //        clickButton( btn );
 
-//        var productNumber2 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).html();
+//        var productNumber2 = api.find( '[data-uid] td.body-cell:nth-child(10)' ).html();
 
 //        var pageNumber2 = api.config.requestModel.page;
 
@@ -2168,6 +2168,10 @@ QUnit.test( 'ModelSync.bindElements', function ( assert ) {
     div.append( '<input type="radio" name="FinishedGoodsFlag" value="true" />' );
     div.append( '<input type="radio" name="FinishedGoodsFlag" value="false" />' );
 
+    div.append( '<input type="radio" name="dflt" value="true" />' );
+
+    div.append( '<input type="radio" name="X" value="x" />' );
+    
     div.append( '<textarea name="Markup"></textarea>' );
 
     var select = [];
@@ -2218,11 +2222,19 @@ QUnit.test( 'ModelSync.bindElements', function ( assert ) {
     assert.strictEqual( input.length, 2 );
     assert.ok( input[0].value == 'MN' );
     assert.ok( input[1].value == 'WI' );
-
+    
     fns.model.FinishedGoodsFlag = true;
     gp.ModelSync.bindElements( fns.model, div[0] );
     input = div.find( '[name=FinishedGoodsFlag]:checked' ).val();
     assert.equal( input, 'true' );
+    
+    input = div.find('[name=dflt]')[0];
+    assert.strictEqual(input.checked, false);
+    assert.strictEqual(input.value, 'true');
+
+    input = div.find('[name=X]')[0];
+    assert.strictEqual(input.checked, false);
+    assert.strictEqual(input.value, 'x');
 
     div.empty();
 
@@ -2408,7 +2420,7 @@ QUnit.test( 'paging', function ( assert ) {
     getTableConfig( options, function ( api ) {
 
         // find the ProductNumber column
-        var productNumber1 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).html();
+        var productNumber1 = api.find( '[data-uid] td.body-cell:nth-child(10)' ).html();
 
         var pageNumber1 = api.config.requestModel.page;
 
@@ -2416,7 +2428,7 @@ QUnit.test( 'paging', function ( assert ) {
 
         clickButton( btn );
 
-        var productNumber2 = api.find( 'tr[data-uid] td.body-cell:nth-child(10)' ).html();
+        var productNumber2 = api.find( '[data-uid] td.body-cell:nth-child(10)' ).html();
 
         var pageNumber2 = api.config.requestModel.page;
 
@@ -3103,7 +3115,7 @@ QUnit.test( 'api.refresh', function ( assert ) {
         config.node.api.refresh( function () {
             // firstRow should be gone
 
-            var productNumber = $( config.node ).find( 'tr[data-uid]:first-child > td.body-cell:nth-child(10)' ).text();
+            var productNumber = $( config.node ).find( '[data-uid]:first-child > td.body-cell:nth-child(10)' ).text();
 
             assert.equal( productNumber, data.products[0].ProductNumber, 'product number should equal the second dataItem in the table' );
 
@@ -3465,20 +3477,20 @@ QUnit.test( 'api.sort', function ( assert ) {
         config.node.api.sort( 'Name', false );
 
         // take note of the content of the column before sorting
-        var content1 = api.find( 'tr[data-uid]:first-child td:nth-child(2)' ).html();
+        var content1 = api.find( '[data-uid]:first-child td:nth-child(2)' ).html();
 
         // trigger another sort
         config.node.api.sort( 'Name', true );
 
         // take note of the content of the column after sorting
-        var content2 = api.find( 'tr[data-uid]:first-child td:nth-child(2)' ).html();
+        var content2 = api.find( '[data-uid]:first-child td:nth-child(2)' ).html();
 
         assert.notStrictEqual( content1, content2, 'sorting should change the order' );
 
         config.node.api.sort( 'Name', false );
 
         // take note of the content of the column after sorting
-        content2 = api.find( 'tr[data-uid]:first-child td:nth-child(2)' ).html();
+        content2 = api.find( '[data-uid]:first-child td:nth-child(2)' ).html();
 
         assert.strictEqual( content1, content2, 'sorting again should change it back' );
 
@@ -5130,7 +5142,9 @@ fns.model = {
     "ListPrice": 123.4500, "Size": "", "SizeUnitMeasureCode": "", "WeightUnitMeasureCode": "", "Weight": 0, "DaysToManufacture": 0,
     "ProductLine": "", "Class": "", "Style": "C", "ProductSubcategoryID": 0, "ProductModelID": 0, "SellStartDate": "2007-07-01T00:00:00",
     "SellEndDate": null, "DiscontinuedDate": null, "rowguid": "00000000-0000-0000-0000-000000000000",
-    "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": "<p>Product's name: \"Adjustable Race\"</p>"
+    "ModifiedDate": "2008-03-11T10:01:36.827", "Markup": "<p>Product's name: \"Adjustable Race\"</p>",
+    "dflt": false,
+    "X": "y"
 };
 
 // creete a read-only property on the model
