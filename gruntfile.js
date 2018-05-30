@@ -7,9 +7,10 @@ module.exports = function(grunt) {
             options: {
                 banner: '/*! <%= pkg.name %> <%= grunt.template.today("yyyy-mm-dd") %> */\n'
             },
-            build: {
-                src: 'build/<%= pkg.name %>.js',
-                dest: 'build/<%= pkg.name %>.min.js'
+            my_target: {
+                files: {
+                    'build/<%= pkg.name %>.min.js': ['build/<%= pkg.name %>.js']
+                }
             }
         },
         concat: {
@@ -40,6 +41,24 @@ module.exports = function(grunt) {
                 ],
                 dest: 'build/<%= pkg.name %>.js'
             }
+        },
+        less: {
+            development:  {
+                files:{
+                    'build/<%= pkg.name %>.css':'src/<%= pkg.name %>.less'
+                }
+            }
+        },
+        cssmin: {
+            target: {
+                files: [{
+                    expand: true,
+                    cwd: 'build',
+                    src: ['*.css', '!*.min.css'],
+                    dest: 'build',
+                    ext: '.min.css'
+                  }]
+            }
         }
     });
 
@@ -48,6 +67,10 @@ module.exports = function(grunt) {
 
     grunt.loadNpmTasks('grunt-contrib-concat');
 
+    grunt.loadNpmTasks('assemble-less');
+
+    grunt.loadNpmTasks('grunt-contrib-cssmin');
+    
     // Default task(s).
     grunt.registerTask('default', ['uglify']);
     
